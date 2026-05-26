@@ -42,6 +42,7 @@ THIRD_PARTY_APPS = [
 ]
 
 LOCAL_APPS = [
+    "apps.core",
     "apps.users",
     # "apps.practice",
     # "apps.patients",
@@ -50,7 +51,6 @@ LOCAL_APPS = [
     # "apps.billing",
     # "apps.content",
     # "apps.notifications",
-    # "apps.core",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
