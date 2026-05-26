@@ -1,0 +1,214 @@
+"""
+Serializers for the PEDIACORE billing app.
+
+Follows the project pattern of separate Create / List / Detail serializers
+where the data shape differs significantly between actions.
+"""
+
+from __future__ import annotations
+
+from rest_framework import serializers
+
+from apps.billing.models import Invoice, Payment, PaymentProvider
+
+
+# ---------------------------------------------------------------------------
+# Payment serializers
+# ---------------------------------------------------------------------------
+
+
+class PaymentListSerializer(serializers.ModelSerializer):
+    """Compact serializer for payment list views."""
+
+    patient_name = serializers.SerializerMethodField()
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+    payment_method_display = serializers.CharField(
+        source="get_payment_method_display", read_only=True
+    )
+
+    class Meta:
+        model = Payment
+        fields = [
+            "id",
+            "practice",
+            "appointment",
+            "patient",
+            "patient_name",
+            "amount",
+            "currency",
+            "status",
+            "status_display",
+            "payment_method",
+            "payment_method_display",
+            "paid_at",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "patient_name",
+            "status_display",
+            "payment_method_display",
+            "created_at",
+            "updated_at",
+        ]
+
+    def get_patient_name(self, obj: Payment) -> str:
+        return f"{obj.patient.first_name} {obj.patient.last_name}"
+
+
+class PaymentDetailSerializer(PaymentListSerializer):
+    """Full serializer for payment detail view."""
+
+    paid_by_email = serializers.SerializerMethodField()
+    has_invoice = serializers.SerializerMethodField()
+
+    class Meta(PaymentListSerializer.Meta):
+        fields = PaymentListSerializer.Meta.fields + [
+            "paid_by",
+            "paid_by_email",
+            "external_id",
+            "external_status",
+            "metadata",
+            "notes",
+            "has_invoice",
+        ]
+        read_only_fields = PaymentListSerializer.Meta.read_only_fields + [
+            "paid_by_email",
+            "external_id",
+            "external_status",
+            "metadata",
+            "has_invoice",
+        ]
+
+    def get_paid_by_email(self, obj: Payment) -> str | None:
+        return obj.paid_by.email if obj.paid_by else None
+
+    def get_has_invoice(self, obj: Payment) -> bool:
+        try:
+            return obj.invoice is not None
+        except Invoice.DoesNotExist:
+            return False
+
+
+class PaymentCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating a new payment."""
+
+    class Meta:
+        model = Payment
+        fields = [
+            "id",
+            "practice",
+            "appointment",
+            "patient",
+            "amount",
+            "currency",
+            "payment_method",
+            "notes",
+        ]
+        read_only_fields = ["id"]
+
+    def create(self, validated_data: dict) -> Payment:
+        request = self.context.get("request")
+        if request and hasattr(request, "user") and request.user.is_authenticated:
+            validated_data.setdefault("paid_by", request.user)
+        return super().create(validated_data)
+
+
+class PaymentUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for partial updates to a payment (doctor only)."""
+
+    class Meta:
+        model = Payment
+        fields = [
+            "id",
+            "status",
+            "payment_method",
+            "external_id",
+            "notes",
+            "paid_at",
+        ]
+        read_only_fields = ["id"]
+
+
+# ---------------------------------------------------------------------------
+# Invoice serializers
+# ---------------------------------------------------------------------------
+
+
+class InvoiceListSerializer(serializers.ModelSerializer):
+    """Compact serializer for invoice list views."""
+
+    has_pdf = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Invoice
+        fields = [
+            "id",
+            "practice",
+            "payment",
+            "invoice_number",
+            "patient_name",
+            "service_description",
+            "total",
+            "issued_at",
+            "has_pdf",
+        ]
+        read_only_fields = [
+            "id",
+            "invoice_number",
+            "issued_at",
+            "has_pdf",
+        ]
+
+    def get_has_pdf(self, obj: Invoice) -> bool:
+        return bool(obj.pdf_file)
+
+
+class InvoiceDetailSerializer(InvoiceListSerializer):
+    """Full serializer for invoice detail view."""
+
+    class Meta(InvoiceListSerializer.Meta):
+        fields = InvoiceListSerializer.Meta.fields + [
+            "patient_rut",
+            "subtotal",
+            "tax_amount",
+            "pdf_file",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = InvoiceListSerializer.Meta.read_only_fields + [
+            "patient_rut",
+            "subtotal",
+            "tax_amount",
+            "pdf_file",
+            "created_at",
+            "updated_at",
+        ]
+
+
+# ---------------------------------------------------------------------------
+# PaymentProvider serializers
+# ---------------------------------------------------------------------------
+
+
+class PaymentProviderSerializer(serializers.ModelSerializer):
+    """Serializer for PaymentProvider CRUD (doctor admin only)."""
+
+    provider_type_display = serializers.CharField(
+        source="get_provider_type_display", read_only=True
+    )
+
+    class Meta:
+        model = PaymentProvider
+        fields = [
+            "id",
+            "practice",
+            "provider_type",
+            "provider_type_display",
+            "is_active",
+            "config",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "provider_type_display", "created_at", "updated_at"]
