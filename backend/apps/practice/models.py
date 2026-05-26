@@ -1,0 +1,236 @@
+"""
+Models for the practice app.
+
+Manages clinics (Practice), locations/sedes (Location),
+services offered (Service), working hours (WorkingHours),
+and blocked time slots (BlockedSlot).
+"""
+
+from __future__ import annotations
+
+from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.db import models
+from django.utils.translation import gettext_lazy as _
+
+from apps.core.models import BaseModel, TimeStampedModel
+
+
+class Practice(BaseModel):
+    """
+    The clinic/practice entity.
+
+    There is currently one practice (Dra. Estefanía), but this model
+    exists as a FK target for all business models to prepare for SaaS Fase 3.
+    """
+
+    name = models.CharField(_("name"), max_length=200)
+    slug = models.SlugField(_("slug"), unique=True)
+    description = models.TextField(_("description"), blank=True)
+    logo = models.ImageField(_("logo"), upload_to="practices/logos/", null=True, blank=True)
+    email = models.EmailField(_("email"))
+    phone = models.CharField(_("phone"), max_length=30)
+    website = models.URLField(_("website"), blank=True)
+    is_active = models.BooleanField(_("active"), default=True)
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="owned_practices",
+        verbose_name=_("owner"),
+    )
+
+    class Meta:
+        db_table = "practices"
+        ordering = ["-created_at"]
+        verbose_name = _("practice")
+        verbose_name_plural = _("practices")
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class Location(BaseModel):
+    """
+    Physical location (sede) where the doctor attends patients.
+
+    Estefanía has two locations: Pucón and Villarrica.
+    """
+
+    practice = models.ForeignKey(
+        Practice,
+        on_delete=models.CASCADE,
+        related_name="locations",
+        verbose_name=_("practice"),
+    )
+    name = models.CharField(_("name"), max_length=200)
+    slug = models.SlugField(_("slug"))
+    address = models.TextField(_("address"))
+    city = models.CharField(_("city"), max_length=100)
+    region = models.CharField(_("region"), max_length=100, default="Araucanía")
+    phone = models.CharField(_("phone"), max_length=30, blank=True)
+    email = models.EmailField(_("email"), blank=True)
+    latitude = models.DecimalField(
+        _("latitude"), max_digits=10, decimal_places=7, null=True, blank=True
+    )
+    longitude = models.DecimalField(
+        _("longitude"), max_digits=10, decimal_places=7, null=True, blank=True
+    )
+    is_active = models.BooleanField(_("active"), default=True)
+
+    class Meta:
+        db_table = "locations"
+        ordering = ["name"]
+        unique_together = [("practice", "slug")]
+        verbose_name = _("location")
+        verbose_name_plural = _("locations")
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.practice.name})"
+
+
+class Service(BaseModel):
+    """
+    Service offered by the practice.
+
+    Examples: Consulta General, Control Sano, Urgencia Pediátrica.
+    Services can be in-person only or also available online.
+    """
+
+    practice = models.ForeignKey(
+        Practice,
+        on_delete=models.CASCADE,
+        related_name="services",
+        verbose_name=_("practice"),
+    )
+    name = models.CharField(_("name"), max_length=200)
+    slug = models.SlugField(_("slug"))
+    description = models.TextField(_("description"), blank=True)
+    duration_minutes = models.PositiveIntegerField(_("duration (minutes)"), default=30)
+    price = models.DecimalField(_("price"), max_digits=10, decimal_places=2)
+    is_online_available = models.BooleanField(_("available online"), default=False)
+    is_active = models.BooleanField(_("active"), default=True)
+    locations = models.ManyToManyField(
+        Location,
+        blank=True,
+        related_name="services",
+        verbose_name=_("locations"),
+    )
+
+    class Meta:
+        db_table = "services"
+        ordering = ["name"]
+        unique_together = [("practice", "slug")]
+        verbose_name = _("service")
+        verbose_name_plural = _("services")
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.practice.name})"
+
+
+class WorkingHours(TimeStampedModel):
+    """
+    Weekly schedule per location.
+
+    Defines the regular working hours for each day of the week at a given location.
+    Uses unique_together on (location, day_of_week) to prevent duplicate entries.
+    """
+
+    MONDAY = 0
+    TUESDAY = 1
+    WEDNESDAY = 2
+    THURSDAY = 3
+    FRIDAY = 4
+    SATURDAY = 5
+    SUNDAY = 6
+
+    DAY_OF_WEEK_CHOICES = [
+        (MONDAY, _("Monday")),
+        (TUESDAY, _("Tuesday")),
+        (WEDNESDAY, _("Wednesday")),
+        (THURSDAY, _("Thursday")),
+        (FRIDAY, _("Friday")),
+        (SATURDAY, _("Saturday")),
+        (SUNDAY, _("Sunday")),
+    ]
+
+    practice = models.ForeignKey(
+        Practice,
+        on_delete=models.CASCADE,
+        related_name="working_hours",
+        verbose_name=_("practice"),
+    )
+    location = models.ForeignKey(
+        Location,
+        on_delete=models.CASCADE,
+        related_name="working_hours",
+        verbose_name=_("location"),
+    )
+    day_of_week = models.IntegerField(_("day of week"), choices=DAY_OF_WEEK_CHOICES)
+    start_time = models.TimeField(_("start time"))
+    end_time = models.TimeField(_("end time"))
+    is_active = models.BooleanField(_("active"), default=True)
+
+    class Meta:
+        db_table = "working_hours"
+        ordering = ["day_of_week", "start_time"]
+        unique_together = [("location", "day_of_week")]
+        verbose_name = _("working hours")
+        verbose_name_plural = _("working hours")
+
+    def __str__(self) -> str:
+        return (
+            f"{self.location.name} — {self.get_day_of_week_display()} "
+            f"{self.start_time:%H:%M}–{self.end_time:%H:%M}"
+        )
+
+    def clean(self) -> None:
+        """Validate that end_time is after start_time."""
+        if self.start_time and self.end_time and self.end_time <= self.start_time:
+            raise ValidationError(
+                {"end_time": _("End time must be after start time.")}
+            )
+
+
+class BlockedSlot(TimeStampedModel):
+    """
+    Blocked time period for a location (or all locations when location is null).
+
+    Used for vacations, public holidays, or any unavailability period.
+    When location is null, the block applies to all locations of the practice.
+    """
+
+    practice = models.ForeignKey(
+        Practice,
+        on_delete=models.CASCADE,
+        related_name="blocked_slots",
+        verbose_name=_("practice"),
+    )
+    location = models.ForeignKey(
+        Location,
+        on_delete=models.CASCADE,
+        related_name="blocked_slots",
+        null=True,
+        blank=True,
+        verbose_name=_("location"),
+        help_text=_("Leave blank to block all locations."),
+    )
+    start_datetime = models.DateTimeField(_("start datetime"))
+    end_datetime = models.DateTimeField(_("end datetime"))
+    reason = models.CharField(_("reason"), max_length=200, blank=True)
+
+    class Meta:
+        db_table = "blocked_slots"
+        ordering = ["start_datetime"]
+        verbose_name = _("blocked slot")
+        verbose_name_plural = _("blocked slots")
+
+    def __str__(self) -> str:
+        location_label = self.location.name if self.location else "All locations"
+        return f"{location_label} blocked {self.start_datetime:%Y-%m-%d %H:%M}–{self.end_datetime:%H:%M}"
+
+    def clean(self) -> None:
+        """Validate that end_datetime is after start_datetime."""
+        if self.start_datetime and self.end_datetime and self.end_datetime <= self.start_datetime:
+            raise ValidationError(
+                {"end_datetime": _("End datetime must be after start datetime.")}
+            )

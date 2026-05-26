@@ -20,8 +20,15 @@ INTERNAL_IPS = ["127.0.0.1"]
 # Email backend — console in development
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
-# Use local file storage in development instead of Cloudinary
-DEFAULT_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
+# Use in-memory storage in development/tests instead of Cloudinary
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.InMemoryStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
 
 # Disable throttling in development
 REST_FRAMEWORK["DEFAULT_THROTTLE_CLASSES"] = []  # noqa: F405
