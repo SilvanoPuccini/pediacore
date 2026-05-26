@@ -1,0 +1,142 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "@fontsource-variable/plus-jakarta-sans";
+@import "@fontsource/fraunces";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --radius: 0.625rem;
+  --background: #FBF8F3;
+  --foreground: #2C2C2C;
+  --card: #FFFFFF;
+  --card-foreground: #2C2C2C;
+  --popover: #FFFFFF;
+  --popover-foreground: #2C2C2C;
+  --primary: #4A8590;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F7F0E5;
+  --secondary-foreground: #2C2C2C;
+  --muted: #F7F0E5;
+  --muted-foreground: #6B6B6B;
+  --accent: #F7F0E5;
+  --accent-foreground: #2C2C2C;
+  --destructive: #E8A0A0;
+  --destructive-foreground: #FFFFFF;
+  --border: #E8E6E1;
+  --input: #E8E6E1;
+  --ring: #7BB5BD;
+
+  /* Brand colors */
+  --teal: #7BB5BD;
+  --teal-dark: #4A8590;
+  --coral: #F3A8A1;
+  --mustard: #E5B847;
+  --sage: #A8C9A8;
+  --peach: #F5D5C1;
+  --ink: #2C2C2C;
+  --ink2: #6B6B6B;
+  --ink3: #A0A0A0;
+  --line: #E8E6E1;
+  --bg: #FBF8F3;
+  --cream: #F7F0E5;
+  --surface: #FFFFFF;
+
+  --chart-1: #7BB5BD;
+  --chart-2: #F3A8A1;
+  --chart-3: #E5B847;
+  --chart-4: #A8C9A8;
+  --chart-5: #F5D5C1;
+  --sidebar: #FBF8F3;
+  --sidebar-foreground: #2C2C2C;
+  --sidebar-primary: #4A8590;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #F7F0E5;
+  --sidebar-accent-foreground: #2C2C2C;
+  --sidebar-border: #E8E6E1;
+  --sidebar-ring: #7BB5BD;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Brand palette */
+  --color-teal: var(--teal);
+  --color-teal-dark: var(--teal-dark);
+  --color-coral: var(--coral);
+  --color-mustard: var(--mustard);
+  --color-sage: var(--sage);
+  --color-peach: var(--peach);
+  --color-ink: var(--ink);
+  --color-ink2: var(--ink2);
+  --color-ink3: var(--ink3);
+  --color-line: var(--line);
+  --color-bg: var(--bg);
+  --color-cream: var(--cream);
+  --color-surface: var(--surface);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: "Plus Jakarta Sans Variable", system-ui, sans-serif;
+  --font-display: "Fraunces", serif;
+
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.03), 0 1px 3px rgba(15, 23, 42, 0.04);
+  --shadow-soft: 0 4px 18px rgba(15, 23, 42, 0.04);
+  --shadow-pop: 0 14px 40px rgba(15, 23, 42, 0.08);
+  --shadow-cta: 0 10px 30px rgba(74, 133, 144, 0.28);
+
+  --animate-marquee: marquee var(--duration) infinite linear;
+  --animate-marquee-vertical: marquee-vertical var(--duration) linear infinite;
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(calc(-100% - var(--gap))); }
+  }
+  @keyframes marquee-vertical {
+    from { transform: translateY(0); }
+    to { transform: translateY(calc(-100% - var(--gap))); }
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
