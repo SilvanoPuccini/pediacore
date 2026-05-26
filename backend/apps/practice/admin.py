@@ -1,0 +1,81 @@
+"""
+Django admin configuration for the practice app.
+"""
+
+from django.contrib import admin
+
+from apps.practice.models import BlockedSlot, Location, Practice, Service, WorkingHours
+
+
+class LocationInline(admin.TabularInline):
+    model = Location
+    extra = 1
+    fields = ["name", "slug", "city", "address", "phone", "is_active"]
+    prepopulated_fields = {"slug": ("name",)}
+    show_change_link = True
+
+
+@admin.register(Practice)
+class PracticeAdmin(admin.ModelAdmin):
+    list_display = ["name", "slug", "email", "phone", "is_active", "created_at"]
+    list_filter = ["is_active"]
+    search_fields = ["name", "email"]
+    prepopulated_fields = {"slug": ("name",)}
+    readonly_fields = ["created_at", "updated_at", "deleted_at"]
+    inlines = [LocationInline]
+    fieldsets = [
+        (None, {"fields": ["name", "slug", "description", "logo", "owner"]}),
+        ("Contact", {"fields": ["email", "phone", "website"]}),
+        ("Status", {"fields": ["is_active"]}),
+        ("Timestamps", {"fields": ["created_at", "updated_at", "deleted_at"], "classes": ["collapse"]}),
+    ]
+
+
+@admin.register(Location)
+class LocationAdmin(admin.ModelAdmin):
+    list_display = ["name", "practice", "city", "region", "is_active", "created_at"]
+    list_filter = ["is_active", "practice", "city"]
+    search_fields = ["name", "city", "address"]
+    prepopulated_fields = {"slug": ("name",)}
+    readonly_fields = ["created_at", "updated_at", "deleted_at"]
+    fieldsets = [
+        (None, {"fields": ["practice", "name", "slug"]}),
+        ("Address", {"fields": ["address", "city", "region"]}),
+        ("Contact", {"fields": ["phone", "email"]}),
+        ("Coordinates", {"fields": ["latitude", "longitude"], "classes": ["collapse"]}),
+        ("Status", {"fields": ["is_active"]}),
+        ("Timestamps", {"fields": ["created_at", "updated_at", "deleted_at"], "classes": ["collapse"]}),
+    ]
+
+
+@admin.register(Service)
+class ServiceAdmin(admin.ModelAdmin):
+    list_display = ["name", "practice", "duration_minutes", "price", "is_online_available", "is_active"]
+    list_filter = ["is_active", "is_online_available", "practice"]
+    search_fields = ["name", "description"]
+    prepopulated_fields = {"slug": ("name",)}
+    filter_horizontal = ["locations"]
+    readonly_fields = ["created_at", "updated_at", "deleted_at"]
+    fieldsets = [
+        (None, {"fields": ["practice", "name", "slug", "description"]}),
+        ("Details", {"fields": ["duration_minutes", "price", "is_online_available"]}),
+        ("Locations", {"fields": ["locations"]}),
+        ("Status", {"fields": ["is_active"]}),
+        ("Timestamps", {"fields": ["created_at", "updated_at", "deleted_at"], "classes": ["collapse"]}),
+    ]
+
+
+@admin.register(WorkingHours)
+class WorkingHoursAdmin(admin.ModelAdmin):
+    list_display = ["location", "practice", "day_of_week", "start_time", "end_time", "is_active"]
+    list_filter = ["is_active", "practice", "location", "day_of_week"]
+    ordering = ["location", "day_of_week"]
+    readonly_fields = ["created_at", "updated_at"]
+
+
+@admin.register(BlockedSlot)
+class BlockedSlotAdmin(admin.ModelAdmin):
+    list_display = ["practice", "location", "start_datetime", "end_datetime", "reason"]
+    list_filter = ["practice", "location"]
+    search_fields = ["reason"]
+    readonly_fields = ["created_at", "updated_at"]
