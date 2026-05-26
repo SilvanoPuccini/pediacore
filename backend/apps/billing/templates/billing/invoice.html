@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprobante {{ invoice.invoice_number }}</title>
+    <style>
+        /* Base styles — WeasyPrint compatible */
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            font-size: 12pt;
+            color: #1a1a1a;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 2em;
+            padding-bottom: 1em;
+            border-bottom: 2px solid #2563EB;
+        }
+
+        .practice-info h1 {
+            font-size: 18pt;
+            color: #2563EB;
+            margin: 0 0 0.2em 0;
+        }
+
+        .practice-info p {
+            margin: 0.1em 0;
+            font-size: 10pt;
+            color: #555;
+        }
+
+        .invoice-meta {
+            text-align: right;
+        }
+
+        .invoice-meta .invoice-number {
+            font-size: 14pt;
+            font-weight: bold;
+            color: #1a1a1a;
+        }
+
+        .invoice-meta .invoice-date {
+            font-size: 10pt;
+            color: #555;
+            margin-top: 0.3em;
+        }
+
+        /* Badge */
+        .badge {
+            display: inline-block;
+            background-color: #DBEAFE;
+            color: #1D4ED8;
+            font-size: 8pt;
+            font-weight: bold;
+            padding: 0.2em 0.6em;
+            border-radius: 3px;
+            margin-top: 0.5em;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Patient section */
+        .section {
+            margin: 1.5em 0;
+        }
+
+        .section-title {
+            font-size: 10pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #6B7280;
+            border-bottom: 1px solid #E5E7EB;
+            padding-bottom: 0.3em;
+            margin-bottom: 0.8em;
+        }
+
+        .field-row {
+            display: flex;
+            margin: 0.3em 0;
+        }
+
+        .field-label {
+            width: 140px;
+            font-weight: 600;
+            color: #374151;
+            font-size: 11pt;
+        }
+
+        .field-value {
+            color: #1a1a1a;
+            font-size: 11pt;
+        }
+
+        /* Items table */
+        table.items {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1em 0;
+        }
+
+        table.items thead tr {
+            background-color: #2563EB;
+            color: white;
+        }
+
+        table.items thead th {
+            padding: 0.6em 0.8em;
+            text-align: left;
+            font-size: 10pt;
+            font-weight: 600;
+        }
+
+        table.items thead th:last-child {
+            text-align: right;
+        }
+
+        table.items tbody tr {
+            border-bottom: 1px solid #E5E7EB;
+        }
+
+        table.items tbody tr:nth-child(even) {
+            background-color: #F9FAFB;
+        }
+
+        table.items tbody td {
+            padding: 0.6em 0.8em;
+            font-size: 11pt;
+        }
+
+        table.items tbody td:last-child {
+            text-align: right;
+        }
+
+        /* Totals */
+        .totals {
+            margin-top: 1em;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .totals-table {
+            width: 250px;
+            border-collapse: collapse;
+        }
+
+        .totals-table td {
+            padding: 0.3em 0.5em;
+            font-size: 11pt;
+        }
+
+        .totals-table .total-row {
+            background-color: #2563EB;
+            color: white;
+            font-weight: bold;
+            font-size: 12pt;
+        }
+
+        .totals-table td:last-child {
+            text-align: right;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 3em;
+            padding-top: 1em;
+            border-top: 1px solid #E5E7EB;
+            text-align: center;
+            font-size: 9pt;
+            color: #9CA3AF;
+        }
+
+        .footer strong {
+            color: #6B7280;
+        }
+
+        /* Payment status */
+        .status-completed {
+            color: #059669;
+            font-weight: bold;
+        }
+
+        .status-pending {
+            color: #D97706;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <div class="header">
+        <div class="practice-info">
+            <h1>{{ practice.name }}</h1>
+            {% if practice.tax_id %}
+                <p>RUT: {{ practice.tax_id }}</p>
+            {% endif %}
+            <p>Consulta Pediátrica</p>
+            <div class="badge">Comprobante Interno</div>
+        </div>
+
+        <div class="invoice-meta">
+            <div class="invoice-number">{{ invoice.invoice_number }}</div>
+            <div class="invoice-date">Fecha: {{ invoice.issued_at|date:"d/m/Y" }}</div>
+        </div>
+    </div>
+
+    <!-- Patient information -->
+    <div class="section">
+        <div class="section-title">Datos del Paciente</div>
+
+        <div class="field-row">
+            <span class="field-label">Nombre:</span>
+            <span class="field-value">{{ invoice.patient_name }}</span>
+        </div>
+
+        {% if invoice.patient_rut %}
+        <div class="field-row">
+            <span class="field-label">RUT:</span>
+            <span class="field-value">{{ invoice.patient_rut }}</span>
+        </div>
+        {% endif %}
+
+        {% if payment.paid_by %}
+        <div class="field-row">
+            <span class="field-label">Pagado por:</span>
+            <span class="field-value">{{ payment.paid_by.get_full_name|default:payment.paid_by.email }}</span>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Appointment info -->
+    {% if payment.appointment %}
+    <div class="section">
+        <div class="section-title">Información de la Consulta</div>
+
+        <div class="field-row">
+            <span class="field-label">Fecha:</span>
+            <span class="field-value">{{ payment.appointment.scheduled_date|date:"d/m/Y" }}</span>
+        </div>
+
+        <div class="field-row">
+            <span class="field-label">Hora:</span>
+            <span class="field-value">{{ payment.appointment.start_time|time:"H:i" }}</span>
+        </div>
+
+        {% if payment.appointment.location %}
+        <div class="field-row">
+            <span class="field-label">Sede:</span>
+            <span class="field-value">{{ payment.appointment.location.name }}</span>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Services table -->
+    <div class="section">
+        <div class="section-title">Detalle</div>
+
+        <table class="items">
+            <thead>
+                <tr>
+                    <th>Descripción</th>
+                    <th>Método de Pago</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>{{ invoice.service_description }}</td>
+                    <td>{{ payment.get_payment_method_display }}</td>
+                    <td>$ {{ invoice.subtotal|floatformat:0 }} {{ payment.currency }}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="totals">
+            <table class="totals-table">
+                <tr>
+                    <td>Subtotal</td>
+                    <td>$ {{ invoice.subtotal|floatformat:0 }}</td>
+                </tr>
+                {% if invoice.tax_amount %}
+                <tr>
+                    <td>IVA</td>
+                    <td>$ {{ invoice.tax_amount|floatformat:0 }}</td>
+                </tr>
+                {% endif %}
+                <tr class="total-row">
+                    <td>Total</td>
+                    <td>$ {{ invoice.total|floatformat:0 }} {{ payment.currency }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- Payment status -->
+    <div class="section">
+        <div class="section-title">Estado del Pago</div>
+
+        <div class="field-row">
+            <span class="field-label">Estado:</span>
+            <span class="field-value {% if payment.status == 'COMPLETED' %}status-completed{% else %}status-pending{% endif %}">
+                {{ payment.get_status_display }}
+            </span>
+        </div>
+
+        {% if payment.paid_at %}
+        <div class="field-row">
+            <span class="field-label">Fecha de pago:</span>
+            <span class="field-value">{{ payment.paid_at|date:"d/m/Y H:i" }}</span>
+        </div>
+        {% endif %}
+
+        {% if payment.external_id %}
+        <div class="field-row">
+            <span class="field-label">Referencia:</span>
+            <span class="field-value">{{ payment.external_id }}</span>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>
+            <strong>{{ practice.name }}</strong><br>
+            Este documento es un comprobante interno de pago y NO es una boleta tributaria.<br>
+            Generado por PEDIACORE — Sistema de Gestión de Consultorios Pediátricos.
+        </p>
+    </div>
+
+</body>
+</html>
