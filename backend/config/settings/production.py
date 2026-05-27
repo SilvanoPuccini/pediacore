@@ -9,6 +9,12 @@ from .base import *  # noqa: F401, F403
 
 DEBUG = False
 
+ALLOWED_HOSTS = config(
+    "ALLOWED_HOSTS",
+    default="estefipediatra.com,www.estefipediatra.com",
+    cast=lambda v: [s.strip() for s in v.split(",")],
+)
+
 # Security — HTTPS enforcement
 SECURE_SSL_REDIRECT = True
 SECURE_HSTS_SECONDS = 31536000  # 1 year
