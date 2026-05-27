@@ -1,24 +1,46 @@
 import { MapPin, Clock, MessageCircle, ExternalLink, CalendarDays } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
 import api from "@/lib/api";
 import type { Location, PaginatedResponse } from "@/types/api";
 
 const PRACTICE_SLUG = "dra-estefi";
+const GOOGLE_MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY as string | undefined;
 
-// --- Eyebrow helper ---
-function Eyebrow({ label }: { label: string }) {
-  return (
-    <div className="flex items-center gap-2 mb-4">
-      <span className="w-6 h-[1.5px] bg-teal-dark inline-block" />
-      <span className="text-[11px] tracking-[0.18em] uppercase font-bold text-teal-dark">
-        {label}
-      </span>
-    </div>
-  );
-}
+// Subtle desaturated style — clean medical/pediatric aesthetic
+const MAP_STYLES: google.maps.MapTypeStyle[] = [
+  { elementType: "geometry", stylers: [{ color: "#f5f5f5" }] },
+  { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#616161" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#f5f5f5" }] },
+  { featureType: "administrative.land_parcel", elementType: "labels.text.fill", stylers: [{ color: "#bdbdbd" }] },
+  { featureType: "poi", elementType: "geometry", stylers: [{ color: "#eeeeee" }] },
+  { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
+  { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#e5e5e5" }] },
+  { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
+  { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
+  { featureType: "road.arterial", elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
+  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#dadada" }] },
+  { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#616161" }] },
+  { featureType: "road.local", elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
+  { featureType: "transit.line", elementType: "geometry", stylers: [{ color: "#e5e5e5" }] },
+  { featureType: "transit.station", elementType: "geometry", stylers: [{ color: "#eeeeee" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#c9c9c9" }] },
+  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
+];
 
-// --- OpenStreetMap embed (clickable → opens Google Maps) ---
+const MAP_OPTIONS: google.maps.MapOptions = {
+  streetViewControl: false,
+  mapTypeControl: false,
+  fullscreenControl: false,
+  zoomControl: true,
+  styles: MAP_STYLES,
+};
+
+const MAP_CONTAINER_STYLE = { width: "100%", height: "200px" };
+
+// --- OpenStreetMap fallback (no API key) ---
 function OsmMap({ lat, lng, address }: { lat: number; lng: number; address: string }) {
   const embedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${lng - 0.008},${lat - 0.008},${lng + 0.008},${lat + 0.008}&layer=mapnik&marker=${lat},${lng}`;
   const googleUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
@@ -37,13 +59,66 @@ function OsmMap({ lat, lng, address }: { lat: number; lng: number; address: stri
         loading="lazy"
         title="Mapa"
       />
-      {/* Overlay hint */}
       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200 flex items-center justify-center">
         <span className="opacity-0 group-hover:opacity-100 bg-white/90 text-ink text-[12px] font-semibold px-3 py-1.5 rounded-full shadow-md transition-opacity duration-200">
           Abrir en Google Maps
         </span>
       </div>
     </a>
+  );
+}
+
+// --- Map skeleton placeholder ---
+function MapSkeleton() {
+  return <div className="h-[200px] rounded-[16px] bg-ink/5 animate-pulse" />;
+}
+
+// --- Google Maps component (rendered only when script is loaded) ---
+interface LocationMapProps {
+  lat: number;
+  lng: number;
+  address: string;
+  isLoaded: boolean;
+}
+
+function LocationMap({ lat, lng, address, isLoaded }: LocationMapProps) {
+  const googleUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+  const center = { lat, lng };
+
+  if (!isLoaded) return <MapSkeleton />;
+
+  return (
+    <div
+      className="relative h-[200px] rounded-[16px] overflow-hidden group cursor-pointer"
+      onClick={() => window.open(googleUrl, "_blank", "noopener,noreferrer")}
+    >
+      <GoogleMap
+        mapContainerStyle={MAP_CONTAINER_STYLE}
+        center={center}
+        zoom={15}
+        options={MAP_OPTIONS}
+      >
+        <Marker position={center} />
+      </GoogleMap>
+      {/* Overlay hint — pointer-events-none so clicks pass through to the div */}
+      <div className="pointer-events-none absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200 flex items-center justify-center">
+        <span className="opacity-0 group-hover:opacity-100 bg-white/90 text-ink text-[12px] font-semibold px-3 py-1.5 rounded-full shadow-md transition-opacity duration-200">
+          Abrir en Google Maps
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// --- Eyebrow helper ---
+function Eyebrow({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-2 mb-4">
+      <span className="w-6 h-[1.5px] bg-teal-dark inline-block" />
+      <span className="text-[11px] tracking-[0.18em] uppercase font-bold text-teal-dark">
+        {label}
+      </span>
+    </div>
   );
 }
 
@@ -71,6 +146,8 @@ interface LocationCardProps {
   phone: string;
   lat: number;
   lng: number;
+  isLoaded: boolean;
+  hasApiKey: boolean;
 }
 
 function LocationCard({
@@ -84,11 +161,17 @@ function LocationCard({
   phone,
   lat,
   lng,
+  isLoaded,
+  hasApiKey,
 }: LocationCardProps) {
   return (
     <div className="bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)] p-6 flex flex-col gap-5 hover:-translate-y-1 hover:shadow-[var(--shadow-pop)] transition-all duration-300">
       {/* Map */}
-      <OsmMap lat={lat} lng={lng} address={fullAddress} />
+      {hasApiKey ? (
+        <LocationMap lat={lat} lng={lng} address={fullAddress} isLoaded={isLoaded} />
+      ) : (
+        <OsmMap lat={lat} lng={lng} address={fullAddress} />
+      )}
 
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
@@ -174,6 +257,14 @@ function LocationsSkeleton() {
 
 // --- Main section ---
 export default function LocationsSection() {
+  const hasApiKey = Boolean(GOOGLE_MAPS_KEY);
+
+  const { isLoaded } = useJsApiLoader({
+    googleMapsApiKey: GOOGLE_MAPS_KEY ?? "",
+    // Prevent loading if no key — avoids a failed network request
+    id: "google-map-script",
+  });
+
   const { data, isLoading, isError } = useQuery<PaginatedResponse<Location>>({
     queryKey: ["locations", PRACTICE_SLUG],
     queryFn: () =>
@@ -235,6 +326,8 @@ export default function LocationsSection() {
                   phone={loc.phone}
                   lat={loc.latitude ?? 0}
                   lng={loc.longitude ?? 0}
+                  isLoaded={isLoaded}
+                  hasApiKey={hasApiKey}
                 />
               );
             })}

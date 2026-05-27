@@ -34,6 +34,7 @@ from apps.scheduling.serializers import (
     CancelAppointmentSerializer,
     WaitlistEntrySerializer,
 )
+from apps.scheduling.services.auto_responder import check_and_send_auto_response
 from apps.scheduling.services.availability import get_available_slots
 from apps.scheduling.services.cancellation import cancel_appointment, get_cancellation_penalty
 
@@ -94,6 +95,10 @@ class AppointmentViewSet(viewsets.ModelViewSet):
             qs = qs.filter(patient_id=patient_id_param)
 
         return qs
+
+    def perform_create(self, serializer) -> None:
+        appointment = serializer.save()
+        check_and_send_auto_response(appointment)
 
     @action(detail=True, methods=["post"])
     def cancel(self, request: Request, pk=None) -> Response:

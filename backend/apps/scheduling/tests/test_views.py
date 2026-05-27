@@ -110,6 +110,14 @@ class TestAppointmentListCreate:
         service = ServiceFactory(practice=practice, duration_minutes=30)
         location = LocationFactory(practice=practice)
         doctor = DoctorFactory()
+        # 2026-07-01 is a Wednesday (weekday=2); working hours must match.
+        WorkingHoursFactory(
+            practice=practice,
+            location=location,
+            day_of_week=WorkingHours.WEDNESDAY,
+            start_time=datetime.time(9, 0),
+            end_time=datetime.time(10, 0),
+        )
         url = reverse("scheduling:appointment-list")
         payload = {
             "practice": practice.id,
@@ -485,3 +493,145 @@ class TestAutoResponderConfigView:
         url = reverse("scheduling:admin-auto-responder")
         response = client.get(url)
         assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+# ---------------------------------------------------------------------------
+# AppointmentCreateSerializer security validations
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+class TestAppointmentCreateSerializerValidations:
+    """Tests for the two security gaps fixed in AppointmentCreateSerializer:
+    1. Slot validation: start_time must be a valid available slot (TUTOR only).
+    2. Overlap validation: no non-cancelled appointment can overlap the new one.
+    """
+
+    def _make_booking_setup(self, day_of_week: int = WorkingHours.TUESDAY):
+        """Create practice, location, service and working hours for a given weekday."""
+        practice = PracticeFactory()
+        location = LocationFactory(practice=practice)
+        service = ServiceFactory(practice=practice, duration_minutes=30)
+        WorkingHoursFactory(
+            practice=practice,
+            location=location,
+            day_of_week=day_of_week,
+            start_time=datetime.time(9, 0),
+            end_time=datetime.time(10, 0),
+        )
+        doctor = DoctorFactory()
+        return practice, location, service, doctor
+
+    def test_tutor_cannot_book_invalid_slot_time(self, tutor_client):
+        """TUTOR submitting a start_time that is not in the available slots must get 400."""
+        client, tutor = tutor_client
+        # 2026-06-02 is a Tuesday
+        practice, location, service, doctor = self._make_booking_setup(WorkingHours.TUESDAY)
+        patient = PatientFactory(practice=practice)
+        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
+
+        url = reverse("scheduling:appointment-list")
+        payload = {
+            "practice": practice.id,
+            "patient": patient.id,
+            "service": service.id,
+            "location": location.id,
+            "doctor": doctor.id,
+            "scheduled_date": "2026-06-02",
+            # Valid slots are 09:00 and 09:30; 08:00 is outside working hours.
+            "start_time": "08:00:00",
+            "is_online": False,
+        }
+        response = client.post(url, data=payload, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "start_time" in response.data
+
+    def test_tutor_can_book_valid_slot(self, tutor_client):
+        """TUTOR submitting a start_time that matches an available slot must succeed."""
+        client, tutor = tutor_client
+        # 2026-06-02 is a Tuesday
+        practice, location, service, doctor = self._make_booking_setup(WorkingHours.TUESDAY)
+        patient = PatientFactory(practice=practice)
+        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
+
+        url = reverse("scheduling:appointment-list")
+        payload = {
+            "practice": practice.id,
+            "patient": patient.id,
+            "service": service.id,
+            "location": location.id,
+            "doctor": doctor.id,
+            "scheduled_date": "2026-06-02",
+            "start_time": "09:00:00",
+            "is_online": False,
+        }
+        response = client.post(url, data=payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+    def test_doctor_cannot_create_overlapping_appointment(self, doctor_client):
+        """DOCTOR creating an appointment that overlaps an existing one must get 400."""
+        client, doctor = doctor_client
+        practice = PracticeFactory(owner=doctor)
+        patient = PatientFactory(practice=practice)
+        service = ServiceFactory(practice=practice, duration_minutes=30)
+        location = LocationFactory(practice=practice)
+
+        # Create a first appointment at 09:00–09:30
+        AppointmentFactory(
+            practice=practice,
+            location=location,
+            service=service,
+            scheduled_date=datetime.date(2026, 7, 15),
+            start_time=datetime.time(9, 0),
+            end_time=datetime.time(9, 30),
+            status=Appointment.PENDING,
+        )
+
+        url = reverse("scheduling:appointment-list")
+        payload = {
+            "practice": practice.id,
+            "patient": patient.id,
+            "service": service.id,
+            "location": location.id,
+            "doctor": doctor.id,
+            "scheduled_date": "2026-07-15",
+            # 09:15 overlaps with existing 09:00–09:30
+            "start_time": "09:15:00",
+            "is_online": False,
+        }
+        response = client.post(url, data=payload, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "start_time" in response.data
+
+    def test_cancelled_appointment_does_not_block_slot_via_serializer(self, doctor_client):
+        """A cancelled appointment must not trigger the overlap error."""
+        client, doctor = doctor_client
+        practice = PracticeFactory(owner=doctor)
+        patient = PatientFactory(practice=practice)
+        service = ServiceFactory(practice=practice, duration_minutes=30)
+        location = LocationFactory(practice=practice)
+
+        # Cancelled appointment at same slot — should not block
+        AppointmentFactory(
+            practice=practice,
+            location=location,
+            service=service,
+            scheduled_date=datetime.date(2026, 7, 20),
+            start_time=datetime.time(9, 0),
+            end_time=datetime.time(9, 30),
+            status=Appointment.CANCELLED,
+        )
+
+        url = reverse("scheduling:appointment-list")
+        payload = {
+            "practice": practice.id,
+            "patient": patient.id,
+            "service": service.id,
+            "location": location.id,
+            "doctor": doctor.id,
+            "scheduled_date": "2026-07-20",
+            "start_time": "09:00:00",
+            "is_online": False,
+        }
+        response = client.post(url, data=payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
