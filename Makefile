@@ -1,4 +1,5 @@
-.PHONY: help up down build logs shell migrate makemigrations createsuperuser test lint format
+.PHONY: help up down build logs shell migrate makemigrations createsuperuser test lint format \
+        prod-build prod-up prod-down prod-logs prod-migrate prod-shell ssl-init ssl-renew
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -20,14 +21,35 @@ logs-backend: ## Tail backend logs
 	docker compose logs -f backend
 
 # Docker - Production
+prod-build: ## Build production containers
+	docker compose -f docker-compose.prod.yml build
+
 prod-up: ## Start production containers
 	docker compose -f docker-compose.prod.yml up -d
 
 prod-down: ## Stop production containers
 	docker compose -f docker-compose.prod.yml down
 
-prod-build: ## Build production containers
-	docker compose -f docker-compose.prod.yml build
+prod-logs: ## Tail production logs
+	docker compose -f docker-compose.prod.yml logs -f
+
+prod-migrate: ## Run migrations in production
+	docker compose -f docker-compose.prod.yml exec backend python manage.py migrate
+
+prod-shell: ## Open Django shell in production
+	docker compose -f docker-compose.prod.yml exec backend python manage.py shell
+
+ssl-init: ## Get initial SSL certificate (run once, before switching to full nginx.conf)
+	docker compose -f docker-compose.prod.yml run --rm certbot \
+		certonly --webroot \
+		-w /var/lib/letsencrypt \
+		-d estefipediatra.com \
+		-d www.estefipediatra.com \
+		--email hola@estefipediatra.com \
+		--agree-tos --no-eff-email
+
+ssl-renew: ## Force-renew SSL certificates
+	docker compose -f docker-compose.prod.yml run --rm certbot renew
 
 # Django
 shell: ## Open Django shell in backend container

@@ -26,10 +26,12 @@ COPY . .
 # Collect static files
 RUN python manage.py collectstatic --noinput 2>/dev/null || true
 
-# Create non-root user
-RUN addgroup --system django && adduser --system --ingroup django django
+# Create non-root user and log directory
+RUN addgroup --system django && adduser --system --ingroup django django && \
+    mkdir -p /var/log/pediacore && chown django:django /var/log/pediacore
+
 USER django
 
 EXPOSE 8000
 
-CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "120"]
+CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "2", "--timeout", "120"]
