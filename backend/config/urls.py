@@ -10,9 +10,18 @@ from drf_spectacular.views import (
     SpectacularRedocView,
     SpectacularSwaggerView,
 )
+from rest_framework_simplejwt.views import (
+    TokenBlacklistView,
+    TokenObtainPairView,
+    TokenRefreshView,
+)
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    # JWT auth
+    path("api/v1/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("api/v1/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("api/v1/token/blacklist/", TokenBlacklistView.as_view(), name="token_blacklist"),
     # API v1 — apps will register their URLs here
     path("api/v1/", include("apps.users.urls")),
     path("api/v1/", include("apps.practice.urls")),

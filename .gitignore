@@ -220,6 +220,11 @@ __marimo__/
 # Claude Code / ATL
 .atl/
 
+# AI skills / agents
+.agents/
+.kiro/
+skills-lock.json
+
 # Docker volumes
 postgres_data/
 CLAUDE.md
