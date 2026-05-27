@@ -81,7 +81,7 @@ function FooterLink({ href, children }: { href: string; children: React.ReactNod
 // --- Main Footer ---
 export default function Footer() {
   return (
-    <footer className="bg-ink text-white/85">
+    <footer id="contacto" className="bg-ink text-white/85">
       {/* Main grid */}
       <div className="max-w-[1280px] mx-auto px-6 py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
@@ -93,7 +93,7 @@ export default function Footer() {
               <img
                 src="/images/logo.jpg"
                 alt="Dra. Estefi Pediatra"
-                className="w-9 h-9 rounded-full object-cover"
+                className="w-12 h-12 rounded-full object-cover"
               />
               <div>
                 <p className="font-display text-[15px] font-semibold text-white leading-tight">

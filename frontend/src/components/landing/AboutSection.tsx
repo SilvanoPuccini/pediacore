@@ -53,7 +53,7 @@ function StatItem({ value, label, colorClass }: StatItemProps) {
 // --- Main section ---
 export default function AboutSection() {
   return (
-    <section className="bg-surface border-y border-line relative overflow-hidden py-24 lg:py-32">
+    <section id="dra-estefi" className="bg-surface border-y border-line relative overflow-hidden py-24 lg:py-32">
       {/* Decorative mustard blob top-right */}
       <div
         className="pointer-events-none absolute -top-32 -right-32 w-[420px] h-[420px] rounded-full opacity-[0.07]"

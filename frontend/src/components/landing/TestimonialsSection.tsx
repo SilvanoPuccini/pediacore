@@ -111,7 +111,7 @@ function TestimonialCard({ t }: { t: Testimonial }) {
 // --- Main section ---
 export default function TestimonialsSection() {
   return (
-    <section className="py-24 lg:py-32 overflow-hidden">
+    <section id="testimonios" className="py-24 lg:py-32 overflow-hidden">
       <div className="max-w-[1280px] mx-auto px-6">
         {/* Header */}
         <div className="text-center mb-14">
