@@ -34,7 +34,7 @@ services:
         condition: service_healthy
     expose:
       - "8000"
-    command: sh -c "python manage.py migrate --noinput && python manage.py collectstatic --noinput && chown -R django:django /app/staticfiles /var/log/pediacore && exec su django -c 'gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 120 --access-logfile - --error-logfile -'"
+    command: sh -c "python manage.py migrate --noinput && python manage.py collectstatic --noinput && chown -R django:django /app/staticfiles /var/log/pediacore && exec su -s /bin/sh django -c 'gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 120 --access-logfile - --error-logfile -'"
 
   nginx:
     build:
