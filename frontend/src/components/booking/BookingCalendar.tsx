@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import SEOHead from "@/components/seo/SEOHead";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/auth";
-import type { Location, Service, AvailableSlot, AppointmentCreate, Patient, Appointment } from "@/types/api";
+import type { Location, Service, AvailableSlot, AppointmentCreate, Patient, Appointment, PaginatedResponse } from "@/types/api";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -390,21 +390,23 @@ export default function BookingCalendar() {
 
   // ── Data fetching ────────────────────────────────────────────────────────────
 
-  const { data: locations, isLoading: locationsLoading } = useQuery<Location[]>({
+  const { data: locationsResp, isLoading: locationsLoading } = useQuery<PaginatedResponse<Location>>({
     queryKey: ["locations", PRACTICE_SLUG],
     queryFn: async () => {
-      const { data } = await api.get<Location[]>(`/practices/${PRACTICE_SLUG}/locations/`);
+      const { data } = await api.get<PaginatedResponse<Location>>(`/practices/${PRACTICE_SLUG}/locations/`);
       return data;
     },
   });
+  const locations = locationsResp?.results ?? [];
 
-  const { data: services, isLoading: servicesLoading } = useQuery<Service[]>({
+  const { data: servicesResp, isLoading: servicesLoading } = useQuery<PaginatedResponse<Service>>({
     queryKey: ["services", PRACTICE_SLUG],
     queryFn: async () => {
-      const { data } = await api.get<Service[]>(`/practices/${PRACTICE_SLUG}/services/`);
+      const { data } = await api.get<PaginatedResponse<Service>>(`/practices/${PRACTICE_SLUG}/services/`);
       return data;
     },
   });
+  const services = servicesResp?.results ?? [];
 
   const { data: slots, isLoading: slotsLoading } = useQuery<AvailableSlot[]>({
     queryKey: ["slots", selectedLocationId, selectedServiceId, selectedDate],

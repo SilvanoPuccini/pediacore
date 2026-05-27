@@ -63,11 +63,13 @@ export interface FAQ {
 export interface Location {
   id: number;
   name: string;
+  slug: string;
   address: string;
   city: string;
   region: string;
   phone: string;
   email: string;
+  display_hours: string;
   is_active: boolean;
 }
 
