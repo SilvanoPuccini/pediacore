@@ -98,6 +98,83 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "end_time", "status"]
 
+    def _validate_slot(self, attrs: dict, user) -> None:
+        """Verify that start_time matches an available slot from get_available_slots.
+
+        Only enforced for TUTOR users. DOCTOR users can create appointments
+        outside published slots (e.g. urgent visits, admin bookings).
+        """
+        from apps.scheduling.services.availability import get_available_slots
+
+        location = attrs.get("location")
+        service = attrs.get("service")
+        scheduled_date = attrs.get("scheduled_date")
+        start_time = attrs.get("start_time")
+
+        if not all([location, service, scheduled_date, start_time]):
+            return
+
+        available_slots = get_available_slots(
+            location_id=location.pk,
+            service_id=service.pk,
+            date=scheduled_date,
+        )
+
+        if not available_slots:
+            raise serializers.ValidationError(
+                {"start_time": "There are no available slots for the selected date, location, and service."}
+            )
+
+        available_start_times = {slot["start_time"] for slot in available_slots}
+        requested_start = start_time.strftime("%H:%M")
+
+        if requested_start not in available_start_times:
+            raise serializers.ValidationError(
+                {
+                    "start_time": (
+                        f"The selected time ({requested_start}) is not an available slot. "
+                        f"Available times: {', '.join(sorted(available_start_times))}."
+                    )
+                }
+            )
+
+    def _validate_no_overlap(self, attrs: dict) -> None:
+        """Check that no non-cancelled appointment overlaps this time slot.
+
+        Replicates Appointment.clean() so the overlap check runs on POST
+        (DRF's ModelSerializer does not call full_clean() by default).
+        """
+        import datetime
+
+        from django.core.exceptions import ValidationError as DjangoValidationError
+
+        location = attrs.get("location")
+        scheduled_date = attrs.get("scheduled_date")
+        start_time = attrs.get("start_time")
+        service = attrs.get("service")
+
+        if not all([location, scheduled_date, start_time, service]):
+            return
+
+        duration = datetime.timedelta(minutes=service.duration_minutes)
+        start_dt = datetime.datetime.combine(datetime.date.today(), start_time)
+        end_time = (start_dt + duration).time()
+
+        overlapping = (
+            Appointment.objects.exclude(status=Appointment.CANCELLED)
+            .filter(
+                location=location,
+                scheduled_date=scheduled_date,
+                start_time__lt=end_time,
+                end_time__gt=start_time,
+            )
+        )
+
+        if overlapping.exists():
+            raise serializers.ValidationError(
+                {"start_time": "There is already an appointment scheduled at this time and location."}
+            )
+
     def validate(self, attrs: dict) -> dict:
         request = self.context.get("request")
         if request and hasattr(request, "user"):
@@ -113,6 +190,10 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
                         raise serializers.ValidationError(
                             {"patient": "You can only book appointments for your linked patients."}
                         )
+
+                self._validate_slot(attrs, user)
+
+        self._validate_no_overlap(attrs)
         return attrs
 
     def create(self, validated_data: dict) -> Appointment:

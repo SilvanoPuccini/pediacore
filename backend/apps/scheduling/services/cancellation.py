@@ -57,9 +57,13 @@ def get_cancellation_penalty(appointment: Appointment) -> dict[str, Any]:
 
 def cancel_appointment(appointment: Appointment, reason: str = "") -> Appointment:
     from apps.scheduling.models import Appointment as AppointmentModel
+    from apps.scheduling.services.waitlist import notify_waitlist_on_cancellation
 
     appointment.status = AppointmentModel.CANCELLED
     appointment.cancelled_at = timezone.now()
     appointment.cancellation_reason = reason
     appointment.save(update_fields=["status", "cancelled_at", "cancellation_reason", "updated_at"])
+
+    notify_waitlist_on_cancellation(appointment)
+
     return appointment
