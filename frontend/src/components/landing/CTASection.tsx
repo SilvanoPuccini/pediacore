@@ -92,7 +92,7 @@ function BookingCard() {
 // --- Main section ---
 export default function CTASection() {
   return (
-    <section className="py-24 lg:py-32 relative overflow-hidden">
+    <section id="reservar" className="py-24 lg:py-32 relative overflow-hidden">
       {/* Background gradient */}
       <div
         className="absolute inset-0 pointer-events-none"

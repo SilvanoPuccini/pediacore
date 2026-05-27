@@ -80,7 +80,7 @@ function FAQAccordionItem({ item }: { item: FAQItem }) {
 // --- Main section ---
 export default function FAQSection() {
   return (
-    <section className="bg-surface border-y border-line py-24 lg:py-32">
+    <section id="faq" className="bg-surface border-y border-line py-24 lg:py-32">
       <div className="max-w-[920px] mx-auto px-6">
         {/* Header */}
         <div className="text-center mb-12">

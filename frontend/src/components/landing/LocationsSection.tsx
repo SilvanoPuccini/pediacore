@@ -161,7 +161,7 @@ function LocationCard({
 // --- Main section ---
 export default function LocationsSection() {
   return (
-    <section className="py-24 lg:py-32">
+    <section id="sedes" className="py-24 lg:py-32">
       <div className="max-w-[1280px] mx-auto px-6">
         {/* Header */}
         <div className="text-center mb-14">

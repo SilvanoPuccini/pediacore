@@ -38,7 +38,7 @@ const AVATAR_GRADIENTS = [
 
 export default function HeroSection() {
   return (
-    <section className="relative min-h-screen flex items-center pt-[104px] pb-16 overflow-hidden">
+    <section id="hero" className="relative min-h-screen flex items-center pt-[104px] pb-16 overflow-hidden">
       {/* Decorative blobs */}
       <div
         aria-hidden="true"
@@ -187,19 +187,11 @@ export default function HeroSection() {
                   "linear-gradient(135deg, var(--sage) 0%, var(--teal) 50%, #7ecfd0 100%)",
               }}
             >
-              {/* Rainbow overlay top-left */}
+              {/* Doctor cutout — centered */}
               <img
-                src="/rainbow.png"
-                alt=""
-                aria-hidden="true"
-                className="absolute -top-4 -left-4 w-28 h-28 object-contain opacity-90 z-10"
-              />
-
-              {/* Doctor cutout bottom-right */}
-              <img
-                src="/estefi-cutout.png"
+                src="/images/estefi-cutout.png"
                 alt="Dra. Estefi, pediatra"
-                className="absolute bottom-0 right-0 h-[95%] object-contain object-bottom z-20"
+                className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[98%] object-contain object-bottom z-20"
               />
             </div>
 

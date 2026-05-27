@@ -137,7 +137,7 @@ function BlogCard({ post }: { post: BlogPost }) {
 // --- Main section ---
 export default function BlogSection() {
   return (
-    <section className="bg-surface border-y border-line py-24 lg:py-32">
+    <section id="blog" className="bg-surface border-y border-line py-24 lg:py-32">
       <div className="max-w-[1280px] mx-auto px-6">
         {/* Header */}
         <div className="flex items-end justify-between mb-12">
