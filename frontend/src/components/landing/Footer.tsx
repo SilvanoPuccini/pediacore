@@ -155,11 +155,11 @@ export default function Footer() {
               hola@estefipediatra.com
             </a>
             <a
-              href="tel:+56999990001"
+              href="tel:+56958455537"
               className="flex items-center gap-2.5 text-[13.5px] text-white/70 hover:text-white transition-colors duration-200"
             >
               <Phone size={14} className="shrink-0 text-teal" />
-              +56 9 9999 0001
+              +56 9 5845 5537
             </a>
             <div className="flex items-start gap-2.5 text-[13.5px] text-white/60">
               <MapPin size={14} className="shrink-0 text-teal mt-0.5" />
