@@ -1,12 +1,9 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import PublicLayout from "@/layouts/PublicLayout";
-import AdminLayout from "@/layouts/AdminLayout";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
-import LoginPage from "@/components/auth/LoginPage";
-import RegisterPage from "@/components/auth/RegisterPage";
 
 import HeroSection from "@/components/landing/HeroSection";
 import TrustStrip from "@/components/landing/TrustStrip";
@@ -20,9 +17,13 @@ import LocationsSection from "@/components/landing/LocationsSection";
 import FAQSection from "@/components/landing/FAQSection";
 import CTASection from "@/components/landing/CTASection";
 
-import AdminDashboard from "@/components/admin/AdminDashboard";
-import BookingCalendar from "@/components/booking/BookingCalendar";
 import { useAuthStore } from "@/stores/auth";
+
+const LoginPage = lazy(() => import("@/components/auth/LoginPage"));
+const RegisterPage = lazy(() => import("@/components/auth/RegisterPage"));
+const BookingCalendar = lazy(() => import("@/components/booking/BookingCalendar"));
+const AdminLayout = lazy(() => import("@/layouts/AdminLayout"));
+const AdminDashboard = lazy(() => import("@/components/admin/AdminDashboard"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -59,36 +60,44 @@ function AppRoutes() {
   }, [initialize]);
 
   return (
-    <Routes>
-      <Route
-        path="/"
-        element={
-          <PublicLayout>
-            <LandingPage />
-          </PublicLayout>
-        }
-      />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route
-        path="/booking"
-        element={
-          <PublicLayout>
-            <BookingCalendar />
-          </PublicLayout>
-        }
-      />
-      <Route
-        path="/admin"
-        element={
-          <ProtectedRoute role="DOCTOR">
-            <AdminLayout>
-              <AdminDashboard />
-            </AdminLayout>
-          </ProtectedRoute>
-        }
-      />
-    </Routes>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-bg">
+          <div className="w-8 h-8 border-3 border-teal/30 border-t-teal rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <PublicLayout>
+              <LandingPage />
+            </PublicLayout>
+          }
+        />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route
+          path="/booking"
+          element={
+            <PublicLayout>
+              <BookingCalendar />
+            </PublicLayout>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute role="DOCTOR">
+              <AdminLayout>
+                <AdminDashboard />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </Suspense>
   );
 }
 
