@@ -1,3 +1,4 @@
+import SEOHead from "@/components/seo/SEOHead";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CalendarDays,
@@ -280,6 +281,11 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-8 max-w-[1100px]">
+      <SEOHead
+        title="Panel de administración"
+        description="Administración de turnos y pacientes — Dra. Estefi Pediatría."
+        url="https://estefipediatra.com/admin"
+      />
       {/* ── Section 1: Stats ── */}
       <section>
         <SectionHeader title="Resumen de hoy" />
