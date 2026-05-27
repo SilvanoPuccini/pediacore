@@ -29,12 +29,14 @@ LOCATIONS = [
     {
         "name": "Centro Clínico Terapéutico El Valle Pucón",
         "slug": "pucon",
-        "address": "Gral. Urrutia 291, 4920000 Pucón",
+        "address": "Gral. Urrutia 291, Of. 1, 4920000 Pucón",
         "city": "Pucón",
         "region": "Araucanía",
         "phone": "+56 9 5845 5537",
         "email": "estefiortigosa.peditra@gmail.com",
         "display_hours": "Lun 10–17 · Mié 10–15 · Jue 11–18",
+        "latitude": -39.2722,
+        "longitude": -71.9750,
     },
     {
         "name": "Centro Materno Pediátrico Almainfancia Villarrica",
@@ -44,7 +46,9 @@ LOCATIONS = [
         "region": "Araucanía",
         "phone": "+56 9 5845 5537",
         "email": "estefiortigosa.peditra@gmail.com",
-        "display_hours": "Mar 10–17 · Vie 10–17",
+        "display_hours": "Mar 10–17 · Vie 10–17 · Sáb 10–14",
+        "latitude": -39.2857,
+        "longitude": -72.2279,
     },
 ]
 

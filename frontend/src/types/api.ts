@@ -70,6 +70,8 @@ export interface Location {
   phone: string;
   email: string;
   display_hours: string;
+  latitude: number | null;
+  longitude: number | null;
   is_active: boolean;
 }
 
