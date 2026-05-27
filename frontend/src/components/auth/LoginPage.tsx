@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import SEOHead from "@/components/seo/SEOHead";
 import { useAuthStore } from "@/stores/auth";
 
 export default function LoginPage() {
@@ -27,6 +28,11 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-bg flex items-center justify-center px-4 py-16">
+      <SEOHead
+        title="Iniciar sesión"
+        description="Accedé a tu cuenta para gestionar turnos pediátricos."
+        url="https://estefipediatra.com/login"
+      />
       <div className="w-full max-w-[420px]">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">

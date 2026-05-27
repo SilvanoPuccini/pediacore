@@ -31,13 +31,35 @@ urlpatterns = [
     path("api/v1/", include("apps.billing.urls")),
     path("api/v1/", include("apps.content.urls")),
     path("api/v1/", include("apps.notifications.urls")),
-    # OpenAPI schema
-    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
-    path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
-    path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
     # Health check
     path("health/", lambda request: __import__("django.http", fromlist=["JsonResponse"]).JsonResponse({"status": "ok"})),
 ]
+
+# OpenAPI docs only in non-production or for staff
+if not settings.DEBUG:
+    # In production, require staff access for API docs
+    from django.contrib.admin.views.decorators import staff_member_required
+
+    SpectacularAPIViewProtected = staff_member_required(
+        SpectacularAPIView.as_view()
+    )
+    SpectacularSwaggerViewProtected = staff_member_required(
+        SpectacularSwaggerView.as_view(url_name="schema")
+    )
+    SpectacularRedocViewProtected = staff_member_required(
+        SpectacularRedocView.as_view(url_name="schema")
+    )
+    urlpatterns += [
+        path("api/schema/", SpectacularAPIViewProtected, name="schema"),
+        path("api/docs/", SpectacularSwaggerViewProtected, name="swagger-ui"),
+        path("api/redoc/", SpectacularRedocViewProtected, name="redoc"),
+    ]
+else:
+    urlpatterns += [
+        path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+        path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
+        path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
+    ]
 
 if settings.DEBUG:
     import debug_toolbar

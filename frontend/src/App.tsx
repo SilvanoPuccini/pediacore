@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
+import SEOHead from "@/components/seo/SEOHead";
 import PublicLayout from "@/layouts/PublicLayout";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
@@ -37,6 +38,7 @@ const queryClient = new QueryClient({
 function LandingPage() {
   return (
     <>
+      <SEOHead url="https://estefipediatra.com/" />
       <HeroSection />
       <TrustStrip />
       <ServicesSection />

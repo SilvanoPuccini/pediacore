@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
+import SEOHead from "@/components/seo/SEOHead";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/auth";
 import type { Location, Service, AvailableSlot, AppointmentCreate, Patient, Appointment } from "@/types/api";
@@ -559,6 +560,11 @@ export default function BookingCalendar() {
 
   return (
     <div className="max-w-[640px] mx-auto px-4 py-10">
+      <SEOHead
+        title="Reservar turno"
+        description="Reservá tu hora pediátrica online en Pucón o Villarrica. Atención presencial y online."
+        url="https://estefipediatra.com/booking"
+      />
       {/* Header */}
       <div className="mb-8">
         <h1 className="font-display text-[32px] sm:text-[38px] font-semibold text-ink leading-tight">
