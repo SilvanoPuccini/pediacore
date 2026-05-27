@@ -1,0 +1,21 @@
+# Git
+.git
+.gitignore
+
+# Backend (built separately)
+backend/
+
+# Node modules (installed inside container)
+frontend/node_modules
+
+# AI/editor artifacts
+.claude/
+.atl/
+.agents/
+.kiro/
+
+# Misc
+*.md
+.env
+.env.*
+postgres_data/
