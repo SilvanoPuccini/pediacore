@@ -20,6 +20,7 @@ services:
       context: ./backend
       args:
         REQUIREMENTS_FILE: production.txt
+    user: "0:0"
     restart: always
     env_file: ./backend/.env
     environment:
@@ -33,15 +34,7 @@ services:
         condition: service_healthy
     expose:
       - "8000"
-    command: >
-      sh -c "python manage.py migrate --noinput &&
-             python manage.py collectstatic --noinput &&
-             gunicorn config.wsgi:application
-             --bind 0.0.0.0:8000
-             --workers 2
-             --timeout 120
-             --access-logfile -
-             --error-logfile -"
+    command: sh -c "python manage.py migrate --noinput && python manage.py collectstatic --noinput && chown -R django:django /app/staticfiles /var/log/pediacore && exec su django -c 'gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 120 --access-logfile - --error-logfile -'"
 
   nginx:
     build:
@@ -61,10 +54,12 @@ services:
 
   certbot:
     image: certbot/certbot
+    profiles:
+      - certbot
     volumes:
       - certbot_etc:/etc/letsencrypt
       - certbot_var:/var/lib/letsencrypt
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do sleep 12h & wait $${!}; certbot renew; done'"
+    entrypoint: ["/bin/sh", "-c", "if [ $$# -eq 0 ]; then trap exit TERM; while :; do sleep 12h & wait $${!}; certbot renew; done; else exec certbot \"$$@\"; fi", "--"]
 
 volumes:
   postgres_data:
