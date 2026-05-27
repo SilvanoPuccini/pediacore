@@ -223,3 +223,4 @@ __marimo__/
 # Docker volumes
 postgres_data/
 CLAUDE.md
+.claude/
