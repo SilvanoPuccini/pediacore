@@ -44,6 +44,7 @@ class LocationSerializer(serializers.ModelSerializer):
             "region",
             "phone",
             "email",
+            "display_hours",
             "latitude",
             "longitude",
             "is_active",

@@ -53,7 +53,7 @@ class LocationListView(ListAPIView):
 
     def get_queryset(self):
         practice = get_object_or_404(Practice, slug=self.kwargs["slug"], is_active=True)
-        return Location.objects.filter(practice=practice, is_active=True)
+        return Location.objects.filter(practice=practice, is_active=True).order_by("pk")
 
 
 class ServiceListView(ListAPIView):

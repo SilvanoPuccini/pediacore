@@ -148,11 +148,11 @@ export default function Footer() {
           {/* Contacto */}
           <FooterColumn title="Contacto">
             <a
-              href="mailto:hola@estefipediatra.com"
+              href="mailto:estefiortigosa.peditra@gmail.com"
               className="flex items-center gap-2.5 text-[13.5px] text-white/70 hover:text-white transition-colors duration-200"
             >
               <Mail size={14} className="shrink-0 text-teal" />
-              hola@estefipediatra.com
+              estefiortigosa.peditra@gmail.com
             </a>
             <a
               href="tel:+56958455537"

@@ -75,6 +75,12 @@ class Location(BaseModel):
     longitude = models.DecimalField(
         _("longitude"), max_digits=10, decimal_places=7, null=True, blank=True
     )
+    display_hours = models.CharField(
+        _("display hours"),
+        max_length=200,
+        blank=True,
+        help_text=_("Human-readable hours shown on landing page, e.g. 'Lun – Vie · 09:00 – 19:00'"),
+    )
     is_active = models.BooleanField(_("active"), default=True)
 
     class Meta:
