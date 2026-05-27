@@ -1,4 +1,7 @@
 import { ChevronDown } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import api from "@/lib/api";
+import type { FAQ, PaginatedResponse } from "@/types/api";
 
 // --- Eyebrow helper ---
 function Eyebrow({ label }: { label: string }) {
@@ -12,20 +15,17 @@ function Eyebrow({ label }: { label: string }) {
   );
 }
 
-// --- Types ---
-interface FAQItem {
+// --- Fallback data ---
+interface FallbackFAQ {
   question: string;
   answer: string;
-  defaultOpen?: boolean;
 }
 
-// --- Data ---
-const faqs: FAQItem[] = [
+const FALLBACK_FAQS: FallbackFAQ[] = [
   {
     question: "¿Atienden a recién nacidos?",
     answer:
       "Sí, atendemos desde los primeros días de vida. El control del recién nacido es uno de los momentos más importantes y nos preparamos especialmente para acompañar a las familias en esa etapa. Podés reservar el primer control antes del parto para asegurarte el turno.",
-    defaultOpen: true,
   },
   {
     question: "¿Trabajan con isapres o sólo particular?",
@@ -55,15 +55,23 @@ const faqs: FAQItem[] = [
 ];
 
 // --- FAQ Accordion Item ---
-function FAQAccordionItem({ item }: { item: FAQItem }) {
+function FAQAccordionItem({
+  question,
+  answer,
+  defaultOpen,
+}: {
+  question: string;
+  answer: string;
+  defaultOpen?: boolean;
+}) {
   return (
     <details
       className="group border-b border-line last:border-b-0"
-      open={item.defaultOpen}
+      open={defaultOpen}
     >
       <summary className="flex items-center justify-between gap-4 py-5 cursor-pointer list-none select-none hover:text-teal-dark transition-colors duration-200">
         <span className="text-[15px] font-semibold text-ink group-open:text-teal-dark transition-colors duration-200">
-          {item.question}
+          {question}
         </span>
         <ChevronDown
           size={18}
@@ -71,14 +79,39 @@ function FAQAccordionItem({ item }: { item: FAQItem }) {
         />
       </summary>
       <div className="pb-5">
-        <p className="text-[14px] text-ink2 leading-relaxed">{item.answer}</p>
+        <p className="text-[14px] text-ink2 leading-relaxed">{answer}</p>
       </div>
     </details>
   );
 }
 
+// --- Loading skeleton ---
+function FAQSkeleton() {
+  return (
+    <div className="bg-bg rounded-[20px] border border-line px-6 lg:px-8 animate-pulse">
+      {[...Array(5)].map((_, i) => (
+        <div key={i} className="border-b border-line last:border-b-0 py-5">
+          <div className="flex items-center justify-between gap-4">
+            <div className="h-4 bg-line rounded-full w-3/4" />
+            <div className="h-4 w-4 bg-line rounded-full shrink-0" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // --- Main section ---
 export default function FAQSection() {
+  const { data, isLoading, isError } = useQuery<PaginatedResponse<FAQ>>({
+    queryKey: ["faqs"],
+    queryFn: () => api.get<PaginatedResponse<FAQ>>("/content/faqs/").then((r) => r.data),
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const apiFaqs = data?.results ?? [];
+  const useFallback = !isLoading && (isError || apiFaqs.length === 0);
+
   return (
     <section id="faq" className="bg-surface border-y border-line py-24 lg:py-32">
       <div className="max-w-[920px] mx-auto px-6">
@@ -91,11 +124,29 @@ export default function FAQSection() {
         </div>
 
         {/* Accordion */}
-        <div className="bg-bg rounded-[20px] border border-line px-6 lg:px-8">
-          {faqs.map((item) => (
-            <FAQAccordionItem key={item.question} item={item} />
-          ))}
-        </div>
+        {isLoading ? (
+          <FAQSkeleton />
+        ) : (
+          <div className="bg-bg rounded-[20px] border border-line px-6 lg:px-8">
+            {useFallback
+              ? FALLBACK_FAQS.map((item, i) => (
+                  <FAQAccordionItem
+                    key={item.question}
+                    question={item.question}
+                    answer={item.answer}
+                    defaultOpen={i === 0}
+                  />
+                ))
+              : apiFaqs.map((item, i) => (
+                  <FAQAccordionItem
+                    key={item.id}
+                    question={item.question}
+                    answer={item.answer}
+                    defaultOpen={i === 0}
+                  />
+                ))}
+          </div>
+        )}
 
         {/* Bottom CTA */}
         <p className="text-center text-[14px] text-ink2 mt-8">
