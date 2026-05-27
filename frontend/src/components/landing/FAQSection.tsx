@@ -152,7 +152,7 @@ export default function FAQSection() {
         <p className="text-center text-[14px] text-ink2 mt-8">
           ¿Otra duda?{" "}
           <a
-            href="https://wa.me/56999990001"
+            href="https://wa.me/56958455537"
             target="_blank"
             rel="noopener noreferrer"
             className="text-teal-dark font-semibold hover:underline"

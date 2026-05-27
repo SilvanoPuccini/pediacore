@@ -137,7 +137,7 @@ export default function CTASection() {
                 Reservar consulta
               </button>
               <a
-                href="https://wa.me/56999990001"
+                href="https://wa.me/56958455537"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 border border-teal/40 bg-white/80 text-ink text-[14px] font-semibold rounded-[14px] px-6 py-3 hover:bg-white hover:-translate-y-0.5 transition-all duration-200"
