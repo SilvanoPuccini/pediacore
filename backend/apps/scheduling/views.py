@@ -169,13 +169,11 @@ class AvailableSlotsView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request: Request) -> Response:
-        location_id = request.query_params.get("location")
+        location_id = request.query_params.get("location", "").strip()
         service_id = request.query_params.get("service")
         date_str = request.query_params.get("date")
 
         errors = {}
-        if not location_id:
-            errors["location"] = "This field is required."
         if not service_id:
             errors["service"] = "This field is required."
         if not date_str:
@@ -191,12 +189,22 @@ class AvailableSlotsView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # location is optional — empty means online consultation
+        location_id_int: int | None = None
+        if location_id:
+            try:
+                location_id_int = int(location_id)
+            except (ValueError, TypeError):
+                return Response(
+                    {"location": "Must be a valid integer or empty for online."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
         try:
-            location_id_int = int(location_id)
             service_id_int = int(service_id)
         except (ValueError, TypeError):
             return Response(
-                {"detail": "location and service must be integers."},
+                {"service": "Must be a valid integer."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

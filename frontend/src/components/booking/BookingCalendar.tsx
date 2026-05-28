@@ -411,14 +411,14 @@ export default function BookingCalendar() {
   const { data: slots, isLoading: slotsLoading } = useQuery<AvailableSlot[]>({
     queryKey: ["slots", selectedLocationId, selectedServiceId, selectedDate],
     queryFn: async () => {
-      const locationParam = selectedLocationId === "online" ? "" : selectedLocationId;
-      const { data } = await api.get<AvailableSlot[]>("/available-slots/", {
-        params: {
-          location: locationParam,
-          service: selectedServiceId,
-          date: selectedDate,
-        },
-      });
+      const params: Record<string, string | number> = {
+        service: selectedServiceId!,
+        date: selectedDate!,
+      };
+      if (selectedLocationId !== "online") {
+        params.location = selectedLocationId!;
+      }
+      const { data } = await api.get<AvailableSlot[]>("/available-slots/", { params });
       return data;
     },
     enabled:
