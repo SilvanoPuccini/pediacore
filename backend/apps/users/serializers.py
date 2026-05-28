@@ -54,7 +54,38 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         user = User(role=User.TUTOR, **validated_data)
         user.set_password(password)
         user.save()
+        self._send_welcome_email(user)
         return user
+
+    @staticmethod
+    def _send_welcome_email(user: User) -> None:
+        """Send a welcome email to the newly registered user."""
+        try:
+            from apps.notifications.services.email_service import send_email
+
+            html_body = f"""
+            <html>
+            <body style="font-family: sans-serif; color: #333;">
+                <h2>¡Bienvenida/o a Dra. Estefi Pediatra!</h2>
+                <p>Hola {user.first_name},</p>
+                <p>Tu cuenta fue creada correctamente. Ya podés reservar turnos
+                pediátricos en Pucón y Villarrica, o consultas online.</p>
+                <p>Ingresá a <a href="https://estefipediatra.com/booking">estefipediatra.com/booking</a>
+                para agendar tu primera consulta.</p>
+                <hr>
+                <p style="font-size: 12px; color: #888;">
+                    Consultorio Pediátrico — Dra. Estefanía
+                </p>
+            </body>
+            </html>
+            """
+            send_email(
+                to=user.email,
+                subject="¡Bienvenida/o a Dra. Estefi Pediatra!",
+                html_body=html_body,
+            )
+        except Exception:
+            pass  # Don't block registration if email fails
 
 
 class UserProfileUpdateSerializer(serializers.ModelSerializer):

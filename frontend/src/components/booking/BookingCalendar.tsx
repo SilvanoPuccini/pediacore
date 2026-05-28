@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import SEOHead from "@/components/seo/SEOHead";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/auth";
@@ -375,9 +375,19 @@ export default function BookingCalendar() {
   // Step state
   const [step, setStep] = useState(1);
 
-  // Step 1 selections
-  const [selectedLocationId, setSelectedLocationId] = useState<number | "online" | null>(null);
-  const [selectedServiceId, setSelectedServiceId] = useState<number | null>(null);
+  // Step 1 selections — restore from sessionStorage if returning from login/register
+  const [selectedLocationId, setSelectedLocationId] = useState<number | "online" | null>(() => {
+    const saved = sessionStorage.getItem("booking_location");
+    if (!saved) return null;
+    sessionStorage.removeItem("booking_location");
+    return saved === "online" ? "online" : Number(saved);
+  });
+  const [selectedServiceId, setSelectedServiceId] = useState<number | null>(() => {
+    const saved = sessionStorage.getItem("booking_service");
+    if (!saved) return null;
+    sessionStorage.removeItem("booking_service");
+    return Number(saved);
+  });
 
   // Step 2 selections
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -476,6 +486,18 @@ export default function BookingCalendar() {
   });
 
   // ── Handlers ──────────────────────────────────────────────────────────────────
+
+  const navigate = useNavigate();
+
+  const saveBookingState = useCallback(() => {
+    if (selectedLocationId !== null) sessionStorage.setItem("booking_location", String(selectedLocationId));
+    if (selectedServiceId !== null) sessionStorage.setItem("booking_service", String(selectedServiceId));
+  }, [selectedLocationId, selectedServiceId]);
+
+  function handleAuthRedirect(path: string) {
+    saveBookingState();
+    navigate(path);
+  }
 
   function handleLocationSelect(id: number | "online") {
     setSelectedLocationId(id);
@@ -709,7 +731,7 @@ export default function BookingCalendar() {
                     <Skeleton key={i} className="h-10" />
                   ))}
                 </div>
-              ) : !slots || slots.length === 0 ? (
+              ) : !slots || !Array.isArray(slots) || slots.length === 0 ? (
                 <div className="bg-cream rounded-[14px] px-5 py-4 text-[14px] text-ink2">
                   No hay turnos disponibles para este día. Probá con otra fecha.
                 </div>
@@ -798,19 +820,19 @@ export default function BookingCalendar() {
               <p className="text-[13px] text-ink2 mb-4">
                 Necesitás una cuenta para reservar turnos.
               </p>
-              <Link
-                to={`/login?redirect=/booking`}
+              <button
+                onClick={() => handleAuthRedirect("/login?redirect=/booking")}
                 className="inline-block bg-teal-dark text-white rounded-[12px] px-5 py-2.5 font-semibold text-[13px] transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-cta)]"
               >
                 Iniciar sesión
-              </Link>
+              </button>
               <span className="text-[13px] text-ink2 mx-3">o</span>
-              <Link
-                to="/register?redirect=/booking"
+              <button
+                onClick={() => handleAuthRedirect("/register?redirect=/booking")}
                 className="inline text-[13px] font-semibold text-teal-dark hover:underline"
               >
                 Crear cuenta
-              </Link>
+              </button>
             </div>
           ) : (
             <div className="space-y-5">
