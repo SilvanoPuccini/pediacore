@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import SEOHead from "@/components/seo/SEOHead";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/auth";

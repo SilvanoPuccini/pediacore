@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Menu, X, MapPin, Clock, Phone } from "lucide-react";
+import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
@@ -104,8 +105,8 @@ export default function Navbar() {
             >
               Contacto
             </a>
-            <a
-              href="#reservar"
+            <Link
+              to="/booking"
               className={cn(
                 "relative overflow-hidden px-5 py-2.5 rounded-[10px] text-[13px] font-semibold text-white",
                 "bg-[var(--teal-dark)] shadow-[var(--shadow-cta)]",
@@ -120,7 +121,7 @@ export default function Navbar() {
                 aria-hidden="true"
               />
               Reservar consulta
-            </a>
+            </Link>
           </div>
 
           {/* Mobile hamburger */}
@@ -159,8 +160,8 @@ export default function Navbar() {
               >
                 Contacto
               </a>
-              <a
-                href="#reservar"
+              <Link
+                to="/booking"
                 className={cn(
                   "relative overflow-hidden px-5 py-3 rounded-[10px] text-[14px] font-semibold text-white text-center",
                   "bg-[var(--teal-dark)] shadow-[var(--shadow-cta)]",
@@ -174,7 +175,7 @@ export default function Navbar() {
                   aria-hidden="true"
                 />
                 Reservar consulta
-              </a>
+              </Link>
             </div>
           </div>
         </div>
