@@ -504,13 +504,12 @@ export default function BookingCalendar() {
     if (!selectedPatientId || !selectedSlot || !selectedDate || !selectedServiceId) return;
 
     const isOnline = selectedLocationId === "online";
-    const locationId = isOnline ? 0 : (selectedLocationId as number);
 
     const payload: AppointmentCreate = {
       practice: PRACTICE_ID,
       patient: selectedPatientId,
       service: selectedServiceId,
-      location: locationId,
+      location: isOnline ? null : (selectedLocationId as number),
       doctor: DOCTOR_ID,
       scheduled_date: selectedDate,
       start_time: selectedSlot.start_time,
@@ -542,7 +541,7 @@ export default function BookingCalendar() {
           <div className="bg-cream rounded-[14px] p-5 text-left space-y-3 mb-6">
             <DetailRow label="Paciente" value={confirmedAppointment.patient_name} />
             <DetailRow label="Servicio" value={confirmedAppointment.service_name} />
-            <DetailRow label="Sede" value={confirmedAppointment.location_name} />
+            <DetailRow label="Sede" value={confirmedAppointment.location_name || "Consulta Online"} />
             <DetailRow label="Fecha" value={formatDisplayDate(confirmedAppointment.scheduled_date)} />
             <DetailRow label="Hora" value={formatTime(confirmedAppointment.start_time)} />
           </div>
@@ -807,7 +806,7 @@ export default function BookingCalendar() {
               </Link>
               <span className="text-[13px] text-ink2 mx-3">o</span>
               <Link
-                to="/register"
+                to="/register?redirect=/booking"
                 className="inline text-[13px] font-semibold text-teal-dark hover:underline"
               >
                 Crear cuenta
@@ -865,7 +864,15 @@ export default function BookingCalendar() {
                     No se pudo confirmar el turno
                   </p>
                   <p className="text-[12px] text-ink2 mt-0.5">
-                    Intentá de nuevo o contactanos por teléfono.
+                    {(() => {
+                      const err = bookingMutation.error as { response?: { data?: Record<string, unknown> } };
+                      const data = err?.response?.data;
+                      if (data && typeof data === "object") {
+                        const msgs = Object.values(data).flat().filter(Boolean);
+                        if (msgs.length > 0) return msgs.join(" ");
+                      }
+                      return "Intentá de nuevo o contactanos por teléfono.";
+                    })()}
                   </p>
                 </div>
               )}

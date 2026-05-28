@@ -1,5 +1,5 @@
 import { useState, type FormEvent, type ChangeEvent } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import SEOHead from "@/components/seo/SEOHead";
 import { useAuthStore } from "@/stores/auth";
 import type { RegisterRequest } from "@/types/api";
@@ -18,12 +18,15 @@ const INITIAL_FORM: FormFields = {
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/";
   const register = useAuthStore((s) => s.register);
 
   const [form, setForm] = useState<FormFields>(INITIAL_FORM);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [globalError, setGlobalError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   function handleChange(e: ChangeEvent<HTMLInputElement>) {
     const { name, value } = e.target;
@@ -52,7 +55,7 @@ export default function RegisterPage() {
     setIsLoading(true);
     try {
       await register(form);
-      navigate("/");
+      setIsSuccess(true);
     } catch (err: unknown) {
       if (
         typeof err === "object" &&
@@ -87,6 +90,34 @@ export default function RegisterPage() {
     "w-full px-4 py-3 rounded-[12px] border border-line bg-bg text-ink text-[14px] focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal";
   const labelClass = "block text-[13px] font-semibold text-ink mb-1.5";
   const errorClass = "text-[12px] text-coral mt-1";
+
+  if (isSuccess) {
+    return (
+      <div className="min-h-screen bg-bg flex items-center justify-center px-4 py-16">
+        <div className="w-full max-w-[460px]">
+          <div className="bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)] px-8 py-10 text-center">
+            <div className="w-16 h-16 bg-teal/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-teal-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h2 className="font-display text-[24px] font-semibold text-ink mb-2">
+              ¡Cuenta creada!
+            </h2>
+            <p className="text-[14px] text-ink2 mb-6 leading-relaxed">
+              Tu cuenta fue creada correctamente. Ya podés reservar turnos para tus hijos.
+            </p>
+            <button
+              onClick={() => navigate(redirectTo)}
+              className="w-full bg-teal-dark text-white rounded-[12px] px-6 py-3 font-semibold text-[14px] transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-cta)]"
+            >
+              {redirectTo === "/booking" ? "Continuar con tu reserva" : "Ir al inicio"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-bg flex items-center justify-center px-4 py-16">
@@ -269,7 +300,7 @@ export default function RegisterPage() {
           <p className="text-center text-[13px] text-ink2 mt-6">
             ¿Ya tenés cuenta?{" "}
             <Link
-              to="/login"
+              to={redirectTo !== "/" ? `/login?redirect=${encodeURIComponent(redirectTo)}` : "/login"}
               className="text-teal-dark font-semibold hover:underline"
             >
               Iniciá sesión
