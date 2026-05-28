@@ -1,4 +1,4 @@
-import { CalendarDays, CheckCircle, Clock, ArrowRight } from "lucide-react";
+import { CalendarDays, CheckCircle, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/api";
