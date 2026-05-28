@@ -96,7 +96,7 @@ export interface AppointmentCreate {
   practice: number;
   patient: number;
   service: number;
-  location: number;
+  location?: number | null;
   doctor: number;
   scheduled_date: string;
   start_time: string;

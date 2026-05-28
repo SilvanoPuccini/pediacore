@@ -1,10 +1,12 @@
 import { useState, type FormEvent } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import SEOHead from "@/components/seo/SEOHead";
 import { useAuthStore } from "@/stores/auth";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/";
   const login = useAuthStore((s) => s.login);
 
   const [email, setEmail] = useState("");
@@ -18,7 +20,7 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       await login(email, password);
-      navigate("/");
+      navigate(redirectTo);
     } catch {
       setError("Email o contraseña incorrectos. Intentá de nuevo.");
     } finally {
@@ -111,7 +113,7 @@ export default function LoginPage() {
           <p className="text-center text-[13px] text-ink2 mt-6">
             ¿No tenés cuenta?{" "}
             <Link
-              to="/register"
+              to={redirectTo !== "/" ? `/register?redirect=${encodeURIComponent(redirectTo)}` : "/register"}
               className="text-teal-dark font-semibold hover:underline"
             >
               Registrate

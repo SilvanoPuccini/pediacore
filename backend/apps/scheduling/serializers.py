@@ -17,7 +17,7 @@ User = get_user_model()
 class AppointmentListSerializer(serializers.ModelSerializer):
     patient_name = serializers.SerializerMethodField()
     service_name = serializers.CharField(source="service.name", read_only=True)
-    location_name = serializers.CharField(source="location.name", read_only=True)
+    location_name = serializers.SerializerMethodField()
     status_display = serializers.CharField(source="get_status_display", read_only=True)
 
     class Meta:
@@ -50,6 +50,11 @@ class AppointmentListSerializer(serializers.ModelSerializer):
     def get_patient_name(self, obj: Appointment) -> str:
         return obj.patient.full_name
 
+    def get_location_name(self, obj: Appointment) -> str:
+        if obj.is_online:
+            return "Consulta Online"
+        return obj.location.name if obj.location else ""
+
 
 class AppointmentDetailSerializer(AppointmentListSerializer):
     doctor_email = serializers.CharField(source="doctor.email", read_only=True)
@@ -80,6 +85,12 @@ class AppointmentDetailSerializer(AppointmentListSerializer):
 
 
 class AppointmentCreateSerializer(serializers.ModelSerializer):
+    location = serializers.PrimaryKeyRelatedField(
+        queryset=Appointment.location.field.related_model.objects.all(),
+        required=False,
+        allow_null=True,
+    )
+
     class Meta:
         model = Appointment
         fields = [
@@ -110,12 +121,19 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
         service = attrs.get("service")
         scheduled_date = attrs.get("scheduled_date")
         start_time = attrs.get("start_time")
+        is_online = attrs.get("is_online", False)
 
-        if not all([location, service, scheduled_date, start_time]):
+        if not all([service, scheduled_date, start_time]):
             return
 
+        # Online appointments have no location
+        if not is_online and not location:
+            return
+
+        location_id = None if is_online else location.pk
+
         available_slots = get_available_slots(
-            location_id=location.pk,
+            location_id=location_id,
             service_id=service.pk,
             date=scheduled_date,
         )
@@ -146,33 +164,35 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
         """
         import datetime
 
-        from django.core.exceptions import ValidationError as DjangoValidationError
-
         location = attrs.get("location")
         scheduled_date = attrs.get("scheduled_date")
         start_time = attrs.get("start_time")
         service = attrs.get("service")
+        is_online = attrs.get("is_online", False)
 
-        if not all([location, scheduled_date, start_time, service]):
+        if not all([scheduled_date, start_time, service]):
+            return
+
+        if not is_online and not location:
             return
 
         duration = datetime.timedelta(minutes=service.duration_minutes)
         start_dt = datetime.datetime.combine(datetime.date.today(), start_time)
         end_time = (start_dt + duration).time()
 
-        overlapping = (
-            Appointment.objects.exclude(status=Appointment.CANCELLED)
-            .filter(
-                location=location,
-                scheduled_date=scheduled_date,
-                start_time__lt=end_time,
-                end_time__gt=start_time,
-            )
+        overlapping = Appointment.objects.exclude(status=Appointment.CANCELLED).filter(
+            scheduled_date=scheduled_date,
+            start_time__lt=end_time,
+            end_time__gt=start_time,
         )
+        if is_online:
+            overlapping = overlapping.filter(is_online=True)
+        else:
+            overlapping = overlapping.filter(location=location)
 
         if overlapping.exists():
             raise serializers.ValidationError(
-                {"start_time": "There is already an appointment scheduled at this time and location."}
+                {"start_time": "There is already an appointment scheduled at this time."}
             )
 
     def validate(self, attrs: dict) -> dict:

@@ -49,6 +49,8 @@ class Appointment(BaseModel):
         on_delete=models.CASCADE,
         related_name="appointments",
         verbose_name=_("location"),
+        null=True,
+        blank=True,
     )
     doctor = models.ForeignKey(
         settings.AUTH_USER_MODEL,
