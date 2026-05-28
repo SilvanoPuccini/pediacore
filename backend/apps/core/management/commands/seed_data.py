@@ -164,7 +164,7 @@ class Command(BaseCommand):
             slug="pucon",
             defaults={
                 "name": "Centro Clínico Terapéutico El Valle Pucón",
-                "address": "Gral. Urrutia 291, Of. 1, 4920000 Pucón",
+                "address": "Gral. Urrutia 291, Of. 4, 4920000 Pucón",
                 "city": "Pucón",
                 "region": "Araucanía",
                 "phone": "+56 45 244 3100",
