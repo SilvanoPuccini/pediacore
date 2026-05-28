@@ -1,5 +1,6 @@
 import { motion, type Variants } from "framer-motion";
 import { ArrowRight, Star } from "lucide-react";
+import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 // Stagger entrance: translateY only, no opacity
@@ -108,8 +109,8 @@ export default function HeroSection() {
               variants={itemVariants}
               className="flex flex-wrap gap-3"
             >
-              <a
-                href="#reservar"
+              <Link
+                to="/booking"
                 className={cn(
                   "relative overflow-hidden flex items-center gap-2",
                   "px-6 py-3.5 rounded-[12px] text-[14px] font-semibold text-white",
@@ -125,7 +126,7 @@ export default function HeroSection() {
                 />
                 Reservar consulta
                 <ArrowRight size={15} />
-              </a>
+              </Link>
               <a
                 href="#servicios"
                 className={cn(

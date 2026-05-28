@@ -1,4 +1,5 @@
 import { Calendar, Stethoscope, FileText, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 interface ProcessStep {
@@ -73,8 +74,8 @@ export default function ProcessSection() {
               Sin formularios interminables ni llamadas telefónicas.
             </p>
 
-            <a
-              href="#reservar"
+            <Link
+              to="/booking"
               className={cn(
                 "relative overflow-hidden self-start flex items-center gap-2",
                 "px-6 py-3.5 rounded-[12px] text-[14px] font-semibold text-white",
@@ -90,7 +91,7 @@ export default function ProcessSection() {
               />
               Reservar consulta
               <ArrowRight size={15} />
-            </a>
+            </Link>
           </div>
 
           {/* Right — steps */}

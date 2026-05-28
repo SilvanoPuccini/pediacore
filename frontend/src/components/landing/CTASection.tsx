@@ -1,4 +1,12 @@
-import { CalendarDays, CheckCircle, MapPin } from "lucide-react";
+import { CalendarDays, CheckCircle, Clock, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import api from "@/lib/api";
+import type { Location, PaginatedResponse } from "@/types/api";
+
+const PRACTICE_SLUG = "dra-estefi";
+
+const WEEKDAYS_SHORT = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
 // --- Eyebrow helper ---
 function Eyebrow({ label }: { label: string }) {
@@ -42,8 +50,140 @@ function BookingSlot({ day, time, location, locationColor, locationBg }: SlotPro
   );
 }
 
+// --- Next available slots from API ---
+interface NextSlot {
+  day: string;
+  time: string;
+  location: string;
+  locationColor: string;
+  locationBg: string;
+}
+
+const LOCATION_STYLES: Record<string, { color: string; bg: string }> = {
+  default: { color: "text-teal-dark", bg: "bg-teal/15" },
+};
+
+function useNextSlots() {
+  const { data: locationsResp } = useQuery<PaginatedResponse<Location>>({
+    queryKey: ["locations", PRACTICE_SLUG],
+    queryFn: async () => {
+      const { data } = await api.get<PaginatedResponse<Location>>(`/practices/${PRACTICE_SLUG}/locations/`);
+      return data;
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const locations = locationsResp?.results ?? [];
+
+  // Fetch next 3 days' slots for each location
+  const today = new Date();
+  const dates: string[] = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() + i);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    dates.push(`${y}-${m}-${day}`);
+  }
+
+  // Colors for locations by index
+  const LOC_COLORS = [
+    { color: "text-teal-dark", bg: "bg-teal/15" },
+    { color: "text-coral", bg: "bg-coral/15" },
+    { color: "text-mustard", bg: "bg-mustard/15" },
+  ];
+
+  const { data: nextSlots, isLoading } = useQuery<NextSlot[]>({
+    queryKey: ["next-slots", locations.map((l) => l.id), dates[0]],
+    queryFn: async () => {
+      const results: NextSlot[] = [];
+
+      for (const loc of locations) {
+        if (results.length >= 3) break;
+        const locIdx = locations.indexOf(loc);
+        const style = LOC_COLORS[locIdx] ?? LOCATION_STYLES.default;
+
+        for (const date of dates) {
+          if (results.length >= 3) break;
+          try {
+            // Use first service as reference (service doesn't matter much for preview)
+            const servicesResp = await api.get<PaginatedResponse<{ id: number }>>(`/practices/${PRACTICE_SLUG}/services/`);
+            const firstService = servicesResp.data.results?.[0];
+            if (!firstService) continue;
+
+            const { data: slots } = await api.get<{ start_time: string; available: boolean }[]>("/available-slots/", {
+              params: { location: loc.id, service: firstService.id, date },
+            });
+
+            if (Array.isArray(slots) && slots.length > 0) {
+              const firstAvailable = slots.find((s) => s.available);
+              if (firstAvailable) {
+                const dateObj = new Date(date + "T00:00:00");
+                const dayLabel = `${WEEKDAYS_SHORT[dateObj.getDay()]} ${dateObj.getDate()}`;
+                results.push({
+                  day: dayLabel,
+                  time: `${firstAvailable.start_time} hs`,
+                  location: loc.name.replace(/^Sede\s+/i, "").replace(/^Consultorio\s+/i, ""),
+                  locationColor: style.color,
+                  locationBg: style.bg,
+                });
+                break; // One slot per location, move to next location
+              }
+            }
+          } catch {
+            // Skip failed requests
+          }
+        }
+      }
+
+      // Add online slot if we have room
+      if (results.length < 3) {
+        for (const date of dates) {
+          if (results.length >= 3) break;
+          try {
+            const servicesResp = await api.get<PaginatedResponse<{ id: number; is_online_available: boolean }>>(`/practices/${PRACTICE_SLUG}/services/`);
+            const onlineService = servicesResp.data.results?.find((s) => s.is_online_available);
+            if (!onlineService) break;
+
+            const { data: slots } = await api.get<{ start_time: string; available: boolean }[]>("/available-slots/", {
+              params: { service: onlineService.id, date },
+            });
+
+            if (Array.isArray(slots) && slots.length > 0) {
+              const firstAvailable = slots.find((s) => s.available);
+              if (firstAvailable) {
+                const dateObj = new Date(date + "T00:00:00");
+                const dayLabel = `${WEEKDAYS_SHORT[dateObj.getDay()]} ${dateObj.getDate()}`;
+                results.push({
+                  day: dayLabel,
+                  time: `${firstAvailable.start_time} hs`,
+                  location: "Online",
+                  locationColor: "text-mustard",
+                  locationBg: "bg-mustard/15",
+                });
+                break;
+              }
+            }
+          } catch {
+            break;
+          }
+        }
+      }
+
+      return results;
+    },
+    enabled: locations.length > 0,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  return { slots: nextSlots ?? [], isLoading };
+}
+
 // --- Booking card ---
 function BookingCard() {
+  const { slots, isLoading } = useNextSlots();
+
   return (
     <div className="bg-surface rounded-[20px] border border-line shadow-[var(--shadow-pop)] p-6">
       <div className="flex items-center justify-between mb-1">
@@ -55,36 +195,46 @@ function BookingCard() {
       <p className="text-[12px] text-ink3 mb-4">Actualizados en tiempo real</p>
 
       <div className="flex flex-col">
-        <BookingSlot
-          day="Mié 27"
-          time="09:00 hs"
-          location="Pucón"
-          locationColor="text-teal-dark"
-          locationBg="bg-teal/15"
-        />
-        <BookingSlot
-          day="Jue 28"
-          time="11:30 hs"
-          location="Villarrica"
-          locationColor="text-coral"
-          locationBg="bg-coral/15"
-        />
-        <BookingSlot
-          day="Vie 29"
-          time="16:00 hs"
-          location="Online"
-          locationColor="text-mustard"
-          locationBg="bg-mustard/15"
-        />
+        {isLoading ? (
+          <>
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex items-center justify-between py-3 border-b border-line last:border-b-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-[10px] bg-ink/5 animate-pulse" />
+                  <div>
+                    <div className="h-4 w-16 bg-ink/5 rounded animate-pulse mb-1" />
+                    <div className="h-3 w-12 bg-ink/5 rounded animate-pulse" />
+                  </div>
+                </div>
+                <div className="h-5 w-16 bg-ink/5 rounded-full animate-pulse" />
+              </div>
+            ))}
+          </>
+        ) : slots.length === 0 ? (
+          <p className="text-[13px] text-ink2 py-4">
+            No hay turnos próximos disponibles.
+          </p>
+        ) : (
+          slots.map((slot, i) => (
+            <BookingSlot
+              key={i}
+              day={slot.day}
+              time={slot.time}
+              location={slot.location}
+              locationColor={slot.locationColor}
+              locationBg={slot.locationBg}
+            />
+          ))
+        )}
       </div>
 
-      <a
-        href="#"
+      <Link
+        to="/booking"
         className="mt-4 flex items-center justify-center gap-1.5 text-[13px] font-semibold text-teal-dark hover:underline"
       >
         Ver todos los horarios
-        <MapPin size={13} />
-      </a>
+        <Clock size={13} />
+      </Link>
     </div>
   );
 }
@@ -132,10 +282,13 @@ export default function CTASection() {
 
             {/* Buttons */}
             <div className="flex flex-wrap gap-3">
-              <button className="flex items-center gap-2 bg-teal-dark text-white text-[14px] font-semibold rounded-[14px] px-6 py-3 shadow-[var(--shadow-cta)] hover:opacity-90 hover:-translate-y-0.5 transition-all duration-200">
+              <Link
+                to="/booking"
+                className="flex items-center gap-2 bg-teal-dark text-white text-[14px] font-semibold rounded-[14px] px-6 py-3 shadow-[var(--shadow-cta)] hover:opacity-90 hover:-translate-y-0.5 transition-all duration-200"
+              >
                 <CalendarDays size={16} />
                 Reservar consulta
-              </button>
+              </Link>
               <a
                 href="https://wa.me/56958455537"
                 target="_blank"
