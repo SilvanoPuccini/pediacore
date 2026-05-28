@@ -110,7 +110,7 @@ export default function Footer() {
             {/* Social icons */}
             <div className="flex gap-2">
               <SocialLink
-                href="https://instagram.com/estefipediatra"
+                href="https://www.instagram.com/estefiortigosa.pediatra/"
                 icon={<span className="text-white/70"><IconInstagram size={15} /></span>}
                 label="Instagram"
               />
