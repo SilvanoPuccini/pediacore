@@ -10,13 +10,15 @@ const GOOGLE_MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY as string | undefin
 
 // --- Static Map preview (instant image with pin, clickable to Google Maps) ---
 function StaticMapPreview({ lat, lng, address }: { lat: number; lng: number; address: string }) {
+  const safeLat = Number(lat) || 0;
+  const safeLng = Number(lng) || 0;
   const googleUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 
-  const staticMapUrl = GOOGLE_MAPS_KEY
-    ? `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=16&size=600x200&scale=2&map_type=roadmap&markers=color:red%7C${lat},${lng}&style=feature:poi%7Cvisibility:off&style=feature:water%7Ccolor:0xc9c9c9&key=${GOOGLE_MAPS_KEY}`
+  const staticMapUrl = GOOGLE_MAPS_KEY && safeLat && safeLng
+    ? `https://maps.googleapis.com/maps/api/staticmap?center=${safeLat},${safeLng}&zoom=16&size=600x200&scale=2&maptype=roadmap&markers=color:red%7C${safeLat},${safeLng}&key=${GOOGLE_MAPS_KEY}`
     : null;
 
-  const osmEmbedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${lng - 0.005},${lat - 0.003},${lng + 0.005},${lat + 0.003}&layer=mapnik&marker=${lat},${lng}`;
+  const osmEmbedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${safeLng - 0.005},${safeLat - 0.003},${safeLng + 0.005},${safeLat + 0.003}&layer=mapnik&marker=${safeLat},${safeLng}`;
 
   const [mapError, setMapError] = useState(false);
   const showGoogle = staticMapUrl && !mapError;
