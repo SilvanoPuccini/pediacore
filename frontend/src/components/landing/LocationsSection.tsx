@@ -24,13 +24,15 @@ function MapPreview({ lat, lng, address }: { lat: number; lng: number; address: 
       rel="noopener noreferrer"
       className="relative block h-[200px] rounded-[16px] overflow-hidden group cursor-pointer"
     >
-      <iframe
-        src={osmUrl}
-        className="w-full h-full pointer-events-none"
-        style={{ border: 0 }}
-        loading="lazy"
-        title="Mapa"
-      />
+      <div className="w-full h-full overflow-hidden">
+        <iframe
+          src={osmUrl}
+          className="w-full h-full pointer-events-none"
+          style={{ border: 0, transform: 'scale(1.5)', transformOrigin: '50% 30%' }}
+          loading="lazy"
+          title="Mapa"
+        />
+      </div>
       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200 flex items-center justify-center">
         <span className="opacity-0 group-hover:opacity-100 bg-white/90 text-ink text-[12px] font-semibold px-3 py-1.5 rounded-full shadow-md transition-opacity duration-200">
           Abrir en Google Maps
