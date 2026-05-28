@@ -152,7 +152,7 @@ def send_appointment_reminder(appointment: Appointment) -> None:
                 f"programada para el <strong>{appointment.scheduled_date}</strong> "
                 f"a las <strong>{appointment.start_time:%H:%M}</strong>.",
                 f"Servicio: {appointment.service.name}",
-                f"Lugar: {appointment.location.name}",
+                f"Lugar: {appointment.location.name if appointment.location else 'Consulta Online'}",
                 "Si necesitás cancelar o reprogramar, por favor contactanos con anticipación.",
             ],
         )
@@ -209,7 +209,7 @@ def send_appointment_confirmation(appointment: Appointment) -> None:
                 f"Fecha: {appointment.scheduled_date}",
                 f"Hora: {appointment.start_time:%H:%M}",
                 f"Servicio: {appointment.service.name}",
-                f"Lugar: {appointment.location.name}",
+                f"Lugar: {appointment.location.name if appointment.location else 'Consulta Online'}",
             ],
         )
 
