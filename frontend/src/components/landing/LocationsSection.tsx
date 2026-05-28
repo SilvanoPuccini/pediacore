@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { MapPin, Clock, MessageCircle, ExternalLink, CalendarDays } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -17,6 +18,9 @@ function StaticMapPreview({ lat, lng, address }: { lat: number; lng: number; add
 
   const osmEmbedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${lng - 0.005},${lat - 0.003},${lng + 0.005},${lat + 0.003}&layer=mapnik&marker=${lat},${lng}`;
 
+  const [mapError, setMapError] = useState(false);
+  const showGoogle = staticMapUrl && !mapError;
+
   return (
     <a
       href={googleUrl}
@@ -24,12 +28,13 @@ function StaticMapPreview({ lat, lng, address }: { lat: number; lng: number; add
       rel="noopener noreferrer"
       className="relative block h-[200px] rounded-[16px] overflow-hidden group cursor-pointer"
     >
-      {staticMapUrl ? (
+      {showGoogle ? (
         <img
           src={staticMapUrl}
           alt={`Mapa de ${address}`}
           className="w-full h-full object-cover"
           loading="lazy"
+          onError={() => setMapError(true)}
         />
       ) : (
         <iframe
