@@ -1,60 +1,40 @@
 import { MapPin, Clock, MessageCircle, ExternalLink, CalendarDays } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
 import api from "@/lib/api";
 import type { Location, PaginatedResponse } from "@/types/api";
 
 const PRACTICE_SLUG = "dra-estefi";
-const GOOGLE_MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY as string | undefined;
 
-const MAP_STYLE = { width: "100%", height: "200px" };
-const MAP_OPTIONS: google.maps.MapOptions = {
-  streetViewControl: false,
-  mapTypeControl: false,
-  fullscreenControl: false,
-  zoomControl: false,
-  gestureHandling: "none",
-  clickableIcons: false,
-};
-
-// --- Google Maps interactive preview ---
-function MapPreview({
-  lat,
-  lng,
-  address,
-  isLoaded,
-}: {
-  lat: number;
-  lng: number;
-  address: string;
-  isLoaded: boolean;
-}) {
-  const safeLat = Number(lat) || 0;
-  const safeLng = Number(lng) || 0;
+// --- OpenStreetMap preview (iframe, clickable to Google Maps) ---
+function MapPreview({ lat, lng, address }: { lat: number; lng: number; address: string }) {
   const googleUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
-  const center = { lat: safeLat, lng: safeLng };
+  const osmUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${lng - 0.005},${lat - 0.003},${lng + 0.005},${lat + 0.003}&layer=mapnik&marker=${lat},${lng}`;
 
-  if (!isLoaded || !safeLat || !safeLng) {
+  if (!lat || !lng) {
     return <div className="h-[200px] rounded-[16px] bg-ink/5 animate-pulse" />;
   }
 
   return (
-    <div className="relative h-[200px] rounded-[16px] overflow-hidden group">
-      <GoogleMap mapContainerStyle={MAP_STYLE} center={center} zoom={16} options={MAP_OPTIONS}>
-        <Marker position={center} />
-      </GoogleMap>
-      <a
-        href={googleUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200 flex items-center justify-center"
-      >
+    <a
+      href={googleUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="relative block h-[200px] rounded-[16px] overflow-hidden group cursor-pointer"
+    >
+      <iframe
+        src={osmUrl}
+        className="w-full h-full pointer-events-none"
+        style={{ border: 0 }}
+        loading="lazy"
+        title="Mapa"
+      />
+      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200 flex items-center justify-center">
         <span className="opacity-0 group-hover:opacity-100 bg-white/90 text-ink text-[12px] font-semibold px-3 py-1.5 rounded-full shadow-md transition-opacity duration-200">
           Abrir en Google Maps
         </span>
-      </a>
-    </div>
+      </div>
+    </a>
   );
 }
 
@@ -94,7 +74,6 @@ interface LocationCardProps {
   phone: string;
   lat: number;
   lng: number;
-  isLoaded: boolean;
 }
 
 function LocationCard({
@@ -108,12 +87,11 @@ function LocationCard({
   phone,
   lat,
   lng,
-  isLoaded,
 }: LocationCardProps) {
   return (
     <div className="bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)] p-6 flex flex-col gap-5 hover:-translate-y-1 hover:shadow-[var(--shadow-pop)] transition-all duration-300">
       {/* Map */}
-      <MapPreview lat={lat} lng={lng} address={fullAddress} isLoaded={isLoaded} />
+      <MapPreview lat={lat} lng={lng} address={fullAddress} />
 
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
@@ -199,11 +177,6 @@ function LocationsSkeleton() {
 
 // --- Main section ---
 export default function LocationsSection() {
-  const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: GOOGLE_MAPS_KEY ?? "",
-    id: "google-map-script",
-  });
-
   const { data, isLoading, isError } = useQuery<PaginatedResponse<Location>>({
     queryKey: ["locations", PRACTICE_SLUG],
     queryFn: () =>
@@ -265,7 +238,6 @@ export default function LocationsSection() {
                   phone={loc.phone}
                   lat={loc.latitude ?? 0}
                   lng={loc.longitude ?? 0}
-                  isLoaded={isLoaded}
                 />
               );
             })}
