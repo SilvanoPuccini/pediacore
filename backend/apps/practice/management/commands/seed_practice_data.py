@@ -29,7 +29,7 @@ LOCATIONS = [
     {
         "name": "Centro Clínico Terapéutico El Valle Pucón",
         "slug": "pucon",
-        "address": "Gral. Urrutia 291, Of. 1, 4920000 Pucón",
+        "address": "Gral. Urrutia 291, Of. 4, 4920000 Pucón",
         "city": "Pucón",
         "region": "Araucanía",
         "phone": "+56 9 5845 5537",
