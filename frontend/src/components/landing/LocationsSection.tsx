@@ -9,9 +9,11 @@ const PRACTICE_SLUG = "dra-estefi";
 // --- OpenStreetMap preview (iframe, clickable to Google Maps) ---
 function MapPreview({ lat, lng, address }: { lat: number; lng: number; address: string }) {
   const googleUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
-  const osmUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${lng - 0.005},${lat - 0.003},${lng + 0.005},${lat + 0.003}&layer=mapnik&marker=${lat},${lng}`;
+  const safeLat = Number(lat);
+  const safeLng = Number(lng);
+  const osmUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${safeLng - 0.005},${safeLat - 0.003},${safeLng + 0.005},${safeLat + 0.003}&layer=mapnik&marker=${safeLat},${safeLng}`;
 
-  if (!lat || !lng) {
+  if (!safeLat || !safeLng) {
     return <div className="h-[200px] rounded-[16px] bg-ink/5 animate-pulse" />;
   }
 
