@@ -57,6 +57,7 @@ class LocationSerializer(serializers.ModelSerializer):
 class ServiceSerializer(serializers.ModelSerializer):
     """Read-only serializer for public service listing. Includes location names."""
 
+    locations = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     location_names = serializers.SerializerMethodField()
 
     class Meta:
@@ -70,6 +71,7 @@ class ServiceSerializer(serializers.ModelSerializer):
             "price",
             "is_online_available",
             "is_active",
+            "locations",
             "location_names",
             "created_at",
             "updated_at",
