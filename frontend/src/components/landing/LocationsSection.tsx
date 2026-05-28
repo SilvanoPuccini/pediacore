@@ -1,49 +1,44 @@
 import { MapPin, Clock, MessageCircle, ExternalLink, CalendarDays } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
 import api from "@/lib/api";
 import type { Location, PaginatedResponse } from "@/types/api";
 
 const PRACTICE_SLUG = "dra-estefi";
 const GOOGLE_MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY as string | undefined;
 
-const MAP_STYLE = { width: "100%", height: "200px" };
-const MAP_OPTIONS: google.maps.MapOptions = {
-  streetViewControl: false,
-  mapTypeControl: false,
-  fullscreenControl: false,
-  zoomControl: false,
-  gestureHandling: "none",
-  clickableIcons: false,
-};
-
-// --- Google Maps interactive preview ---
-function MapPreview({
-  lat,
-  lng,
-  address,
-  isLoaded,
-}: {
-  lat: number;
-  lng: number;
-  address: string;
-  isLoaded: boolean;
-}) {
+// --- Google Maps Embed preview (free, no billing required) ---
+function MapPreview({ lat, lng, address }: { lat: number; lng: number; address: string }) {
   const safeLat = Number(lat) || 0;
   const safeLng = Number(lng) || 0;
-  const googleUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
-  const center = { lat: safeLat, lng: safeLng };
 
-  if (!isLoaded || !safeLat || !safeLng) {
+  if (!safeLat || !safeLng) {
     return <div className="h-[200px] rounded-[16px] bg-ink/5 animate-pulse" />;
   }
 
+  const embedUrl = GOOGLE_MAPS_KEY
+    ? `https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_KEY}&q=${safeLat},${safeLng}&zoom=16`
+    : null;
+
+  const googleUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+
   return (
     <div className="relative h-[200px] rounded-[16px] overflow-hidden group">
-      <GoogleMap mapContainerStyle={MAP_STYLE} center={center} zoom={16} options={MAP_OPTIONS}>
-        <Marker position={center} />
-      </GoogleMap>
+      {embedUrl ? (
+        <iframe
+          src={embedUrl}
+          className="w-full h-full"
+          style={{ border: 0 }}
+          loading="lazy"
+          allowFullScreen={false}
+          referrerPolicy="no-referrer-when-downgrade"
+          title={`Mapa de ${address}`}
+        />
+      ) : (
+        <div className="w-full h-full bg-ink/5 flex items-center justify-center text-ink2 text-sm">
+          Mapa no disponible
+        </div>
+      )}
       <a
         href={googleUrl}
         target="_blank"
@@ -94,7 +89,6 @@ interface LocationCardProps {
   phone: string;
   lat: number;
   lng: number;
-  isLoaded: boolean;
 }
 
 function LocationCard({
@@ -108,12 +102,11 @@ function LocationCard({
   phone,
   lat,
   lng,
-  isLoaded,
 }: LocationCardProps) {
   return (
     <div className="bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)] p-6 flex flex-col gap-5 hover:-translate-y-1 hover:shadow-[var(--shadow-pop)] transition-all duration-300">
       {/* Map */}
-      <MapPreview lat={lat} lng={lng} address={fullAddress} isLoaded={isLoaded} />
+      <MapPreview lat={lat} lng={lng} address={fullAddress} />
 
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
@@ -199,11 +192,6 @@ function LocationsSkeleton() {
 
 // --- Main section ---
 export default function LocationsSection() {
-  const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: GOOGLE_MAPS_KEY ?? "",
-    id: "google-map-script",
-  });
-
   const { data, isLoading, isError } = useQuery<PaginatedResponse<Location>>({
     queryKey: ["locations", PRACTICE_SLUG],
     queryFn: () =>
@@ -265,7 +253,6 @@ export default function LocationsSection() {
                   phone={loc.phone}
                   lat={loc.latitude ?? 0}
                   lng={loc.longitude ?? 0}
-                  isLoaded={isLoaded}
                 />
               );
             })}
