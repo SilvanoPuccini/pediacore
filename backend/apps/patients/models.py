@@ -298,7 +298,7 @@ class PatientFile(BaseModel):
     """
     A categorized file attached to a patient record.
 
-    Files are stored via Cloudinary in production and locally in development.
+    Files are stored on local disk (FileSystemStorage).
     Access to patient files is audit-logged.
     """
 

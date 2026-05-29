@@ -37,7 +37,7 @@ X_FRAME_OPTIONS = "DENY"
 CSP_DEFAULT_SRC = ("'self'",)
 CSP_STYLE_SRC = ("'self'", "'unsafe-inline'")
 CSP_SCRIPT_SRC = ("'self'",)
-CSP_IMG_SRC = ("'self'", "https://res.cloudinary.com")
+CSP_IMG_SRC = ("'self'",)
 CSP_FONT_SRC = ("'self'",)
 
 # CORS — only production frontend
