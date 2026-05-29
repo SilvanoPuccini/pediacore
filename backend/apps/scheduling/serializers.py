@@ -193,9 +193,7 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
         start_dt = datetime.datetime.combine(datetime.date.today(), start_time)
         end_time = (start_dt + duration).time()
 
-        overlapping = Appointment.objects.exclude(
-            status__in=Appointment.SLOT_FREE_STATUSES
-        ).filter(
+        overlapping = Appointment.objects.exclude(status__in=Appointment.SLOT_FREE_STATUSES).filter(
             scheduled_date=scheduled_date,
             start_time__lt=end_time,
             end_time__gt=start_time,
@@ -206,9 +204,7 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
             overlapping = overlapping.filter(location=location)
 
         if overlapping.exists():
-            raise serializers.ValidationError(
-                {"start_time": "There is already an appointment scheduled at this time."}
-            )
+            raise serializers.ValidationError({"start_time": "There is already an appointment scheduled at this time."})
 
     def validate(self, attrs: dict) -> dict:
         request = self.context.get("request")
@@ -219,9 +215,7 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
 
                 patient = attrs.get("patient")
                 if patient:
-                    if not TutorPatient.objects.filter(
-                        tutor=user, patient=patient
-                    ).exists():
+                    if not TutorPatient.objects.filter(tutor=user, patient=patient).exists():
                         raise serializers.ValidationError(
                             {"patient": "You can only book appointments for your linked patients."}
                         )
@@ -311,9 +305,7 @@ class WaitlistEntrySerializer(serializers.ModelSerializer):
 
                 patient = attrs.get("patient")
                 if patient:
-                    if not TutorPatient.objects.filter(
-                        tutor=user, patient=patient
-                    ).exists():
+                    if not TutorPatient.objects.filter(tutor=user, patient=patient).exists():
                         raise serializers.ValidationError(
                             {"patient": "You can only add your linked patients to the waitlist."}
                         )
@@ -371,3 +363,56 @@ class AvailableSlotSerializer(serializers.Serializer):
     start_time = serializers.TimeField()
     end_time = serializers.TimeField()
     available = serializers.BooleanField()
+
+
+class _LazyPKRelatedField(serializers.PrimaryKeyRelatedField):
+    """PrimaryKeyRelatedField that defers queryset resolution until first use.
+
+    This avoids import-time circular dependencies when serializers.py is loaded
+    before the related models' apps are fully initialised.
+    """
+
+    def __init__(self, app_label: str, model_name: str, **kwargs):
+        self._app_label = app_label
+        self._model_name = model_name
+        kwargs.setdefault("queryset", self._get_queryset())
+        super().__init__(**kwargs)
+
+    def _get_queryset(self):
+        from django.apps import apps
+
+        return apps.get_model(self._app_label, self._model_name).objects.all()
+
+    def get_queryset(self):
+        return self._get_queryset()
+
+
+class BookingSerializer(serializers.Serializer):
+    """Serializer for the POST /api/v1/book/ endpoint.
+
+    Validates the incoming booking request and returns the data needed
+    by BookingService.hold_appointment().
+    """
+
+    practice = _LazyPKRelatedField("practice", "Practice")
+    service = _LazyPKRelatedField("practice", "Service")
+    location = _LazyPKRelatedField("practice", "Location", required=False, allow_null=True)
+    patient = _LazyPKRelatedField("patients", "Patient")
+    scheduled_date = serializers.DateField()
+    start_time = serializers.TimeField()
+    is_online = serializers.BooleanField(default=False)
+    notes = serializers.CharField(required=False, allow_blank=True, default="")
+
+    def validate(self, attrs: dict) -> dict:
+        service = attrs.get("service")
+        location = attrs.get("location")
+        is_online = attrs.get("is_online", False)
+
+        if service and not is_online and location is None:
+            # For presential services location is required
+            from apps.practice.models import Service as ServiceModel
+
+            if service.modality == ServiceModel.PRESENCIAL:
+                raise serializers.ValidationError({"location": "Location is required for presential appointments."})
+
+        return attrs
