@@ -77,7 +77,7 @@ def get_available_slots(
 
     appt_filter = Appointment.objects.filter(
         scheduled_date=date,
-    ).exclude(status=Appointment.CANCELLED)
+    ).exclude(status__in=Appointment.SLOT_FREE_STATUSES)
     if is_online:
         appt_filter = appt_filter.filter(is_online=True)
     else:

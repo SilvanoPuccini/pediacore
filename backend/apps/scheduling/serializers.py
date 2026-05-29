@@ -36,6 +36,9 @@ class AppointmentListSerializer(serializers.ModelSerializer):
             "status",
             "status_display",
             "is_online",
+            "hold_expires_at",
+            "meeting_link",
+            "attendance_confirmed",
             "created_at",
             "updated_at",
         ]
@@ -71,6 +74,12 @@ class AppointmentDetailSerializer(AppointmentListSerializer):
             "cancelled_at",
             "confirmed_at",
             "reminder_sent_at",
+            "attendance_confirmed_at",
+            "attendance_confirmed_via",
+            "reminder_24h_sent",
+            "reminder_2h_sent",
+            "rescheduled_from",
+            "rescheduled_at",
         ]
         read_only_fields = AppointmentListSerializer.Meta.read_only_fields + [
             "doctor_email",
@@ -78,6 +87,10 @@ class AppointmentDetailSerializer(AppointmentListSerializer):
             "cancelled_at",
             "confirmed_at",
             "reminder_sent_at",
+            "attendance_confirmed_at",
+            "reminder_24h_sent",
+            "reminder_2h_sent",
+            "rescheduled_at",
         ]
 
     def get_booked_by_email(self, obj: Appointment) -> str | None:
@@ -180,7 +193,9 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
         start_dt = datetime.datetime.combine(datetime.date.today(), start_time)
         end_time = (start_dt + duration).time()
 
-        overlapping = Appointment.objects.exclude(status=Appointment.CANCELLED).filter(
+        overlapping = Appointment.objects.exclude(
+            status__in=Appointment.SLOT_FREE_STATUSES
+        ).filter(
             scheduled_date=scheduled_date,
             start_time__lt=end_time,
             end_time__gt=start_time,

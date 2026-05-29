@@ -208,79 +208,78 @@ class Command(BaseCommand):
 
         services_data = [
             {
-                "name": "Consulta General",
-                "slug": "consulta-general",
-                "description": (
-                    "Consulta pediátrica de carácter general para evaluación, "
-                    "diagnóstico y tratamiento de enfermedades agudas y crónicas."
-                ),
-                "duration_minutes": 30,
-                "price": Decimal("25000.00"),
-                "is_online_available": False,
-                "locations": [location_pucon, location_villarrica],
-            },
-            {
                 "name": "Control Niño Sano",
                 "slug": "control-nino-sano",
                 "description": (
-                    "Control de salud preventivo para evaluar el crecimiento, desarrollo "
-                    "psicomotor, alimentación y vacunas del niño o niña según su edad."
+                    "Evaluación integral del crecimiento y desarrollo infantil con "
+                    "enfoque integrativo y funcional. Revisión de antecedentes, "
+                    "seguimiento del crecimiento y desarrollo, evaluación de hábitos, "
+                    "alimentación y sueño. Se despejan todas las dudas."
                 ),
                 "duration_minutes": 45,
-                "price": Decimal("30000.00"),
-                "is_online_available": False,
+                "price_clp": 40000,
+                "modality": "AMBAS",
+                "display_order": 1,
                 "locations": [location_pucon, location_villarrica],
             },
             {
-                "name": "Consulta de Urgencia",
-                "slug": "consulta-urgencia",
+                "name": "Control por Enfermedad (Particular)",
+                "slug": "consulta-enfermedad-particular",
                 "description": (
-                    "Atención de urgencias pediátricas para cuadros que requieren "
-                    "evaluación médica el mismo día: fiebre alta, dificultad respiratoria, "
-                    "vómitos o diarrea intensa, entre otros."
+                    "Consulta médica para diagnóstico y manejo de enfermedades agudas "
+                    "y crónicas infantiles, abordadas desde una mirada integrativa y "
+                    "funcional. Si se requieren exámenes, su revisión posterior NO "
+                    "tiene costo adicional (se incluye dentro de la misma consulta)."
                 ),
-                "duration_minutes": 30,
-                "price": Decimal("35000.00"),
-                "is_online_available": False,
-                "locations": [location_pucon],
-            },
-            {
-                "name": "Vacunación",
-                "slug": "vacunacion",
-                "description": (
-                    "Aplicación de vacunas del calendario nacional e inmunizaciones "
-                    "privadas. Incluye revisión del carnet de vacunas y orientación a los tutores."
-                ),
-                "duration_minutes": 20,
-                "price": Decimal("15000.00"),
-                "is_online_available": False,
+                "duration_minutes": 45,
+                "price_clp": 40000,
+                "modality": "AMBAS",
+                "display_order": 2,
                 "locations": [location_pucon, location_villarrica],
             },
             {
-                "name": "Consulta Online",
-                "slug": "consulta-online",
+                "name": "Control por Enfermedad (FONASA)",
+                "slug": "consulta-enfermedad-fonasa",
                 "description": (
-                    "Consulta pediátrica por videollamada. Ideal para seguimientos, "
-                    "orientación de síntomas leves y consultas de segunda opinión desde "
-                    "cualquier lugar de Chile."
-                ),
-                "duration_minutes": 30,
-                "price": Decimal("20000.00"),
-                "is_online_available": True,
-                "locations": [],
-            },
-            {
-                "name": "Control de Desarrollo",
-                "slug": "control-desarrollo",
-                "description": (
-                    "Evaluación especializada del desarrollo psicomotor, lenguaje, "
-                    "conducta y habilidades sociales. Incluye screening de señales de "
-                    "alerta y orientación a la familia."
+                    "Evaluación médica y tratamiento de patologías agudas infantiles "
+                    "con cobertura FONASA. Requiere presentar certificado de afiliación "
+                    "FONASA vigente del paciente al momento de la consulta."
                 ),
                 "duration_minutes": 45,
-                "price": Decimal("30000.00"),
-                "is_online_available": False,
-                "locations": [location_pucon],
+                "price_clp": 32000,
+                "modality": "AMBAS",
+                "requires_fonasa_validation": True,
+                "display_order": 3,
+                "locations": [location_pucon, location_villarrica],
+            },
+            {
+                "name": "Asesoría de Lactancia",
+                "slug": "asesoria-lactancia",
+                "description": (
+                    "Acompañamiento personalizado en lactancia materna y resolución "
+                    "de dificultades. Incluye evaluación de la técnica, posiciones, "
+                    "frecuencia y resolución de problemas comunes."
+                ),
+                "duration_minutes": 45,
+                "price_clp": 40000,
+                "modality": "AMBAS",
+                "display_order": 4,
+                "locations": [location_pucon, location_villarrica],
+            },
+            {
+                "name": "Curso RCP Infantil",
+                "slug": "curso-rcp-infantil",
+                "description": (
+                    "Capacitación práctica en primeros auxilios y reanimación "
+                    "cardiopulmonar en niños. Coordinar día y horario directamente "
+                    "con el centro."
+                ),
+                "duration_minutes": 120,
+                "price_clp": 60000,
+                "modality": "PRESENCIAL",
+                "requires_manual_coordination": True,
+                "display_order": 5,
+                "locations": [location_pucon, location_villarrica],
             },
         ]
 
@@ -672,7 +671,7 @@ class Command(BaseCommand):
                 "first_name": "Sofía",
                 "last_name": "Soto",
                 "date_of_birth": datetime.date(2022, 8, 15),
-                "gender": Patient.FEMALE,
+                "sex_at_birth": Patient.F,
                 "blood_type": Patient.O_POS,
                 "allergies": "",
                 "chronic_conditions": "",
@@ -701,7 +700,7 @@ class Command(BaseCommand):
                 "first_name": "Mateo",
                 "last_name": "Soto",
                 "date_of_birth": datetime.date(2024, 3, 20),
-                "gender": Patient.MALE,
+                "sex_at_birth": Patient.M,
                 "blood_type": Patient.A_POS,
                 "allergies": "",
                 "chronic_conditions": "",

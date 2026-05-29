@@ -189,7 +189,7 @@ class TestAnthropometryZScoreCalculation:
         patient = PatientFactory(
             practice=practice,
             date_of_birth=today,
-            gender=Patient.MALE,
+            sex_at_birth=Patient.M,
         )
         encounter = EncounterFactory(
             practice=practice,

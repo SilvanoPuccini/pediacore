@@ -212,7 +212,7 @@ class TestAnthropometryView:
         patient = PatientFactory(
             practice=practice,
             date_of_birth=datetime.date.today(),
-            gender=Patient.MALE,
+            sex_at_birth=Patient.M,
         )
         encounter = EncounterFactory(practice=practice, patient=patient, doctor=doctor)
 
@@ -244,7 +244,7 @@ class TestAnthropometryView:
         patient = PatientFactory(
             practice=practice,
             date_of_birth=today,
-            gender=Patient.MALE,
+            sex_at_birth=Patient.M,
         )
         encounter = EncounterFactory(practice=practice, patient=patient, doctor=doctor, scheduled_at=None)
 

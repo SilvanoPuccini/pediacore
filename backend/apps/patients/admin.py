@@ -27,8 +27,8 @@ class PatientFileInline(admin.TabularInline):
 
 @admin.register(Patient)
 class PatientAdmin(admin.ModelAdmin):
-    list_display = ("full_name", "date_of_birth", "gender", "is_active", "practice")
-    list_filter = ("gender", "is_active", "practice")
+    list_display = ("full_name", "date_of_birth", "sex_at_birth", "is_active", "practice")
+    list_filter = ("sex_at_birth", "is_active", "practice")
     search_fields = ("first_name", "last_name", "rut")
     readonly_fields = ("created_at", "updated_at", "deleted_at")
     inlines = [TutorPatientInline, PatientFileInline]
@@ -41,7 +41,7 @@ class PatientAdmin(admin.ModelAdmin):
                     "first_name",
                     "last_name",
                     "date_of_birth",
-                    "gender",
+                    "sex_at_birth",
                     "rut",
                     "photo",
                     "is_active",

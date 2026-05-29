@@ -10,10 +10,12 @@ from __future__ import annotations
 from datetime import date
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.models import BaseModel
+from apps.core.validators import validate_rut
 
 
 class Patient(BaseModel):
@@ -24,14 +26,74 @@ class Patient(BaseModel):
     All clinical data hangs off this model through related apps (medical_records, etc.).
     """
 
-    MALE = "MALE"
-    FEMALE = "FEMALE"
-    OTHER = "OTHER"
+    # ── Sex at birth ────────────────────────────────────────────────────────────
+    M = "M"
+    F = "F"
+    NO_ESPECIFICA = "NO_ESPECIFICA"
 
-    GENDER_CHOICES = [
-        (MALE, _("Male")),
-        (FEMALE, _("Female")),
-        (OTHER, _("Other")),
+    SEX_AT_BIRTH_CHOICES = [
+        (M, _("Male")),
+        (F, _("Female")),
+        (NO_ESPECIFICA, _("Not specified")),
+    ]
+
+    # ── Document type ───────────────────────────────────────────────────────────
+    RUT = "RUT"
+    PASAPORTE = "PASAPORTE"
+    DNI_EXTRANJERO = "DNI_EXTRANJERO"
+
+    DOCUMENT_TYPE_CHOICES = [
+        (RUT, _("RUT (Chilean national ID)")),
+        (PASAPORTE, _("Passport")),
+        (DNI_EXTRANJERO, _("Foreign national ID")),
+    ]
+
+    # ── Insurance choices ───────────────────────────────────────────────────────
+    # Chilean insurance system: Fonasa, ISAPREs, FFAA systems, and self-pay.
+    # Defined as a static tuple (not a DB table) — Chilean ISAPREs are government-
+    # regulated with a stable set. ADR-2 in design.
+    PARTICULAR = "PARTICULAR"
+    FONASA_A = "FONASA_A"
+    FONASA_B = "FONASA_B"
+    FONASA_C = "FONASA_C"
+    FONASA_D = "FONASA_D"
+    ISAPRE_BANMEDICA = "ISAPRE_BANMEDICA"
+    ISAPRE_COLMENA = "ISAPRE_COLMENA"
+    ISAPRE_CONSALUD = "ISAPRE_CONSALUD"
+    ISAPRE_CRUZ_BLANCA = "ISAPRE_CRUZ_BLANCA"
+    ISAPRE_MASVIDA = "ISAPRE_MASVIDA"
+    ISAPRE_NUEVA_MASVIDA = "ISAPRE_NUEVA_MASVIDA"
+    ISAPRE_ESENCIAL = "ISAPRE_ESENCIAL"
+    ISAPRE_VIDATRES = "ISAPRE_VIDATRES"
+    ISAPRE_BUPA = "ISAPRE_BUPA"
+    ISAPRE_LIFESECURITY = "ISAPRE_LIFESECURITY"
+    ISAPRE_ALEMANA_SALUD = "ISAPRE_ALEMANA_SALUD"
+    FFAA_CAPREDENA = "FFAA_CAPREDENA"
+    FFAA_DIPRECA = "FFAA_DIPRECA"
+    SIN_PREVISION = "SIN_PREVISION"
+    OTRO = "OTRO"
+
+    INSURANCE_CHOICES = [
+        (PARTICULAR, _("Particular (self-pay)")),
+        (FONASA_A, _("Fonasa A")),
+        (FONASA_B, _("Fonasa B")),
+        (FONASA_C, _("Fonasa C")),
+        (FONASA_D, _("Fonasa D")),
+        (ISAPRE_BANMEDICA, _("Isapre Banmédica")),
+        (ISAPRE_COLMENA, _("Isapre Colmena Golden Cross")),
+        (ISAPRE_CONSALUD, _("Isapre Consalud")),
+        (ISAPRE_CRUZ_BLANCA, _("Isapre Cruz Blanca")),
+        (ISAPRE_MASVIDA, _("Isapre MásVida")),
+        (ISAPRE_NUEVA_MASVIDA, _("Isapre Nueva MásVida")),
+        (ISAPRE_ESENCIAL, _("Isapre Esencial")),
+        (ISAPRE_VIDATRES, _("Isapre Vida Tres")),
+        (ISAPRE_BUPA, _("Isapre Bupa")),
+        (ISAPRE_LIFESECURITY, _("Isapre Lifesecurity")),
+        (ISAPRE_ALEMANA_SALUD, _("Isapre Alemana Salud")),
+        (FFAA_CAPREDENA, _("FFAA Capredena")),
+        (FFAA_DIPRECA, _("FFAA Dipreca")),
+        (SIN_PREVISION, _("Sin previsión")),
+        (OTRO, _("Otro")),
     ]
 
     A_POS = "A+"
@@ -63,14 +125,48 @@ class Patient(BaseModel):
     first_name = models.CharField(_("first name"), max_length=150)
     last_name = models.CharField(_("last name"), max_length=150)
     date_of_birth = models.DateField(_("date of birth"))
-    gender = models.CharField(_("gender"), max_length=10, choices=GENDER_CHOICES)
+    sex_at_birth = models.CharField(
+        _("sex at birth"),
+        max_length=15,
+        choices=SEX_AT_BIRTH_CHOICES,
+        default=NO_ESPECIFICA,
+    )
+    document_type = models.CharField(
+        _("document type"),
+        max_length=15,
+        choices=DOCUMENT_TYPE_CHOICES,
+        default=RUT,
+    )
     rut = models.CharField(
-        _("RUT"),
-        max_length=12,
+        _("RUT / document number"),
+        max_length=20,
         blank=True,
         unique=True,
         null=True,
         help_text=_("Chilean national ID (optional). Format: 12345678-9"),
+    )
+    insurance = models.CharField(
+        _("insurance"),
+        max_length=50,
+        choices=INSURANCE_CHOICES,
+        blank=True,
+    )
+    # ── Geographic / contact fields ─────────────────────────────────────────────
+    country = models.CharField(
+        _("country"), max_length=100, default="Chile", blank=True
+    )
+    region = models.CharField(
+        _("region"), max_length=100, blank=True, help_text=_("e.g. La Araucanía")
+    )
+    comuna = models.CharField(
+        _("comuna"), max_length=100, blank=True, help_text=_("e.g. Pucón")
+    )
+    address = models.TextField(
+        _("address"), blank=True, help_text=_("Street address.")
+    )
+    phone = models.CharField(
+        _("phone"), max_length=30, blank=True,
+        help_text=_("Patient/tutor contact phone (separate from User.phone).")
     )
     blood_type = models.CharField(
         _("blood type"), max_length=5, blank=True, choices=BLOOD_TYPE_CHOICES
@@ -97,6 +193,11 @@ class Patient(BaseModel):
 
     def __str__(self) -> str:
         return f"{self.first_name} {self.last_name}"
+
+    def clean(self) -> None:
+        """Validate RUT format when document_type is RUT."""
+        if self.document_type == self.RUT and self.rut:
+            validate_rut(self.rut)
 
     @property
     def full_name(self) -> str:

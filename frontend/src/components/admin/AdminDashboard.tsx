@@ -42,10 +42,11 @@ function calcAge(dob: string): number {
   return age;
 }
 
-function formatGender(g: string): string {
-  if (g === "M") return "Masculino";
-  if (g === "F") return "Femenino";
-  return g;
+function formatSexAtBirth(s: string): string {
+  if (s === "M") return "Masculino";
+  if (s === "F") return "Femenino";
+  if (s === "NO_ESPECIFICA") return "No especifica";
+  return s;
 }
 
 function formatDate(iso: string): string {
@@ -453,7 +454,7 @@ export default function AdminDashboard() {
                         {patient.full_name}
                         <div className="text-[11px] text-ink3 font-normal sm:hidden">
                           {patient.date_of_birth
-                            ? `${calcAge(patient.date_of_birth)} años · ${formatGender(patient.gender)}`
+                            ? `${calcAge(patient.date_of_birth)} años · ${formatSexAtBirth(patient.sex_at_birth)}`
                             : "—"}
                         </div>
                       </td>
@@ -463,7 +464,7 @@ export default function AdminDashboard() {
                           : "—"}
                       </td>
                       <td className="px-4 py-3 text-ink2 hidden sm:table-cell">
-                        {formatGender(patient.gender)}
+                        {formatSexAtBirth(patient.sex_at_birth)}
                       </td>
                     </tr>
                   ))
