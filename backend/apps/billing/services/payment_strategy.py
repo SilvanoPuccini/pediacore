@@ -5,17 +5,20 @@ Defines the abstract PaymentStrategy interface and concrete implementations
 for each supported payment provider. New providers (e.g., Stripe for Fase 2)
 only need to implement the PaymentStrategy interface.
 
-MercadoPago is integrated as a stub for TFM — the interface is production-ready
-but the actual SDK calls are mocked. Real integration requires setting
-MERCADOPAGO_ACCESS_TOKEN in PaymentProvider.config and calling the SDK.
+MercadoPago integration uses the official mercadopago Python SDK v2.
+MERCADOPAGO_ACCESS_TOKEN must be set in settings (read from .env via decouple).
 """
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import logging
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
+import mercadopago
+from django.conf import settings
 from django.utils import timezone
 
 if TYPE_CHECKING:
@@ -56,48 +59,170 @@ class PaymentStrategy(ABC):
 
 class MercadoPagoStrategy(PaymentStrategy):
     """
-    MercadoPago payment strategy.
+    MercadoPago payment strategy — real SDK integration.
 
-    TFM STUB: implements the full interface but uses mocked SDK responses
-    instead of real API calls. Replace the stub bodies with actual
-    mercadopago SDK calls when MERCADOPAGO_ACCESS_TOKEN is configured.
-
-    Real implementation would require:
-        import mercadopago
-        sdk = mercadopago.SDK(access_token)
+    Uses the official mercadopago Python SDK v2.
+    Preference creation stores the preference_id in payment.metadata.
+    external_id is set only after the webhook fires with the real MP payment_id.
     """
 
     def __init__(self, access_token: str = "") -> None:
-        self.access_token = access_token
+        self.access_token = access_token or getattr(settings, "MERCADOPAGO_ACCESS_TOKEN", "")
+
+    def _get_sdk(self) -> mercadopago.SDK:
+        """Return an initialized MercadoPago SDK instance."""
+        return mercadopago.SDK(self.access_token)
 
     def create_preference(self, payment: Payment) -> dict:
         """
-        Create a MercadoPago payment preference.
+        Create a MercadoPago payment preference via the real SDK.
 
-        In production this calls mp.preference().create({...}).
-        Returns init_point (checkout URL) and preference_id.
+        Builds a preference with:
+          - item: service name, unit_price as int(CLP), quantity=1
+          - external_reference: str(payment.pk) for webhook lookup
+          - back_urls: success/failure/pending from settings
+          - notification_url: webhook endpoint from settings
+          - auto_return: "approved"
+
+        Stores preference_id in payment.metadata["preference_id"].
+        Does NOT set external_id — that is set only when the webhook fires.
+
+        Returns:
+            dict with keys: init_point, preference_id
         """
         logger.info("MercadoPago: creating preference for Payment #%s", payment.pk)
 
-        # STUB: return a mock response matching the real MP preference shape
-        preference_id = f"stub-pref-{payment.pk}"
-        init_point = f"https://www.mercadopago.cl/checkout/v1/redirect?pref_id={preference_id}"
+        # Resolve service description from the linked appointment
+        service_name = "Consulta pediátrica"
+        if payment.appointment and payment.appointment.service:
+            service_name = payment.appointment.service.name
 
-        # Update payment to PROCESSING while waiting for user action
-        payment.status = payment.PROCESSING
-        payment.external_id = preference_id
-        payment.external_status = "pending"
+        # CLP amounts must be integers for MercadoPago.
+        # payment.amount may be Decimal or a string representation from the factory.
+        from decimal import Decimal
+
+        unit_price = int(Decimal(str(payment.amount)))
+
+        # Build back_urls from settings (with safe fallbacks)
+        frontend_url = getattr(settings, "FRONTEND_URL", "https://estefipediatra.com")
+        notification_url = getattr(
+            settings,
+            "MERCADOPAGO_NOTIFICATION_URL",
+            f"{getattr(settings, 'BACKEND_URL', 'https://api.estefipediatra.com')}/api/v1/webhooks/mercadopago/",
+        )
+
+        preference_data = {
+            "items": [
+                {
+                    "title": service_name,
+                    "quantity": 1,
+                    "unit_price": unit_price,
+                    "currency_id": payment.currency or "CLP",
+                }
+            ],
+            "external_reference": str(payment.pk),
+            "back_urls": {
+                "success": f"{frontend_url}/booking/success",
+                "failure": f"{frontend_url}/booking/failure",
+                "pending": f"{frontend_url}/booking/pending",
+            },
+            "auto_return": "approved",
+            "notification_url": notification_url,
+        }
+
+        sdk = self._get_sdk()
+        response = sdk.preference().create(preference_data)
+
+        # MP SDK returns a dict: {"response": {...}, "status": 201}
+        if response.get("status") not in (200, 201):
+            raise RuntimeError(
+                f"MercadoPago preference creation failed: status={response.get('status')} "
+                f"response={response.get('response')}"
+            )
+
+        preference_obj = response["response"]
+        preference_id = preference_obj["id"]
+        init_point = preference_obj.get("init_point", "")
+
+        # Store preference_id in metadata; external_id stays empty until webhook
         payment.metadata = {
             "provider": "mercadopago",
             "preference_id": preference_id,
-            "stub": True,
         }
-        payment.save(update_fields=["status", "external_id", "external_status", "metadata", "updated_at"])
+        payment.external_id = ""
+        payment.save(update_fields=["metadata", "external_id", "updated_at"])
+
+        logger.info(
+            "MercadoPago: preference created preference_id=%s for Payment #%s",
+            preference_id,
+            payment.pk,
+        )
 
         return {
             "init_point": init_point,
             "preference_id": preference_id,
         }
+
+    @staticmethod
+    def validate_webhook_signature(
+        headers: dict,
+        data_id: str,
+        request_id: str,
+        secret: str,
+    ) -> bool:
+        """
+        Validate the X-Signature header from a MercadoPago webhook.
+
+        MP's scheme:
+          Header: X-Signature: ts={ts},v1={hash}
+          Message: "id:{data_id};request-id:{request_id};ts:{ts};"
+          Hash: HMAC-SHA256(message, secret)
+
+        Args:
+            headers: Django request META dict (keys are HTTP_X_SIGNATURE, etc.)
+            data_id: The data.id value from the webhook payload.
+            request_id: The x-request-id header value.
+            secret: MERCADOPAGO_WEBHOOK_SECRET from settings.
+
+        Returns:
+            True if signature is valid, False otherwise (never raises).
+        """
+        try:
+            signature_header = headers.get("HTTP_X_SIGNATURE", "")
+            if not signature_header:
+                logger.warning("MercadoPago webhook: missing X-Signature header")
+                return False
+
+            # Parse ts and v1 from "ts=...,v1=..."
+            parts = {}
+            for part in signature_header.split(","):
+                if "=" in part:
+                    key, _, value = part.partition("=")
+                    parts[key.strip()] = value.strip()
+
+            ts = parts.get("ts")
+            v1 = parts.get("v1")
+
+            if not ts or not v1:
+                logger.warning("MercadoPago webhook: malformed X-Signature header: %s", signature_header)
+                return False
+
+            # Build the message per MP's documented scheme
+            message = f"id:{data_id};request-id:{request_id};ts:{ts};"
+            expected = hmac.new(
+                secret.encode("utf-8"),
+                message.encode("utf-8"),
+                hashlib.sha256,
+            ).hexdigest()
+
+            valid = hmac.compare_digest(expected, v1)
+            if not valid:
+                logger.warning("MercadoPago webhook: invalid signature")
+            return valid
+
+        except Exception as exc:  # noqa: BLE001
+            logger.error("MercadoPago webhook: signature validation error: %s", exc)
+            return False
 
     def process_webhook(self, data: dict) -> Payment:
         """
@@ -235,8 +360,5 @@ def get_payment_strategy(provider_type: str, config: dict | None = None) -> Paym
 
     strategy = strategies.get(provider_type)
     if strategy is None:
-        raise ValueError(
-            f"Unsupported payment provider: {provider_type!r}. "
-            f"Supported: {list(strategies.keys())}"
-        )
+        raise ValueError(f"Unsupported payment provider: {provider_type!r}. " f"Supported: {list(strategies.keys())}")
     return strategy

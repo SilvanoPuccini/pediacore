@@ -129,9 +129,7 @@ def send_appointment_reminder(appointment: Appointment) -> None:
     """
     from apps.patients.models import TutorPatient
 
-    tutors_qs = TutorPatient.objects.filter(
-        patient=appointment.patient
-    ).select_related("tutor")
+    tutors_qs = TutorPatient.objects.filter(patient=appointment.patient).select_related("tutor")
 
     sent_any = False
 
@@ -162,7 +160,10 @@ def send_appointment_reminder(appointment: Appointment) -> None:
             recipient=tutor,
             notification_type=Notification.APPOINTMENT_REMINDER,
             title="Recordatorio de consulta",
-            message=f"Consulta de {appointment.patient} el {appointment.scheduled_date} a las {appointment.start_time:%H:%M}.",
+            message=(
+                f"Consulta de {appointment.patient} el {appointment.scheduled_date} "
+                f"a las {appointment.start_time:%H:%M}."
+            ),
             related_type="Appointment",
             related_id=appointment.pk,
         )
@@ -189,9 +190,7 @@ def send_appointment_confirmation(appointment: Appointment) -> None:
     """
     from apps.patients.models import TutorPatient
 
-    tutors_qs = TutorPatient.objects.filter(
-        patient=appointment.patient
-    ).select_related("tutor")
+    tutors_qs = TutorPatient.objects.filter(patient=appointment.patient).select_related("tutor")
 
     for link in tutors_qs:
         tutor = link.tutor
@@ -231,6 +230,70 @@ def send_appointment_confirmation(appointment: Appointment) -> None:
         )
 
 
+def send_payment_receipt(payment) -> None:
+    """
+    Send a payment receipt email to all tutors linked to the payment's patient.
+
+    Checks each tutor's NotificationPreference.email_payment_received before sending.
+    Creates a Notification record for each tutor that receives the email.
+
+    This is a stub implementation for Work Unit 2. Full implementation
+    (with invoice PDF attachment) will be completed in Work Unit 3.
+
+    Args:
+        payment: The completed Payment instance.
+    """
+    from apps.patients.models import TutorPatient
+
+    patient = payment.patient
+    tutors_qs = TutorPatient.objects.filter(patient=patient).select_related("tutor")
+
+    appointment = getattr(payment, "appointment", None)
+    scheduled_date = appointment.scheduled_date if appointment else "—"
+    start_time = appointment.start_time.strftime("%H:%M") if appointment else "—"
+    service_name = appointment.service.name if appointment and appointment.service else "Consulta médica"
+    location_name = appointment.location.name if appointment and appointment.location else "Consulta Online"
+
+    for link in tutors_qs:
+        tutor = link.tutor
+
+        prefs = NotificationPreference.objects.filter(user=tutor).first()
+        if prefs and not getattr(prefs, "email_payment_received", True):
+            continue
+
+        subject = f"Comprobante de pago — {scheduled_date}"
+        html_body = _build_appointment_html(
+            title="Pago recibido",
+            body_lines=[
+                f"Hola {tutor.first_name},",
+                f"Hemos recibido tu pago de <strong>{payment.amount} {payment.currency}</strong>.",
+                f"Paciente: {patient}",
+                f"Servicio: {service_name}",
+                f"Fecha: {scheduled_date}",
+                f"Hora: {start_time}",
+                f"Lugar: {location_name}",
+                "Tu consulta ha sido confirmada.",
+            ],
+        )
+
+        Notification.objects.create(
+            practice=payment.practice,
+            recipient=tutor,
+            notification_type=Notification.PAYMENT_RECEIVED,
+            title="Pago recibido",
+            message=f"Pago de {payment.amount} {payment.currency} recibido para {patient}.",
+            related_type="Payment",
+            related_id=payment.pk,
+        )
+
+        send_email(
+            to=tutor.email,
+            subject=subject,
+            html_body=html_body,
+            practice=payment.practice,
+        )
+
+
 def send_appointment_cancellation(appointment: Appointment) -> None:
     """
     Notify all linked tutors that the appointment was cancelled.
@@ -240,9 +303,7 @@ def send_appointment_cancellation(appointment: Appointment) -> None:
     """
     from apps.patients.models import TutorPatient
 
-    tutors_qs = TutorPatient.objects.filter(
-        patient=appointment.patient
-    ).select_related("tutor")
+    tutors_qs = TutorPatient.objects.filter(patient=appointment.patient).select_related("tutor")
 
     for link in tutors_qs:
         tutor = link.tutor
