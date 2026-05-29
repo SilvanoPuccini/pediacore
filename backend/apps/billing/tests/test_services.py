@@ -51,14 +51,36 @@ class TestPaymentStrategy:
         assert payment.paid_at is not None
         assert result["init_point"] == ""
 
-    def test_mercadopago_strategy_sets_processing(self) -> None:
-        payment = PaymentFactory(payment_method=Payment.MERCADOPAGO)
-        strategy = MercadoPagoStrategy()
-        result = strategy.create_preference(payment)
+    def test_mercadopago_strategy_creates_preference(self) -> None:
+        """Real SDK call is mocked; verify preference_id stored in metadata."""
+        from unittest.mock import MagicMock, patch
+
+        payment = PaymentFactory(
+            payment_method=Payment.MERCADOPAGO,
+            amount="35000.00",
+        )
+        mock_response = {
+            "response": {
+                "id": "TEST-PREF-REAL-001",
+                "init_point": "https://www.mercadopago.cl/checkout/v1/redirect?pref_id=TEST-PREF-REAL-001",
+            },
+            "status": 201,
+        }
+
+        with patch("apps.billing.services.payment_strategy.mercadopago") as mock_mp:
+            mock_sdk = MagicMock()
+            mock_mp.SDK.return_value = mock_sdk
+            mock_sdk.preference.return_value.create.return_value = mock_response
+
+            strategy = MercadoPagoStrategy(access_token="TEST-TOKEN")
+            result = strategy.create_preference(payment)
+
         payment.refresh_from_db()
-        assert payment.status == Payment.PROCESSING
+        # external_id must stay empty — only webhook sets it
+        assert payment.external_id == ""
+        assert payment.metadata.get("preference_id") == "TEST-PREF-REAL-001"
         assert "init_point" in result
-        assert result["preference_id"].startswith("stub-pref-")
+        assert result["preference_id"] == "TEST-PREF-REAL-001"
 
     def test_mercadopago_webhook_updates_status(self) -> None:
         payment = PaymentFactory(
