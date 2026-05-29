@@ -138,13 +138,20 @@ class PatientSerializer(serializers.ModelSerializer):
             "full_name",
             "date_of_birth",
             "age",
-            "gender",
+            "sex_at_birth",
+            "document_type",
+            "insurance",
             "rut",
             "blood_type",
             "allergies",
             "chronic_conditions",
             "notes",
             "photo",
+            "country",
+            "region",
+            "comuna",
+            "address",
+            "phone",
             "is_active",
             "tutors",
             "created_at",
@@ -169,16 +176,38 @@ class PatientCreateSerializer(serializers.ModelSerializer):
             "first_name",
             "last_name",
             "date_of_birth",
-            "gender",
+            "sex_at_birth",
+            "document_type",
+            "insurance",
             "rut",
             "blood_type",
             "allergies",
             "chronic_conditions",
             "notes",
             "photo",
+            "country",
+            "region",
+            "comuna",
+            "address",
+            "phone",
             "is_active",
         ]
         read_only_fields = ["id"]
+
+    def validate(self, attrs: dict) -> dict:
+        """Validate RUT format when document_type is RUT."""
+        from apps.core.validators import validate_rut as _validate_rut
+        from django.core.exceptions import ValidationError as DjangoValidationError
+
+        document_type = attrs.get("document_type", "RUT")
+        rut = attrs.get("rut")
+        if document_type == "RUT" and rut:
+            try:
+                cleaned = _validate_rut(rut)
+                attrs["rut"] = cleaned
+            except DjangoValidationError as exc:
+                raise serializers.ValidationError({"rut": exc.messages})
+        return attrs
 
 
 class PatientUpdateSerializer(serializers.ModelSerializer):
@@ -190,12 +219,34 @@ class PatientUpdateSerializer(serializers.ModelSerializer):
             "first_name",
             "last_name",
             "date_of_birth",
-            "gender",
+            "sex_at_birth",
+            "document_type",
+            "insurance",
             "rut",
             "blood_type",
             "allergies",
             "chronic_conditions",
             "notes",
             "photo",
+            "country",
+            "region",
+            "comuna",
+            "address",
+            "phone",
             "is_active",
         ]
+
+    def validate(self, attrs: dict) -> dict:
+        """Validate RUT format when document_type is RUT."""
+        from apps.core.validators import validate_rut as _validate_rut
+        from django.core.exceptions import ValidationError as DjangoValidationError
+
+        document_type = attrs.get("document_type", "RUT")
+        rut = attrs.get("rut")
+        if document_type == "RUT" and rut:
+            try:
+                cleaned = _validate_rut(rut)
+                attrs["rut"] = cleaned
+            except DjangoValidationError as exc:
+                raise serializers.ValidationError({"rut": exc.messages})
+        return attrs

@@ -59,6 +59,7 @@ class ServiceSerializer(serializers.ModelSerializer):
 
     locations = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     location_names = serializers.SerializerMethodField()
+    modality_display = serializers.SerializerMethodField()
 
     class Meta:
         model = Service
@@ -68,8 +69,12 @@ class ServiceSerializer(serializers.ModelSerializer):
             "slug",
             "description",
             "duration_minutes",
-            "price",
-            "is_online_available",
+            "price_clp",
+            "modality",
+            "modality_display",
+            "display_order",
+            "requires_fonasa_validation",
+            "requires_manual_coordination",
             "is_active",
             "locations",
             "location_names",
@@ -80,6 +85,9 @@ class ServiceSerializer(serializers.ModelSerializer):
 
     def get_location_names(self, obj: Service) -> list[str]:
         return list(obj.locations.filter(is_active=True).values_list("name", flat=True))
+
+    def get_modality_display(self, obj: Service) -> str:
+        return obj.get_modality_display()
 
 
 class WorkingHoursSerializer(serializers.ModelSerializer):

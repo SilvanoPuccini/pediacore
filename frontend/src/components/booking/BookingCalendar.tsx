@@ -39,9 +39,8 @@ function formatDisplayDate(dateStr: string): string {
   return date.toLocaleDateString("es-CL", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 }
 
-function formatPrice(price: string): string {
-  const num = parseFloat(price);
-  return new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP" }).format(num);
+function formatPrice(price: number): string {
+  return new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP" }).format(price);
 }
 
 // ─── Step Indicator ────────────────────────────────────────────────────────────
@@ -192,7 +191,7 @@ function ServiceCard({
               {service.duration_minutes} min
             </span>
             <span className="text-[13px] font-semibold text-teal-dark">
-              {formatPrice(service.price)}
+              {formatPrice(service.price_clp)}
             </span>
           </div>
         </div>
@@ -451,7 +450,7 @@ export default function BookingCalendar() {
   const filteredServices = useMemo(() => {
     if (!services || selectedLocationId === null) return [];
     if (selectedLocationId === "online") {
-      return services.filter((s) => s.is_online_available && s.is_active);
+      return services.filter((s) => (s.modality === "ONLINE" || s.modality === "PRESENCIAL_Y_ONLINE") && s.is_active);
     }
     return services.filter(
       (s) => s.is_active && s.locations.includes(selectedLocationId as number)
@@ -806,7 +805,7 @@ export default function BookingCalendar() {
               />
               <DetailRow
                 label="Precio"
-                value={selectedService ? formatPrice(selectedService.price) : ""}
+                value={selectedService ? formatPrice(selectedService.price_clp) : ""}
               />
             </div>
           </div>

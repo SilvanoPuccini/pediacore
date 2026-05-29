@@ -50,15 +50,16 @@ class LocationAdmin(admin.ModelAdmin):
 
 @admin.register(Service)
 class ServiceAdmin(admin.ModelAdmin):
-    list_display = ["name", "practice", "duration_minutes", "price", "is_online_available", "is_active"]
-    list_filter = ["is_active", "is_online_available", "practice"]
+    list_display = ["name", "practice", "duration_minutes", "price_clp", "modality", "display_order", "is_active"]
+    list_filter = ["is_active", "modality", "practice"]
     search_fields = ["name", "description"]
     prepopulated_fields = {"slug": ("name",)}
     filter_horizontal = ["locations"]
     readonly_fields = ["created_at", "updated_at", "deleted_at"]
     fieldsets = [
         (None, {"fields": ["practice", "name", "slug", "description"]}),
-        ("Details", {"fields": ["duration_minutes", "price", "is_online_available"]}),
+        ("Details", {"fields": ["duration_minutes", "price_clp", "modality", "display_order"]}),
+        ("Booking flags", {"fields": ["requires_fonasa_validation", "requires_manual_coordination"]}),
         ("Locations", {"fields": ["locations"]}),
         ("Status", {"fields": ["is_active"]}),
         ("Timestamps", {"fields": ["created_at", "updated_at", "deleted_at"], "classes": ["collapse"]}),

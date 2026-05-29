@@ -12,19 +12,30 @@ from apps.core.models import BaseModel, TimeStampedModel
 
 
 class Appointment(BaseModel):
+    HOLD = "HOLD"
     PENDING = "PENDING"
     CONFIRMED = "CONFIRMED"
     COMPLETED = "COMPLETED"
     CANCELLED = "CANCELLED"
+    EXPIRED = "EXPIRED"
     NO_SHOW = "NO_SHOW"
+    RESCHEDULED = "RESCHEDULED"
 
     STATUS_CHOICES = [
+        (HOLD, _("Hold (pending payment)")),
         (PENDING, _("Pending")),
         (CONFIRMED, _("Confirmed")),
         (COMPLETED, _("Completed")),
         (CANCELLED, _("Cancelled")),
+        (EXPIRED, _("Expired")),
         (NO_SHOW, _("No Show")),
+        (RESCHEDULED, _("Rescheduled")),
     ]
+
+    # Statuses that occupy a slot (block availability)
+    SLOT_BLOCKING_STATUSES = [HOLD, PENDING, CONFIRMED, COMPLETED]
+    # Statuses that free a slot
+    SLOT_FREE_STATUSES = [CANCELLED, EXPIRED, NO_SHOW, RESCHEDULED]
 
     practice = models.ForeignKey(
         "practice.Practice",
@@ -82,6 +93,42 @@ class Appointment(BaseModel):
     reminder_sent_at = models.DateTimeField(_("reminder sent at"), null=True, blank=True)
     notes = models.TextField(_("notes"), blank=True)
 
+    # ── Hold / payment flow ──────────────────────────────────────────────────
+    hold_expires_at = models.DateTimeField(
+        _("hold expires at"), null=True, blank=True,
+        help_text=_("When the HOLD reservation expires if payment is not completed."),
+    )
+    meeting_link = models.URLField(
+        _("meeting link"), blank=True,
+        help_text=_("Video call link for online appointments."),
+    )
+
+    # ── Attendance confirmation ──────────────────────────────────────────────
+    attendance_confirmed = models.BooleanField(_("attendance confirmed"), default=False)
+    attendance_confirmed_at = models.DateTimeField(
+        _("attendance confirmed at"), null=True, blank=True,
+    )
+    CONFIRMATION_VIA_CHOICES = [
+        ("EMAIL", _("Email")),
+        ("WHATSAPP", _("WhatsApp")),
+        ("PORTAL", _("Portal")),
+    ]
+    attendance_confirmed_via = models.CharField(
+        _("confirmed via"), max_length=20,
+        choices=CONFIRMATION_VIA_CHOICES, blank=True,
+    )
+
+    # ── Reminders ────────────────────────────────────────────────────────────
+    reminder_24h_sent = models.BooleanField(_("24h reminder sent"), default=False)
+    reminder_2h_sent = models.BooleanField(_("2h reminder sent"), default=False)
+
+    # ── Rescheduling ─────────────────────────────────────────────────────────
+    rescheduled_from = models.ForeignKey(
+        "self", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="reschedules", verbose_name=_("rescheduled from"),
+    )
+    rescheduled_at = models.DateTimeField(_("rescheduled at"), null=True, blank=True)
+
     class Meta:
         db_table = "appointments"
         ordering = ["scheduled_date", "start_time"]
@@ -112,7 +159,7 @@ class Appointment(BaseModel):
 
         overlapping = (
             Appointment.objects.exclude(pk=self.pk)
-            .exclude(status=Appointment.CANCELLED)
+            .exclude(status__in=Appointment.SLOT_FREE_STATUSES)
             .filter(
                 location=self.location_id,
                 scheduled_date=self.scheduled_date,

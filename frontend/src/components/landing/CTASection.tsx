@@ -142,8 +142,8 @@ function useNextSlots() {
         for (const date of dates) {
           if (results.length >= 3) break;
           try {
-            const servicesResp = await api.get<PaginatedResponse<{ id: number; is_online_available: boolean }>>(`/practices/${PRACTICE_SLUG}/services/`);
-            const onlineService = servicesResp.data.results?.find((s) => s.is_online_available);
+            const servicesResp = await api.get<PaginatedResponse<{ id: number; modality: string }>>(`/practices/${PRACTICE_SLUG}/services/`);
+            const onlineService = servicesResp.data.results?.find((s) => s.modality === "ONLINE" || s.modality === "PRESENCIAL_Y_ONLINE");
             if (!onlineService) break;
 
             const { data: slots } = await api.get<{ start_time: string; available: boolean }[]>("/available-slots/", {

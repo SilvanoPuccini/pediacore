@@ -54,8 +54,11 @@ class ServiceFactory(factory.django.DjangoModelFactory):
     slug = factory.Sequence(lambda n: f"servicio-{n}")
     description = factory.Faker("text", max_nb_chars=100)
     duration_minutes = 30
-    price = factory.Faker("pydecimal", left_digits=5, right_digits=2, positive=True)
-    is_online_available = False
+    price_clp = 30000
+    modality = Service.PRESENCIAL
+    display_order = 0
+    requires_fonasa_validation = False
+    requires_manual_coordination = False
     is_active = True
 
 

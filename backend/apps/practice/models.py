@@ -99,8 +99,18 @@ class Service(BaseModel):
     Service offered by the practice.
 
     Examples: Consulta General, Control Sano, Urgencia Pediátrica.
-    Services can be in-person only or also available online.
+    Services can be in-person, online, or both (modality field).
     """
+
+    PRESENCIAL = "PRESENCIAL"
+    ONLINE = "ONLINE"
+    PRESENCIAL_Y_ONLINE = "PRESENCIAL_Y_ONLINE"
+
+    MODALITY_CHOICES = [
+        (PRESENCIAL, _("In-person only")),
+        (ONLINE, _("Online only")),
+        (PRESENCIAL_Y_ONLINE, _("In-person and online")),
+    ]
 
     practice = models.ForeignKey(
         Practice,
@@ -112,8 +122,32 @@ class Service(BaseModel):
     slug = models.SlugField(_("slug"))
     description = models.TextField(_("description"), blank=True)
     duration_minutes = models.PositiveIntegerField(_("duration (minutes)"), default=30)
-    price = models.DecimalField(_("price"), max_digits=10, decimal_places=2)
-    is_online_available = models.BooleanField(_("available online"), default=False)
+    price_clp = models.PositiveIntegerField(
+        _("price (CLP)"),
+        default=0,
+        help_text=_("Price in Chilean pesos (whole integer, no decimal)."),
+    )
+    modality = models.CharField(
+        _("modality"),
+        max_length=20,
+        choices=MODALITY_CHOICES,
+        default=PRESENCIAL,
+    )
+    requires_fonasa_validation = models.BooleanField(
+        _("requires Fonasa validation"),
+        default=False,
+        help_text=_("If True, booking requires Fonasa benefit verification."),
+    )
+    requires_manual_coordination = models.BooleanField(
+        _("requires manual coordination"),
+        default=False,
+        help_text=_("If True, the service cannot be self-booked; doctor must confirm."),
+    )
+    display_order = models.PositiveIntegerField(
+        _("display order"),
+        default=0,
+        help_text=_("Controls the display order in booking UI. Lower = shown first."),
+    )
     is_active = models.BooleanField(_("active"), default=True)
     locations = models.ManyToManyField(
         Location,
@@ -124,13 +158,18 @@ class Service(BaseModel):
 
     class Meta:
         db_table = "services"
-        ordering = ["name"]
+        ordering = ["display_order", "name"]
         unique_together = [("practice", "slug")]
         verbose_name = _("service")
         verbose_name_plural = _("services")
 
     def __str__(self) -> str:
         return f"{self.name} ({self.practice.name})"
+
+    @property
+    def is_online(self) -> bool:
+        """Return True if this service is available online (ONLINE or PRESENCIAL_Y_ONLINE)."""
+        return self.modality in (self.ONLINE, self.PRESENCIAL_Y_ONLINE)
 
 
 class WorkingHours(TimeStampedModel):

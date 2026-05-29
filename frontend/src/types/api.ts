@@ -80,8 +80,12 @@ export interface Service {
   name: string;
   description: string;
   duration_minutes: number;
-  price: string;
-  is_online_available: boolean;
+  price_clp: number;
+  modality: "PRESENCIAL" | "ONLINE" | "PRESENCIAL_Y_ONLINE";
+  modality_display: string;
+  requires_fonasa_validation: boolean;
+  requires_manual_coordination: boolean;
+  display_order: number;
   is_active: boolean;
   locations: number[];
 }
@@ -110,8 +114,15 @@ export interface Patient {
   last_name: string;
   full_name: string;
   date_of_birth: string;
-  gender: string;
+  sex_at_birth: "M" | "F" | "NO_ESPECIFICA";
+  document_type: "RUT" | "PASAPORTE" | "DNI_EXTRANJERO";
   rut: string;
+  insurance: string;
+  country: string;
+  region: string;
+  comuna: string;
+  address: string;
+  phone: string;
   created_at: string;
 }
 
@@ -129,6 +140,9 @@ export interface Appointment {
   status: string;
   status_display: string;
   is_online: boolean;
+  hold_expires_at: string | null;
+  meeting_link: string;
+  attendance_confirmed: boolean;
   notes: string;
   created_at: string;
   updated_at: string;

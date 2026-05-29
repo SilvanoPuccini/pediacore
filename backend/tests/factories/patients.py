@@ -19,7 +19,7 @@ class PatientFactory(factory.django.DjangoModelFactory):
     date_of_birth = factory.LazyFunction(
         lambda: datetime.date.today() - datetime.timedelta(days=365 * 3)
     )
-    gender = Patient.MALE
+    sex_at_birth = Patient.M
     rut = None
     blood_type = ""
     allergies = ""

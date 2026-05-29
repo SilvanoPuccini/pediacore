@@ -394,9 +394,9 @@ class Anthropometry(BaseModel):
                 months_total -= 1
             age_in_months = max(0, months_total)
 
-            # Map Patient gender to WHO sex code
+            # Map Patient sex_at_birth to WHO sex code
             from apps.patients.models import Patient
-            sex = "M" if patient.gender == Patient.MALE else "F"
+            sex = "M" if patient.sex_at_birth == Patient.M else "F"
 
             results = calculate_who_z_scores(
                 patient_sex=sex,
