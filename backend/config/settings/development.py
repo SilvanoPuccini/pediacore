@@ -20,7 +20,7 @@ INTERNAL_IPS = ["127.0.0.1"]
 # Email backend — console in development
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
-# Use in-memory storage in development/tests instead of Cloudinary
+# Use in-memory storage in development/tests
 STORAGES = {
     "default": {
         "BACKEND": "django.core.files.storage.InMemoryStorage",
