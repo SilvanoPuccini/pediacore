@@ -230,15 +230,41 @@ def send_appointment_confirmation(appointment: Appointment) -> None:
         )
 
 
+def _get_invoice_pdf_attachment(payment) -> dict | None:
+    """
+    Try to retrieve the invoice PDF bytes for a payment.
+
+    Returns a Resend-compatible attachment dict, or None when no Invoice
+    or PDF is available (graceful degradation — email is still sent without attachment).
+    """
+    try:
+        from apps.billing.models import Invoice
+
+        invoice = Invoice.objects.get(payment=payment)
+        if invoice.pdf_file and invoice.pdf_file.name:
+            try:
+                pdf_bytes = invoice.pdf_file.read()
+                import base64
+
+                return {
+                    "filename": f"comprobante-{invoice.invoice_number}.pdf",
+                    "content": base64.b64encode(pdf_bytes).decode("utf-8"),
+                }
+            except Exception as exc:
+                logger.warning("Could not read invoice PDF for Payment #%s: %s", payment.pk, exc)
+                return None
+    except Exception:
+        return None
+    return None
+
+
 def send_payment_receipt(payment) -> None:
     """
     Send a payment receipt email to all tutors linked to the payment's patient.
 
     Checks each tutor's NotificationPreference.email_payment_received before sending.
+    Attaches the invoice PDF if available (graceful degradation when missing).
     Creates a Notification record for each tutor that receives the email.
-
-    This is a stub implementation for Work Unit 2. Full implementation
-    (with invoice PDF attachment) will be completed in Work Unit 3.
 
     Args:
         payment: The completed Payment instance.
@@ -248,11 +274,27 @@ def send_payment_receipt(payment) -> None:
     patient = payment.patient
     tutors_qs = TutorPatient.objects.filter(patient=patient).select_related("tutor")
 
-    appointment = getattr(payment, "appointment", None)
+    # Resolve appointment details once (shared across all tutors)
+    try:
+        appointment = payment.appointment
+    except Exception:
+        appointment = None
+
     scheduled_date = appointment.scheduled_date if appointment else "—"
     start_time = appointment.start_time.strftime("%H:%M") if appointment else "—"
     service_name = appointment.service.name if appointment and appointment.service else "Consulta médica"
     location_name = appointment.location.name if appointment and appointment.location else "Consulta Online"
+
+    # Format amount: CLP is integer, no decimals
+    try:
+        amount_display = f"{int(payment.amount):,}".replace(",", ".")
+    except (TypeError, ValueError):
+        amount_display = str(payment.amount)
+
+    # Try to get the invoice PDF attachment once (same for all tutors)
+    pdf_attachment = _get_invoice_pdf_attachment(payment)
+
+    api_key = getattr(settings, "RESEND_API_KEY", "")
 
     for link in tutors_qs:
         tutor = link.tutor
@@ -266,13 +308,13 @@ def send_payment_receipt(payment) -> None:
             title="Pago recibido",
             body_lines=[
                 f"Hola {tutor.first_name},",
-                f"Hemos recibido tu pago de <strong>{payment.amount} {payment.currency}</strong>.",
+                f"Hemos recibido tu pago de <strong>${amount_display} {payment.currency}</strong>.",
                 f"Paciente: {patient}",
                 f"Servicio: {service_name}",
                 f"Fecha: {scheduled_date}",
                 f"Hora: {start_time}",
                 f"Lugar: {location_name}",
-                "Tu consulta ha sido confirmada.",
+                "Tu consulta ha sido confirmada. ¡Te esperamos!",
             ],
         )
 
@@ -281,17 +323,87 @@ def send_payment_receipt(payment) -> None:
             recipient=tutor,
             notification_type=Notification.PAYMENT_RECEIVED,
             title="Pago recibido",
-            message=f"Pago de {payment.amount} {payment.currency} recibido para {patient}.",
+            message=f"Pago de ${amount_display} {payment.currency} recibido para {patient}.",
             related_type="Payment",
             related_id=payment.pk,
         )
 
-        send_email(
-            to=tutor.email,
-            subject=subject,
-            html_body=html_body,
-            practice=payment.practice,
+        # Send with or without PDF attachment
+        if api_key and pdf_attachment:
+            _send_email_with_attachment(
+                to=tutor.email,
+                subject=subject,
+                html_body=html_body,
+                practice=payment.practice,
+                attachment=pdf_attachment,
+                api_key=api_key,
+            )
+        else:
+            send_email(
+                to=tutor.email,
+                subject=subject,
+                html_body=html_body,
+                practice=payment.practice,
+            )
+
+
+def _send_email_with_attachment(
+    to: str,
+    subject: str,
+    html_body: str,
+    attachment: dict,
+    api_key: str,
+    practice=None,
+) -> EmailLog:
+    """
+    Send an email with a PDF attachment via the Resend API.
+
+    Falls back to send_email() (no attachment) if the API call fails.
+
+    Args:
+        to: Recipient email address.
+        subject: Email subject line.
+        html_body: Full HTML body.
+        attachment: Resend-compatible attachment dict with 'filename' and 'content'.
+        api_key: Resend API key.
+        practice: Optional Practice instance for EmailLog attribution.
+
+    Returns:
+        The created EmailLog record.
+    """
+    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@estefipediatra.com")
+    body_preview = html_body[:500]
+
+    try:
+        import resend
+
+        resend.api_key = api_key
+        response = resend.Emails.send(
+            {
+                "from": from_email,
+                "to": [to],
+                "subject": subject,
+                "html": html_body,
+                "attachments": [attachment],
+            }
         )
+        external_id = response.get("id", "") if isinstance(response, dict) else str(response)
+        log = EmailLog.objects.create(
+            practice=practice,
+            recipient_email=to,
+            subject=subject,
+            body_preview=body_preview,
+            status=EmailLog.SENT,
+            provider="resend",
+            external_id=external_id,
+            sent_at=timezone.now(),
+        )
+        logger.info("Receipt email with PDF sent to %s (external_id=%s)", to, external_id)
+        return log
+    except Exception as exc:
+        logger.error("Failed to send receipt email with PDF to %s: %s — retrying without attachment", to, exc)
+        # Graceful degradation: send without attachment
+        return send_email(to=to, subject=subject, html_body=html_body, practice=practice)
 
 
 def send_appointment_cancellation(appointment: Appointment) -> None:
