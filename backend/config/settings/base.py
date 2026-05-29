@@ -3,7 +3,6 @@ Base settings for PEDIACORE project.
 Common configuration shared across all environments.
 """
 
-import os
 from datetime import timedelta
 from pathlib import Path
 
@@ -141,12 +140,8 @@ SITE_ID = 1
 
 # Django REST Framework
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
-    ),
-    "DEFAULT_PERMISSION_CLASSES": (
-        "rest_framework.permissions.IsAuthenticated",
-    ),
+    "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework_simplejwt.authentication.JWTAuthentication",),
+    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_FILTER_BACKENDS": (
         "django_filters.rest_framework.DjangoFilterBackend",
         "rest_framework.filters.SearchFilter",
@@ -222,6 +217,14 @@ Q_CLUSTER = {
 # Resend (email)
 RESEND_API_KEY = config("RESEND_API_KEY", default="")
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="Dra. Estefanía <no-reply@estefipediatra.com>")
+
+# MercadoPago
+MERCADOPAGO_ACCESS_TOKEN = config("MERCADOPAGO_ACCESS_TOKEN", default="")
+MERCADOPAGO_WEBHOOK_SECRET = config("MERCADOPAGO_WEBHOOK_SECRET", default="")
+
+# Booking flow
+BOOKING_HOLD_MINUTES = config("BOOKING_HOLD_MINUTES", default=10, cast=int)
+BOOKING_HOLD_EXPIRY_INTERVAL_MINUTES = config("BOOKING_HOLD_EXPIRY_INTERVAL_MINUTES", default=2, cast=int)
 
 # Sentry
 SENTRY_DSN = config("SENTRY_DSN", default="")

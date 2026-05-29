@@ -7,6 +7,7 @@ from apps.scheduling.views import (
     AppointmentViewSet,
     AutoResponderConfigView,
     AvailableSlotsView,
+    BookingView,
     CancellationPolicyView,
     CancellationTierViewSet,
     WaitlistViewSet,
@@ -17,12 +18,11 @@ app_name = "scheduling"
 router = DefaultRouter()
 router.register(r"appointments", AppointmentViewSet, basename="appointment")
 router.register(r"waitlist", WaitlistViewSet, basename="waitlist")
-router.register(
-    r"admin/cancellation-tiers", CancellationTierViewSet, basename="admin-cancellation-tiers"
-)
+router.register(r"admin/cancellation-tiers", CancellationTierViewSet, basename="admin-cancellation-tiers")
 
 urlpatterns = [
     path("available-slots/", AvailableSlotsView.as_view(), name="available-slots"),
+    path("book/", BookingView.as_view(), name="book"),
     path("admin/cancellation-policy/", CancellationPolicyView.as_view(), name="admin-cancellation-policy"),
     path("admin/auto-responder/", AutoResponderConfigView.as_view(), name="admin-auto-responder"),
     path("", include(router.urls)),

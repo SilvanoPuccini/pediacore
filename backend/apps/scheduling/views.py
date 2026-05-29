@@ -29,13 +29,18 @@ from apps.scheduling.serializers import (
     AppointmentUpdateSerializer,
     AutoResponderConfigSerializer,
     AvailableSlotSerializer,
+    BookingSerializer,
+    CancelAppointmentSerializer,
     CancellationPolicySerializer,
     CancellationTierSerializer,
-    CancelAppointmentSerializer,
     WaitlistEntrySerializer,
 )
 from apps.scheduling.services.auto_responder import check_and_send_auto_response
 from apps.scheduling.services.availability import get_available_slots
+from apps.scheduling.services.booking_service import (
+    SlotUnavailableError,
+    hold_appointment,
+)
 from apps.scheduling.services.cancellation import cancel_appointment, get_cancellation_penalty
 
 User = get_user_model()
@@ -62,18 +67,12 @@ class AppointmentViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        qs = (
-            Appointment.objects.select_related(
-                "patient", "service", "location", "doctor", "booked_by"
-            )
-        )
+        qs = Appointment.objects.select_related("patient", "service", "location", "doctor", "booked_by")
 
         if user.role == User.TUTOR:
             from apps.patients.models import TutorPatient
 
-            patient_ids = TutorPatient.objects.filter(tutor=user).values_list(
-                "patient_id", flat=True
-            )
+            patient_ids = TutorPatient.objects.filter(tutor=user).values_list("patient_id", flat=True)
             qs = qs.filter(patient_id__in=patient_ids)
         elif user.role != User.DOCTOR:
             qs = qs.none()
@@ -119,9 +118,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         if user.role == User.TUTOR:
             from apps.patients.models import TutorPatient
 
-            if not TutorPatient.objects.filter(
-                tutor=user, patient=appointment.patient
-            ).exists():
+            if not TutorPatient.objects.filter(tutor=user, patient=appointment.patient).exists():
                 return Response(
                     {"detail": "You do not have permission to cancel this appointment."},
                     status=status.HTTP_403_FORBIDDEN,
@@ -151,9 +148,9 @@ class AppointmentViewSet(viewsets.ModelViewSet):
     def confirm(self, request: Request, pk=None) -> Response:
         appointment = self.get_object()
 
-        if appointment.status not in (Appointment.PENDING,):
+        if appointment.status not in (Appointment.PENDING, Appointment.HOLD):
             return Response(
-                {"detail": "Only pending appointments can be confirmed."},
+                {"detail": "Only pending or held appointments can be confirmed."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -232,9 +229,7 @@ class WaitlistViewSet(viewsets.ModelViewSet):
         if user.role == User.TUTOR:
             from apps.patients.models import TutorPatient
 
-            patient_ids = TutorPatient.objects.filter(tutor=user).values_list(
-                "patient_id", flat=True
-            )
+            patient_ids = TutorPatient.objects.filter(tutor=user).values_list("patient_id", flat=True)
             qs = qs.filter(patient_id__in=patient_ids)
         elif user.role != User.DOCTOR:
             qs = qs.none()
@@ -279,6 +274,70 @@ class CancellationTierViewSet(viewsets.ModelViewSet):
             return CancellationTier.objects.filter(policy=policy)
         except CancellationPolicy.DoesNotExist:
             return CancellationTier.objects.none()
+
+
+class BookingView(APIView):
+    """
+    POST /api/v1/book/
+
+    Authenticated TUTOR endpoint that atomically reserves a slot and initiates
+    a MercadoPago payment. Returns the checkout URL and appointment details.
+
+    Permissions: IsAuthenticated + IsTutor
+    """
+
+    permission_classes = [IsTutor]
+
+    def post(self, request: Request) -> Response:
+        serializer = BookingSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        try:
+            appointment, payment, init_point = hold_appointment(
+                user=request.user,
+                practice=data["practice"],
+                service=data["service"],
+                location=data.get("location"),
+                patient=data["patient"],
+                scheduled_date=data["scheduled_date"],
+                start_time=data["start_time"],
+                is_online=data.get("is_online", False),
+                notes=data.get("notes", ""),
+            )
+        except PermissionError as exc:
+            return Response(
+                {"detail": str(exc)},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        except SlotUnavailableError as exc:
+            return Response(
+                {"detail": str(exc)},
+                status=status.HTTP_409_CONFLICT,
+            )
+        except Exception as exc:
+            # Includes ValidationError from service and unexpected errors
+            from django.core.exceptions import ValidationError as DjangoValidationError
+
+            if isinstance(exc, DjangoValidationError):
+                return Response(
+                    {"detail": exc.message if hasattr(exc, "message") else str(exc)},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            return Response(
+                {"detail": "An error occurred while processing the payment. Please try again."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response(
+            {
+                "appointment_id": appointment.pk,
+                "payment_id": payment.pk,
+                "checkout_url": init_point,
+                "hold_expires_at": appointment.hold_expires_at,
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class AutoResponderConfigView(APIView):
