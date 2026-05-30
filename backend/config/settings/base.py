@@ -226,6 +226,12 @@ MERCADOPAGO_WEBHOOK_SECRET = config("MERCADOPAGO_WEBHOOK_SECRET", default="")
 BOOKING_HOLD_MINUTES = config("BOOKING_HOLD_MINUTES", default=10, cast=int)
 BOOKING_HOLD_EXPIRY_INTERVAL_MINUTES = config("BOOKING_HOLD_EXPIRY_INTERVAL_MINUTES", default=2, cast=int)
 
+# Appointment token TTL
+APPOINTMENT_TOKEN_EXPIRY_HOURS = config("APPOINTMENT_TOKEN_EXPIRY_HOURS", default=72, cast=int)
+
+# Site URL for building token links in emails
+SITE_URL = config("SITE_URL", default="https://estefipediatra.com")
+
 # Sentry
 SENTRY_DSN = config("SENTRY_DSN", default="")
 if SENTRY_DSN:
