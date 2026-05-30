@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import datetime
 import uuid
+from unittest.mock import patch
 
 import pytest
 from django.utils import timezone
@@ -19,6 +20,7 @@ from apps.scheduling.services.token_service import (
     TokenUsedError,
     create_tokens_for_appointment,
     execute_token_action,
+    invalidate_appointment_tokens,
     validate_token,
 )
 from tests.factories.scheduling import AppointmentFactory, AppointmentTokenFactory
@@ -271,9 +273,67 @@ class TestExecuteTokenAction:
         token.refresh_from_db()
         assert token.used_at is not None
 
-    def test_cancel_returns_deferred(self):
-        """CANCEL action returns deferred response without mutating appointment."""
+    def test_cancel_executes_cancellation(self):
+        """CANCEL token executes cancel_appointment and returns success=True, status=cancelled."""
         appt = AppointmentFactory(status=Appointment.CONFIRMED)
+        token = AppointmentTokenFactory(
+            appointment=appt,
+            practice=appt.practice,
+            action=AppointmentToken.CANCEL,
+            expires_at=timezone.now() + timezone.timedelta(hours=24),
+            used_at=None,
+        )
+
+        # cancel_appointment is lazily imported inside execute_token_action;
+        # patch it at the source module so the lazy import picks up the mock.
+        with patch("apps.scheduling.services.cancellation.cancel_appointment") as mock_ca:
+            mock_ca.return_value = {"appointment": appt, "refund_info": None}
+            result = execute_token_action(token.token)
+            mock_ca.assert_called_once_with(appt, reason="Cancelled via email link")
+
+        assert result["success"] is True
+        assert result["action"] == AppointmentToken.CANCEL
+        assert result["status"] == "cancelled"
+
+    def test_cancel_via_token_marks_token_used(self):
+        """CANCEL action marks token as used after calling cancel_appointment."""
+        appt = AppointmentFactory(status=Appointment.CONFIRMED)
+        token = AppointmentTokenFactory(
+            appointment=appt,
+            practice=appt.practice,
+            action=AppointmentToken.CANCEL,
+            expires_at=timezone.now() + timezone.timedelta(hours=24),
+            used_at=None,
+        )
+
+        with patch("apps.scheduling.services.cancellation.cancel_appointment") as mock_ca:
+            mock_ca.return_value = {"appointment": appt, "refund_info": None}
+            execute_token_action(token.token)
+
+        token.refresh_from_db()
+        assert token.used_at is not None
+
+    def test_cancel_via_token_includes_refund_info(self):
+        """CANCEL token result includes refund info from cancel_appointment."""
+        appt = AppointmentFactory(status=Appointment.CONFIRMED)
+        token = AppointmentTokenFactory(
+            appointment=appt,
+            practice=appt.practice,
+            action=AppointmentToken.CANCEL,
+            expires_at=timezone.now() + timezone.timedelta(hours=24),
+            used_at=None,
+        )
+
+        refund_info = {"refund_id": "ref-123", "refund_amount": 5000, "penalty_percentage": 0}
+        with patch("apps.scheduling.services.cancellation.cancel_appointment") as mock_ca:
+            mock_ca.return_value = {"appointment": appt, "refund_info": refund_info}
+            result = execute_token_action(token.token)
+
+        assert result["refund_info"] == refund_info
+
+    def test_cancel_already_cancelled_returns_not_cancellable(self):
+        """CANCEL token on already-cancelled appointment returns success=False without consuming token."""
+        appt = AppointmentFactory(status=Appointment.CANCELLED)
         token = AppointmentTokenFactory(
             appointment=appt,
             practice=appt.practice,
@@ -284,15 +344,33 @@ class TestExecuteTokenAction:
 
         result = execute_token_action(token.token)
 
-        appt.refresh_from_db()
-        assert appt.status == Appointment.CONFIRMED  # unchanged
-        assert result["status"] == "deferred"
-        # Token NOT consumed
+        assert result["success"] is False
+        assert result["reason"] == "APPOINTMENT_NOT_CANCELLABLE"
         token.refresh_from_db()
         assert token.used_at is None
 
-    def test_reschedule_returns_deferred(self):
-        """RESCHEDULE action returns deferred without mutating appointment."""
+    def test_cancel_rescheduled_returns_not_cancellable(self):
+        """CANCEL token on rescheduled appointment returns success=False without consuming token."""
+        appt = AppointmentFactory(status=Appointment.RESCHEDULED)
+        token = AppointmentTokenFactory(
+            appointment=appt,
+            practice=appt.practice,
+            action=AppointmentToken.CANCEL,
+            expires_at=timezone.now() + timezone.timedelta(hours=24),
+            used_at=None,
+        )
+
+        result = execute_token_action(token.token)
+
+        assert result["success"] is False
+        assert result["reason"] == "APPOINTMENT_NOT_CANCELLABLE"
+        token.refresh_from_db()
+        assert token.used_at is None
+
+    def test_reschedule_returns_redirect_url(self):
+        """RESCHEDULE action returns success=True with reschedule_url, token NOT consumed."""
+        from django.conf import settings
+
         appt = AppointmentFactory(status=Appointment.CONFIRMED)
         token = AppointmentTokenFactory(
             appointment=appt,
@@ -304,9 +382,14 @@ class TestExecuteTokenAction:
 
         result = execute_token_action(token.token)
 
-        appt.refresh_from_db()
-        assert appt.status == Appointment.CONFIRMED  # unchanged
-        assert result["status"] == "deferred"
+        assert result["success"] is True
+        assert result["action"] == AppointmentToken.RESCHEDULE
+        assert result["status"] == "redirect"
+        assert "reschedule_url" in result
+        expected_url = f"{settings.SITE_URL}/portal/appointments/{appt.pk}/reschedule"
+        assert result["reschedule_url"] == expected_url
+
+        # Token NOT consumed for RESCHEDULE
         token.refresh_from_db()
         assert token.used_at is None
 
@@ -329,3 +412,92 @@ class TestExecuteTokenAction:
         )
         with pytest.raises(TokenUsedError):
             execute_token_action(token.token)
+
+
+# ---------------------------------------------------------------------------
+# Phase 4.1: invalidate_appointment_tokens
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+class TestInvalidateAppointmentTokens:
+    """invalidate_appointment_tokens utility function."""
+
+    def test_marks_all_unused_tokens_used(self):
+        """All unused tokens for the appointment get used_at set."""
+        appt = AppointmentFactory(status=Appointment.CONFIRMED)
+        t1 = AppointmentTokenFactory(
+            appointment=appt,
+            practice=appt.practice,
+            action=AppointmentToken.CONFIRM,
+            used_at=None,
+        )
+        t2 = AppointmentTokenFactory(
+            appointment=appt,
+            practice=appt.practice,
+            action=AppointmentToken.CANCEL,
+            used_at=None,
+        )
+
+        count = invalidate_appointment_tokens(appt)
+
+        t1.refresh_from_db()
+        t2.refresh_from_db()
+        assert t1.used_at is not None
+        assert t2.used_at is not None
+        assert count == 2
+
+    def test_skips_already_used_tokens(self):
+        """Already-used tokens are not touched (used_at stays the same)."""
+        appt = AppointmentFactory(status=Appointment.CONFIRMED)
+        already_used_at = timezone.now() - timezone.timedelta(hours=1)
+        t_used = AppointmentTokenFactory(
+            appointment=appt,
+            practice=appt.practice,
+            action=AppointmentToken.CONFIRM,
+            used_at=already_used_at,
+        )
+        t_unused = AppointmentTokenFactory(
+            appointment=appt,
+            practice=appt.practice,
+            action=AppointmentToken.CANCEL,
+            used_at=None,
+        )
+
+        count = invalidate_appointment_tokens(appt)
+
+        t_used.refresh_from_db()
+        t_unused.refresh_from_db()
+        assert t_used.used_at == already_used_at  # unchanged
+        assert t_unused.used_at is not None  # invalidated
+        assert count == 1
+
+    def test_returns_zero_when_no_tokens(self):
+        """Returns 0 when the appointment has no unused tokens."""
+        appt = AppointmentFactory(status=Appointment.CONFIRMED)
+        count = invalidate_appointment_tokens(appt)
+        assert count == 0
+
+    def test_does_not_affect_other_appointments(self):
+        """Tokens from other appointments are not invalidated."""
+        appt1 = AppointmentFactory(status=Appointment.CONFIRMED)
+        appt2 = AppointmentFactory(status=Appointment.CONFIRMED)
+        t1 = AppointmentTokenFactory(
+            appointment=appt1,
+            practice=appt1.practice,
+            action=AppointmentToken.CONFIRM,
+            used_at=None,
+        )
+        t2 = AppointmentTokenFactory(
+            appointment=appt2,
+            practice=appt2.practice,
+            action=AppointmentToken.CONFIRM,
+            used_at=None,
+        )
+
+        invalidate_appointment_tokens(appt1)
+
+        t1.refresh_from_db()
+        t2.refresh_from_db()
+        assert t1.used_at is not None
+        assert t2.used_at is None  # untouched

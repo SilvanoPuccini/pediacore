@@ -413,6 +413,13 @@ class _LazyPKRelatedField(serializers.PrimaryKeyRelatedField):
         return self._get_queryset()
 
 
+class RescheduleSerializer(serializers.Serializer):
+    """Input serializer for POST /api/v1/appointments/{id}/reschedule/"""
+
+    scheduled_date = serializers.DateField()
+    start_time = serializers.TimeField()
+
+
 class BookingSerializer(serializers.Serializer):
     """Serializer for the POST /api/v1/book/ endpoint.
 

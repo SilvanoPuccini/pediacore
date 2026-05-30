@@ -27,6 +27,14 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+class PaymentRefundError(Exception):
+    """
+    Raised when a payment refund fails at the provider level.
+
+    Callers (e.g., cancel_appointment) should catch this and return HTTP 502.
+    """
+
+
 class PaymentStrategy(ABC):
     """
     Abstract base for all payment provider strategies.
@@ -53,6 +61,23 @@ class PaymentStrategy(ABC):
 
         Updates the Payment record with the current status from the provider.
         Returns the updated Payment instance.
+        """
+        ...
+
+    @abstractmethod
+    def refund(self, payment: Payment, amount: int) -> dict:
+        """
+        Issue a refund for the given payment.
+
+        Args:
+            payment: The Payment instance to refund.
+            amount: Refund amount in CLP (integer, no decimals).
+
+        Returns:
+            dict with keys: refund_id (str | None), status (str), amount (int).
+
+        Raises:
+            PaymentRefundError: If the provider rejects the refund (non-2xx).
         """
         ...
 
@@ -275,6 +300,65 @@ class MercadoPagoStrategy(PaymentStrategy):
         payment.save(update_fields=update_fields)
         return payment
 
+    def refund(self, payment: Payment, amount: int) -> dict:
+        """
+        Issue a refund via the MercadoPago API.
+
+        Calls POST /v1/payments/{external_id}/refunds with the integer CLP amount.
+        Uses the SDK's refund().create() resource (v2 pattern).
+
+        Args:
+            payment: The COMPLETED Payment to refund.
+            amount: Integer CLP amount to refund.
+
+        Returns:
+            dict with refund_id (str), status (str), amount (int).
+
+        Raises:
+            PaymentRefundError: If the MP API returns a non-2xx status.
+        """
+        logger.info(
+            "MercadoPago: issuing refund of %s CLP for Payment #%s (external_id=%s)",
+            amount,
+            payment.pk,
+            payment.external_id,
+        )
+
+        sdk = self._get_sdk()
+        response = sdk.refund().create(
+            payment.external_id,
+            {"amount": amount},
+        )
+
+        status_code = response.get("status")
+        if status_code not in (200, 201):
+            logger.error(
+                "MercadoPago: refund failed for Payment #%s — status=%s response=%s",
+                payment.pk,
+                status_code,
+                response.get("response"),
+            )
+            raise PaymentRefundError(
+                f"MercadoPago refund failed for Payment #{payment.pk}: "
+                f"status={status_code} response={response.get('response')}"
+            )
+
+        refund_obj = response.get("response", {})
+        refund_id = str(refund_obj.get("id", ""))
+        refund_status = refund_obj.get("status", "approved")
+
+        logger.info(
+            "MercadoPago: refund approved refund_id=%s for Payment #%s",
+            refund_id,
+            payment.pk,
+        )
+
+        return {
+            "refund_id": refund_id,
+            "status": refund_status,
+            "amount": amount,
+        }
+
 
 class CashStrategy(PaymentStrategy):
     """
@@ -306,6 +390,24 @@ class CashStrategy(PaymentStrategy):
         """Cash payments have no webhook — this is a no-op."""
         raise NotImplementedError("Cash payments do not use webhooks.")
 
+    def refund(self, payment: Payment, amount: int) -> dict:
+        """
+        Manual cash refund — no external API call.
+
+        The doctor handles the cash return in person.
+        Returns a success dict indicating manual handling.
+        """
+        logger.info(
+            "CashStrategy: manual refund of %s CLP for Payment #%s",
+            amount,
+            payment.pk,
+        )
+        return {
+            "refund_id": f"manual-{payment.pk}",
+            "status": "approved",
+            "amount": amount,
+        }
+
 
 class TransferStrategy(PaymentStrategy):
     """
@@ -330,6 +432,24 @@ class TransferStrategy(PaymentStrategy):
     def process_webhook(self, data: dict) -> Payment:
         """Transfer payments have no webhook — this is a no-op."""
         raise NotImplementedError("Transfer payments do not use webhooks.")
+
+    def refund(self, payment: Payment, amount: int) -> dict:
+        """
+        Manual bank transfer refund — no external API call.
+
+        The doctor initiates the transfer return manually.
+        Returns a success dict indicating manual handling.
+        """
+        logger.info(
+            "TransferStrategy: manual refund of %s CLP for Payment #%s",
+            amount,
+            payment.pk,
+        )
+        return {
+            "refund_id": f"manual-{payment.pk}",
+            "status": "approved",
+            "amount": amount,
+        }
 
 
 def get_payment_strategy(provider_type: str, config: dict | None = None) -> PaymentStrategy:

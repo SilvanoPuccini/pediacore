@@ -17,6 +17,7 @@ from apps.notifications.services.email_service import (
     send_appointment_cancellation,
     send_appointment_confirmation,
     send_appointment_reminder,
+    send_appointment_reschedule,
     send_email,
 )
 from apps.notifications.services.reminder_scheduler import schedule_pending_reminders
@@ -582,3 +583,115 @@ class TestSend2hReminder:
         appointment.refresh_from_db()
         assert appointment.reminder_2h_sent is True
         assert not EmailLog.objects.filter(recipient_email=tutor.email).exists()
+
+
+# ---------------------------------------------------------------------------
+# send_appointment_reschedule (Phase 4, Batch 2)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+class TestSendAppointmentReschedule:
+    """Tests for the reschedule notification email."""
+
+    def test_sends_email_to_linked_tutor(self, settings):
+        """send_appointment_reschedule sends email to all tutors linked to the patient."""
+        settings.RESEND_API_KEY = ""
+        practice = PracticeFactory()
+        tutor = UserFactory()
+        patient = PatientFactory(practice=practice)
+        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
+        appointment = AppointmentFactory(
+            practice=practice,
+            patient=patient,
+            status=Appointment.CONFIRMED,
+        )
+
+        send_appointment_reschedule(appointment)
+
+        assert EmailLog.objects.filter(recipient_email=tutor.email).exists()
+
+    def test_creates_notification_record(self, settings):
+        """send_appointment_reschedule creates a Notification for each tutor."""
+        settings.RESEND_API_KEY = ""
+        practice = PracticeFactory()
+        tutor = UserFactory()
+        patient = PatientFactory(practice=practice)
+        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
+        appointment = AppointmentFactory(
+            practice=practice,
+            patient=patient,
+            status=Appointment.CONFIRMED,
+        )
+
+        send_appointment_reschedule(appointment)
+
+        assert Notification.objects.filter(
+            recipient=tutor,
+            related_type="Appointment",
+            related_id=appointment.pk,
+        ).exists()
+
+    def test_no_email_when_no_tutors(self, settings):
+        """When no tutors are linked, no email is sent."""
+        settings.RESEND_API_KEY = ""
+        practice = PracticeFactory()
+        patient = PatientFactory(practice=practice)
+        appointment = AppointmentFactory(practice=practice, patient=patient, status=Appointment.CONFIRMED)
+        initial_count = EmailLog.objects.count()
+
+        send_appointment_reschedule(appointment)
+
+        assert EmailLog.objects.count() == initial_count
+
+    def test_respects_notification_preference_disabled(self, settings):
+        """When tutor opts out of confirmation emails, no reschedule email is sent."""
+        settings.RESEND_API_KEY = ""
+        practice = PracticeFactory()
+        tutor = UserFactory()
+        patient = PatientFactory(practice=practice)
+        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
+        appointment = AppointmentFactory(
+            practice=practice,
+            patient=patient,
+            status=Appointment.CONFIRMED,
+        )
+        NotificationPreferenceFactory(
+            user=tutor,
+            practice=practice,
+            email_appointment_confirmed=False,
+        )
+
+        send_appointment_reschedule(appointment)
+
+        assert not EmailLog.objects.filter(recipient_email=tutor.email).exists()
+
+    def test_includes_token_links_when_tokens_exist(self, settings):
+        """Email includes token links if appointment has active tokens."""
+        settings.RESEND_API_KEY = ""
+        practice = PracticeFactory()
+        tutor = UserFactory()
+        patient = PatientFactory(practice=practice)
+        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
+        appointment = AppointmentFactory(
+            practice=practice,
+            patient=patient,
+            status=Appointment.CONFIRMED,
+        )
+        AppointmentTokenFactory(
+            appointment=appointment,
+            practice=practice,
+            action="CONFIRM",
+            used_at=None,
+        )
+        AppointmentTokenFactory(
+            appointment=appointment,
+            practice=practice,
+            action="CANCEL",
+            used_at=None,
+        )
+
+        send_appointment_reschedule(appointment)
+
+        log = EmailLog.objects.filter(recipient_email=tutor.email).first()
+        assert log is not None

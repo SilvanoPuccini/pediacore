@@ -43,6 +43,35 @@ class TokenUsedError(Exception):
 # ---------------------------------------------------------------------------
 
 
+def invalidate_appointment_tokens(appointment: Appointment) -> int:
+    """
+    Bulk-invalidate all unused tokens for an appointment.
+
+    Sets used_at=now() on every AppointmentToken that hasn't been consumed yet.
+    Called by reschedule_service after a reschedule and by execute_token_action
+    after a successful cancel-via-token.
+
+    Args:
+        appointment: The Appointment whose unused tokens should be invalidated.
+
+    Returns:
+        Number of tokens that were invalidated.
+    """
+    from apps.scheduling.models import AppointmentToken
+
+    count = AppointmentToken.objects.filter(
+        appointment=appointment,
+        used_at__isnull=True,
+    ).update(used_at=timezone.now())
+
+    logger.debug(
+        "invalidate_appointment_tokens: invalidated %s tokens for Appointment #%s",
+        count,
+        appointment.pk,
+    )
+    return count
+
+
 def create_tokens_for_appointment(appointment: Appointment) -> list[AppointmentToken]:
     """
     Create CONFIRM, CANCEL, and RESCHEDULE tokens for an appointment.
@@ -170,18 +199,47 @@ def execute_token_action(token_str: str) -> dict:
             "message": "Your attendance has been confirmed.",
         }
 
-    # CANCEL and RESCHEDULE are deferred to a later phase
+    if token.action == token.CANCEL:
+        from apps.scheduling.models import Appointment
+
+        if appointment.status not in (Appointment.CONFIRMED, Appointment.HOLD, Appointment.PENDING):
+            return {
+                "success": False,
+                "action": "CANCEL",
+                "reason": "APPOINTMENT_NOT_CANCELLABLE",
+                "message": f"Appointment cannot be cancelled (status: {appointment.status}).",
+            }
+
+        from apps.scheduling.services.cancellation import cancel_appointment
+
+        result = cancel_appointment(appointment, reason="Cancelled via email link")
+
+        token.used_at = timezone.now()
+        token.save(update_fields=["used_at"])
+
+        logger.info(
+            "execute_token_action: CANCEL executed for Appointment #%s",
+            appointment.pk,
+        )
+        return {
+            "success": True,
+            "action": token.CANCEL,
+            "appointment_id": appointment.pk,
+            "status": "cancelled",
+            "refund_info": result.get("refund_info"),
+        }
+
+    # RESCHEDULE: return a redirect URL — do NOT consume the token
+    # (user still needs to pick a new slot in the frontend)
+    reschedule_url = f"{settings.SITE_URL}/portal/appointments/{appointment.pk}/reschedule"
     logger.info(
-        "execute_token_action: %s action deferred for Appointment #%s",
-        token.action,
+        "execute_token_action: RESCHEDULE redirect for Appointment #%s",
         appointment.pk,
     )
     return {
-        "success": False,
-        "action": token.action,
-        "status": "deferred",
-        "message": (
-            "This action is not yet available online. "
-            "Please contact the clinic directly."
-        ),
+        "success": True,
+        "action": token.RESCHEDULE,
+        "appointment_id": appointment.pk,
+        "status": "redirect",
+        "reschedule_url": reschedule_url,
     }
