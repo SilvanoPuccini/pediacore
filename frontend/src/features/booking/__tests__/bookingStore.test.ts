@@ -5,12 +5,14 @@ import type { AvailableSlot, BookingResponse } from "@/types/api";
 const mockSlot: AvailableSlot = {
   start_time: "09:00:00",
   end_time: "09:30:00",
+  available: true,
 };
 
 const mockBookingResponse: BookingResponse = {
   appointment_id: 42,
   checkout_url: "https://mp.com/checkout/123",
   hold_expires_at: "2026-05-30T10:00:00Z",
+  payment_id: 99,
 };
 
 beforeEach(() => {
