@@ -23,6 +23,7 @@ from apps.scheduling.models import (
     WaitlistEntry,
 )
 from apps.scheduling.serializers import (
+    AppointmentActionSerializer,
     AppointmentCreateSerializer,
     AppointmentDetailSerializer,
     AppointmentListSerializer,
@@ -33,6 +34,8 @@ from apps.scheduling.serializers import (
     CancelAppointmentSerializer,
     CancellationPolicySerializer,
     CancellationTierSerializer,
+    ConfirmAttendanceSerializer,
+    TokenResolveSerializer,
     WaitlistEntrySerializer,
 )
 from apps.scheduling.services.auto_responder import check_and_send_auto_response
@@ -42,6 +45,13 @@ from apps.scheduling.services.booking_service import (
     hold_appointment,
 )
 from apps.scheduling.services.cancellation import cancel_appointment, get_cancellation_penalty
+from apps.scheduling.services.token_service import (
+    TokenExpiredError,
+    TokenNotFoundError,
+    TokenUsedError,
+    execute_token_action,
+    validate_token,
+)
 
 User = get_user_model()
 
@@ -54,6 +64,8 @@ class AppointmentViewSet(viewsets.ModelViewSet):
             return [IsDoctor()]
         if self.action == "destroy":
             return [IsDoctor()]
+        if self.action == "confirm_attendance":
+            return [IsTutor()]
         return [IsAuthenticated()]
 
     def get_serializer_class(self):
@@ -159,6 +171,44 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         appointment.save(update_fields=["status", "confirmed_at", "updated_at"])
 
         serializer = AppointmentDetailSerializer(appointment)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"], permission_classes=[IsTutor], url_path="confirm-attendance")
+    def confirm_attendance(self, request: Request, pk=None) -> Response:
+        """
+        POST /api/v1/appointments/{id}/confirm-attendance/
+
+        Allows an authenticated tutor to confirm they attended their appointment.
+        Only works on CONFIRMED appointments. Idempotent.
+        """
+        appointment = self.get_object()
+
+        if appointment.status != Appointment.CONFIRMED:
+            return Response(
+                {"detail": "Attendance can only be confirmed for CONFIRMED appointments."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        now = timezone.now()
+        appointment.attendance_confirmed = True
+        appointment.attendance_confirmed_at = now
+        appointment.attendance_confirmed_via = "PORTAL"
+        appointment.save(
+            update_fields=[
+                "attendance_confirmed",
+                "attendance_confirmed_at",
+                "attendance_confirmed_via",
+                "updated_at",
+            ]
+        )
+
+        serializer = ConfirmAttendanceSerializer(
+            {
+                "attendance_confirmed": appointment.attendance_confirmed,
+                "attendance_confirmed_at": appointment.attendance_confirmed_at,
+                "attendance_confirmed_via": appointment.attendance_confirmed_via,
+            }
+        )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -361,3 +411,87 @@ class AutoResponderConfigView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+
+class TokenResolveView(APIView):
+    """
+    GET /a/{token}/
+
+    Public endpoint (AllowAny). Returns appointment context for the given token.
+    Used by tutors clicking email action links.
+
+    Returns:
+        200: Token is valid — includes appointment details and action availability.
+        404: Token does not exist.
+        410: Token is expired or already used.
+    """
+
+    permission_classes = [AllowAny]
+
+    def get(self, request: Request, token: str) -> Response:
+        try:
+            token_obj = validate_token(token)
+        except TokenNotFoundError:
+            return Response({"detail": "Token not found."}, status=status.HTTP_404_NOT_FOUND)
+        except (TokenExpiredError, TokenUsedError):
+            return Response({"detail": "Token is no longer valid."}, status=status.HTTP_410_GONE)
+
+        appointment = token_obj.appointment
+        patient = appointment.patient
+
+        # RESCHEDULE is deferred — not available via token in Phase 3
+        action_available = token_obj.action != token_obj.RESCHEDULE
+
+        location_name: str
+        if appointment.is_online:
+            location_name = "Consulta Online"
+        else:
+            location_name = appointment.location.name if appointment.location else ""
+
+        serializer = TokenResolveSerializer(
+            {
+                "action": token_obj.action,
+                "appointment_id": appointment.pk,
+                "patient_first_name": patient.first_name,
+                "scheduled_date": appointment.scheduled_date,
+                "start_time": appointment.start_time,
+                "location_name": location_name,
+                "action_available": action_available,
+            }
+        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class AppointmentActionView(APIView):
+    """
+    POST /api/v1/appointments/action/
+
+    Public endpoint (AllowAny). Executes the action associated with a token.
+    Used by tutors after clicking an email link and confirming an action.
+
+    Request body: { "token": "<token_string>" }
+
+    Returns:
+        200: Action executed or deferred.
+        400: Missing/invalid token field.
+        404: Token does not exist.
+        410: Token expired or already used.
+    """
+
+    permission_classes = [AllowAny]
+
+    def post(self, request: Request) -> Response:
+        serializer = AppointmentActionSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        token_str = serializer.validated_data["token"]
+
+        try:
+            result = execute_token_action(token_str)
+        except TokenNotFoundError:
+            return Response({"detail": "Token not found."}, status=status.HTTP_404_NOT_FOUND)
+        except (TokenExpiredError, TokenUsedError):
+            return Response({"detail": "Token is no longer valid."}, status=status.HTTP_410_GONE)
+
+        return Response(result, status=status.HTTP_200_OK)
