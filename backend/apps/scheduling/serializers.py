@@ -365,6 +365,32 @@ class AvailableSlotSerializer(serializers.Serializer):
     available = serializers.BooleanField()
 
 
+class TokenResolveSerializer(serializers.Serializer):
+    """Response serializer for GET /a/{token}/"""
+
+    action = serializers.CharField()
+    appointment_id = serializers.IntegerField()
+    patient_first_name = serializers.CharField()
+    scheduled_date = serializers.DateField()
+    start_time = serializers.TimeField()
+    location_name = serializers.CharField()
+    action_available = serializers.BooleanField()
+
+
+class AppointmentActionSerializer(serializers.Serializer):
+    """Input serializer for POST /api/v1/appointments/action/"""
+
+    token = serializers.CharField(required=True)
+
+
+class ConfirmAttendanceSerializer(serializers.Serializer):
+    """Response serializer for POST /api/v1/appointments/{id}/confirm-attendance/"""
+
+    attendance_confirmed = serializers.BooleanField()
+    attendance_confirmed_at = serializers.DateTimeField()
+    attendance_confirmed_via = serializers.CharField()
+
+
 class _LazyPKRelatedField(serializers.PrimaryKeyRelatedField):
     """PrimaryKeyRelatedField that defers queryset resolution until first use.
 

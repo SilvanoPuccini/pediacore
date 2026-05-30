@@ -99,14 +99,45 @@ def send_email(
     return log
 
 
-def _build_appointment_html(title: str, body_lines: list[str]) -> str:
-    """Build a minimal HTML email body for appointment notifications."""
+def _build_appointment_html(
+    title: str,
+    body_lines: list[str],
+    token_urls: dict | None = None,
+) -> str:
+    """
+    Build a minimal HTML email body for appointment notifications.
+
+    Args:
+        title: The heading displayed at the top of the email.
+        body_lines: List of text lines to render as <p> elements.
+        token_urls: Optional dict with keys 'confirm', 'cancel', 'reschedule'.
+            When provided, a clickable action-links section is appended to the email.
+    """
     body_html = "".join(f"<p>{line}</p>" for line in body_lines)
+
+    action_links_html = ""
+    if token_urls:
+        confirm_url = token_urls.get("confirm", "")
+        cancel_url = token_urls.get("cancel", "")
+        reschedule_url = token_urls.get("reschedule", "")
+        action_links_html = f"""
+        <hr>
+        <p><strong>Acciones rápidas:</strong></p>
+        <p>
+            <a href="{confirm_url}" style="color: #2e7d32;">Confirmar asistencia</a>
+            &nbsp;|&nbsp;
+            <a href="{cancel_url}" style="color: #c62828;">Cancelar cita</a>
+            &nbsp;|&nbsp;
+            <a href="{reschedule_url}" style="color: #1565c0;">Reagendar</a>
+        </p>
+        """
+
     return f"""
     <html>
     <body style="font-family: sans-serif; color: #333;">
         <h2>{title}</h2>
         {body_html}
+        {action_links_html}
         <hr>
         <p style="font-size: 12px; color: #888;">
             Consultorio Pediátrico — Dra. Estefanía
@@ -181,12 +212,19 @@ def send_appointment_reminder(appointment: Appointment) -> None:
         appointment.save(update_fields=["reminder_sent_at", "updated_at"])
 
 
-def send_appointment_confirmation(appointment: Appointment) -> None:
+def send_appointment_confirmation(
+    appointment: Appointment,
+    token_urls: dict | None = None,
+) -> None:
     """
     Notify all linked tutors that the appointment was confirmed.
 
     Args:
         appointment: The confirmed Appointment instance.
+        token_urls: Optional dict with keys 'confirm', 'cancel', 'reschedule'.
+            When provided, the email body includes clickable action links so the
+            tutor can confirm attendance, cancel, or reschedule from the email.
+            When None (default), the email is sent without links (backward compat).
     """
     from apps.patients.models import TutorPatient
 
@@ -210,6 +248,7 @@ def send_appointment_confirmation(appointment: Appointment) -> None:
                 f"Servicio: {appointment.service.name}",
                 f"Lugar: {appointment.location.name if appointment.location else 'Consulta Online'}",
             ],
+            token_urls=token_urls,
         )
 
         Notification.objects.create(
@@ -451,3 +490,164 @@ def send_appointment_cancellation(appointment: Appointment) -> None:
             html_body=html_body,
             practice=appointment.practice,
         )
+
+
+def _build_token_urls_for_appointment(appointment) -> dict | None:
+    """
+    Retrieve token URLs for an appointment if tokens exist.
+
+    Returns a dict with 'confirm', 'cancel', 'reschedule' keys, or None if
+    no tokens are found (e.g., first-time send before tokens are created).
+    """
+    try:
+        from apps.scheduling.models import AppointmentToken
+
+        site_url = getattr(settings, "SITE_URL", "").rstrip("/")
+        tokens = AppointmentToken.objects.filter(
+            appointment=appointment,
+            used_at__isnull=True,
+        ).values("action", "token")
+
+        token_map = {t["action"]: t["token"] for t in tokens}
+        if not token_map:
+            return None
+
+        return {
+            "confirm": f"{site_url}/a/{token_map.get('CONFIRM', '')}/",
+            "cancel": f"{site_url}/a/{token_map.get('CANCEL', '')}/",
+            "reschedule": f"{site_url}/a/{token_map.get('RESCHEDULE', '')}/",
+        }
+    except Exception:
+        return None
+
+
+def send_24h_reminder(appointment) -> None:
+    """
+    Send a 24-hour reminder email to all tutors linked to the appointment's patient.
+
+    Respects NotificationPreference.email_appointment_reminder.
+    Sets appointment.reminder_24h_sent = True and saves regardless of opt-out status
+    (the flag prevents the job from retrying even when tutors opted out).
+    Creates a Notification record for each tutor that receives the email.
+
+    Args:
+        appointment: The Appointment instance to remind about.
+    """
+    from apps.patients.models import TutorPatient
+
+    tutors_qs = TutorPatient.objects.filter(patient=appointment.patient).select_related("tutor")
+    token_urls = _build_token_urls_for_appointment(appointment)
+
+    for link in tutors_qs:
+        tutor = link.tutor
+
+        prefs = NotificationPreference.objects.filter(user=tutor).first()
+        if prefs and not prefs.email_appointment_reminder:
+            # Respect opt-out: no email, but flag will be set after the loop
+            continue
+
+        location_display = appointment.location.name if appointment.location else "Consulta Online"
+        subject = "Recordatorio: tu cita es mañana"
+        html_body = _build_appointment_html(
+            title="Recordatorio: tu cita es mañana",
+            body_lines=[
+                f"Hola {tutor.first_name},",
+                f"Este es un recordatorio de la consulta de {appointment.patient} "
+                f"programada para <strong>mañana {appointment.scheduled_date}</strong> "
+                f"a las <strong>{appointment.start_time:%H:%M}</strong>.",
+                f"Servicio: {appointment.service.name}",
+                f"Lugar: {location_display}",
+            ],
+            token_urls=token_urls,
+        )
+
+        Notification.objects.create(
+            practice=appointment.practice,
+            recipient=tutor,
+            notification_type=Notification.APPOINTMENT_REMINDER,
+            title="Recordatorio: tu cita es mañana",
+            message=(
+                f"Consulta de {appointment.patient} el {appointment.scheduled_date} "
+                f"a las {appointment.start_time:%H:%M}."
+            ),
+            related_type="Appointment",
+            related_id=appointment.pk,
+        )
+
+        send_email(
+            to=tutor.email,
+            subject=subject,
+            html_body=html_body,
+            practice=appointment.practice,
+        )
+
+    appointment.reminder_24h_sent = True
+    appointment.save(update_fields=["reminder_24h_sent", "updated_at"])
+
+
+def send_2h_reminder(appointment) -> None:
+    """
+    Send a 2-hour reminder email for online appointments only.
+
+    Only processes appointments with is_online=True. Silently skips in-person.
+    Respects NotificationPreference.email_appointment_reminder.
+    Sets appointment.reminder_2h_sent = True and saves.
+    Creates a Notification record for each tutor that receives the email.
+
+    Args:
+        appointment: The Appointment instance to remind about.
+    """
+    if not appointment.is_online:
+        return
+
+    from apps.patients.models import TutorPatient
+
+    tutors_qs = TutorPatient.objects.filter(patient=appointment.patient).select_related("tutor")
+    token_urls = _build_token_urls_for_appointment(appointment)
+
+    for link in tutors_qs:
+        tutor = link.tutor
+
+        prefs = NotificationPreference.objects.filter(user=tutor).first()
+        if prefs and not prefs.email_appointment_reminder:
+            continue
+
+        meeting_link = appointment.meeting_link or ""
+        subject = "Tu consulta online empieza en 2 horas"
+        html_body = _build_appointment_html(
+            title="Tu consulta online empieza en 2 horas",
+            body_lines=[
+                f"Hola {tutor.first_name},",
+                f"La consulta online de {appointment.patient} comienza hoy "
+                f"a las <strong>{appointment.start_time:%H:%M}</strong>.",
+                (
+                    f'Enlace de reunión: <a href="{meeting_link}">{meeting_link}</a>'
+                    if meeting_link
+                    else "Enlace de reunión: pendiente."
+                ),
+            ],
+            token_urls=token_urls,
+        )
+
+        Notification.objects.create(
+            practice=appointment.practice,
+            recipient=tutor,
+            notification_type=Notification.APPOINTMENT_REMINDER,
+            title="Tu consulta online empieza en 2 horas",
+            message=(
+                f"Consulta online de {appointment.patient} hoy "
+                f"a las {appointment.start_time:%H:%M}."
+            ),
+            related_type="Appointment",
+            related_id=appointment.pk,
+        )
+
+        send_email(
+            to=tutor.email,
+            subject=subject,
+            html_body=html_body,
+            practice=appointment.practice,
+        )
+
+    appointment.reminder_2h_sent = True
+    appointment.save(update_fields=["reminder_2h_sent", "updated_at"])

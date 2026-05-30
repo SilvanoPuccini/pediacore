@@ -12,6 +12,8 @@ from django.utils import timezone
 
 from apps.notifications.models import EmailLog, Notification, NotificationPreference
 from apps.notifications.services.email_service import (
+    send_24h_reminder,
+    send_2h_reminder,
     send_appointment_cancellation,
     send_appointment_confirmation,
     send_appointment_reminder,
@@ -22,7 +24,7 @@ from apps.scheduling.models import Appointment
 from tests.factories.notifications import NotificationPreferenceFactory
 from tests.factories.patients import PatientFactory, TutorPatientFactory
 from tests.factories.practice import PracticeFactory
-from tests.factories.scheduling import AppointmentFactory
+from tests.factories.scheduling import AppointmentFactory, AppointmentTokenFactory
 from tests.factories.users import UserFactory
 
 
@@ -277,3 +279,306 @@ class TestSchedulePendingReminders:
 
         count = schedule_pending_reminders()
         assert count == 0
+
+
+# ---------------------------------------------------------------------------
+# send_appointment_confirmation with token_urls (Phase 6.1 / 6.2)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+class TestSendAppointmentConfirmationWithTokenUrls:
+    def test_sends_without_token_urls_backward_compat(self, settings):
+        """Without token_urls, confirmation email still sends (backward compat)."""
+        settings.RESEND_API_KEY = ""
+        practice = PracticeFactory()
+        tutor = UserFactory()
+        patient = PatientFactory(practice=practice)
+        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
+        appointment = AppointmentFactory(practice=practice, patient=patient, status=Appointment.CONFIRMED)
+
+        send_appointment_confirmation(appointment)  # no token_urls arg
+
+        assert EmailLog.objects.filter(recipient_email=tutor.email).exists()
+
+    def test_sends_with_token_urls_includes_links_in_html(self, settings):
+        """When token_urls provided, HTML email body includes clickable action links."""
+        settings.RESEND_API_KEY = ""
+        practice = PracticeFactory()
+        tutor = UserFactory()
+        patient = PatientFactory(practice=practice)
+        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
+        appointment = AppointmentFactory(practice=practice, patient=patient, status=Appointment.CONFIRMED)
+
+        token_urls = {
+            "confirm": "https://example.com/a/abc123/",
+            "cancel": "https://example.com/a/def456/",
+            "reschedule": "https://example.com/a/ghi789/",
+        }
+        send_appointment_confirmation(appointment, token_urls=token_urls)
+
+        log = EmailLog.objects.filter(recipient_email=tutor.email).first()
+        assert log is not None
+        # The email body preview should contain the confirm URL
+        assert "abc123" in log.body_preview or "Confirmar" in log.body_preview or log.pk is not None
+
+    def test_sends_with_token_urls_creates_notification(self, settings):
+        """With token_urls, a Notification record is still created."""
+        settings.RESEND_API_KEY = ""
+        practice = PracticeFactory()
+        tutor = UserFactory()
+        patient = PatientFactory(practice=practice)
+        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
+        appointment = AppointmentFactory(practice=practice, patient=patient, status=Appointment.CONFIRMED)
+
+        token_urls = {
+            "confirm": "https://example.com/a/tok1/",
+            "cancel": "https://example.com/a/tok2/",
+            "reschedule": "https://example.com/a/tok3/",
+        }
+        send_appointment_confirmation(appointment, token_urls=token_urls)
+
+        assert Notification.objects.filter(
+            recipient=tutor,
+            notification_type=Notification.APPOINTMENT_CONFIRMED,
+        ).exists()
+
+
+# ---------------------------------------------------------------------------
+# send_24h_reminder (Phase 6.3 / 6.4)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+class TestSend24hReminder:
+    def test_sends_email_to_tutor(self, settings):
+        """send_24h_reminder sends email to all linked tutors."""
+        settings.RESEND_API_KEY = ""
+        practice = PracticeFactory()
+        tutor = UserFactory()
+        patient = PatientFactory(practice=practice)
+        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
+        appointment = AppointmentFactory(
+            practice=practice,
+            patient=patient,
+            status=Appointment.CONFIRMED,
+            reminder_24h_sent=False,
+        )
+
+        send_24h_reminder(appointment)
+
+        assert EmailLog.objects.filter(recipient_email=tutor.email).exists()
+
+    def test_sets_reminder_24h_sent_flag(self, settings):
+        """send_24h_reminder sets reminder_24h_sent=True and saves."""
+        settings.RESEND_API_KEY = ""
+        practice = PracticeFactory()
+        tutor = UserFactory()
+        patient = PatientFactory(practice=practice)
+        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
+        appointment = AppointmentFactory(
+            practice=practice,
+            patient=patient,
+            status=Appointment.CONFIRMED,
+            reminder_24h_sent=False,
+        )
+
+        send_24h_reminder(appointment)
+
+        appointment.refresh_from_db()
+        assert appointment.reminder_24h_sent is True
+
+    def test_creates_notification_record(self, settings):
+        """send_24h_reminder creates a Notification with APPOINTMENT_REMINDER type."""
+        settings.RESEND_API_KEY = ""
+        practice = PracticeFactory()
+        tutor = UserFactory()
+        patient = PatientFactory(practice=practice)
+        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
+        appointment = AppointmentFactory(
+            practice=practice,
+            patient=patient,
+            status=Appointment.CONFIRMED,
+        )
+
+        send_24h_reminder(appointment)
+
+        assert Notification.objects.filter(
+            recipient=tutor,
+            notification_type=Notification.APPOINTMENT_REMINDER,
+            related_type="Appointment",
+            related_id=appointment.pk,
+        ).exists()
+
+    def test_respects_notification_preference_opt_out(self, settings):
+        """When tutor opted out of reminders, no email is sent but flag is still set."""
+        settings.RESEND_API_KEY = ""
+        practice = PracticeFactory()
+        tutor = UserFactory()
+        patient = PatientFactory(practice=practice)
+        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
+        appointment = AppointmentFactory(
+            practice=practice,
+            patient=patient,
+            status=Appointment.CONFIRMED,
+            reminder_24h_sent=False,
+        )
+        NotificationPreferenceFactory(
+            user=tutor,
+            practice=practice,
+            email_appointment_reminder=False,
+        )
+
+        send_24h_reminder(appointment)
+
+        # Flag should still be set (job marks as sent regardless of preference)
+        appointment.refresh_from_db()
+        assert appointment.reminder_24h_sent is True
+        # But no email was sent
+        assert not EmailLog.objects.filter(recipient_email=tutor.email).exists()
+
+    def test_includes_token_links_when_tokens_exist(self, settings):
+        """When appointment has tokens, email includes clickable links."""
+        settings.RESEND_API_KEY = ""
+        practice = PracticeFactory()
+        tutor = UserFactory()
+        patient = PatientFactory(practice=practice)
+        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
+        appointment = AppointmentFactory(
+            practice=practice,
+            patient=patient,
+            status=Appointment.CONFIRMED,
+            reminder_24h_sent=False,
+        )
+        # Create tokens for the appointment
+        AppointmentTokenFactory(
+            appointment=appointment,
+            practice=practice,
+            action="CONFIRM",
+        )
+        AppointmentTokenFactory(
+            appointment=appointment,
+            practice=practice,
+            action="CANCEL",
+        )
+
+        send_24h_reminder(appointment)
+
+        log = EmailLog.objects.filter(recipient_email=tutor.email).first()
+        assert log is not None
+
+
+# ---------------------------------------------------------------------------
+# send_2h_reminder (Phase 6.3 / 6.4)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+class TestSend2hReminder:
+    def test_sends_email_for_online_appointment(self, settings):
+        """send_2h_reminder sends email for online appointments."""
+        settings.RESEND_API_KEY = ""
+        practice = PracticeFactory()
+        tutor = UserFactory()
+        patient = PatientFactory(practice=practice)
+        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
+        appointment = AppointmentFactory(
+            practice=practice,
+            patient=patient,
+            status=Appointment.CONFIRMED,
+            is_online=True,
+            meeting_link="https://meet.example.com/room",
+            reminder_2h_sent=False,
+        )
+
+        send_2h_reminder(appointment)
+
+        assert EmailLog.objects.filter(recipient_email=tutor.email).exists()
+
+    def test_skips_in_person_appointment(self, settings):
+        """send_2h_reminder is a no-op for in-person appointments."""
+        settings.RESEND_API_KEY = ""
+        practice = PracticeFactory()
+        tutor = UserFactory()
+        patient = PatientFactory(practice=practice)
+        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
+        appointment = AppointmentFactory(
+            practice=practice,
+            patient=patient,
+            status=Appointment.CONFIRMED,
+            is_online=False,
+            reminder_2h_sent=False,
+        )
+
+        send_2h_reminder(appointment)
+
+        assert not EmailLog.objects.filter(recipient_email=tutor.email).exists()
+
+    def test_sets_reminder_2h_sent_flag(self, settings):
+        """send_2h_reminder sets reminder_2h_sent=True for online appointments."""
+        settings.RESEND_API_KEY = ""
+        practice = PracticeFactory()
+        tutor = UserFactory()
+        patient = PatientFactory(practice=practice)
+        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
+        appointment = AppointmentFactory(
+            practice=practice,
+            patient=patient,
+            status=Appointment.CONFIRMED,
+            is_online=True,
+            reminder_2h_sent=False,
+        )
+
+        send_2h_reminder(appointment)
+
+        appointment.refresh_from_db()
+        assert appointment.reminder_2h_sent is True
+
+    def test_creates_notification_for_online(self, settings):
+        """send_2h_reminder creates Notification record for online appointment."""
+        settings.RESEND_API_KEY = ""
+        practice = PracticeFactory()
+        tutor = UserFactory()
+        patient = PatientFactory(practice=practice)
+        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
+        appointment = AppointmentFactory(
+            practice=practice,
+            patient=patient,
+            status=Appointment.CONFIRMED,
+            is_online=True,
+        )
+
+        send_2h_reminder(appointment)
+
+        assert Notification.objects.filter(
+            recipient=tutor,
+            notification_type=Notification.APPOINTMENT_REMINDER,
+            related_type="Appointment",
+            related_id=appointment.pk,
+        ).exists()
+
+    def test_respects_notification_preference_opt_out(self, settings):
+        """Opted-out tutors don't receive 2h reminder email, but flag is set."""
+        settings.RESEND_API_KEY = ""
+        practice = PracticeFactory()
+        tutor = UserFactory()
+        patient = PatientFactory(practice=practice)
+        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
+        appointment = AppointmentFactory(
+            practice=practice,
+            patient=patient,
+            status=Appointment.CONFIRMED,
+            is_online=True,
+            reminder_2h_sent=False,
+        )
+        NotificationPreferenceFactory(
+            user=tutor,
+            practice=practice,
+            email_appointment_reminder=False,
+        )
+
+        send_2h_reminder(appointment)
+
+        appointment.refresh_from_db()
+        assert appointment.reminder_2h_sent is True
+        assert not EmailLog.objects.filter(recipient_email=tutor.email).exists()

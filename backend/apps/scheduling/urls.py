@@ -4,6 +4,7 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from apps.scheduling.views import (
+    AppointmentActionView,
     AppointmentViewSet,
     AutoResponderConfigView,
     AvailableSlotsView,
@@ -23,6 +24,8 @@ router.register(r"admin/cancellation-tiers", CancellationTierViewSet, basename="
 urlpatterns = [
     path("available-slots/", AvailableSlotsView.as_view(), name="available-slots"),
     path("book/", BookingView.as_view(), name="book"),
+    # Must be BEFORE router.urls so it's not matched by the router's appointment-detail pattern
+    path("appointments/action/", AppointmentActionView.as_view(), name="appointment-action"),
     path("admin/cancellation-policy/", CancellationPolicyView.as_view(), name="admin-cancellation-policy"),
     path("admin/auto-responder/", AutoResponderConfigView.as_view(), name="admin-auto-responder"),
     path("", include(router.urls)),
