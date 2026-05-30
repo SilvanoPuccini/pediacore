@@ -96,16 +96,37 @@ export interface AvailableSlot {
   available: boolean;
 }
 
-export interface AppointmentCreate {
+// ─── Booking Phase 6 types ────────────────────────────────────────────────────
+
+export interface BookingRequest {
   practice: number;
   patient: number;
   service: number;
-  location?: number | null;
+  location: number | null;
   doctor: number;
-  scheduled_date: string;
-  start_time: string;
+  scheduled_date: string;  // "YYYY-MM-DD"
+  start_time: string;      // "HH:MM:SS"
   is_online: boolean;
   notes: string;
+}
+
+export interface BookingResponse {
+  checkout_url: string;
+  hold_expires_at: string;   // ISO UTC datetime
+  appointment_id: number;
+  payment_id: number;
+}
+
+export interface PatientCreate {
+  first_name: string;
+  last_name: string;
+  date_of_birth: string;                           // "YYYY-MM-DD"
+  sex_at_birth: "M" | "F" | "NO_ESPECIFICA";
+  document_type: "RUT" | "PASAPORTE" | "DNI_EXTRANJERO";
+  rut?: string;
+  insurance: string;
+  country: string;
+  practice: number;
 }
 
 export interface Patient {
