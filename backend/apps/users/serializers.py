@@ -9,6 +9,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     full_name = serializers.CharField(read_only=True)
     is_email_verified = serializers.BooleanField(read_only=True)
+    profile_completion = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -22,8 +23,14 @@ class UserSerializer(serializers.ModelSerializer):
             "full_name",
             "is_email_verified",
             "created_at",
+            "profile_completion",
         ]
-        read_only_fields = ["id", "email", "role", "is_email_verified", "created_at"]
+        read_only_fields = ["id", "email", "role", "is_email_verified", "created_at", "profile_completion"]
+
+    def get_profile_completion(self, obj: User) -> dict:
+        from apps.users.services.profile_completion import compute_tutor_completion
+
+        return compute_tutor_completion(obj)
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):

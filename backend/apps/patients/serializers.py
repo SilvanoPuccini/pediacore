@@ -127,6 +127,7 @@ class PatientSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(read_only=True)
     age = serializers.DictField(read_only=True)
     tutors = TutorPatientSerializer(source="tutor_patients", many=True, read_only=True)
+    profile_completion = serializers.SerializerMethodField()
 
     class Meta:
         model = Patient
@@ -156,8 +157,14 @@ class PatientSerializer(serializers.ModelSerializer):
             "tutors",
             "created_at",
             "updated_at",
+            "profile_completion",
         ]
-        read_only_fields = ["id", "full_name", "age", "created_at", "updated_at"]
+        read_only_fields = ["id", "full_name", "age", "created_at", "updated_at", "profile_completion"]
+
+    def get_profile_completion(self, obj: Patient) -> dict:
+        from apps.patients.services.profile_completion import compute_patient_completion
+
+        return compute_patient_completion(obj)
 
 
 class PatientCreateSerializer(serializers.ModelSerializer):
