@@ -265,11 +265,13 @@ class TestCancellationService:
 
     def test_cancel_appointment_sets_status(self):
         appt = AppointmentFactory(status=Appointment.PENDING)
-        cancelled = cancel_appointment(appt, reason="Changed plans")
+        result = cancel_appointment(appt, reason="Changed plans")
 
-        assert cancelled.status == Appointment.CANCELLED
-        assert cancelled.cancellation_reason == "Changed plans"
-        assert cancelled.cancelled_at is not None
+        # cancel_appointment() now returns a dict; check the appointment via refresh
+        appt.refresh_from_db()
+        assert appt.status == Appointment.CANCELLED
+        assert appt.cancellation_reason == "Changed plans"
+        assert appt.cancelled_at is not None
 
     def test_cancel_appointment_persists_to_db(self):
         appt = AppointmentFactory(status=Appointment.PENDING)

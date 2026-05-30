@@ -35,16 +35,22 @@ from apps.scheduling.serializers import (
     CancellationPolicySerializer,
     CancellationTierSerializer,
     ConfirmAttendanceSerializer,
+    RescheduleSerializer,
     TokenResolveSerializer,
     WaitlistEntrySerializer,
 )
 from apps.scheduling.services.auto_responder import check_and_send_auto_response
 from apps.scheduling.services.availability import get_available_slots
+from apps.billing.services.payment_strategy import PaymentRefundError
 from apps.scheduling.services.booking_service import (
     SlotUnavailableError,
     hold_appointment,
 )
 from apps.scheduling.services.cancellation import cancel_appointment, get_cancellation_penalty
+from apps.scheduling.services.reschedule_service import (
+    AppointmentNotReschedulableError,
+    reschedule_appointment,
+)
 from apps.scheduling.services.token_service import (
     TokenExpiredError,
     TokenNotFoundError,
@@ -117,7 +123,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
 
         if appointment.status == Appointment.CANCELLED:
             return Response(
-                {"detail": "Appointment is already cancelled."},
+                {"detail": "Appointment is already cancelled.", "code": "APPOINTMENT_ALREADY_CANCELLED"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -136,8 +142,21 @@ class AppointmentViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
-        penalty_info = get_cancellation_penalty(appointment)
-        cancel_appointment(appointment, reason=reason)
+        try:
+            result = cancel_appointment(
+                appointment,
+                reason=reason,
+                refund=True,
+                cancelled_by=request.user,
+            )
+        except PaymentRefundError as exc:
+            return Response(
+                {"detail": f"Refund processing failed: {exc}"},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        refund_info = result.get("refund_info")
+        penalty_info = get_cancellation_penalty(appointment) if refund_info is None else {}
 
         AuditLog.log(
             user=request.user,
@@ -145,16 +164,21 @@ class AppointmentViewSet(viewsets.ModelViewSet):
             resource_type="Appointment",
             resource_id=appointment.pk,
             request=request,
-            metadata={"action": "cancel", "penalty_percentage": str(penalty_info["penalty_percentage"])},
+            metadata={
+                "action": "cancel",
+                "refund_amount": refund_info.get("refund_amount") if refund_info else None,
+                "penalty_percentage": refund_info.get("penalty_percentage") if refund_info else None,
+            },
         )
 
-        return Response(
-            {
-                "detail": "Appointment cancelled.",
-                "penalty_info": penalty_info,
-            },
-            status=status.HTTP_200_OK,
-        )
+        response_data: dict = {"detail": "Appointment cancelled."}
+        if refund_info:
+            response_data["refund_amount"] = refund_info.get("refund_amount")
+            response_data["penalty_percentage"] = refund_info.get("penalty_percentage")
+        elif penalty_info:
+            response_data["penalty_info"] = penalty_info
+
+        return Response(response_data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=["post"], permission_classes=[IsDoctor])
     def confirm(self, request: Request, pk=None) -> Response:
@@ -210,6 +234,66 @@ class AppointmentViewSet(viewsets.ModelViewSet):
             }
         )
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+    @action(detail=True, methods=["post"], permission_classes=[IsTutor], url_path="reschedule")
+    def reschedule(self, request: Request, pk=None) -> Response:
+        """
+        POST /api/v1/appointments/{id}/reschedule/
+
+        Allows an authenticated tutor to reschedule their confirmed appointment
+        to a new date and time. Atomically creates a new CONFIRMED appointment
+        and marks the old one RESCHEDULED.
+
+        Permissions: IsTutor (ownership verified via queryset filter)
+        """
+        appointment = self.get_object()
+
+        serializer = RescheduleSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        new_date = serializer.validated_data["scheduled_date"]
+        new_time = serializer.validated_data["start_time"]
+
+        try:
+            new_appointment = reschedule_appointment(
+                appointment=appointment,
+                new_date=new_date,
+                new_time=new_time,
+                rescheduled_by=request.user,
+            )
+        except AppointmentNotReschedulableError as exc:
+            return Response(
+                {"detail": str(exc), "code": "APPOINTMENT_NOT_RESCHEDULABLE"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except SlotUnavailableError as exc:
+            return Response(
+                {"detail": str(exc), "code": "SLOT_CONFLICT"},
+                status=status.HTTP_409_CONFLICT,
+            )
+        except Exception as exc:
+            return Response(
+                {"detail": str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        AuditLog.log(
+            user=request.user,
+            action=AuditLog.CREATE,
+            resource_type="Appointment",
+            resource_id=new_appointment.pk,
+            request=request,
+            metadata={
+                "action": "reschedule",
+                "old_appointment_id": appointment.pk,
+                "new_date": str(new_date),
+                "new_time": str(new_time),
+            },
+        )
+
+        serializer_out = AppointmentDetailSerializer(new_appointment)
+        return Response(serializer_out.data, status=status.HTTP_201_CREATED)
 
 
 class AvailableSlotsView(APIView):
@@ -439,8 +523,8 @@ class TokenResolveView(APIView):
         appointment = token_obj.appointment
         patient = appointment.patient
 
-        # RESCHEDULE is deferred — not available via token in Phase 3
-        action_available = token_obj.action != token_obj.RESCHEDULE
+        # CANCEL and CONFIRM are available inline; RESCHEDULE redirects to frontend
+        action_available = token_obj.action in (token_obj.CONFIRM, token_obj.CANCEL)
 
         location_name: str
         if appointment.is_online:

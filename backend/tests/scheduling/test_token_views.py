@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import datetime
 import uuid
+from unittest.mock import patch
 
 import pytest
 from django.urls import reverse
@@ -174,30 +175,48 @@ class TestAppointmentActionView:
         token.refresh_from_db()
         assert token.used_at is not None
 
-    def test_cancel_token_returns_200_deferred(self, api_client, confirmed_appointment):
+    def test_cancel_token_returns_200_cancelled(
+        self, api_client, confirmed_appointment
+    ):
+        """CANCEL token now executes cancel and returns status=cancelled."""
         token = AppointmentTokenFactory(
             appointment=confirmed_appointment,
             action=AppointmentToken.CANCEL,
         )
         url = self.get_url()
-        response = api_client.post(url, {"token": token.token}, format="json")
+        with patch("apps.scheduling.services.cancellation.cancel_appointment") as mock_ca:
+            mock_ca.return_value = {
+                "appointment": confirmed_appointment,
+                "refund_info": None,
+            }
+            response = api_client.post(url, {"token": token.token}, format="json")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.data
-        assert data.get("status") == "deferred"
+        assert data.get("status") == "cancelled"
+        assert data.get("success") is True
 
-    def test_cancel_token_does_not_change_appointment_status(self, api_client, confirmed_appointment):
+    def test_cancel_token_marks_token_used(
+        self, api_client, confirmed_appointment
+    ):
+        """CANCEL token is consumed after successful cancellation."""
         token = AppointmentTokenFactory(
             appointment=confirmed_appointment,
             action=AppointmentToken.CANCEL,
         )
         url = self.get_url()
-        api_client.post(url, {"token": token.token}, format="json")
+        with patch("apps.scheduling.services.cancellation.cancel_appointment") as mock_ca:
+            mock_ca.return_value = {
+                "appointment": confirmed_appointment,
+                "refund_info": None,
+            }
+            api_client.post(url, {"token": token.token}, format="json")
 
-        confirmed_appointment.refresh_from_db()
-        assert confirmed_appointment.status == Appointment.CONFIRMED
+        token.refresh_from_db()
+        assert token.used_at is not None
 
-    def test_reschedule_token_returns_200_deferred(self, api_client, confirmed_appointment):
+    def test_reschedule_token_returns_200_redirect(self, api_client, confirmed_appointment):
+        """RESCHEDULE token returns success=True with reschedule_url, status=redirect."""
         token = AppointmentTokenFactory(
             appointment=confirmed_appointment,
             action=AppointmentToken.RESCHEDULE,
@@ -206,7 +225,9 @@ class TestAppointmentActionView:
         response = api_client.post(url, {"token": token.token}, format="json")
 
         assert response.status_code == status.HTTP_200_OK
-        assert response.data.get("status") == "deferred"
+        assert response.data.get("status") == "redirect"
+        assert response.data.get("success") is True
+        assert "reschedule_url" in response.data
 
     def test_expired_token_returns_410(self, api_client, confirmed_appointment):
         past = timezone.now() - datetime.timedelta(hours=1)

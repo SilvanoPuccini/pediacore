@@ -445,6 +445,71 @@ def _send_email_with_attachment(
         return send_email(to=to, subject=subject, html_body=html_body, practice=practice)
 
 
+def send_appointment_reschedule(
+    appointment: Appointment,
+    token_urls: dict | None = None,
+) -> None:
+    """
+    Notify all linked tutors that the appointment was rescheduled.
+
+    Sends the new appointment date/time so tutors know when their new
+    appointment is scheduled. Includes token action links when available.
+    Respects NotificationPreference.email_appointment_confirmed.
+
+    Args:
+        appointment: The NEW Appointment instance (CONFIRMED, rescheduled_from set).
+        token_urls: Optional dict with keys 'confirm', 'cancel', 'reschedule'.
+            When None, token URLs are auto-resolved from the database.
+    """
+    from apps.patients.models import TutorPatient
+
+    tutors_qs = TutorPatient.objects.filter(patient=appointment.patient).select_related("tutor")
+
+    resolved_token_urls = token_urls if token_urls is not None else _build_token_urls_for_appointment(appointment)
+
+    for link in tutors_qs:
+        tutor = link.tutor
+
+        prefs = NotificationPreference.objects.filter(user=tutor).first()
+        if prefs and not prefs.email_appointment_confirmed:
+            continue
+
+        subject = f"Tu cita ha sido reagendada — {appointment.scheduled_date}"
+        html_body = _build_appointment_html(
+            title="Tu cita ha sido reagendada",
+            body_lines=[
+                f"Hola {tutor.first_name},",
+                f"Tu consulta de {appointment.patient} ha sido <strong>reagendada</strong>.",
+                f"Nueva fecha: {appointment.scheduled_date}",
+                f"Nueva hora: {appointment.start_time:%H:%M}",
+                f"Servicio: {appointment.service.name}",
+                f"Lugar: {appointment.location.name if appointment.location else 'Consulta Online'}",
+                "Si necesitás hacer cambios adicionales, por favor contactanos.",
+            ],
+            token_urls=resolved_token_urls,
+        )
+
+        Notification.objects.create(
+            practice=appointment.practice,
+            recipient=tutor,
+            notification_type=Notification.APPOINTMENT_CONFIRMED,
+            title="Tu cita ha sido reagendada",
+            message=(
+                f"La consulta de {appointment.patient} fue reagendada al "
+                f"{appointment.scheduled_date} a las {appointment.start_time:%H:%M}."
+            ),
+            related_type="Appointment",
+            related_id=appointment.pk,
+        )
+
+        send_email(
+            to=tutor.email,
+            subject=subject,
+            html_body=html_body,
+            practice=appointment.practice,
+        )
+
+
 def send_appointment_cancellation(appointment: Appointment) -> None:
     """
     Notify all linked tutors that the appointment was cancelled.

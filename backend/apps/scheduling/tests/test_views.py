@@ -635,3 +635,145 @@ class TestAppointmentCreateSerializerValidations:
         }
         response = client.post(url, data=payload, format="json")
         assert response.status_code == status.HTTP_201_CREATED
+
+
+# ---------------------------------------------------------------------------
+# Reschedule endpoint
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+class TestAppointmentRescheduleAction:
+    """Tests for POST /api/v1/appointments/{id}/reschedule/ endpoint."""
+
+    def _new_slot(self, days_offset: int = 14, hour: int = 11):
+        """Return a (date_str, time_str) tuple for a future slot."""
+        new_date = datetime.date.today() + datetime.timedelta(days=days_offset)
+        return str(new_date), f"{hour:02d}:00:00"
+
+    def test_tutor_reschedules_own_appointment(self, tutor_client):
+        """Tutor can reschedule a CONFIRMED appointment they own → 201."""
+        from unittest.mock import patch
+
+        client, tutor = tutor_client
+        practice = PracticeFactory()
+        patient = PatientFactory(practice=practice)
+        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
+        appt = AppointmentFactory(
+            practice=practice,
+            patient=patient,
+            status=Appointment.CONFIRMED,
+        )
+        new_date, new_time = self._new_slot()
+        url = reverse("scheduling:appointment-reschedule", kwargs={"pk": appt.pk})
+
+        with (
+            patch("apps.scheduling.services.reschedule_service.notify_waitlist_on_cancellation"),
+            patch("apps.scheduling.services.reschedule_service.send_appointment_reschedule"),
+            patch("apps.scheduling.services.reschedule_service.create_tokens_for_appointment"),
+        ):
+            response = client.post(
+                url,
+                data={"scheduled_date": new_date, "start_time": new_time},
+                format="json",
+            )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        appt.refresh_from_db()
+        assert appt.status == Appointment.RESCHEDULED
+
+    def test_unauthenticated_returns_401(self, api_client):
+        """Unauthenticated request → 401."""
+        appt = AppointmentFactory(status=Appointment.CONFIRMED)
+        url = reverse("scheduling:appointment-reschedule", kwargs={"pk": appt.pk})
+        new_date, new_time = self._new_slot()
+        response = api_client.post(
+            url,
+            data={"scheduled_date": new_date, "start_time": new_time},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_tutor_cannot_reschedule_unlinked_appointment(self, tutor_client):
+        """Tutor cannot reschedule an appointment for a patient they don't own → 404."""
+        client, tutor = tutor_client
+        # Appointment belongs to a patient NOT linked to tutor
+        appt = AppointmentFactory(status=Appointment.CONFIRMED)
+        url = reverse("scheduling:appointment-reschedule", kwargs={"pk": appt.pk})
+        new_date, new_time = self._new_slot()
+        response = client.post(
+            url,
+            data={"scheduled_date": new_date, "start_time": new_time},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_non_confirmed_appointment_returns_400(self, tutor_client):
+        """Rescheduling a non-CONFIRMED appointment → 400."""
+        client, tutor = tutor_client
+        practice = PracticeFactory()
+        patient = PatientFactory(practice=practice)
+        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
+        appt = AppointmentFactory(
+            practice=practice,
+            patient=patient,
+            status=Appointment.PENDING,
+        )
+        url = reverse("scheduling:appointment-reschedule", kwargs={"pk": appt.pk})
+        new_date, new_time = self._new_slot()
+        response = client.post(
+            url,
+            data={"scheduled_date": new_date, "start_time": new_time},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_slot_conflict_returns_409(self, tutor_client):
+        """When target slot is taken → 409 SLOT_CONFLICT."""
+        client, tutor = tutor_client
+        practice = PracticeFactory()
+        patient = PatientFactory(practice=practice)
+        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
+        appt = AppointmentFactory(
+            practice=practice,
+            patient=patient,
+            status=Appointment.CONFIRMED,
+        )
+        new_date, new_time = self._new_slot()
+        new_date_obj = datetime.date.today() + datetime.timedelta(days=14)
+        # Create a blocking appointment on the new slot
+        AppointmentFactory(
+            practice=practice,
+            location=appt.location,
+            service=appt.service,
+            scheduled_date=new_date_obj,
+            start_time=datetime.time(11, 0),
+            status=Appointment.CONFIRMED,
+        )
+        url = reverse("scheduling:appointment-reschedule", kwargs={"pk": appt.pk})
+        response = client.post(
+            url,
+            data={"scheduled_date": new_date, "start_time": new_time},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_409_CONFLICT
+
+    def test_missing_fields_returns_400(self, tutor_client):
+        """Missing required fields → 400."""
+        client, tutor = tutor_client
+        practice = PracticeFactory()
+        patient = PatientFactory(practice=practice)
+        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
+        appt = AppointmentFactory(
+            practice=practice,
+            patient=patient,
+            status=Appointment.CONFIRMED,
+        )
+        url = reverse("scheduling:appointment-reschedule", kwargs={"pk": appt.pk})
+        # Missing start_time
+        response = client.post(
+            url,
+            data={"scheduled_date": "2026-12-01"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
