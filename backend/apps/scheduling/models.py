@@ -291,6 +291,70 @@ class CancellationTier(TimeStampedModel):
         return f"{self.description} — {self.penalty_percentage}% penalty"
 
 
+class AppointmentToken(TimeStampedModel):
+    """
+    Single-use token that allows a tutor to perform an action on their appointment
+    via a secure email link, without requiring authentication.
+
+    Inherits TimeStampedModel (no soft-delete — tokens are ephemeral).
+    Revocation is handled via used_at timestamp.
+    """
+
+    CONFIRM = "CONFIRM"
+    CANCEL = "CANCEL"
+    RESCHEDULE = "RESCHEDULE"
+
+    ACTION_CHOICES = [
+        (CONFIRM, _("Confirm attendance")),
+        (CANCEL, _("Cancel appointment")),
+        (RESCHEDULE, _("Reschedule appointment")),
+    ]
+
+    practice = models.ForeignKey(
+        "practice.Practice",
+        on_delete=models.CASCADE,
+        related_name="appointment_tokens",
+        verbose_name=_("practice"),
+    )
+    appointment = models.ForeignKey(
+        Appointment,
+        on_delete=models.CASCADE,
+        related_name="tokens",
+        verbose_name=_("appointment"),
+    )
+    token = models.CharField(
+        _("token"),
+        max_length=64,
+        unique=True,
+        db_index=True,
+    )
+    action = models.CharField(
+        _("action"),
+        max_length=20,
+        choices=ACTION_CHOICES,
+    )
+    expires_at = models.DateTimeField(_("expires at"))
+    used_at = models.DateTimeField(_("used at"), null=True, blank=True)
+
+    class Meta:
+        db_table = "appointment_tokens"
+        verbose_name = _("appointment token")
+        verbose_name_plural = _("appointment tokens")
+
+    def __str__(self) -> str:
+        return f"Token [{self.action}] for Appointment #{self.appointment_id}"
+
+    @property
+    def is_expired(self) -> bool:
+        """Return True if the token has passed its expiry datetime."""
+        return self.expires_at < datetime.datetime.now(tz=self.expires_at.tzinfo)
+
+    @property
+    def is_used(self) -> bool:
+        """Return True if the token has been consumed."""
+        return self.used_at is not None
+
+
 class AutoResponderConfig(BaseModel):
     practice = models.OneToOneField(
         "practice.Practice",

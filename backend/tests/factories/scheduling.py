@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import datetime
+import uuid
 
 import factory
 from django.utils import timezone
 
 from apps.scheduling.models import (
     Appointment,
+    AppointmentToken,
     AutoResponderConfig,
     CancellationPolicy,
     CancellationTier,
@@ -74,6 +76,25 @@ class CancellationTierFactory(factory.django.DjangoModelFactory):
     min_hours_before = 48
     penalty_percentage = factory.Sequence(lambda n: f"{n * 25}.00")
     description = factory.Sequence(lambda n: f"Tier {n}")
+
+
+class AppointmentTokenFactory(factory.django.DjangoModelFactory):
+    """Factory for creating AppointmentToken instances in tests."""
+
+    class Meta:
+        model = AppointmentToken
+
+    appointment = factory.SubFactory(
+        AppointmentFactory,
+        status=Appointment.CONFIRMED,
+    )
+    practice = factory.SelfAttribute("appointment.practice")
+    token = factory.LazyFunction(lambda: uuid.uuid4().hex)
+    action = AppointmentToken.CONFIRM
+    expires_at = factory.LazyFunction(
+        lambda: timezone.now() + datetime.timedelta(hours=72)
+    )
+    used_at = None
 
 
 class AutoResponderConfigFactory(factory.django.DjangoModelFactory):

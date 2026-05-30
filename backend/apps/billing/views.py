@@ -42,6 +42,7 @@ from apps.core.pagination import StandardPagination
 from apps.core.permissions import IsDoctor
 from apps.notifications.services.email_service import send_appointment_confirmation, send_payment_receipt
 from apps.scheduling.models import Appointment
+from apps.scheduling.services.token_service import create_tokens_for_appointment
 
 User = get_user_model()
 
@@ -388,9 +389,40 @@ class MercadoPagoWebhookView(APIView):
                     exc,
                 )
 
+            # Create tokens before sending confirmation so the email can include action links.
+            token_urls = None
             try:
                 if appointment:
-                    send_appointment_confirmation(appointment)
+                    create_tokens_for_appointment(appointment)
+                    logger.info(
+                        "MercadoPago webhook: tokens created for Appointment #%s",
+                        appointment.pk,
+                    )
+                    # Build token_urls dict to pass into the confirmation email
+                    from apps.scheduling.models import AppointmentToken
+
+                    site_url = getattr(settings, "SITE_URL", "").rstrip("/")
+                    tokens = AppointmentToken.objects.filter(
+                        appointment=appointment,
+                        used_at__isnull=True,
+                    ).values("action", "token")
+                    token_map = {t["action"]: t["token"] for t in tokens}
+                    if token_map:
+                        token_urls = {
+                            "confirm": f"{site_url}/a/{token_map.get('CONFIRM', '')}/",
+                            "cancel": f"{site_url}/a/{token_map.get('CANCEL', '')}/",
+                            "reschedule": f"{site_url}/a/{token_map.get('RESCHEDULE', '')}/",
+                        }
+            except Exception as exc:
+                logger.error(
+                    "MercadoPago webhook: token creation failed for Appointment #%s: %s",
+                    appointment.pk if appointment else "—",
+                    exc,
+                )
+
+            try:
+                if appointment:
+                    send_appointment_confirmation(appointment, token_urls=token_urls)
             except Exception as exc:
                 logger.error(
                     "MercadoPago webhook: send_appointment_confirmation failed for Appointment #%s: %s",
