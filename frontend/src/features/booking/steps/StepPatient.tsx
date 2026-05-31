@@ -13,16 +13,18 @@ function ConfirmRemoveModal({
   onConfirm,
   onCancel,
   isLoading,
+  error,
 }: {
   patientName: string;
   onConfirm: () => void;
   onCancel: () => void;
   isLoading: boolean;
+  error: string | null;
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-ink/40 backdrop-blur-sm" onClick={onCancel} />
-      <div className="relative bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)] p-6 w-full max-w-[360px] animate-in fade-in zoom-in-95">
+      <div className="relative bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)] p-6 w-full max-w-[360px]">
         <div className="flex flex-col items-center text-center">
           <div className="w-12 h-12 rounded-full bg-coral/10 flex items-center justify-center mb-4">
             <svg className="w-6 h-6 text-coral" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -35,6 +37,11 @@ function ConfirmRemoveModal({
           <p className="text-[14px] text-ink2 mb-6">
             ¿Quitar a <span className="font-semibold text-ink">{patientName}</span> de tu lista?
           </p>
+          {error && (
+            <div className="w-full bg-coral/10 border border-coral/30 rounded-[10px] px-3 py-2 mb-4">
+              <p className="text-[12px] text-ink">{error}</p>
+            </div>
+          )}
           <div className="flex gap-3 w-full">
             <button
               onClick={onCancel}
@@ -260,8 +267,9 @@ export default function StepPatient() {
         <ConfirmRemoveModal
           patientName={deleteTarget.full_name}
           onConfirm={handleConfirmDelete}
-          onCancel={() => setDeleteTarget(null)}
+          onCancel={() => { setDeleteTarget(null); deleteMutation.reset(); }}
           isLoading={deleteMutation.isPending}
+          error={deleteMutation.isError ? "No se pudo quitar el paciente. Intentá de nuevo." : null}
         />
       )}
     </div>

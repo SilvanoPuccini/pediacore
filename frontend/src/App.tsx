@@ -32,6 +32,8 @@ const LoginPage = lazy(() => import("@/components/auth/LoginPage"));
 const RegisterPage = lazy(() => import("@/components/auth/RegisterPage"));
 const BookingCalendar = lazy(() => import("@/components/booking/BookingCalendar"));
 const BookingConfirmed = lazy(() => import("@/features/booking/BookingConfirmed"));
+const TermsPage = lazy(() => import("@/pages/TermsPage"));
+const PrivacyPage = lazy(() => import("@/pages/PrivacyPage"));
 const AdminLayout = lazy(() => import("@/layouts/AdminLayout"));
 const AdminDashboard = lazy(() => import("@/components/admin/AdminDashboard"));
 
@@ -102,6 +104,22 @@ function AppRoutes() {
           element={
             <PublicLayout>
               <BookingConfirmed />
+            </PublicLayout>
+          }
+        />
+        <Route
+          path="/terms"
+          element={
+            <PublicLayout>
+              <TermsPage />
+            </PublicLayout>
+          }
+        />
+        <Route
+          path="/privacy"
+          element={
+            <PublicLayout>
+              <PrivacyPage />
             </PublicLayout>
           }
         />
