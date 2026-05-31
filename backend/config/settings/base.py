@@ -222,6 +222,10 @@ DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="Dra. Estefanía <no-r
 MERCADOPAGO_ACCESS_TOKEN = config("MERCADOPAGO_ACCESS_TOKEN", default="")
 MERCADOPAGO_WEBHOOK_SECRET = config("MERCADOPAGO_WEBHOOK_SECRET", default="")
 
+# URLs for payment back_urls and notification_url
+FRONTEND_URL = config("FRONTEND_URL", default="https://estefipediatra.com")
+BACKEND_URL = config("BACKEND_URL", default="https://api.estefipediatra.com")
+
 # Booking flow
 BOOKING_HOLD_MINUTES = config("BOOKING_HOLD_MINUTES", default=10, cast=int)
 BOOKING_HOLD_EXPIRY_INTERVAL_MINUTES = config("BOOKING_HOLD_EXPIRY_INTERVAL_MINUTES", default=2, cast=int)
