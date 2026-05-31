@@ -29,3 +29,18 @@ export function useCreatePatient() {
     },
   });
 }
+
+// ─── Delete patient (DELETE /api/v1/patients/:id/) ───────────────────────────
+
+export function useDeletePatient() {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, AxiosError, number>({
+    mutationFn: async (patientId) => {
+      await api.delete(`/patients/${patientId}/`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["my-patients"] });
+    },
+  });
+}
