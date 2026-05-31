@@ -101,15 +101,22 @@ class PatientViewSet(ModelViewSet):
 
         if existing and request.user.role == User.TUTOR:
             # Link the tutor to the existing patient (idempotent)
-            TutorPatient.objects.get_or_create(
+            # Use all_with_deleted() to find soft-deleted links and restore them
+            tp = TutorPatient.objects.all_with_deleted().filter(
                 tutor=request.user,
                 patient=existing,
-                defaults={
-                    "practice": existing.practice,
-                    "relationship": TutorPatient.OTHER,
-                    "is_primary": True,
-                },
-            )
+            ).first()
+            if tp:
+                if tp.deleted_at is not None:
+                    tp.restore()
+            else:
+                TutorPatient.objects.create(
+                    practice=existing.practice,
+                    tutor=request.user,
+                    patient=existing,
+                    relationship=TutorPatient.OTHER,
+                    is_primary=True,
+                )
             return Response(
                 PatientSerializer(existing).data,
                 status=status.HTTP_201_CREATED,
