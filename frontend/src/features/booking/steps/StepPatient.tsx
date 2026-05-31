@@ -124,7 +124,6 @@ export default function StepPatient() {
   const patientExists = hasPatients && patients.some((p: Patient) => p.id === patientId);
 
   function handleDelete(id: number) {
-    if (patientId === id) setPatient(null);
     deleteMutation.mutate(id);
   }
 
