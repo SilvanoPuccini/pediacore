@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { formatDate } from "../utils";
 
 const MONTHS = [
@@ -21,29 +21,30 @@ export default function MiniCalendar({ selectedDate, onSelectDate, allowedDaysOf
   const maxDate = new Date(today);
   maxDate.setDate(maxDate.getDate() + 90);
 
-  // Auto-advance to next month if no selectable days remain this month
-  const initialMonth = (() => {
+  const [viewYear, setViewYear] = useState(today.getFullYear());
+  const [viewMonth, setViewMonth] = useState(today.getMonth());
+
+  // Advance to next month when allowedDaysOfWeek loads and no selectable days remain
+  useEffect(() => {
+    if (!allowedDaysOfWeek || allowedDaysOfWeek.length === 0) return;
     const y = today.getFullYear();
     const m = today.getMonth();
     const dim = new Date(y, m + 1, 0).getDate();
     for (let d = today.getDate(); d <= dim; d++) {
       const date = new Date(y, m, d);
       if (date > maxDate) break;
-      if (allowedDaysOfWeek && allowedDaysOfWeek.length > 0) {
-        const jsDow = date.getDay();
-        const pyDow = jsDow === 0 ? 6 : jsDow - 1;
-        if (!allowedDaysOfWeek.includes(pyDow)) continue;
-      }
-      // Found at least one selectable day — stay on current month
-      // But skip today itself only if it's already past (today is always >= today so we keep it)
-      if (d > today.getDate() || d === today.getDate()) return { y, m };
+      const jsDow = date.getDay();
+      const pyDow = jsDow === 0 ? 6 : jsDow - 1;
+      if (allowedDaysOfWeek.includes(pyDow)) return; // found one — stay
     }
-    // No selectable days left this month — advance
-    return m === 11 ? { y: y + 1, m: 0 } : { y, m: m + 1 };
-  })();
-
-  const [viewYear, setViewYear] = useState(initialMonth.y);
-  const [viewMonth, setViewMonth] = useState(initialMonth.m);
+    // No selectable days — advance to next month
+    if (m === 11) {
+      setViewYear(y + 1);
+      setViewMonth(0);
+    } else {
+      setViewMonth(m + 1);
+    }
+  }, [allowedDaysOfWeek]);
 
   const firstDay = new Date(viewYear, viewMonth, 1);
   // Monday-first: 0=Mon, 6=Sun
