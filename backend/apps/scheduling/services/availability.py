@@ -134,17 +134,22 @@ def get_available_slots(
     now = timezone.localtime(timezone.now())
 
     # 4-hour sliding window for presencial only, when agenda is empty:
-    # earliest bookable slot = now + 4h (skip lunch breaks naturally)
-    if not is_online and len(existing_appointments) == 0:
+    # earliest bookable slot = now + 4h — only applies to TODAY
+    if not is_online and len(existing_appointments) == 0 and date == now.date():
         earliest = (now + datetime.timedelta(hours=4)).time().strftime("%H:%M")
-        slots = [s for s in slots if s["start_time"] >= earliest]
+        filtered = [s for s in slots if s["start_time"] >= earliest]
+        # Only apply if it doesn't wipe out all slots
+        if filtered:
+            slots = filtered
 
     # Smart clustering: presencial only, <24h away, exactly 1 existing appointment
-    if not is_online:
-        date_as_dt = datetime.datetime.combine(date, datetime.time.min)
-        hours_until = (date_as_dt - now.replace(tzinfo=None)).total_seconds() / 3600
+    if not is_online and slots:
+        # Measure hours until the first available slot, not midnight
+        first_slot_time = datetime.datetime.strptime(slots[0]["start_time"], "%H:%M").time()
+        first_slot_dt = datetime.datetime.combine(date, first_slot_time)
+        hours_until = (first_slot_dt - now.replace(tzinfo=None)).total_seconds() / 3600
 
-        if hours_until < 24 and len(existing_appointments) == 1:
+        if 0 < hours_until < 24 and len(existing_appointments) == 1:
             slots = _apply_clustering(slots, existing_appointments[0])
 
     return slots

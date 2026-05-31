@@ -200,6 +200,23 @@ class PatientCreateSerializer(serializers.ModelSerializer):
             "is_active",
         ]
         read_only_fields = ["id"]
+        extra_kwargs = {
+            "insurance": {"required": False, "default": ""},
+            "sex_at_birth": {"required": False},
+            "document_type": {"required": False},
+            "country": {"required": False},
+            "rut": {"required": False},
+            "blood_type": {"required": False},
+            "region": {"required": False},
+            "comuna": {"required": False},
+            "address": {"required": False},
+            "phone": {"required": False},
+            "photo": {"required": False},
+            "allergies": {"required": False},
+            "chronic_conditions": {"required": False},
+            "notes": {"required": False},
+            "is_active": {"required": False},
+        }
 
     def validate(self, attrs: dict) -> dict:
         """Validate RUT format when document_type is RUT."""
