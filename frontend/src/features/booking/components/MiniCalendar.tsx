@@ -19,7 +19,7 @@ export default function MiniCalendar({ selectedDate, onSelectDate, allowedDaysOf
   today.setHours(0, 0, 0, 0);
 
   const maxDate = new Date(today);
-  maxDate.setDate(maxDate.getDate() + 30);
+  maxDate.setDate(maxDate.getDate() + 90);
 
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
