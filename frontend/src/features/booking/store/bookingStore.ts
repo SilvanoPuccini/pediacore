@@ -116,6 +116,8 @@ export const useBookingStore = create<BookingStore>()(
         locationId: state.locationId,
         serviceId: state.serviceId,
         selectedDate: state.selectedDate,
+        selectedSlot: state.selectedSlot,
+        patientId: state.patientId,
         step: state.step,
       }),
     }

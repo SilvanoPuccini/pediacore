@@ -32,6 +32,35 @@ export function useOnlineSchedule() {
   });
 }
 
+// ─── Working hours (for calendar day filtering) ─────────────────────────────────
+
+interface WorkingHoursEntry {
+  day_of_week: number;
+}
+
+export function useAvailableDays(locationId: number | "online" | null) {
+  const isOnline = locationId === "online";
+
+  return useQuery<number[]>({
+    queryKey: ["available-days", locationId],
+    queryFn: async () => {
+      let url: string;
+      if (isOnline) {
+        // Get online working hours from online-hours endpoint days
+        const { data } = await api.get<{ results: WorkingHoursEntry[] }>(
+          `/practices/${PRACTICE_SLUG}/working-hours/online/`
+        );
+        return [...new Set(data.results.map((wh) => wh.day_of_week))];
+      } else {
+        url = `/locations/${locationId}/working-hours/`;
+        const { data } = await api.get<{ results: WorkingHoursEntry[] }>(url);
+        return [...new Set(data.results.map((wh) => wh.day_of_week))];
+      }
+    },
+    enabled: locationId !== null,
+  });
+}
+
 // ─── Services ──────────────────────────────────────────────────────────────────
 
 export function useServices() {

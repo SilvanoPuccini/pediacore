@@ -90,6 +90,24 @@ class WorkingHoursListView(ListAPIView):
         return WorkingHours.objects.filter(location=location, is_active=True).select_related("location")
 
 
+class OnlineWorkingHoursListView(ListAPIView):
+    """
+    Public endpoint. Returns active online working hours for a practice.
+
+    GET /api/v1/practices/<slug>/working-hours/online/
+    """
+
+    serializer_class = WorkingHoursSerializer
+    permission_classes = [AllowAny]
+    pagination_class = StandardPagination
+
+    def get_queryset(self):
+        practice = get_object_or_404(Practice, slug=self.kwargs["slug"], is_active=True)
+        return WorkingHours.objects.filter(
+            practice=practice, is_online=True, is_active=True
+        ).order_by("day_of_week", "start_time")
+
+
 class OnlineScheduleView(APIView):
     """
     Public endpoint. Returns a display_hours string for online consultations.
