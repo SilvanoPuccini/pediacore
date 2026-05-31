@@ -70,3 +70,9 @@ LOGGING["handlers"]["file"] = {  # noqa: F405
     "formatter": "verbose",
 }
 LOGGING["root"]["handlers"] = ["console", "file"]  # noqa: F405
+
+# Throttle — SPA makes multiple API calls per page view
+REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {  # noqa: F405
+    "anon": "500/hour",
+    "user": "3000/hour",
+}
