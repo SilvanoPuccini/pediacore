@@ -6,20 +6,69 @@ import InlinePatientForm from "../components/InlinePatientForm";
 import Skeleton from "../components/Skeleton";
 import type { Patient } from "@/types/api";
 
+// ─── Confirm modal ──────────────────────────────────────────────────────────
+
+function ConfirmRemoveModal({
+  patientName,
+  onConfirm,
+  onCancel,
+  isLoading,
+}: {
+  patientName: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  isLoading: boolean;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-ink/40 backdrop-blur-sm" onClick={onCancel} />
+      <div className="relative bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)] p-6 w-full max-w-[360px] animate-in fade-in zoom-in-95">
+        <div className="flex flex-col items-center text-center">
+          <div className="w-12 h-12 rounded-full bg-coral/10 flex items-center justify-center mb-4">
+            <svg className="w-6 h-6 text-coral" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </div>
+          <h3 className="font-display text-[18px] font-semibold text-ink mb-2">
+            Quitar paciente
+          </h3>
+          <p className="text-[14px] text-ink2 mb-6">
+            ¿Quitar a <span className="font-semibold text-ink">{patientName}</span> de tu lista?
+          </p>
+          <div className="flex gap-3 w-full">
+            <button
+              onClick={onCancel}
+              disabled={isLoading}
+              className="flex-1 bg-cream text-ink rounded-[12px] px-4 py-2.5 font-semibold text-[13px] hover:bg-line transition-colors disabled:opacity-60"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={onConfirm}
+              disabled={isLoading}
+              className="flex-1 bg-coral text-white rounded-[12px] px-4 py-2.5 font-semibold text-[13px] hover:bg-coral/90 transition-colors disabled:opacity-60"
+            >
+              {isLoading ? "Quitando..." : "Quitar"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Patient card ────────────────────────────────────────────────────────────
 
 function PatientCard({
   patient,
   isSelected,
   onClick,
-  onDelete,
-  isDeleting,
+  onRequestDelete,
 }: {
   patient: Patient;
   isSelected: boolean;
   onClick: () => void;
-  onDelete: () => void;
-  isDeleting: boolean;
+  onRequestDelete: () => void;
 }) {
   const age = getAge(patient.date_of_birth);
 
@@ -63,10 +112,9 @@ function PatientCard({
           <button
             onClick={(e) => {
               e.stopPropagation();
-              if (confirm(`¿Quitar a ${patient.full_name} de tu lista?`)) onDelete();
+              onRequestDelete();
             }}
-            disabled={isDeleting}
-            className="w-7 h-7 flex items-center justify-center rounded-full text-ink3 hover:text-coral hover:bg-coral/10 transition-colors disabled:opacity-40"
+            className="w-7 h-7 flex items-center justify-center rounded-full text-ink3 hover:text-coral hover:bg-coral/10 transition-colors"
             title="Quitar de mi lista"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -116,6 +164,7 @@ export default function StepPatient() {
   const { data: patientsResp, isLoading } = useMyPatients();
   const deleteMutation = useDeletePatient();
   const [showForm, setShowForm] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Patient | null>(null);
 
   const patients = patientsResp?.results ?? [];
   const hasPatients = patients.length > 0;
@@ -123,8 +172,11 @@ export default function StepPatient() {
   // Validate that persisted patientId actually exists in the current patient list
   const patientExists = hasPatients && patients.some((p: Patient) => p.id === patientId);
 
-  function handleDelete(id: number) {
-    deleteMutation.mutate(id);
+  function handleConfirmDelete() {
+    if (!deleteTarget) return;
+    deleteMutation.mutate(deleteTarget.id, {
+      onSuccess: () => setDeleteTarget(null),
+    });
   }
 
   function handleContinue() {
@@ -168,8 +220,7 @@ export default function StepPatient() {
                   patient={p}
                   isSelected={patientId === p.id}
                   onClick={() => setPatient(p.id)}
-                  onDelete={() => handleDelete(p.id)}
-                  isDeleting={deleteMutation.isPending}
+                  onRequestDelete={() => setDeleteTarget(p)}
                 />
               ))}
 
@@ -202,6 +253,16 @@ export default function StepPatient() {
         >
           Continuar
         </button>
+      )}
+
+      {/* Remove confirmation modal */}
+      {deleteTarget && (
+        <ConfirmRemoveModal
+          patientName={deleteTarget.full_name}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setDeleteTarget(null)}
+          isLoading={deleteMutation.isPending}
+        />
       )}
     </div>
   );
