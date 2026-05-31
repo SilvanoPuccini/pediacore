@@ -246,7 +246,10 @@ export default function StepPatient() {
 
             {/* Inline form */}
             {(!hasPatients || showForm) && (
-              <InlinePatientForm onSuccess={() => setShowForm(false)} />
+              <InlinePatientForm
+                onSuccess={() => setShowForm(false)}
+                onCancel={hasPatients ? () => setShowForm(false) : undefined}
+              />
             )}
           </div>
         )}

@@ -80,7 +80,10 @@ class PatientViewSet(ModelViewSet):
         if user.role == User.DOCTOR:
             return qs
         if user.role == User.TUTOR:
-            return qs.filter(tutor_patients__tutor=user)
+            return qs.filter(
+                tutor_patients__tutor=user,
+                tutor_patients__deleted_at__isnull=True,
+            )
         return qs.none()
 
     def create(self, request: Request, *args, **kwargs) -> Response:
