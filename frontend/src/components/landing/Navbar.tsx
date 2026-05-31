@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { Menu, X, MapPin, Clock, Phone } from "lucide-react";
+import { Menu, X, MapPin, Clock, Phone, LogOut, User } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/stores/auth";
 
 const NAV_LINKS = [
   { label: "Servicios", href: "#servicios" },
@@ -16,6 +17,7 @@ const NAV_LINKS = [
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user, isAuthenticated, logout } = useAuthStore();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 10);
@@ -99,29 +101,62 @@ export default function Navbar() {
 
           {/* Desktop CTA area */}
           <div className="hidden lg:flex items-center gap-3 shrink-0">
-            <a
-              href="#contacto"
-              className="text-[13px] text-[var(--ink2)] hover:text-[var(--ink)] transition-colors px-3 py-2"
-            >
-              Contacto
-            </a>
-            <Link
-              to="/booking"
-              className={cn(
-                "relative overflow-hidden px-5 py-2.5 rounded-[10px] text-[13px] font-semibold text-white",
-                "bg-[var(--teal-dark)] shadow-[var(--shadow-cta)]",
-                "transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_40px_rgba(74,133,144,0.38)]",
-                "group"
-              )}
-            >
-              {/* cta-shine effect */}
-              <span
-                className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700
-                  bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-[-20deg]"
-                aria-hidden="true"
-              />
-              Reservar consulta
-            </Link>
+            {isAuthenticated && user ? (
+              <>
+                <span className="flex items-center gap-1.5 text-[13px] text-[var(--ink2)]">
+                  <User size={14} />
+                  {user.first_name}
+                </span>
+                <Link
+                  to="/booking"
+                  className={cn(
+                    "relative overflow-hidden px-5 py-2.5 rounded-[10px] text-[13px] font-semibold text-white",
+                    "bg-[var(--teal-dark)] shadow-[var(--shadow-cta)]",
+                    "transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_40px_rgba(74,133,144,0.38)]",
+                    "group"
+                  )}
+                >
+                  <span
+                    className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700
+                      bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-[-20deg]"
+                    aria-hidden="true"
+                  />
+                  Reservar consulta
+                </Link>
+                <button
+                  onClick={() => logout()}
+                  className="flex items-center gap-1.5 text-[12px] text-[var(--ink3)] hover:text-[var(--ink)] transition-colors px-2 py-1.5 rounded-lg hover:bg-[var(--cream)]"
+                >
+                  <LogOut size={13} />
+                  Salir
+                </button>
+              </>
+            ) : (
+              <>
+                <a
+                  href="#contacto"
+                  className="text-[13px] text-[var(--ink2)] hover:text-[var(--ink)] transition-colors px-3 py-2"
+                >
+                  Contacto
+                </a>
+                <Link
+                  to="/booking"
+                  className={cn(
+                    "relative overflow-hidden px-5 py-2.5 rounded-[10px] text-[13px] font-semibold text-white",
+                    "bg-[var(--teal-dark)] shadow-[var(--shadow-cta)]",
+                    "transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_40px_rgba(74,133,144,0.38)]",
+                    "group"
+                  )}
+                >
+                  <span
+                    className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700
+                      bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-[-20deg]"
+                    aria-hidden="true"
+                  />
+                  Reservar consulta
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile hamburger */}
@@ -153,13 +188,30 @@ export default function Navbar() {
               </a>
             ))}
             <div className="mt-3 flex flex-col gap-2">
-              <a
-                href="#contacto"
-                className="px-3 py-2.5 text-[14px] text-[var(--ink2)] hover:text-[var(--ink)] hover:bg-[var(--cream)] rounded-lg transition-colors"
-                onClick={() => setMobileOpen(false)}
-              >
-                Contacto
-              </a>
+              {isAuthenticated && user && (
+                <div className="flex items-center justify-between px-3 py-2.5 bg-[var(--cream)] rounded-lg">
+                  <span className="flex items-center gap-1.5 text-[14px] text-[var(--ink)]">
+                    <User size={15} />
+                    {user.first_name}
+                  </span>
+                  <button
+                    onClick={() => { logout(); setMobileOpen(false); }}
+                    className="flex items-center gap-1.5 text-[13px] text-[var(--ink3)] hover:text-[var(--ink)]"
+                  >
+                    <LogOut size={14} />
+                    Salir
+                  </button>
+                </div>
+              )}
+              {!isAuthenticated && (
+                <a
+                  href="#contacto"
+                  className="px-3 py-2.5 text-[14px] text-[var(--ink2)] hover:text-[var(--ink)] hover:bg-[var(--cream)] rounded-lg transition-colors"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  Contacto
+                </a>
+              )}
               <Link
                 to="/booking"
                 className={cn(
