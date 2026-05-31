@@ -218,7 +218,7 @@ class Command(BaseCommand):
 
         services_data = [
             {
-                "name": "Control Niño Sano",
+                "name": "Consulta General - Control Niño Sano",
                 "slug": "control-nino-sano",
                 "description": (
                     "Evaluación integral del crecimiento y desarrollo infantil con "
