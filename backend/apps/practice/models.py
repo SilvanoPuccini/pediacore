@@ -174,10 +174,10 @@ class Service(BaseModel):
 
 class WorkingHours(TimeStampedModel):
     """
-    Weekly schedule per location.
+    Weekly schedule block per location (or for online consultations).
 
-    Defines the regular working hours for each day of the week at a given location.
-    Uses unique_together on (location, day_of_week) to prevent duplicate entries.
+    Multiple blocks per day per location are allowed (e.g. morning + afternoon).
+    Online blocks have is_online=True and location=None.
     """
 
     MONDAY = 0
@@ -209,31 +209,75 @@ class WorkingHours(TimeStampedModel):
         on_delete=models.CASCADE,
         related_name="working_hours",
         verbose_name=_("location"),
+        null=True,
+        blank=True,
+        help_text=_("Leave blank for online working hours blocks."),
     )
     day_of_week = models.IntegerField(_("day of week"), choices=DAY_OF_WEEK_CHOICES)
     start_time = models.TimeField(_("start time"))
     end_time = models.TimeField(_("end time"))
+    break_start = models.TimeField(
+        _("break start"),
+        null=True,
+        blank=True,
+        help_text=_("Optional lunch/break window start. Must be within start–end range."),
+    )
+    break_end = models.TimeField(
+        _("break end"),
+        null=True,
+        blank=True,
+        help_text=_("Optional lunch/break window end. Must be within start–end range."),
+    )
+    max_appointments = models.PositiveIntegerField(
+        _("max appointments"),
+        default=8,
+        help_text=_("Maximum number of bookings allowed within this block."),
+    )
+    slot_duration_minutes = models.PositiveIntegerField(
+        _("slot duration (minutes)"),
+        default=45,
+        help_text=_("Duration of each time slot in minutes."),
+    )
+    is_online = models.BooleanField(
+        _("online block"),
+        default=False,
+        help_text=_("If True, this block is for online consultations (location should be left blank)."),
+    )
     is_active = models.BooleanField(_("active"), default=True)
 
     class Meta:
         db_table = "working_hours"
         ordering = ["day_of_week", "start_time"]
-        unique_together = [("location", "day_of_week")]
         verbose_name = _("working hours")
         verbose_name_plural = _("working hours")
 
     def __str__(self) -> str:
+        location_label = self.location.name if self.location else "Online"
         return (
-            f"{self.location.name} — {self.get_day_of_week_display()} "
+            f"{location_label} — {self.get_day_of_week_display()} "
             f"{self.start_time:%H:%M}–{self.end_time:%H:%M}"
         )
 
     def clean(self) -> None:
-        """Validate that end_time is after start_time."""
+        """Validate time range consistency and break window bounds."""
         if self.start_time and self.end_time and self.end_time <= self.start_time:
             raise ValidationError(
                 {"end_time": _("End time must be after start time.")}
             )
+        if self.break_start or self.break_end:
+            if not (self.break_start and self.break_end):
+                raise ValidationError(
+                    _("Both break_start and break_end must be set together.")
+                )
+            if self.start_time and self.end_time:
+                if self.break_start < self.start_time or self.break_end > self.end_time:
+                    raise ValidationError(
+                        _("Break window must be within the working hours start–end range.")
+                    )
+                if self.break_end <= self.break_start:
+                    raise ValidationError(
+                        {"break_end": _("Break end must be after break start.")}
+                    )
 
 
 class BlockedSlot(TimeStampedModel):

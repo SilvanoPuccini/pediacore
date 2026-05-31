@@ -31,6 +31,7 @@ import { useAuthStore } from "@/stores/auth";
 const LoginPage = lazy(() => import("@/components/auth/LoginPage"));
 const RegisterPage = lazy(() => import("@/components/auth/RegisterPage"));
 const BookingCalendar = lazy(() => import("@/components/booking/BookingCalendar"));
+const BookingConfirmed = lazy(() => import("@/features/booking/BookingConfirmed"));
 const AdminLayout = lazy(() => import("@/layouts/AdminLayout"));
 const AdminDashboard = lazy(() => import("@/components/admin/AdminDashboard"));
 
@@ -93,6 +94,14 @@ function AppRoutes() {
           element={
             <PublicLayout>
               <BookingCalendar />
+            </PublicLayout>
+          }
+        />
+        <Route
+          path="/booking/confirmed"
+          element={
+            <PublicLayout>
+              <BookingConfirmed />
             </PublicLayout>
           }
         />

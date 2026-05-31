@@ -13,7 +13,11 @@ interface FormErrors {
   general?: string;
 }
 
-export default function InlinePatientForm() {
+interface InlinePatientFormProps {
+  onSuccess?: () => void;
+}
+
+export default function InlinePatientForm({ onSuccess }: InlinePatientFormProps = {}) {
   const { setPatient } = useBookingStore();
   const createPatientMutation = useCreatePatient();
 
@@ -64,6 +68,7 @@ export default function InlinePatientForm() {
     createPatientMutation.mutate(payload, {
       onSuccess: (newPatient) => {
         setPatient(newPatient.id);
+        onSuccess?.();
       },
       onError: (err) => {
         const axiosErr = err as { response?: { data?: Record<string, unknown> } };
