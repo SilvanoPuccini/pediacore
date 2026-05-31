@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useBookingStore } from "../store/bookingStore";
 import { useMyPatients } from "../hooks/useBookingQueries";
+import { useDeletePatient } from "../hooks/useBookingMutations";
 import InlinePatientForm from "../components/InlinePatientForm";
 import Skeleton from "../components/Skeleton";
 import type { Patient } from "@/types/api";
@@ -11,18 +12,22 @@ function PatientCard({
   patient,
   isSelected,
   onClick,
+  onDelete,
+  isDeleting,
 }: {
   patient: Patient;
   isSelected: boolean;
   onClick: () => void;
+  onDelete: () => void;
+  isDeleting: boolean;
 }) {
   const age = getAge(patient.date_of_birth);
 
   return (
-    <button
+    <div
       onClick={onClick}
       className={[
-        "w-full text-left p-5 rounded-[16px] border-2 transition-all",
+        "w-full text-left p-5 rounded-[16px] border-2 transition-all cursor-pointer",
         isSelected
           ? "border-teal bg-teal/8 shadow-[var(--shadow-soft)]"
           : "border-line bg-surface hover:border-teal/40 hover:shadow-[var(--shadow-soft)]",
@@ -47,15 +52,30 @@ function PatientCard({
             </p>
           </div>
         </div>
-        {isSelected && (
-          <div className="w-5 h-5 rounded-full bg-teal flex items-center justify-center flex-shrink-0">
-            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+        <div className="flex items-center gap-2">
+          {isSelected && (
+            <div className="w-5 h-5 rounded-full bg-teal flex items-center justify-center flex-shrink-0">
+              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+          )}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (confirm(`¿Quitar a ${patient.full_name} de tu lista?`)) onDelete();
+            }}
+            disabled={isDeleting}
+            className="w-7 h-7 flex items-center justify-center rounded-full text-ink3 hover:text-coral hover:bg-coral/10 transition-colors disabled:opacity-40"
+            title="Quitar de mi lista"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
-          </div>
-        )}
+          </button>
+        </div>
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -94,6 +114,7 @@ function getAge(dob: string): string {
 export default function StepPatient() {
   const { patientId, setPatient, setStep } = useBookingStore();
   const { data: patientsResp, isLoading } = useMyPatients();
+  const deleteMutation = useDeletePatient();
   const [showForm, setShowForm] = useState(false);
 
   const patients = patientsResp?.results ?? [];
@@ -101,6 +122,11 @@ export default function StepPatient() {
 
   // Validate that persisted patientId actually exists in the current patient list
   const patientExists = hasPatients && patients.some((p: Patient) => p.id === patientId);
+
+  function handleDelete(id: number) {
+    if (patientId === id) setPatient(null);
+    deleteMutation.mutate(id);
+  }
 
   function handleContinue() {
     if (patientId && patientExists) {
@@ -143,6 +169,8 @@ export default function StepPatient() {
                   patient={p}
                   isSelected={patientId === p.id}
                   onClick={() => setPatient(p.id)}
+                  onDelete={() => handleDelete(p.id)}
+                  isDeleting={deleteMutation.isPending}
                 />
               ))}
 

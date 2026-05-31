@@ -459,7 +459,7 @@ class BookingView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             return Response(
-                {"detail": "An error occurred while processing the payment. Please try again."},
+                {"detail": "Ocurrió un error al procesar el pago. Por favor, intentá de nuevo."},
                 status=status.HTTP_502_BAD_GATEWAY,
             )
 

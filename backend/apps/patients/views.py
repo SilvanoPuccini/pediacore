@@ -44,8 +44,25 @@ class PatientViewSet(ModelViewSet):
     def get_permissions(self) -> list:
         if self.action in ("list", "retrieve", "create"):
             return [IsAuthenticated()]
-        # update / partial_update / destroy → doctor only
+        if self.action == "destroy":
+            # Tutors unlink; doctors hard-delete
+            return [IsAuthenticated()]
+        # update / partial_update → doctor only
         return [IsDoctor()]
+
+    def perform_destroy(self, instance: Patient) -> None:
+        user = self.request.user
+        if user.role == User.TUTOR:
+            # Tutor only unlinks — patient record stays for the doctor
+            link = instance.tutor_patients.filter(tutor=user).first()
+            if not link:
+                from rest_framework.exceptions import PermissionDenied
+
+                raise PermissionDenied("No tenés permiso para eliminar este paciente.")
+            link.delete()
+            return
+        # Doctor: hard delete
+        instance.delete()
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -69,6 +86,32 @@ class PatientViewSet(ModelViewSet):
     def create(self, request: Request, *args, **kwargs) -> Response:
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        # ── Auto-dedup: same name + DOB in the same practice → reuse ─────
+        existing = Patient.objects.filter(
+            practice=data["practice"],
+            first_name__iexact=data["first_name"].strip(),
+            last_name__iexact=data["last_name"].strip(),
+            date_of_birth=data["date_of_birth"],
+        ).first()
+
+        if existing and request.user.role == User.TUTOR:
+            # Link the tutor to the existing patient (idempotent)
+            TutorPatient.objects.get_or_create(
+                tutor=request.user,
+                patient=existing,
+                defaults={
+                    "practice": existing.practice,
+                    "relationship": TutorPatient.OTHER,
+                    "is_primary": True,
+                },
+            )
+            return Response(
+                PatientSerializer(existing).data,
+                status=status.HTTP_201_CREATED,
+            )
+
         patient = serializer.save()
 
         # Auto-link the creating tutor to the new patient
