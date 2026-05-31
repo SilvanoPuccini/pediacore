@@ -20,10 +20,11 @@ export default function BookingConfirmed() {
 
   const { data: locationsResp } = useLocations();
   const { data: servicesResp } = useServices();
-  const { data: patients } = useMyPatients();
+  const { data: patientsResp } = useMyPatients();
 
   const locations = locationsResp?.results ?? [];
   const services = servicesResp?.results ?? [];
+  const patients = patientsResp?.results ?? [];
 
   const selectedService = useMemo(
     () => services.find((s) => s.id === serviceId) ?? null,
@@ -39,7 +40,7 @@ export default function BookingConfirmed() {
   );
 
   const selectedPatient = useMemo(
-    () => patients?.find((p) => p.id === patientId) ?? null,
+    () => patients.find((p) => p.id === patientId) ?? null,
     [patients, patientId]
   );
 
