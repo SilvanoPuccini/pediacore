@@ -15,9 +15,10 @@ interface FormErrors {
 
 interface InlinePatientFormProps {
   onSuccess?: () => void;
+  onCancel?: () => void;
 }
 
-export default function InlinePatientForm({ onSuccess }: InlinePatientFormProps = {}) {
+export default function InlinePatientForm({ onSuccess, onCancel }: InlinePatientFormProps = {}) {
   const { setPatient } = useBookingStore();
   const createPatientMutation = useCreatePatient();
 
@@ -94,9 +95,23 @@ export default function InlinePatientForm({ onSuccess }: InlinePatientFormProps 
 
   return (
     <div className="bg-cream rounded-[16px] p-5 space-y-4">
-      <p className="text-[13px] font-semibold text-ink">
-        Agregá los datos del paciente para continuar
-      </p>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[13px] font-semibold text-ink">
+          Agregá los datos del paciente para continuar
+        </p>
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="w-7 h-7 flex items-center justify-center rounded-full text-ink3 hover:text-coral hover:bg-coral/10 transition-colors flex-shrink-0"
+            title="Cancelar"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
+      </div>
 
       <form onSubmit={handleSubmit} noValidate className="space-y-3">
         {/* First name */}
