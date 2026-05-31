@@ -228,7 +228,7 @@ class Command(BaseCommand):
                 ),
                 "duration_minutes": 45,
                 "price_clp": 40000,
-                "modality": "AMBAS",
+                "modality": "PRESENCIAL_Y_ONLINE",
                 "display_order": 1,
                 "locations": [location_pucon, location_villarrica],
             },
@@ -243,7 +243,7 @@ class Command(BaseCommand):
                 ),
                 "duration_minutes": 45,
                 "price_clp": 40000,
-                "modality": "AMBAS",
+                "modality": "PRESENCIAL_Y_ONLINE",
                 "display_order": 2,
                 "locations": [location_pucon, location_villarrica],
             },
@@ -257,7 +257,7 @@ class Command(BaseCommand):
                 ),
                 "duration_minutes": 45,
                 "price_clp": 32000,
-                "modality": "AMBAS",
+                "modality": "PRESENCIAL_Y_ONLINE",
                 "requires_fonasa_validation": True,
                 "display_order": 3,
                 "locations": [location_pucon, location_villarrica],
@@ -272,7 +272,7 @@ class Command(BaseCommand):
                 ),
                 "duration_minutes": 45,
                 "price_clp": 40000,
-                "modality": "AMBAS",
+                "modality": "PRESENCIAL_Y_ONLINE",
                 "display_order": 4,
                 "locations": [location_pucon, location_villarrica],
             },
@@ -304,7 +304,28 @@ class Command(BaseCommand):
                 service.locations.set(locations)
                 self.stdout.write(self.style.SUCCESS(f"  [+] Servicio creado: {service.name}"))
             else:
-                self.stdout.write(f"  [=] Servicio ya existe: {service.name}")
+                # Update existing service fields to match seed
+                updated_fields = []
+                for field in ("name", "description", "duration_minutes", "price_clp", "modality",
+                              "display_order", "requires_fonasa_validation", "requires_manual_coordination"):
+                    if field in data and getattr(service, field) != data[field]:
+                        setattr(service, field, data[field])
+                        updated_fields.append(field)
+                if updated_fields:
+                    service.save(update_fields=updated_fields)
+                    service.locations.set(locations)
+                    self.stdout.write(self.style.SUCCESS(f"  [~] Servicio actualizado: {service.name} ({', '.join(updated_fields)})"))
+                else:
+                    self.stdout.write(f"  [=] Servicio ya existe: {service.name}")
+
+        # Deactivate old services not in the current seed
+        valid_slugs = [s["slug"] for s in services_data]
+        old_services = Service.objects.filter(
+            practice=practice, is_active=True
+        ).exclude(slug__in=valid_slugs)
+        if old_services.exists():
+            count = old_services.update(is_active=False)
+            self.stdout.write(self.style.WARNING(f"  [x] {count} servicio(s) obsoleto(s) desactivado(s)."))
 
     # ------------------------------------------------------------------
     # Working hours

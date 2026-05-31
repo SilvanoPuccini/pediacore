@@ -11,9 +11,10 @@ const WEEKDAYS = ["Lu", "Ma", "Mi", "Ju", "Vi", "Sa", "Do"];
 interface MiniCalendarProps {
   selectedDate: string | null;
   onSelectDate: (date: string) => void;
+  allowedDaysOfWeek?: number[] | null; // 0=Mon, 1=Tue, ..., 6=Sun (Python weekday)
 }
 
-export default function MiniCalendar({ selectedDate, onSelectDate }: MiniCalendarProps) {
+export default function MiniCalendar({ selectedDate, onSelectDate, allowedDaysOfWeek }: MiniCalendarProps) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -67,7 +68,14 @@ export default function MiniCalendar({ selectedDate, onSelectDate }: MiniCalenda
   function isDisabled(day: number) {
     const date = new Date(viewYear, viewMonth, day);
     date.setHours(0, 0, 0, 0);
-    return date < today || date > maxDate;
+    if (date < today || date > maxDate) return true;
+    // Filter by allowed days of week (Python weekday: 0=Mon, 6=Sun)
+    if (allowedDaysOfWeek && allowedDaysOfWeek.length > 0) {
+      const jsDow = date.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+      const pyDow = jsDow === 0 ? 6 : jsDow - 1; // Convert to Python: 0=Mon, 6=Sun
+      if (!allowedDaysOfWeek.includes(pyDow)) return true;
+    }
+    return false;
   }
 
   function isToday(day: number) {

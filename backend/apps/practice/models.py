@@ -107,9 +107,9 @@ class Service(BaseModel):
     PRESENCIAL_Y_ONLINE = "PRESENCIAL_Y_ONLINE"
 
     MODALITY_CHOICES = [
-        (PRESENCIAL, _("In-person only")),
-        (ONLINE, _("Online only")),
-        (PRESENCIAL_Y_ONLINE, _("In-person and online")),
+        (PRESENCIAL, _("Solo presencial")),
+        (ONLINE, _("Solo online")),
+        (PRESENCIAL_Y_ONLINE, _("Presencial y online")),
     ]
 
     practice = models.ForeignKey(

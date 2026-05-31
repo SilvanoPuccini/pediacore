@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useBookingStore } from "../store/bookingStore";
-import { useLocations, useServices, useSlots } from "../hooks/useBookingQueries";
+import { useLocations, useServices, useSlots, useAvailableDays } from "../hooks/useBookingQueries";
 import MiniCalendar from "../components/MiniCalendar";
 import TimeSlotGrid from "../components/TimeSlotGrid";
 import { formatDisplayDate, formatTime, formatPrice } from "../utils";
@@ -35,6 +35,8 @@ export default function StepDateTime() {
     () => services.find((s) => s.id === serviceId) ?? null,
     [services, serviceId]
   );
+
+  const { data: availableDays } = useAvailableDays(locationId);
 
   const { data: slots, isLoading: slotsLoading } = useSlots({
     locationId,
@@ -92,7 +94,11 @@ export default function StepDateTime() {
         <p className="text-[14px] text-ink2 mb-4">
           Seleccioná la fecha y el horario que prefieras.
         </p>
-        <MiniCalendar selectedDate={selectedDate} onSelectDate={(date) => setDate(date)} />
+        <MiniCalendar
+          selectedDate={selectedDate}
+          onSelectDate={(date) => setDate(date)}
+          allowedDaysOfWeek={availableDays}
+        />
       </section>
 
       {/* Time slots */}

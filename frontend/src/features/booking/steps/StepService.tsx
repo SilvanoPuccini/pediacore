@@ -104,7 +104,7 @@ function CoordinationModal({
 
         <div className="space-y-3 mb-5">
           <a
-            href="https://wa.me/56912345678?text=Hola%2C%20quiero%20coordinar%20un%20turno"
+            href="https://wa.me/56958455537?text=Hola%2C%20quiero%20coordinar%20un%20turno"
             target="_blank"
             rel="noopener noreferrer"
             className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-[12px] bg-green-600 text-white text-[13px] font-semibold transition-all hover:-translate-y-0.5"
@@ -133,9 +133,9 @@ function CoordinationModal({
   );
 }
 
-// ─── Service Card (enhanced) ─────────────────────────────────────────────────
+// ─── Compact service row ─────────────────────────────────────────────────────
 
-function ServiceCardEnhanced({
+function ServiceRow({
   service,
   isSelected,
   onClick,
@@ -145,65 +145,41 @@ function ServiceCardEnhanced({
   onClick: () => void;
 }) {
   const isManual = service.requires_manual_coordination;
+  const isFonasa = service.requires_fonasa_validation;
 
   return (
     <button
       onClick={onClick}
       className={[
-        "w-full text-left p-5 rounded-[16px] border-2 transition-all",
+        "w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-[14px] border-2 transition-all",
         isSelected
-          ? "border-teal bg-teal/8 shadow-[var(--shadow-soft)]"
-          : "border-line bg-surface hover:border-teal/40 hover:shadow-[var(--shadow-soft)]",
+          ? "border-teal bg-teal/8"
+          : "border-line bg-surface hover:border-teal/40",
       ].join(" ")}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="font-semibold text-[15px] text-ink">{service.name}</p>
-            {service.requires_fonasa_validation && (
-              <span className="text-[11px] font-semibold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-                FONASA
-              </span>
-            )}
-            {isManual && (
-              <span className="text-[11px] font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
-                COORDINAR
-              </span>
-            )}
+      <div className="flex items-center gap-2.5 min-w-0">
+        {isSelected && (
+          <div className="w-5 h-5 rounded-full bg-teal flex items-center justify-center shrink-0">
+            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+            </svg>
           </div>
-          {service.description && (
-            <p className="text-[13px] text-ink2 mt-1 line-clamp-2">{service.description}</p>
-          )}
-          <div className="flex items-center gap-3 mt-2">
-            <span className="text-[12px] text-ink3 flex items-center gap-1">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              {service.duration_minutes} min
-            </span>
-            <span className="text-[12px] text-ink3">
-              {service.modality_display}
-            </span>
-          </div>
-          {isManual && (
-            <p className="text-[12px] text-amber-700 mt-1.5">
-              → Coordinar día y horario directamente con el centro
-            </p>
-          )}
-        </div>
-        <div className="text-right shrink-0">
-          <span className="text-[14px] font-semibold text-teal-dark">
-            {formatPrice(service.price_clp)}
+        )}
+        <span className="text-[14px] font-semibold text-ink truncate">{service.name}</span>
+        {isFonasa && (
+          <span className="text-[10px] font-bold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full shrink-0">
+            FONASA
           </span>
-          {isSelected && (
-            <div className="w-5 h-5 rounded-full bg-teal flex items-center justify-center mt-2 ml-auto">
-              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-          )}
-        </div>
+        )}
+        {isManual && (
+          <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full shrink-0">
+            COORDINAR
+          </span>
+        )}
       </div>
+      <span className="text-[14px] font-bold text-teal-dark shrink-0">
+        {formatPrice(service.price_clp)}
+      </span>
     </button>
   );
 }
@@ -295,18 +271,19 @@ export default function StepService() {
         </p>
 
         {servicesLoading ? (
-          <div className="space-y-3">
-            <Skeleton className="h-[90px]" />
-            <Skeleton className="h-[90px]" />
+          <div className="space-y-2">
+            <Skeleton className="h-[52px]" />
+            <Skeleton className="h-[52px]" />
+            <Skeleton className="h-[52px]" />
           </div>
         ) : filteredServices.length === 0 ? (
           <div className="bg-cream rounded-[14px] px-5 py-4 text-[14px] text-ink2">
             No hay servicios disponibles para esta sede.
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {filteredServices.map((svc) => (
-              <ServiceCardEnhanced
+              <ServiceRow
                 key={svc.id}
                 service={svc}
                 isSelected={serviceId === svc.id}
