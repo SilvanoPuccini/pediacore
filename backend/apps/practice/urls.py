@@ -11,6 +11,7 @@ from rest_framework.routers import DefaultRouter
 from apps.practice.views import (
     BlockedSlotAdminViewSet,
     LocationListView,
+    OnlineScheduleView,
     PracticeDetailView,
     ServiceListView,
     WorkingHoursAdminViewSet,
@@ -28,6 +29,7 @@ urlpatterns = [
     path("practices/<slug:slug>/", PracticeDetailView.as_view(), name="practice-detail"),
     path("practices/<slug:slug>/locations/", LocationListView.as_view(), name="location-list"),
     path("practices/<slug:slug>/services/", ServiceListView.as_view(), name="service-list"),
+    path("practices/<slug:slug>/online-hours/", OnlineScheduleView.as_view(), name="online-schedule"),
     path("locations/<int:pk>/working-hours/", WorkingHoursListView.as_view(), name="working-hours-list"),
     # Admin endpoints (ModelViewSet via router)
     path("", include(router.urls)),

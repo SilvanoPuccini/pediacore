@@ -9,6 +9,8 @@ from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from apps.core.pagination import StandardPagination
 from apps.core.permissions import IsDoctor
@@ -86,6 +88,40 @@ class WorkingHoursListView(ListAPIView):
     def get_queryset(self):
         location = get_object_or_404(Location, pk=self.kwargs["pk"], is_active=True)
         return WorkingHours.objects.filter(location=location, is_active=True).select_related("location")
+
+
+class OnlineScheduleView(APIView):
+    """
+    Public endpoint. Returns a display_hours string for online consultations.
+
+    GET /api/v1/practices/<slug>/online-hours/
+    """
+
+    permission_classes = [AllowAny]
+
+    def get(self, request, slug):
+        practice = get_object_or_404(Practice, slug=slug, is_active=True)
+        online_wh = (
+            WorkingHours.objects.filter(practice=practice, is_online=True, is_active=True)
+            .order_by("day_of_week", "start_time")
+        )
+
+        if not online_wh.exists():
+            return Response({"display_hours": ""})
+
+        DAY_ABBR = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
+
+        # Group by time range to produce compact display
+        groups: dict[str, list[str]] = {}
+        for wh in online_wh:
+            time_range = f"{wh.start_time:%H:%M} – {wh.end_time:%H:%M}"
+            groups.setdefault(time_range, []).append(DAY_ABBR[wh.day_of_week])
+
+        parts = []
+        for time_range, days in groups.items():
+            parts.append(f"{' y '.join(days) if len(days) <= 2 else ', '.join(days)} · {time_range}")
+
+        return Response({"display_hours": " | ".join(parts)})
 
 
 # ---------------------------------------------------------------------------

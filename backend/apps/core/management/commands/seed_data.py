@@ -42,6 +42,7 @@ class Command(BaseCommand):
         location_pucon, location_villarrica = self._seed_locations(practice)
         self._seed_services(practice, location_pucon, location_villarrica)
         self._seed_working_hours(practice, location_pucon, location_villarrica)
+        self._cleanup_old_working_hours(practice, location_pucon, location_villarrica)
         self._seed_blog_posts(practice, doctor)
         self._seed_faqs(practice)
         self._seed_cancellation_policy(practice)
@@ -171,10 +172,15 @@ class Command(BaseCommand):
                 "email": "pucon@estefipediatra.com",
                 "latitude": Decimal("-39.2758048"),
                 "longitude": Decimal("-71.9766482"),
-                "display_hours": "Lun – Vie · 09:00 – 13:00 y 15:00 – 19:00",
+                "display_hours": "Lun 10–16 · Mié 9:45–13:30 · Jue 14:45–18:30",
                 "is_active": True,
             },
         )
+        if not created:
+            # Update display_hours if it changed
+            Location.objects.filter(pk=location_pucon.pk).update(
+                display_hours="Lun 10–16 · Mié 9:45–13:30 · Jue 14:45–18:30"
+            )
         label = "[+] Location creada" if created else "[=] Location ya existe"
         self.stdout.write(self.style.SUCCESS(f"  {label}: {location_pucon.name}"))
 
@@ -190,10 +196,14 @@ class Command(BaseCommand):
                 "email": "villarrica@estefipediatra.com",
                 "latitude": Decimal("-39.2828412"),
                 "longitude": Decimal("-72.2239914"),
-                "display_hours": "Lun, Mié, Vie · 09:00 – 13:00",
+                "display_hours": "Mar 10:15–14:45 · Vie 11–15:30",
                 "is_active": True,
             },
         )
+        if not created:
+            Location.objects.filter(pk=location_villarrica.pk).update(
+                display_hours="Mar 10:15–14:45 · Vie 11–15:30"
+            )
         label = "[+] Location creada" if created else "[=] Location ya existe"
         self.stdout.write(self.style.SUCCESS(f"  {label}: {location_villarrica.name}"))
 
@@ -302,58 +312,173 @@ class Command(BaseCommand):
 
     def _seed_working_hours(self, practice, location_pucon, location_villarrica):
         """
-        Pucón:     Lun–Vie 09:00–19:00 (único bloque por día — modelo no soporta múltiples turnos)
-        Villarrica: Lun, Mié, Vie 09:00–13:00
+        Real schedules for the practice.
+
+        Pucón:
+          Monday:    10:00–16:00, break 13:00–13:45, max 7, slot 45 min
+          Wednesday:  9:45–13:30, no break,           max 5, slot 45 min
+          Thursday:  14:45–18:30, no break,            max 6, slot 45 min
+
+        Villarrica:
+          Tuesday:  10:15–14:45, break 13:15–14:00, max 7, slot 45 min
+          Friday:   11:00–15:30, break 13:15–14:00, max 6, slot 45 min
+
+        Online (is_online=True, location=None):
+          Monday:   18:00–19:30, no break, max 3, slot 30 min
+          Thursday: 10:00–12:00, no break, max 4, slot 30 min
         """
         from apps.practice.models import WorkingHours
 
-        # Pucón: Monday–Friday
-        pucon_days = [
-            WorkingHours.MONDAY,
-            WorkingHours.TUESDAY,
-            WorkingHours.WEDNESDAY,
-            WorkingHours.THURSDAY,
-            WorkingHours.FRIDAY,
+        blocks = [
+            # ── Pucón ──────────────────────────────────────────────────────────
+            {
+                "location": location_pucon,
+                "day_of_week": WorkingHours.MONDAY,
+                "start_time": datetime.time(10, 0),
+                "end_time": datetime.time(16, 0),
+                "break_start": datetime.time(13, 0),
+                "break_end": datetime.time(13, 45),
+                "max_appointments": 7,
+                "slot_duration_minutes": 45,
+                "is_online": False,
+                "label": "Pucón Monday 10:00–16:00",
+            },
+            {
+                "location": location_pucon,
+                "day_of_week": WorkingHours.WEDNESDAY,
+                "start_time": datetime.time(9, 45),
+                "end_time": datetime.time(13, 30),
+                "break_start": None,
+                "break_end": None,
+                "max_appointments": 5,
+                "slot_duration_minutes": 45,
+                "is_online": False,
+                "label": "Pucón Wednesday 9:45–13:30",
+            },
+            {
+                "location": location_pucon,
+                "day_of_week": WorkingHours.THURSDAY,
+                "start_time": datetime.time(14, 45),
+                "end_time": datetime.time(18, 30),
+                "break_start": None,
+                "break_end": None,
+                "max_appointments": 6,
+                "slot_duration_minutes": 45,
+                "is_online": False,
+                "label": "Pucón Thursday 14:45–18:30",
+            },
+            # ── Villarrica ────────────────────────────────────────────────────
+            {
+                "location": location_villarrica,
+                "day_of_week": WorkingHours.TUESDAY,
+                "start_time": datetime.time(10, 15),
+                "end_time": datetime.time(14, 45),
+                "break_start": datetime.time(13, 15),
+                "break_end": datetime.time(14, 0),
+                "max_appointments": 7,
+                "slot_duration_minutes": 45,
+                "is_online": False,
+                "label": "Villarrica Tuesday 10:15–14:45",
+            },
+            {
+                "location": location_villarrica,
+                "day_of_week": WorkingHours.FRIDAY,
+                "start_time": datetime.time(11, 0),
+                "end_time": datetime.time(15, 30),
+                "break_start": datetime.time(13, 15),
+                "break_end": datetime.time(14, 0),
+                "max_appointments": 6,
+                "slot_duration_minutes": 45,
+                "is_online": False,
+                "label": "Villarrica Friday 11:00–15:30",
+            },
+            # ── Online ────────────────────────────────────────────────────────
+            {
+                "location": None,
+                "day_of_week": WorkingHours.MONDAY,
+                "start_time": datetime.time(18, 0),
+                "end_time": datetime.time(19, 30),
+                "break_start": None,
+                "break_end": None,
+                "max_appointments": 3,
+                "slot_duration_minutes": 30,
+                "is_online": True,
+                "label": "Online Monday 18:00–19:30",
+            },
+            {
+                "location": None,
+                "day_of_week": WorkingHours.THURSDAY,
+                "start_time": datetime.time(10, 0),
+                "end_time": datetime.time(12, 0),
+                "break_start": None,
+                "break_end": None,
+                "max_appointments": 4,
+                "slot_duration_minutes": 30,
+                "is_online": True,
+                "label": "Online Thursday 10:00–12:00",
+            },
         ]
-        for day in pucon_days:
-            wh, created = WorkingHours.objects.get_or_create(
-                location=location_pucon,
-                day_of_week=day,
-                defaults={
-                    "practice": practice,
-                    "start_time": datetime.time(9, 0),
-                    "end_time": datetime.time(19, 0),
-                    "is_active": True,
-                },
-            )
-            if created:
-                day_label = wh.get_day_of_week_display()
-                self.stdout.write(
-                    self.style.SUCCESS(f"  [+] Horario Pucón {day_label}: 09:00–19:00")
-                )
 
-        # Villarrica: Monday, Wednesday, Friday
-        villarrica_days = [
-            WorkingHours.MONDAY,
-            WorkingHours.WEDNESDAY,
-            WorkingHours.FRIDAY,
-        ]
-        for day in villarrica_days:
+        for block in blocks:
+            label = block.pop("label")
+            # Use start_time as part of the lookup key to allow multiple blocks per day
             wh, created = WorkingHours.objects.get_or_create(
-                location=location_villarrica,
-                day_of_week=day,
+                practice=practice,
+                location=block["location"],
+                day_of_week=block["day_of_week"],
+                start_time=block["start_time"],
+                is_online=block["is_online"],
                 defaults={
-                    "practice": practice,
-                    "start_time": datetime.time(9, 0),
-                    "end_time": datetime.time(13, 0),
+                    **block,
                     "is_active": True,
                 },
             )
-            if created:
-                day_label = wh.get_day_of_week_display()
-                self.stdout.write(
-                    self.style.SUCCESS(f"  [+] Horario Villarrica {day_label}: 09:00–13:00")
-                )
+            status = "[+] Horario creado" if created else "[=] Horario ya existe"
+            self.stdout.write(self.style.SUCCESS(f"  {status}: {label}"))
+
+    # ------------------------------------------------------------------
+    # Cleanup stale working hours
+    # ------------------------------------------------------------------
+
+    def _cleanup_old_working_hours(self, practice, location_pucon, location_villarrica):
+        """Remove working hours blocks that no longer match the real schedule.
+
+        The seed uses get_or_create keyed on (practice, location, day_of_week,
+        start_time, is_online), so stale rows from a previous seed run (e.g.
+        the old Mon-Fri 09:00–19:00 blocks) will not be overwritten — they
+        must be deleted explicitly.
+        """
+        from apps.practice.models import WorkingHours
+
+        # Valid (location, day_of_week, start_time, is_online) tuples after this seed
+        valid_keys = {
+            (location_pucon.pk,      WorkingHours.MONDAY,    datetime.time(10,  0),  False),
+            (location_pucon.pk,      WorkingHours.WEDNESDAY, datetime.time( 9, 45),  False),
+            (location_pucon.pk,      WorkingHours.THURSDAY,  datetime.time(14, 45),  False),
+            (location_villarrica.pk, WorkingHours.TUESDAY,   datetime.time(10, 15),  False),
+            (location_villarrica.pk, WorkingHours.FRIDAY,    datetime.time(11,  0),  False),
+            # Online blocks have location=None; use None as the key
+            (None,                   WorkingHours.MONDAY,    datetime.time(18,  0),  True),
+            (None,                   WorkingHours.THURSDAY,  datetime.time(10,  0),  True),
+        }
+
+        stale_qs = WorkingHours.objects.filter(practice=practice)
+        deleted_count = 0
+        for wh in stale_qs:
+            key = (
+                wh.location_id,
+                wh.day_of_week,
+                wh.start_time,
+                wh.is_online,
+            )
+            if key not in valid_keys:
+                wh.delete()
+                deleted_count += 1
+
+        if deleted_count:
+            self.stdout.write(
+                self.style.WARNING(f"  [x] {deleted_count} horario(s) obsoleto(s) eliminado(s).")
+            )
 
     # ------------------------------------------------------------------
     # Blog posts

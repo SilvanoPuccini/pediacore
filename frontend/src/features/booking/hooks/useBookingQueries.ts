@@ -18,6 +18,20 @@ export function useLocations() {
   });
 }
 
+// ─── Online schedule ────────────────────────────────────────────────────────────
+
+export function useOnlineSchedule() {
+  return useQuery<{ display_hours: string }>({
+    queryKey: ["online-schedule", PRACTICE_SLUG],
+    queryFn: async () => {
+      const { data } = await api.get<{ display_hours: string }>(
+        `/practices/${PRACTICE_SLUG}/online-hours/`
+      );
+      return data;
+    },
+  });
+}
+
 // ─── Services ──────────────────────────────────────────────────────────────────
 
 export function useServices() {

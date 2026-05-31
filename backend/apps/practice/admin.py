@@ -68,10 +68,51 @@ class ServiceAdmin(admin.ModelAdmin):
 
 @admin.register(WorkingHours)
 class WorkingHoursAdmin(admin.ModelAdmin):
-    list_display = ["location", "practice", "day_of_week", "start_time", "end_time", "is_active"]
-    list_filter = ["is_active", "practice", "location", "day_of_week"]
-    ordering = ["location", "day_of_week"]
+    list_display = [
+        "location",
+        "practice",
+        "day_of_week",
+        "start_time",
+        "end_time",
+        "break_start",
+        "break_end",
+        "max_appointments",
+        "slot_duration_minutes",
+        "is_online",
+        "is_active",
+    ]
+    list_filter = ["is_active", "is_online", "practice", "location", "day_of_week"]
+    list_editable = [
+        "break_start",
+        "break_end",
+        "max_appointments",
+        "slot_duration_minutes",
+    ]
+    ordering = ["location", "day_of_week", "start_time"]
     readonly_fields = ["created_at", "updated_at"]
+    fieldsets = [
+        (None, {
+            "fields": ["practice", "location", "day_of_week", "is_online"],
+        }),
+        ("Time range", {
+            "fields": ["start_time", "end_time"],
+        }),
+        ("Break window", {
+            "fields": ["break_start", "break_end"],
+            "classes": ["collapse"],
+            "description": "Optional lunch/break window. Both fields must be set together.",
+        }),
+        ("Capacity", {
+            "fields": ["max_appointments", "slot_duration_minutes"],
+        }),
+        ("Status", {
+            "fields": ["is_active"],
+        }),
+        ("Timestamps", {
+            "fields": ["created_at", "updated_at"],
+            "classes": ["collapse"],
+        }),
+    ]
 
 
 @admin.register(BlockedSlot)
