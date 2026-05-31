@@ -2,7 +2,7 @@ import { useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import SEOHead from "@/components/seo/SEOHead";
 import { useBookingStore } from "./store/bookingStore";
-import { useLocations, useMyPatients } from "./hooks/useBookingQueries";
+import { useLocations, useServices, useMyPatients } from "./hooks/useBookingQueries";
 import { formatDisplayDate, formatTime } from "./utils";
 
 export default function BookingConfirmed() {
@@ -10,6 +10,7 @@ export default function BookingConfirmed() {
   const [searchParams] = useSearchParams();
   const {
     locationId,
+    serviceId,
     selectedDate,
     selectedSlot,
     patientId,
@@ -18,9 +19,16 @@ export default function BookingConfirmed() {
   } = useBookingStore();
 
   const { data: locationsResp } = useLocations();
+  const { data: servicesResp } = useServices();
   const { data: patients } = useMyPatients();
 
   const locations = locationsResp?.results ?? [];
+  const services = servicesResp?.results ?? [];
+
+  const selectedService = useMemo(
+    () => services.find((s) => s.id === serviceId) ?? null,
+    [services, serviceId]
+  );
 
   const selectedLocation = useMemo(
     () =>
@@ -47,9 +55,16 @@ export default function BookingConfirmed() {
     navigate("/admin");
   }
 
-  function handleNewBooking() {
-    reset();
-    navigate("/booking");
+  function getCalendarUrl(): string {
+    if (!selectedDate || !selectedSlot || !selectedService) return "#";
+    const [y, m, d] = selectedDate.split("-");
+    const [sh, sm] = selectedSlot.start_time.split(":");
+    const [eh, em] = selectedSlot.end_time.split(":");
+    const start = `${y}${m}${d}T${sh}${sm}00`;
+    const end = `${y}${m}${d}T${eh}${em}00`;
+    const title = encodeURIComponent(`Pediatra - ${selectedService.name}`);
+    const location = encodeURIComponent(selectedLocation?.name ?? "");
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&location=${location}`;
   }
 
   return (
@@ -139,13 +154,13 @@ export default function BookingConfirmed() {
       </div>
 
       {/* Profile completion nudge */}
-      {selectedPatient && (
+      {selectedPatient && selectedPatient.profile_completion && selectedPatient.profile_completion.percentage < 100 && (
         <div className="bg-cream rounded-[16px] p-5 mb-6">
           <div className="flex items-start gap-3">
             <span className="text-[16px]">📝</span>
             <div className="flex-1">
               <p className="text-[14px] font-semibold text-ink">
-                Completá el perfil de {selectedPatient.first_name}
+                Completá el perfil de {selectedPatient.first_name} ({selectedPatient.profile_completion.percentage}% completo)
               </p>
               <p className="text-[13px] text-ink2 mt-0.5">
                 Ayudanos a darte mejor atención completando los datos del paciente.
@@ -169,12 +184,14 @@ export default function BookingConfirmed() {
         >
           Ver mis turnos
         </button>
-        <button
-          onClick={handleNewBooking}
-          className="flex-1 bg-surface border border-line text-ink rounded-[12px] px-5 py-3 font-semibold text-[13px] hover:bg-cream transition-colors"
+        <a
+          href={getCalendarUrl()}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex-1 bg-surface border border-line text-ink rounded-[12px] px-5 py-3 font-semibold text-[13px] hover:bg-cream transition-colors text-center"
         >
-          Reservar otro turno
-        </button>
+          Agregar a calendario
+        </a>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import SEOHead from "@/components/seo/SEOHead";
 import { useAuthStore } from "@/stores/auth";
@@ -13,6 +13,15 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [flash, setFlash] = useState("");
+
+  useEffect(() => {
+    const msg = sessionStorage.getItem("auth_flash");
+    if (msg) {
+      setFlash(msg);
+      sessionStorage.removeItem("auth_flash");
+    }
+  }, []);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -53,6 +62,15 @@ export default function LoginPage() {
 
         {/* Card */}
         <div className="bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)] px-8 py-8">
+          {flash && (
+            <div className="bg-amber-50 border border-amber-200 rounded-[12px] px-4 py-3 mb-4 flex items-center gap-2">
+              <svg className="w-5 h-5 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <p className="text-[13px] text-amber-800 font-medium">{flash}</p>
+            </div>
+          )}
+
           <h1 className="font-display text-[24px] font-semibold text-ink mb-1">
             Iniciá sesión
           </h1>

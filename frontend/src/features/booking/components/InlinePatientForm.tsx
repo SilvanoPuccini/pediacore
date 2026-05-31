@@ -61,7 +61,7 @@ export default function InlinePatientForm({ onSuccess }: InlinePatientFormProps 
       date_of_birth: dateOfBirth,
       sex_at_birth: sexAtBirth,
       document_type: "RUT",
-      insurance,
+      insurance: insurance || undefined,
       country: "Chile",
     };
 

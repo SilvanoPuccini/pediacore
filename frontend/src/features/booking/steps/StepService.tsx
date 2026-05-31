@@ -133,9 +133,16 @@ function CoordinationModal({
   );
 }
 
-// ─── Compact service row ─────────────────────────────────────────────────────
+// ─── Service card ─────────────────────────────────────────────────────────────
 
-function ServiceRow({
+function formatDuration(minutes: number): string {
+  if (minutes < 60) return `${minutes} min`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m > 0 ? `${h}h ${m}min` : `${h} ${h === 1 ? "hora" : "horas"}`;
+}
+
+function ServiceCard({
   service,
   isSelected,
   onClick,
@@ -151,35 +158,66 @@ function ServiceRow({
     <button
       onClick={onClick}
       className={[
-        "w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-[14px] border-2 transition-all",
+        "w-full text-left p-5 rounded-[16px] border-2 transition-all",
         isSelected
-          ? "border-teal bg-teal/8"
-          : "border-line bg-surface hover:border-teal/40",
+          ? "border-teal bg-teal/8 shadow-[var(--shadow-soft)]"
+          : "border-line bg-surface hover:border-teal/40 hover:shadow-[var(--shadow-soft)]",
       ].join(" ")}
     >
-      <div className="flex items-center gap-2.5 min-w-0">
-        {isSelected && (
-          <div className="w-5 h-5 rounded-full bg-teal flex items-center justify-center shrink-0">
-            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-        )}
-        <span className="text-[14px] font-semibold text-ink truncate">{service.name}</span>
-        {isFonasa && (
-          <span className="text-[10px] font-bold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full shrink-0">
-            FONASA
-          </span>
-        )}
-        {isManual && (
-          <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full shrink-0">
-            COORDINAR
-          </span>
-        )}
+      {/* Header: name + price */}
+      <div className="flex items-start justify-between gap-3 mb-2">
+        <div className="flex items-center gap-2 min-w-0 flex-wrap">
+          <h3 className="text-[15px] font-semibold text-ink">{service.name}</h3>
+          {isFonasa && (
+            <span className="text-[10px] font-bold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full shrink-0">
+              FONASA
+            </span>
+          )}
+          {isManual && (
+            <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full shrink-0">
+              COORDINAR
+            </span>
+          )}
+        </div>
+        <span className="text-[16px] font-bold text-teal-dark shrink-0">
+          {formatPrice(service.price_clp)}
+        </span>
       </div>
-      <span className="text-[14px] font-bold text-teal-dark shrink-0">
-        {formatPrice(service.price_clp)}
-      </span>
+
+      {/* Description */}
+      {service.description && (
+        <p className="text-[13px] text-ink2 mb-3 line-clamp-2">
+          {service.description}
+        </p>
+      )}
+
+      {/* Footer: duration + modality + action */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 text-[12px] text-ink3">
+          <span className="flex items-center gap-1">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {formatDuration(service.duration_minutes)}
+          </span>
+          <span className="flex items-center gap-1">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            {service.modality_display}
+          </span>
+        </div>
+        <span className={[
+          "text-[12px] font-semibold px-3 py-1 rounded-full shrink-0",
+          isManual
+            ? "bg-amber-100 text-amber-700"
+            : isSelected
+            ? "bg-teal text-white"
+            : "bg-cream text-teal-dark",
+        ].join(" ")}>
+          {isManual ? "Coordinar" : isSelected ? "Seleccionado" : "Reservar"}
+        </span>
+      </div>
     </button>
   );
 }
@@ -271,19 +309,19 @@ export default function StepService() {
         </p>
 
         {servicesLoading ? (
-          <div className="space-y-2">
-            <Skeleton className="h-[52px]" />
-            <Skeleton className="h-[52px]" />
-            <Skeleton className="h-[52px]" />
+          <div className="space-y-3">
+            <Skeleton className="h-[120px]" />
+            <Skeleton className="h-[120px]" />
+            <Skeleton className="h-[120px]" />
           </div>
         ) : filteredServices.length === 0 ? (
           <div className="bg-cream rounded-[14px] px-5 py-4 text-[14px] text-ink2">
             No hay servicios disponibles para esta sede.
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {filteredServices.map((svc) => (
-              <ServiceRow
+              <ServiceCard
                 key={svc.id}
                 service={svc}
                 isSelected={serviceId === svc.id}
