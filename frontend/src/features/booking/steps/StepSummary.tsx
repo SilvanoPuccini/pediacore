@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { useBookingStore } from "../store/bookingStore";
 import { useLocations, useServices, useMyPatients } from "../hooks/useBookingQueries";
 import { useBookAppointment } from "../hooks/useBookingMutations";
@@ -97,6 +97,18 @@ export default function StepSummary() {
 
   const bookingMutation = useBookAppointment();
 
+  // Guard: if critical data is missing, redirect back to the appropriate step
+  const hasCriticalData = locationId !== null && serviceId !== null && selectedDate && selectedSlot && patientId;
+
+  useEffect(() => {
+    if (!hasCriticalData) {
+      // Missing data — go back to step 1 to restart
+      setStep(1);
+    }
+  }, [hasCriticalData, setStep]);
+
+  if (!hasCriticalData) return null;
+
   const canConfirm = acceptedPolicy && acceptedTerms && patientId && !bookingMutation.isPending;
 
   function handleConfirmBooking() {
@@ -172,6 +184,11 @@ export default function StepSummary() {
                 ? `${formatTime(selectedSlot.start_time)} - ${formatTime(selectedSlot.end_time)}`
                 : ""
             }
+          />
+          <DetailRow
+            icon="⏱"
+            label="Duración"
+            value={selectedService ? `${selectedService.duration_minutes} minutos` : ""}
           />
           <DetailRow icon="👶" label="Paciente" value={selectedPatient?.full_name ?? ""} />
           {user && (

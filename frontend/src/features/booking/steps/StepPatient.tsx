@@ -98,8 +98,11 @@ export default function StepPatient() {
 
   const hasPatients = patients && patients.length > 0;
 
+  // Validate that persisted patientId actually exists in the current patient list
+  const patientExists = hasPatients && patients.some((p: Patient) => p.id === patientId);
+
   function handleContinue() {
-    if (patientId) {
+    if (patientId && patientExists) {
       setStep(6);
     }
   }
@@ -164,7 +167,7 @@ export default function StepPatient() {
       </section>
 
       {/* Continue */}
-      {patientId && (
+      {patientId && patientExists && (
         <button
           onClick={handleContinue}
           className="w-full bg-teal-dark text-white rounded-[12px] px-6 py-3 font-semibold text-[14px] transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-cta)]"

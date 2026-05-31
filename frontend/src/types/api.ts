@@ -124,7 +124,7 @@ export interface PatientCreate {
   sex_at_birth: "M" | "F" | "NO_ESPECIFICA";
   document_type: "RUT" | "PASAPORTE" | "DNI_EXTRANJERO";
   rut?: string;
-  insurance: string;
+  insurance?: string;
   country: string;
   practice: number;
 }
@@ -145,6 +145,10 @@ export interface Patient {
   address: string;
   phone: string;
   created_at: string;
+  profile_completion?: {
+    percentage: number;
+    missing: string[];
+  };
 }
 
 export interface Appointment {

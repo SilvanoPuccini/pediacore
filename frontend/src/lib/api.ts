@@ -48,7 +48,8 @@ api.interceptors.response.use(
       if (!refreshToken) {
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
-        window.location.href = "/login";
+        sessionStorage.setItem("auth_flash", "Tu sesión expiró. Iniciá sesión de nuevo.");
+        window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
         return Promise.reject(error);
       }
 
@@ -79,7 +80,8 @@ api.interceptors.response.use(
         processQueue(refreshError, null);
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
-        window.location.href = "/login";
+        sessionStorage.setItem("auth_flash", "Tu sesión expiró. Iniciá sesión de nuevo.");
+        window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
