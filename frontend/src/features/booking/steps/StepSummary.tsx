@@ -72,10 +72,11 @@ export default function StepSummary() {
 
   const { data: locationsResp } = useLocations();
   const { data: servicesResp } = useServices();
-  const { data: patients } = useMyPatients();
+  const { data: patientsResp } = useMyPatients();
 
   const locations = locationsResp?.results ?? [];
   const services = servicesResp?.results ?? [];
+  const patients = patientsResp?.results ?? [];
 
   const selectedLocation = useMemo(
     () =>
@@ -91,7 +92,7 @@ export default function StepSummary() {
   );
 
   const selectedPatient = useMemo(
-    () => patients?.find((p) => p.id === patientId) ?? null,
+    () => patients.find((p) => p.id === patientId) ?? null,
     [patients, patientId]
   );
 

@@ -93,10 +93,11 @@ function getAge(dob: string): string {
 
 export default function StepPatient() {
   const { patientId, setPatient, setStep } = useBookingStore();
-  const { data: patients, isLoading } = useMyPatients();
+  const { data: patientsResp, isLoading } = useMyPatients();
   const [showForm, setShowForm] = useState(false);
 
-  const hasPatients = patients && patients.length > 0;
+  const patients = patientsResp?.results ?? [];
+  const hasPatients = patients.length > 0;
 
   // Validate that persisted patientId actually exists in the current patient list
   const patientExists = hasPatients && patients.some((p: Patient) => p.id === patientId);

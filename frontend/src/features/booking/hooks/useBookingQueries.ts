@@ -108,10 +108,10 @@ interface UseMyPatientsOptions {
 }
 
 export function useMyPatients({ enabled = true }: UseMyPatientsOptions = {}) {
-  return useQuery<Patient[]>({
+  return useQuery<PaginatedResponse<Patient>>({
     queryKey: ["my-patients"],
     queryFn: async () => {
-      const { data } = await api.get<Patient[]>("/patients/");
+      const { data } = await api.get<PaginatedResponse<Patient>>("/patients/");
       return data;
     },
     enabled,
