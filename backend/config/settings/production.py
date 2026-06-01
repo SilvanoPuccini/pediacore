@@ -29,16 +29,19 @@ SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = True
 
 # Security headers
-SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
 
-# Content Security Policy (basic — refine when frontend is integrated)
-CSP_DEFAULT_SRC = ("'self'",)
-CSP_STYLE_SRC = ("'self'", "'unsafe-inline'")
-CSP_SCRIPT_SRC = ("'self'",)
-CSP_IMG_SRC = ("'self'",)
-CSP_FONT_SRC = ("'self'",)
+# CSP is handled by nginx (not django-csp) to cover both API and frontend responses.
+
+# CSRF trusted origins
+CSRF_TRUSTED_ORIGINS = [
+    "https://estefipediatra.com",
+    "https://www.estefipediatra.com",
+]
+
+# Session security — 8 hours for admin (medical records)
+SESSION_COOKIE_AGE = 28800  # 8 hours
 
 # CORS — only production frontend
 CORS_ALLOWED_ORIGINS = config(
