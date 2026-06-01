@@ -140,10 +140,8 @@ def hold_appointment(
         init_point: str = result["init_point"]
         preference_id: str = result.get("preference_id", "")
 
-        # Store preference_id in metadata; external_id stays empty until webhook
-        payment.metadata = {"preference_id": preference_id}
-        payment.external_id = ""
-        payment.save(update_fields=["metadata", "external_id", "updated_at"])
+        # create_preference() already saved metadata with provider + preference_id
+        # and set external_id = "". No need to overwrite here.
 
         logger.info(
             "Booking hold created: appointment=%s payment=%s preference=%s",

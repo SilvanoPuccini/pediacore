@@ -21,7 +21,7 @@ patient_detail = PatientViewSet.as_view(
 )
 
 tutor_list = TutorPatientViewSet.as_view({"get": "list", "post": "create"})
-tutor_detail = TutorPatientViewSet.as_view({"get": "retrieve", "delete": "destroy"})
+tutor_detail = TutorPatientViewSet.as_view({"get": "retrieve", "patch": "partial_update", "delete": "destroy"})
 
 file_list = PatientFileViewSet.as_view({"get": "list", "post": "create"})
 file_detail = PatientFileViewSet.as_view({"get": "retrieve", "delete": "destroy"})
