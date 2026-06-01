@@ -1,11 +1,58 @@
 import type { Location } from "@/types/api";
 
-type LocationOption = Location | { id: "online"; name: string; address: string; city: string };
+type LocationOption = Location | { id: "online"; name: string; address: string; city: string; slug?: string };
 
 interface LocationCardProps {
   location: LocationOption;
   isSelected: boolean;
   onClick: () => void;
+}
+
+const LOCATION_LOGOS: Record<string, string> = {
+  pucon: "/images/logo_ccElvalle.png",
+  villarrica: "/images/logo_AyI.png",
+};
+
+function LocationIcon({ location, isSelected }: { location: LocationOption; isSelected: boolean }) {
+  if (location.id === "online") {
+    return (
+      <div
+        className={[
+          "w-11 h-11 rounded-[10px] flex items-center justify-center flex-shrink-0 mt-0.5",
+          isSelected ? "bg-teal text-white" : "bg-cream text-teal-dark",
+        ].join(" ")}
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+      </div>
+    );
+  }
+
+  const slug = "slug" in location ? location.slug : undefined;
+  const logo = slug ? LOCATION_LOGOS[slug] : undefined;
+
+  if (logo) {
+    return (
+      <div className="w-11 h-11 rounded-[10px] overflow-hidden flex-shrink-0 mt-0.5">
+        <img src={logo} alt={location.name} className="w-full h-full object-contain" />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={[
+        "w-11 h-11 rounded-[10px] flex items-center justify-center flex-shrink-0 mt-0.5",
+        isSelected ? "bg-teal text-white" : "bg-cream text-teal-dark",
+      ].join(" ")}
+    >
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    </div>
+  );
 }
 
 export default function LocationCard({ location, isSelected, onClick }: LocationCardProps) {
@@ -20,23 +67,7 @@ export default function LocationCard({ location, isSelected, onClick }: Location
       ].join(" ")}
     >
       <div className="flex items-start gap-3">
-        <div
-          className={[
-            "w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0 mt-0.5",
-            isSelected ? "bg-teal text-white" : "bg-cream text-teal-dark",
-          ].join(" ")}
-        >
-          {location.id === "online" ? (
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-          ) : (
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          )}
-        </div>
+        <LocationIcon location={location} isSelected={isSelected} />
         <div>
           <p className="font-semibold text-[15px] text-ink">{location.name}</p>
           <p className="text-[13px] text-ink2 mt-0.5">{location.address}</p>
