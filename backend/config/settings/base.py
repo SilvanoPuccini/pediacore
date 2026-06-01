@@ -217,6 +217,7 @@ Q_CLUSTER = {
 # Resend (email)
 RESEND_API_KEY = config("RESEND_API_KEY", default="")
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="Dra. Estefanía <no-reply@estefipediatra.com>")
+DEFAULT_REPLY_TO_EMAIL = config("DEFAULT_REPLY_TO_EMAIL", default="estefiortigosa.peditra@gmail.com")
 
 # MercadoPago
 MERCADOPAGO_ACCESS_TOKEN = config("MERCADOPAGO_ACCESS_TOKEN", default="")
