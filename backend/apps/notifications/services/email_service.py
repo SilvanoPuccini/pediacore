@@ -121,7 +121,7 @@ def _build_appointment_html(
     """
     body_html = "".join(
         '<p style="font-family:\'Plus Jakarta Sans\',Arial,sans-serif; '
-        'color:#2C2C2C; font-size:15px; line-height:1.6; margin:0 0 12px;">'
+        'color:#2C2C2C; font-size:16px; line-height:1.6; margin:0 0 12px;">'
         f"{line}</p>"
         for line in body_lines
     )
@@ -194,7 +194,7 @@ def _build_appointment_html(
                     <!-- Header: brand bar -->
                     <tr>
                         <td style="background-color:#4A8590; padding:32px 40px; text-align:center;">
-                            <img src="{logo_url}" alt="Dra. Estefi Pediatra" width="64" height="64" style="width:64px; height:64px; border-radius:50%; object-fit:cover; border:3px solid rgba(255,255,255,0.15); display:block; margin:0 auto;">
+                            <img src="{logo_url}" alt="Dra. Estefi Pediatra" width="72" height="72" style="width:72px; height:72px; border-radius:50%; object-fit:cover; border:3px solid rgba(255,255,255,0.2); display:block; margin:0 auto;">
                             <h1 style="font-family:'Fraunces',Georgia,serif; color:#FFFFFF; margin:14px 0 0; font-size:22px; font-weight:600;">Dra. Estefi</h1>
                             <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:rgba(255,255,255,0.75); margin:4px 0 0; font-size:12px; letter-spacing:0.5px;">Pediatra &middot; Sur de Chile</p>
                         </td>
@@ -212,9 +212,9 @@ def _build_appointment_html(
                     <!-- Footer: contact + social -->
                     <tr>
                         <td style="background-color:#2C2C2C; padding:28px 40px; text-align:center;">
-                            <img src="{logo_url}" alt="" width="40" height="40" style="width:40px; height:40px; border-radius:50%; opacity:0.5; display:block; margin:0 auto 12px;">
+                            <img src="{logo_url}" alt="" width="44" height="44" style="width:44px; height:44px; border-radius:50%; border:2px solid rgba(255,255,255,0.15); display:block; margin:0 auto 12px;">
                             <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:rgba(255,255,255,0.6); font-size:13px; margin:0 0 4px; font-weight:600;">Dra. Estefi</p>
-                            <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:rgba(255,255,255,0.35); font-size:11px; margin:0 0 20px;">Pediatr&iacute;a con tiempo, calidez y atenci&oacute;n personalizada</p>
+                            <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:rgba(255,255,255,0.35); font-size:12px; margin:0 0 20px;">Pediatr&iacute;a con tiempo, calidez y atenci&oacute;n personalizada</p>
 
                             <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:12px; color:rgba(255,255,255,0.5); line-height:1.8; margin:0 0 16px;">
                                 Puc&oacute;n &amp; Villarrica &middot; La Araucan&iacute;a, Chile<br>
@@ -225,8 +225,6 @@ def _build_appointment_html(
 
                             <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:12px; margin:0;">
                                 <a href="https://www.instagram.com/estefiortigosa.pediatra/" style="color:#7BB5BD; text-decoration:none; margin:0 8px;">Instagram</a>
-                                <a href="https://facebook.com/estefipediatra" style="color:#7BB5BD; text-decoration:none; margin:0 8px;">Facebook</a>
-                                <a href="https://youtube.com/@estefipediatra" style="color:#7BB5BD; text-decoration:none; margin:0 8px;">YouTube</a>
                                 <a href="https://estefipediatra.com" style="color:#7BB5BD; text-decoration:none; margin:0 8px;">Web</a>
                             </p>
                         </td>
