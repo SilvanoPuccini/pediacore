@@ -370,11 +370,11 @@ class Command(BaseCommand):
         Pucón (presencial, slot 45 min):
           Monday:    10:00–16:00, break 13:00–13:45, max 7
           Wednesday:  9:45–13:30, no break,           max 5
-          Thursday:  14:45–18:30, no break,            max 6
+          Thursday:  14:45–19:15, no break,            max 6
 
         Villarrica (presencial, slot 45 min):
-          Tuesday:  10:15–14:45, break 13:15–14:00, max 7
-          Friday:   11:00–15:30, break 13:15–14:00, max 6
+          Tuesday:  10:15–16:15, break 13:15–14:00, max 7
+          Friday:   11:00–16:15, break 13:15–14:00, max 6
 
         Online general (slot 30 min, service=None):
           Monday:   18:00–19:30, max 3
@@ -423,41 +423,41 @@ class Command(BaseCommand):
                 "location": location_pucon,
                 "day_of_week": WorkingHours.THURSDAY,
                 "start_time": datetime.time(14, 45),
-                "end_time": datetime.time(18, 30),
+                "end_time": datetime.time(19, 15),
                 "break_start": None,
                 "break_end": None,
                 "max_appointments": 6,
                 "slot_duration_minutes": 45,
                 "is_online": False,
                 "service": None,
-                "label": "Pucón Thursday 14:45–18:30",
+                "label": "Pucón Thursday 14:45–19:15",
             },
             # ── Villarrica ────────────────────────────────────────────────────
             {
                 "location": location_villarrica,
                 "day_of_week": WorkingHours.TUESDAY,
                 "start_time": datetime.time(10, 15),
-                "end_time": datetime.time(14, 45),
+                "end_time": datetime.time(16, 15),
                 "break_start": datetime.time(13, 15),
                 "break_end": datetime.time(14, 0),
                 "max_appointments": 7,
                 "slot_duration_minutes": 45,
                 "is_online": False,
                 "service": None,
-                "label": "Villarrica Tuesday 10:15–14:45",
+                "label": "Villarrica Tuesday 10:15–16:15",
             },
             {
                 "location": location_villarrica,
                 "day_of_week": WorkingHours.FRIDAY,
                 "start_time": datetime.time(11, 0),
-                "end_time": datetime.time(15, 30),
+                "end_time": datetime.time(16, 15),
                 "break_start": datetime.time(13, 15),
                 "break_end": datetime.time(14, 0),
                 "max_appointments": 6,
                 "slot_duration_minutes": 45,
                 "is_online": False,
                 "service": None,
-                "label": "Villarrica Friday 11:00–15:30",
+                "label": "Villarrica Friday 11:00–16:15",
             },
             # ── Online general ────────────────────────────────────────────────
             {
@@ -515,6 +515,8 @@ class Command(BaseCommand):
             },
         ]
 
+        update_fields = ("end_time", "break_start", "break_end", "max_appointments", "slot_duration_minutes")
+
         for block in blocks:
             label = block.pop("label")
             wh, created = WorkingHours.objects.get_or_create(
@@ -529,8 +531,19 @@ class Command(BaseCommand):
                     "is_active": True,
                 },
             )
-            status = "[+] Horario creado" if created else "[=] Horario ya existe"
-            self.stdout.write(self.style.SUCCESS(f"  {status}: {label}"))
+            if created:
+                self.stdout.write(self.style.SUCCESS(f"  [+] Horario creado: {label}"))
+            else:
+                changed = []
+                for field in update_fields:
+                    if getattr(wh, field) != block[field]:
+                        setattr(wh, field, block[field])
+                        changed.append(field)
+                if changed:
+                    wh.save(update_fields=changed)
+                    self.stdout.write(self.style.SUCCESS(f"  [~] Horario actualizado: {label} ({', '.join(changed)})"))
+                else:
+                    self.stdout.write(f"  [=] Horario ya existe: {label}")
 
     # ------------------------------------------------------------------
     # Cleanup stale working hours
