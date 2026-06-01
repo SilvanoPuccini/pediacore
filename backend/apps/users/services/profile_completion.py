@@ -17,10 +17,11 @@ def compute_tutor_completion(user: "User") -> dict:
     """
     Return completion score for a tutor's profile.
 
-    Fields tracked (equal weight, 25% each):
+    Fields tracked (equal weight, 20% each):
       - first_name: non-blank string after strip()
       - last_name: non-blank string after strip()
       - phone: non-blank string after strip()
+      - rut: non-blank string after strip()
       - email_verified_at: non-None (email has been confirmed)
 
     Note: email_verified_at may be None for users who registered before
@@ -34,6 +35,7 @@ def compute_tutor_completion(user: "User") -> dict:
         ("first_name", bool(user.first_name.strip())),
         ("last_name", bool(user.last_name.strip())),
         ("phone", bool(user.phone.strip())),
+        ("rut", bool(user.rut.strip())),
         ("email_verified", user.email_verified_at is not None),
     ]
     missing = [label for label, ok in checks if not ok]

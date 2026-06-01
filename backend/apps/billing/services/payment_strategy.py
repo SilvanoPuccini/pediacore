@@ -136,6 +136,11 @@ class MercadoPagoStrategy(PaymentStrategy):
             f"{getattr(settings, 'BACKEND_URL', 'https://api.estefipediatra.com')}/api/v1/webhooks/mercadopago/",
         )
 
+        # Include appointment_id so BookingConfirmed can render data after MP redirect
+        appt_param = ""
+        if payment.appointment:
+            appt_param = f"&appointment_id={payment.appointment.pk}"
+
         preference_data = {
             "items": [
                 {
@@ -147,9 +152,9 @@ class MercadoPagoStrategy(PaymentStrategy):
             ],
             "external_reference": str(payment.pk),
             "back_urls": {
-                "success": f"{frontend_url}/booking/confirmed",
+                "success": f"{frontend_url}/booking/confirmed?appointment_id={payment.appointment.pk}" if payment.appointment else f"{frontend_url}/booking/confirmed",
                 "failure": f"{frontend_url}/booking?payment=failure",
-                "pending": f"{frontend_url}/booking/confirmed?payment=pending",
+                "pending": f"{frontend_url}/booking/confirmed?payment=pending{appt_param}",
             },
             "auto_return": "approved",
             "notification_url": notification_url,

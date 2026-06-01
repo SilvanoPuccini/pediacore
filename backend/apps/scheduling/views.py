@@ -108,7 +108,11 @@ class AppointmentViewSet(viewsets.ModelViewSet):
 
         status_param = self.request.query_params.get("status")
         if status_param:
-            qs = qs.filter(status=status_param)
+            statuses = [s.strip() for s in status_param.split(",")]
+            if len(statuses) > 1:
+                qs = qs.filter(status__in=statuses)
+            else:
+                qs = qs.filter(status=status_param)
 
         patient_id_param = self.request.query_params.get("patient_id")
         if patient_id_param:

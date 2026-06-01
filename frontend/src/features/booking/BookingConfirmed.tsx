@@ -6,7 +6,7 @@ import api from "@/lib/api";
 import { useBookingStore } from "./store/bookingStore";
 import { useLocations, useServices, useMyPatients } from "./hooks/useBookingQueries";
 import { formatDisplayDate, formatTime } from "./utils";
-import type { InvoiceListItem, PaginatedResponse } from "@/types/api";
+import type { Appointment, InvoiceListItem, PaginatedResponse } from "@/types/api";
 import { useQuery } from "@tanstack/react-query";
 
 export default function BookingConfirmed() {
@@ -18,13 +18,19 @@ export default function BookingConfirmed() {
     selectedDate,
     selectedSlot,
     patientId,
-    appointmentId,
+    appointmentId: storeAppointmentId,
     reset,
   } = useBookingStore();
 
   // MercadoPago redirect params
   const mpStatus = searchParams.get("collection_status") ?? searchParams.get("status");
   const isFromMP = !!searchParams.get("payment_id") || !!searchParams.get("collection_id");
+
+  // Try URL appointment_id first (MP redirect), fall back to store
+  const appointmentIdFromUrl = searchParams.get("appointment_id");
+  const effectiveAppointmentId = appointmentIdFromUrl
+    ? Number(appointmentIdFromUrl)
+    : storeAppointmentId;
 
   const { data: locationsResp } = useLocations();
   const { data: servicesResp } = useServices();
@@ -52,30 +58,46 @@ export default function BookingConfirmed() {
     [patients, patientId]
   );
 
+  // Fallback: fetch appointment from API if store is empty (e.g. fresh page load after MP redirect)
+  const { data: appointmentData } = useQuery({
+    queryKey: ["appointment-confirmed", effectiveAppointmentId],
+    queryFn: () =>
+      api.get<Appointment>(`/appointments/${effectiveAppointmentId}/`).then((r) => r.data),
+    enabled: !!effectiveAppointmentId && !selectedDate,
+  });
+
+  const displayDate = selectedDate ?? appointmentData?.scheduled_date ?? null;
+  const displaySlot = selectedSlot ?? (appointmentData ? { start_time: appointmentData.start_time, end_time: appointmentData.end_time ?? "" } : null);
+  const displayPatient = selectedPatient ?? (appointmentData ? { full_name: appointmentData.patient_name, first_name: appointmentData.patient_name?.split(" ")[0] ?? "" } : null);
+  const displayLocation = selectedLocation ?? (appointmentData ? { name: appointmentData.location_name } : null);
+
   // If no appointment AND not coming from MercadoPago, redirect to booking
   useEffect(() => {
-    if (!appointmentId && !isFromMP && !selectedDate) {
+    if (!effectiveAppointmentId && !isFromMP && !selectedDate && !appointmentIdFromUrl) {
       navigate("/booking");
     }
-  }, [appointmentId, isFromMP, selectedDate, navigate]);
+  }, [effectiveAppointmentId, isFromMP, selectedDate, appointmentIdFromUrl, navigate]);
 
   const isApproved = !mpStatus || mpStatus === "approved";
   const isPending = mpStatus === "pending" || mpStatus === "in_process";
   const isFailed = mpStatus && !isApproved && !isPending;
 
   const { data: invoicesResp } = useQuery<PaginatedResponse<InvoiceListItem>>({
-    queryKey: ["invoices-confirmed", appointmentId],
+    queryKey: ["invoices-confirmed", effectiveAppointmentId],
     queryFn: async () => {
       const { data } = await api.get<PaginatedResponse<InvoiceListItem>>("/invoices/");
       return data;
     },
-    enabled: isApproved && !!appointmentId,
+    enabled: isApproved && !!effectiveAppointmentId,
+    // Poll every 3s when coming back from MP and webhook hasn't created the invoice yet
+    refetchInterval: (query) =>
+      isFromMP && !query.state.data?.results?.some((inv) => inv.has_pdf) ? 3000 : false,
   });
 
   const invoice = useMemo(() => {
-    if (!invoicesResp?.results || !appointmentId) return null;
+    if (!invoicesResp?.results || !effectiveAppointmentId) return null;
     return invoicesResp.results.find((inv) => inv.has_pdf) ?? null;
-  }, [invoicesResp, appointmentId]);
+  }, [invoicesResp, effectiveAppointmentId]);
 
   const [downloading, setDownloading] = useState(false);
 
@@ -103,21 +125,22 @@ export default function BookingConfirmed() {
   }
 
   function getCalendarUrl(): string {
-    if (!selectedDate || !selectedSlot || !selectedService) return "#";
-    const [y, m, d] = selectedDate.split("-");
-    const [sh, sm] = selectedSlot.start_time.split(":");
-    const [eh, em] = selectedSlot.end_time.split(":");
+    if (!displayDate || !displaySlot?.start_time) return "#";
+    const [y, m, d] = displayDate.split("-");
+    const [sh, sm] = displaySlot.start_time.split(":");
+    const endTime = displaySlot.end_time || displaySlot.start_time;
+    const [eh, em] = endTime.split(":");
     const start = `${y}${m}${d}T${sh}${sm}00`;
     const end = `${y}${m}${d}T${eh}${em}00`;
-    const title = encodeURIComponent(`Pediatra - ${selectedService.name}`);
-    const location = encodeURIComponent(selectedLocation?.name ?? "");
+    const title = encodeURIComponent(`Pediatra - ${selectedService?.name ?? "Consulta"}`);
+    const location = encodeURIComponent(displayLocation?.name ?? "");
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&location=${location}`;
   }
 
   // Failed payment
   if (isFailed) {
     return (
-      <div className="max-w-[560px] mx-auto px-4 py-12">
+    <div className="max-w-[560px] mx-auto px-4 pt-[110px] pb-12">
         <SEOHead title="Pago no completado" description="El pago no se pudo completar." url="https://estefipediatra.com/booking/confirmed" />
         <div className="text-center mb-6">
           <div className="w-16 h-16 bg-coral/10 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -139,7 +162,7 @@ export default function BookingConfirmed() {
   }
 
   return (
-    <div className="max-w-[560px] mx-auto px-4 py-12">
+    <div className="max-w-[560px] mx-auto px-4 pt-[110px] pb-12">
       <SEOHead
         title="Turno confirmado"
         description="Tu turno pediátrico ha sido confirmado."
@@ -174,35 +197,37 @@ export default function BookingConfirmed() {
 
       {/* Appointment details */}
       <div className="bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)] p-6 mb-6">
-        <div className="space-y-3">
-          {selectedDate && (
-            <div className="flex items-start gap-2.5">
-              <span className="text-[16px]">📅</span>
-              <div>
-                <p className="text-[14px] font-semibold text-ink capitalize">
-                  {formatDisplayDate(selectedDate)}
-                  {selectedSlot && `, ${formatTime(selectedSlot.start_time)}`}
+        {(displayDate || displayLocation || displayPatient) && (
+          <div className="space-y-3">
+            {displayDate && (
+              <div className="flex items-start gap-2.5">
+                <span className="text-[16px]">📅</span>
+                <div>
+                  <p className="text-[14px] font-semibold text-ink capitalize">
+                    {formatDisplayDate(displayDate)}
+                    {displaySlot && `, ${formatTime(displaySlot.start_time)}`}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {displayLocation && (
+              <div className="flex items-start gap-2.5">
+                <span className="text-[16px]">📍</span>
+                <p className="text-[14px] font-semibold text-ink">{displayLocation.name}</p>
+              </div>
+            )}
+
+            {displayPatient && (
+              <div className="flex items-start gap-2.5">
+                <span className="text-[16px]">👶</span>
+                <p className="text-[14px] font-semibold text-ink">
+                  {displayPatient.full_name ?? displayPatient.first_name}
                 </p>
               </div>
-            </div>
-          )}
-
-          {selectedLocation && (
-            <div className="flex items-start gap-2.5">
-              <span className="text-[16px]">📍</span>
-              <p className="text-[14px] font-semibold text-ink">{selectedLocation.name}</p>
-            </div>
-          )}
-
-          {selectedPatient && (
-            <div className="flex items-start gap-2.5">
-              <span className="text-[16px]">👶</span>
-              <p className="text-[14px] font-semibold text-ink">
-                {selectedPatient.full_name}
-              </p>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         <div className="border-t border-line mt-4 pt-4">
           <p className="text-[13px] text-ink2">Te enviamos un email con:</p>
@@ -229,7 +254,7 @@ export default function BookingConfirmed() {
         </div>
       </div>
 
-      {/* Profile completion nudge */}
+      {/* Profile completion nudge — only when patient data comes from the full store */}
       {selectedPatient && selectedPatient.profile_completion && selectedPatient.profile_completion.percentage < 100 && (
         <div className="bg-cream rounded-[16px] p-5 mb-6">
           <div className="flex items-start gap-3">
@@ -261,7 +286,7 @@ export default function BookingConfirmed() {
           >
             Reservar otro turno
           </button>
-          {selectedDate && selectedSlot && selectedService && (
+          {displayDate && displaySlot?.start_time && (
             <a
               href={getCalendarUrl()}
               target="_blank"

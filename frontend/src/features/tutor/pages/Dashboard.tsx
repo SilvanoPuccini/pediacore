@@ -160,7 +160,7 @@ export default function Dashboard() {
     queryFn: () =>
       api
         .get<PaginatedResponse<Appointment>>("/appointments/", {
-          params: { status: "CONFIRMED" },
+          params: { status: "CONFIRMED,HOLD" },
         })
         .then((r) => r.data),
   });

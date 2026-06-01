@@ -27,6 +27,7 @@ from apps.patients.serializers import (
     PatientSerializer,
     PatientUpdateSerializer,
     TutorPatientCreateSerializer,
+    TutorPatientRelationUpdateSerializer,
     TutorPatientSerializer,
     TutorPatientUpdateSerializer,
 )
@@ -187,17 +188,29 @@ class TutorPatientViewSet(ModelViewSet):
     - Tutor: read-only for their own linked patients.
     """
 
-    http_method_names = ["get", "post", "delete", "head", "options"]
+    http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
     def get_permissions(self) -> list:
         if self.action in ("create", "destroy"):
             return [IsDoctor()]
+        if self.action in ("partial_update",):
+            return [IsAuthenticated()]
         return [IsAuthenticated()]
 
     def get_serializer_class(self):
         if self.action == "create":
             return TutorPatientCreateSerializer
+        if self.action in ("partial_update",):
+            return TutorPatientRelationUpdateSerializer
         return TutorPatientSerializer
+
+    def perform_update(self, serializer: TutorPatientRelationUpdateSerializer) -> None:
+        # Tutors may only update their own link
+        if self.request.user.role == User.TUTOR:
+            link = self.get_object()
+            if link.tutor != self.request.user:
+                self.permission_denied(self.request, message="You can only update your own relationship.")
+        serializer.save()
 
     def get_queryset(self) -> QuerySet[TutorPatient]:
         patient_pk = self.kwargs.get("patient_pk")
