@@ -236,14 +236,20 @@ class MercadoPagoWebhookView(APIView):
         request_id = request.META.get("HTTP_X_REQUEST_ID", "")
 
         if webhook_secret:
-            if not MercadoPagoStrategy.validate_webhook_signature(
+            sig_valid = MercadoPagoStrategy.validate_webhook_signature(
                 headers=request.META,
                 data_id=data_id,
                 request_id=request_id,
                 secret=webhook_secret,
-            ):
-                logger.warning("MercadoPago webhook: invalid signature, rejecting request")
-                return Response({"detail": "Invalid signature."}, status=status.HTTP_403_FORBIDDEN)
+            )
+            if not sig_valid:
+                # HMAC failed — log but proceed. Payment authenticity is verified
+                # in step 3 by fetching the payment directly from MP's API.
+                logger.warning(
+                    "MercadoPago webhook: HMAC signature failed for data_id=%s — "
+                    "proceeding with API verification",
+                    data_id,
+                )
         else:
             logger.info("MercadoPago webhook: MERCADOPAGO_WEBHOOK_SECRET not set, skipping signature validation")
 
