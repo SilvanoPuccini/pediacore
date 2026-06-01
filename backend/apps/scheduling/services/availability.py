@@ -133,14 +133,15 @@ def get_available_slots(
 
     now = timezone.localtime(timezone.now())
 
-    # 4-hour sliding window for presencial only, when agenda is empty:
-    # earliest bookable slot = now + 4h — only applies to TODAY
-    if not is_online and len(existing_appointments) == 0 and date == now.date():
-        earliest = (now + datetime.timedelta(hours=4)).time().strftime("%H:%M")
-        filtered = [s for s in slots if s["start_time"] >= earliest]
-        # Only apply if it doesn't wipe out all slots
-        if filtered:
-            slots = filtered
+    if date == now.date():
+        # Filter out slots that have already passed today
+        now_str = now.time().strftime("%H:%M")
+        slots = [s for s in slots if s["start_time"] > now_str]
+
+        # 4-hour sliding window for presencial: earliest bookable = now + 4h
+        if not is_online:
+            earliest = (now + datetime.timedelta(hours=4)).time().strftime("%H:%M")
+            slots = [s for s in slots if s["start_time"] >= earliest]
 
     # Smart clustering: presencial only, <24h away, exactly 1 existing appointment
     if not is_online and slots:
