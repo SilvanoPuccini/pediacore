@@ -25,3 +25,4 @@ dist-ssr
 
 # Design reference files
 src/claudedisage/
+*.Identifier
