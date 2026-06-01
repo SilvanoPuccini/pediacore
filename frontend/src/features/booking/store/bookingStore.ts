@@ -37,6 +37,7 @@ interface BookingState {
   appointmentId: number | null;
   // Wizard
   step: BookingStep;
+  lastActivity: number | null;  // Date.now() — for expiry detection
 }
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
@@ -72,6 +73,7 @@ const initialState: BookingState = {
   holdExpiresAt: null,
   appointmentId: null,
   step: 1,
+  lastActivity: null,
 };
 
 // ─── Store ────────────────────────────────────────────────────────────────────
@@ -81,31 +83,32 @@ export const useBookingStore = create<BookingStore>()(
     (set) => ({
       ...initialState,
 
-      setStep: (step) => set({ step }),
+      setStep: (step) => set({ step, lastActivity: Date.now() }),
 
       setLocation: (id) =>
-        set({ locationId: id, serviceId: null, selectedDate: null, selectedSlot: null }),
+        set({ locationId: id, serviceId: null, selectedDate: null, selectedSlot: null, lastActivity: Date.now() }),
 
       setService: (id) =>
-        set({ serviceId: id, selectedDate: null, selectedSlot: null }),
+        set({ serviceId: id, selectedDate: null, selectedSlot: null, lastActivity: Date.now() }),
 
-      setDate: (date) => set({ selectedDate: date, selectedSlot: null }),
+      setDate: (date) => set({ selectedDate: date, selectedSlot: null, lastActivity: Date.now() }),
 
-      setSlot: (slot) => set({ selectedSlot: slot }),
+      setSlot: (slot) => set({ selectedSlot: slot, lastActivity: Date.now() }),
 
-      setPatient: (id) => set({ patientId: id }),
+      setPatient: (id) => set({ patientId: id, lastActivity: Date.now() }),
 
-      setNotes: (notes) => set({ notes }),
+      setNotes: (notes) => set({ notes, lastActivity: Date.now() }),
 
-      setAcceptedPolicy: (v) => set({ acceptedPolicy: v }),
+      setAcceptedPolicy: (v) => set({ acceptedPolicy: v, lastActivity: Date.now() }),
 
-      setAcceptedTerms: (v) => set({ acceptedTerms: v }),
+      setAcceptedTerms: (v) => set({ acceptedTerms: v, lastActivity: Date.now() }),
 
       setBookingResult: (result) =>
         set({
           checkoutUrl: result.checkout_url,
           holdExpiresAt: result.hold_expires_at,
           appointmentId: result.appointment_id,
+          lastActivity: Date.now(),
         }),
 
       reset: () => set(initialState),
@@ -119,6 +122,7 @@ export const useBookingStore = create<BookingStore>()(
         selectedSlot: state.selectedSlot,
         patientId: state.patientId,
         step: state.step,
+        lastActivity: state.lastActivity,
       }),
     }
   )

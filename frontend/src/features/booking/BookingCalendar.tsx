@@ -94,10 +94,18 @@ function StepIndicator({ currentStep }: { currentStep: BookingStep }) {
 // ─── Orchestrator ──────────────────────────────────────────────────────────────
 
 export default function BookingCalendar() {
-  const { step, locationId, serviceId, setLocation, setService } = useBookingStore();
+  const { step, locationId, serviceId, setLocation, setService, lastActivity, reset } = useBookingStore();
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
+    // Reset if the persisted booking state is older than 30 minutes
+    if (step > 1 && lastActivity) {
+      const elapsed = Date.now() - lastActivity;
+      if (elapsed > 30 * 60 * 1000) {
+        reset();
+      }
+    }
+
     const urlLocation = searchParams.get("locationId");
     const urlService = searchParams.get("serviceId");
 
