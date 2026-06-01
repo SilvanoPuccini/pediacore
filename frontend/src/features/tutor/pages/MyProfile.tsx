@@ -1,0 +1,213 @@
+import { useState, useEffect } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { UserCircle, CheckCircle2, AlertCircle } from "lucide-react";
+import api from "@/lib/api";
+import { useAuthStore } from "@/stores/auth";
+import type { User } from "@/types/api";
+
+interface ProfileFormData {
+  first_name: string;
+  last_name: string;
+  phone: string;
+}
+
+interface ProfileUpdatePayload {
+  first_name: string;
+  last_name: string;
+  phone: string;
+}
+
+function updateProfile(payload: ProfileUpdatePayload): Promise<User> {
+  return api.patch<User>("/profile/", payload).then((res) => res.data);
+}
+
+export default function MyProfile() {
+  const user = useAuthStore((s) => s.user);
+  const fetchProfile = useAuthStore((s) => s.fetchProfile);
+
+  const [form, setForm] = useState<ProfileFormData>({
+    first_name: user?.first_name ?? "",
+    last_name: user?.last_name ?? "",
+    phone: user?.phone ?? "",
+  });
+
+  const [errors, setErrors] = useState<Partial<ProfileFormData>>({});
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Keep form in sync if user loads after mount
+  useEffect(() => {
+    if (user) {
+      setForm({
+        first_name: user.first_name,
+        last_name: user.last_name,
+        phone: user.phone ?? "",
+      });
+    }
+  }, [user?.id]);
+
+  const mutation = useMutation({
+    mutationFn: updateProfile,
+    onSuccess: async () => {
+      await fetchProfile();
+      setSuccessMessage("Tus datos fueron actualizados correctamente.");
+      setTimeout(() => setSuccessMessage(null), 4000);
+    },
+  });
+
+  function validate(): boolean {
+    const next: Partial<ProfileFormData> = {};
+    if (!form.first_name.trim()) next.first_name = "El nombre es obligatorio.";
+    if (!form.last_name.trim()) next.last_name = "El apellido es obligatorio.";
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  }
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+    if (errors[name as keyof ProfileFormData]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSuccessMessage(null);
+    if (!validate()) return;
+    mutation.mutate({
+      first_name: form.first_name.trim(),
+      last_name: form.last_name.trim(),
+      phone: form.phone.trim(),
+    });
+  }
+
+  return (
+    <div className="max-w-2xl">
+      <h1 className="font-display text-[28px] font-semibold text-ink mb-1">
+        Mi Perfil
+      </h1>
+      <p className="text-[14px] text-ink3 mb-8">
+        Actualizá tus datos personales.
+      </p>
+
+      <div className="bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)] p-8">
+        {/* Avatar header */}
+        <div className="flex items-center gap-4 mb-8 pb-8 border-b border-line">
+          <div className="h-14 w-14 rounded-full bg-cream flex items-center justify-center shrink-0">
+            <UserCircle size={28} className="text-teal-dark" />
+          </div>
+          <div>
+            <p className="text-[16px] font-semibold text-ink leading-tight">
+              {user?.full_name || "—"}
+            </p>
+            <p className="text-[13px] text-ink3 mt-0.5">{user?.email}</p>
+          </div>
+        </div>
+
+        {/* Success banner */}
+        {successMessage && (
+          <div className="flex items-center gap-2.5 bg-teal/10 border border-teal/30 text-teal-dark rounded-[12px] px-4 py-3 mb-6 text-[13px] font-medium">
+            <CheckCircle2 size={16} className="shrink-0" />
+            {successMessage}
+          </div>
+        )}
+
+        {/* Mutation error banner */}
+        {mutation.isError && (
+          <div className="flex items-center gap-2.5 bg-coral/10 border border-coral/30 text-coral rounded-[12px] px-4 py-3 mb-6 text-[13px] font-medium">
+            <AlertCircle size={16} className="shrink-0" />
+            Ocurrió un error al guardar. Intentá de nuevo.
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} noValidate>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {/* First name */}
+            <div>
+              <label htmlFor="first_name" className="text-[13px] font-semibold text-ink mb-1.5 block">
+                Nombre
+              </label>
+              <input
+                id="first_name"
+                name="first_name"
+                type="text"
+                value={form.first_name}
+                onChange={handleChange}
+                className={`w-full px-4 py-3 rounded-[12px] border bg-surface text-[14px] text-ink focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal transition-colors ${
+                  errors.first_name ? "border-coral" : "border-line"
+                }`}
+                placeholder="Tu nombre"
+              />
+              {errors.first_name && (
+                <p className="text-[12px] text-coral mt-1.5">{errors.first_name}</p>
+              )}
+            </div>
+
+            {/* Last name */}
+            <div>
+              <label htmlFor="last_name" className="text-[13px] font-semibold text-ink mb-1.5 block">
+                Apellido
+              </label>
+              <input
+                id="last_name"
+                name="last_name"
+                type="text"
+                value={form.last_name}
+                onChange={handleChange}
+                className={`w-full px-4 py-3 rounded-[12px] border bg-surface text-[14px] text-ink focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal transition-colors ${
+                  errors.last_name ? "border-coral" : "border-line"
+                }`}
+                placeholder="Tu apellido"
+              />
+              {errors.last_name && (
+                <p className="text-[12px] text-coral mt-1.5">{errors.last_name}</p>
+              )}
+            </div>
+
+            {/* Phone */}
+            <div>
+              <label htmlFor="phone" className="text-[13px] font-semibold text-ink mb-1.5 block">
+                Teléfono
+              </label>
+              <input
+                id="phone"
+                name="phone"
+                type="tel"
+                value={form.phone}
+                onChange={handleChange}
+                className="w-full px-4 py-3 rounded-[12px] border border-line bg-surface text-[14px] text-ink focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal transition-colors"
+                placeholder="+56 9 1234 5678"
+              />
+            </div>
+
+            {/* Email — read only */}
+            <div>
+              <label className="text-[13px] font-semibold text-ink mb-1.5 block">
+                Email
+              </label>
+              <input
+                type="email"
+                value={user?.email ?? ""}
+                disabled
+                className="w-full px-4 py-3 rounded-[12px] border border-line bg-cream text-[14px] text-ink3 cursor-not-allowed"
+              />
+              <p className="text-[12px] text-ink3 mt-1.5">
+                El email no se puede modificar.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex justify-end mt-8 pt-6 border-t border-line">
+            <button
+              type="submit"
+              disabled={mutation.isPending}
+              className="bg-teal-dark text-white text-[13px] font-semibold px-6 py-3 rounded-[12px] hover:-translate-y-0.5 hover:shadow-[var(--shadow-cta)] transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none"
+            >
+              {mutation.isPending ? "Guardando..." : "Guardar cambios"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

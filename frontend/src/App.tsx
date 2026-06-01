@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -36,6 +36,14 @@ const TermsPage = lazy(() => import("@/pages/TermsPage"));
 const PrivacyPage = lazy(() => import("@/pages/PrivacyPage"));
 const AdminLayout = lazy(() => import("@/layouts/AdminLayout"));
 const AdminDashboard = lazy(() => import("@/components/admin/AdminDashboard"));
+const TutorLayout = lazy(() => import("@/layouts/TutorLayout"));
+const TutorDashboard = lazy(() => import("@/features/tutor/pages/Dashboard"));
+const MyAppointments = lazy(() => import("@/features/tutor/pages/MyAppointments"));
+const AppointmentDetail = lazy(() => import("@/features/tutor/pages/AppointmentDetail"));
+const MyChildren = lazy(() => import("@/features/tutor/pages/MyChildren"));
+const ChildDetail = lazy(() => import("@/features/tutor/pages/ChildDetail"));
+const MyProfile = lazy(() => import("@/features/tutor/pages/MyProfile"));
+const BillingHistory = lazy(() => import("@/features/tutor/pages/BillingHistory"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -123,6 +131,22 @@ function AppRoutes() {
             </PublicLayout>
           }
         />
+        <Route
+          path="/portal"
+          element={
+            <ProtectedRoute role="TUTOR">
+              <TutorLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<TutorDashboard />} />
+          <Route path="turnos" element={<MyAppointments />} />
+          <Route path="turnos/:id" element={<AppointmentDetail />} />
+          <Route path="hijos" element={<MyChildren />} />
+          <Route path="hijos/:id" element={<ChildDetail />} />
+          <Route path="perfil" element={<MyProfile />} />
+          <Route path="pagos" element={<BillingHistory />} />
+        </Route>
         <Route
           path="/admin"
           element={

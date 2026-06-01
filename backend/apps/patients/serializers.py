@@ -234,6 +234,27 @@ class PatientCreateSerializer(serializers.ModelSerializer):
         return attrs
 
 
+class TutorPatientUpdateSerializer(serializers.ModelSerializer):
+    """
+    Partial update serializer restricted to fields a TUTOR is allowed to edit.
+
+    Tutors may update contact/address/insurance data only.
+    Identity fields (name, DOB, sex, document, RUT, blood type, clinical notes,
+    photo, practice) are read-only for tutors.
+    """
+
+    class Meta:
+        model = Patient
+        fields = [
+            "insurance",
+            "country",
+            "region",
+            "comuna",
+            "address",
+            "phone",
+        ]
+
+
 class PatientUpdateSerializer(serializers.ModelSerializer):
     """Partial update serializer for patient records."""
 

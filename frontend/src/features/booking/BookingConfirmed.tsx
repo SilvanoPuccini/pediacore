@@ -1,9 +1,13 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { Download } from "lucide-react";
 import SEOHead from "@/components/seo/SEOHead";
+import api from "@/lib/api";
 import { useBookingStore } from "./store/bookingStore";
 import { useLocations, useServices, useMyPatients } from "./hooks/useBookingQueries";
 import { formatDisplayDate, formatTime } from "./utils";
+import type { InvoiceListItem, PaginatedResponse } from "@/types/api";
+import { useQuery } from "@tanstack/react-query";
 
 export default function BookingConfirmed() {
   const navigate = useNavigate();
@@ -47,6 +51,40 @@ export default function BookingConfirmed() {
     () => patients.find((p) => p.id === patientId) ?? null,
     [patients, patientId]
   );
+
+  const { data: invoicesResp } = useQuery<PaginatedResponse<InvoiceListItem>>({
+    queryKey: ["invoices-confirmed", appointmentId],
+    queryFn: async () => {
+      const { data } = await api.get<PaginatedResponse<InvoiceListItem>>("/invoices/");
+      return data;
+    },
+    enabled: isApproved && !!appointmentId,
+  });
+
+  const invoice = useMemo(() => {
+    if (!invoicesResp?.results || !appointmentId) return null;
+    return invoicesResp.results.find((inv) => inv.has_pdf) ?? null;
+  }, [invoicesResp, appointmentId]);
+
+  const [downloading, setDownloading] = useState(false);
+
+  async function handleDownloadInvoice() {
+    if (!invoice) return;
+    setDownloading(true);
+    try {
+      const response = await api.get(`/invoices/${invoice.id}/download/`, {
+        responseType: "blob",
+      });
+      const url = URL.createObjectURL(response.data as Blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `comprobante-${invoice.invoice_number}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   // If no appointment AND not coming from MercadoPago, redirect to booking
   useEffect(() => {
@@ -216,10 +254,10 @@ export default function BookingConfirmed() {
       {/* Actions */}
       <div className="space-y-3">
         <button
-          onClick={handleGoHome}
+          onClick={() => { reset(); navigate("/portal/turnos"); }}
           className="w-full bg-teal-dark text-white rounded-[12px] px-5 py-3 font-semibold text-[13px] transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-cta)]"
         >
-          Volver al inicio
+          Ver mis turnos
         </button>
         <div className="flex gap-3">
           <button
@@ -239,6 +277,16 @@ export default function BookingConfirmed() {
             </a>
           )}
         </div>
+        {invoice && (
+          <button
+            onClick={handleDownloadInvoice}
+            disabled={downloading}
+            className="w-full flex items-center justify-center gap-2 bg-surface border border-line text-ink rounded-[12px] px-5 py-3 font-semibold text-[13px] hover:bg-cream transition-colors disabled:opacity-50"
+          >
+            <Download size={15} />
+            {downloading ? "Descargando..." : "Descargar comprobante"}
+          </button>
+        )}
       </div>
     </div>
   );

@@ -173,6 +173,15 @@ export interface Appointment {
   updated_at: string;
 }
 
+export interface AppointmentDetail extends Appointment {
+  doctor_email: string;
+  cancellation_reason: string;
+  cancelled_at: string | null;
+  confirmed_at: string | null;
+  rescheduled_from: number | null;
+  rescheduled_at: string | null;
+}
+
 export interface Payment {
   id: number;
   appointment: number;
@@ -182,4 +191,29 @@ export interface Payment {
   provider: string;
   reference_id: string;
   created_at: string;
+}
+
+export interface PaymentListItem {
+  id: number;
+  appointment: number;
+  patient_name: string;
+  amount: string;
+  currency: string;
+  status: string;
+  status_display: string;
+  payment_method: string;
+  payment_method_display: string;
+  paid_at: string | null;
+  created_at: string;
+}
+
+export interface InvoiceListItem {
+  id: number;
+  payment: number;
+  invoice_number: string;
+  patient_name: string;
+  service_description: string;
+  total: string;
+  issued_at: string;
+  has_pdf: boolean;
 }
