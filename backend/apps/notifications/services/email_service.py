@@ -45,6 +45,7 @@ def send_email(
     """
     api_key = getattr(settings, "RESEND_API_KEY", "")
     from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@estefipediatra.com")
+    reply_to = getattr(settings, "DEFAULT_REPLY_TO_EMAIL", "estefiortigosa.peditra@gmail.com")
     body_preview = html_body[:500]
 
     if not api_key:
@@ -70,6 +71,7 @@ def send_email(
                 "to": [to],
                 "subject": subject,
                 "html": html_body,
+                "reply_to": [reply_to],
             }
         )
         external_id = response.get("id", "") if isinstance(response, dict) else str(response)
@@ -99,52 +101,155 @@ def send_email(
     return log
 
 
+_EMAIL_BASE_URL = lambda: str(getattr(settings, "FRONTEND_URL", "https://estefipediatra.com"))
+_EMAIL_LOGO_URL = lambda: f"{_EMAIL_BASE_URL()}/images/logo.jpg"
+
+
 def _build_appointment_html(
     title: str,
     body_lines: list[str],
     token_urls: dict | None = None,
 ) -> str:
     """
-    Build a minimal HTML email body for appointment notifications.
+    Build a professional brand-aligned HTML email body for appointment notifications.
 
     Args:
         title: The heading displayed at the top of the email.
         body_lines: List of text lines to render as <p> elements.
         token_urls: Optional dict with keys 'confirm', 'cancel', 'reschedule'.
-            When provided, a clickable action-links section is appended to the email.
+            When provided, action buttons are rendered below the body.
     """
-    body_html = "".join(f"<p>{line}</p>" for line in body_lines)
+    body_html = "".join(
+        '<p style="font-family:\'Plus Jakarta Sans\',Arial,sans-serif; '
+        'color:#2C2C2C; font-size:15px; line-height:1.6; margin:0 0 12px;">'
+        f"{line}</p>"
+        for line in body_lines
+    )
 
-    action_links_html = ""
+    action_buttons_html = ""
     if token_urls:
         confirm_url = token_urls.get("confirm", "")
         cancel_url = token_urls.get("cancel", "")
         reschedule_url = token_urls.get("reschedule", "")
-        action_links_html = f"""
-        <hr>
-        <p><strong>Acciones rápidas:</strong></p>
-        <p>
-            <a href="{confirm_url}" style="color: #2e7d32;">Confirmar asistencia</a>
-            &nbsp;|&nbsp;
-            <a href="{cancel_url}" style="color: #c62828;">Cancelar cita</a>
-            &nbsp;|&nbsp;
-            <a href="{reschedule_url}" style="color: #1565c0;">Reagendar</a>
-        </p>
-        """
 
-    return f"""
-    <html>
-    <body style="font-family: sans-serif; color: #333;">
-        <h2>{title}</h2>
-        {body_html}
-        {action_links_html}
-        <hr>
-        <p style="font-size: 12px; color: #888;">
-            Consultorio Pediátrico — Dra. Estefanía
-        </p>
-    </body>
-    </html>
-    """
+        buttons = []
+        if confirm_url:
+            buttons.append(f"""
+                <td style="padding:4px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0">
+                        <tr>
+                            <td style="background-color:#4A8590; border-radius:8px; text-align:center; padding:12px 24px;">
+                                <a href="{confirm_url}" style="color:#FFFFFF; font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:13px; font-weight:600; text-decoration:none; display:inline-block; white-space:nowrap;">Confirmar asistencia</a>
+                            </td>
+                        </tr>
+                    </table>
+                </td>""")
+        if cancel_url:
+            buttons.append(f"""
+                <td style="padding:4px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0">
+                        <tr>
+                            <td style="background-color:#F7F0E5; border-radius:8px; text-align:center; padding:12px 24px;">
+                                <a href="{cancel_url}" style="color:#2C2C2C; font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:13px; font-weight:600; text-decoration:none; display:inline-block; white-space:nowrap;">Cancelar cita</a>
+                            </td>
+                        </tr>
+                    </table>
+                </td>""")
+        if reschedule_url:
+            buttons.append(f"""
+                <td style="padding:4px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0">
+                        <tr>
+                            <td style="background-color:#FFFFFF; border:2px solid #4A8590; border-radius:8px; text-align:center; padding:10px 22px;">
+                                <a href="{reschedule_url}" style="color:#4A8590; font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:13px; font-weight:600; text-decoration:none; display:inline-block; white-space:nowrap;">Reagendar</a>
+                            </td>
+                        </tr>
+                    </table>
+                </td>""")
+
+        if buttons:
+            action_buttons_html = f"""
+            <table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0 0;">
+                <tr>
+                    {''.join(buttons)}
+                </tr>
+            </table>"""
+
+    logo_url = _EMAIL_LOGO_URL()
+
+    return f"""<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title}</title>
+</head>
+<body style="margin:0; padding:0; background-color:#FBF8F3;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#FBF8F3;">
+        <tr>
+            <td align="center" style="padding:32px 16px;">
+
+                <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background-color:#FFFFFF; border-radius:12px; overflow:hidden;">
+
+                    <!-- Header: brand bar -->
+                    <tr>
+                        <td style="background-color:#4A8590; padding:32px 40px; text-align:center;">
+                            <img src="{logo_url}" alt="Dra. Estefi Pediatra" width="64" height="64" style="width:64px; height:64px; border-radius:50%; object-fit:cover; border:3px solid rgba(255,255,255,0.15); display:block; margin:0 auto;">
+                            <h1 style="font-family:'Fraunces',Georgia,serif; color:#FFFFFF; margin:14px 0 0; font-size:22px; font-weight:600;">Dra. Estefi</h1>
+                            <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:rgba(255,255,255,0.75); margin:4px 0 0; font-size:12px; letter-spacing:0.5px;">Pediatra &middot; Sur de Chile</p>
+                        </td>
+                    </tr>
+
+                    <!-- Body content -->
+                    <tr>
+                        <td style="padding:36px 40px;">
+                            <h2 style="font-family:'Fraunces',Georgia,serif; color:#4A8590; font-size:20px; margin:0 0 20px; font-weight:600;">{title}</h2>
+                            {body_html}
+                            {action_buttons_html}
+                        </td>
+                    </tr>
+
+                    <!-- Footer: contact + social -->
+                    <tr>
+                        <td style="background-color:#2C2C2C; padding:28px 40px; text-align:center;">
+                            <img src="{logo_url}" alt="" width="40" height="40" style="width:40px; height:40px; border-radius:50%; opacity:0.5; display:block; margin:0 auto 12px;">
+                            <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:rgba(255,255,255,0.6); font-size:13px; margin:0 0 4px; font-weight:600;">Dra. Estefi</p>
+                            <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:rgba(255,255,255,0.35); font-size:11px; margin:0 0 20px;">Pediatr&iacute;a con tiempo, calidez y atenci&oacute;n personalizada</p>
+
+                            <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:12px; color:rgba(255,255,255,0.5); line-height:1.8; margin:0 0 16px;">
+                                Puc&oacute;n &amp; Villarrica &middot; La Araucan&iacute;a, Chile<br>
+                                <a href="tel:+56958455537" style="color:#7BB5BD; text-decoration:none;">+56 9 5845 5537</a>
+                                &nbsp;&middot;&nbsp;
+                                <a href="mailto:estefiortigosa.peditra@gmail.com" style="color:#7BB5BD; text-decoration:none;">estefiortigosa.peditra@gmail.com</a>
+                            </p>
+
+                            <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:12px; margin:0;">
+                                <a href="https://www.instagram.com/estefiortigosa.pediatra/" style="color:#7BB5BD; text-decoration:none; margin:0 8px;">Instagram</a>
+                                <a href="https://facebook.com/estefipediatra" style="color:#7BB5BD; text-decoration:none; margin:0 8px;">Facebook</a>
+                                <a href="https://youtube.com/@estefipediatra" style="color:#7BB5BD; text-decoration:none; margin:0 8px;">YouTube</a>
+                                <a href="https://estefipediatra.com" style="color:#7BB5BD; text-decoration:none; margin:0 8px;">Web</a>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Bottom bar -->
+                    <tr>
+                        <td style="background-color:#1f1f1f; padding:14px 40px; text-align:center;">
+                            <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:rgba(255,255,255,0.25); font-size:11px; margin:0;">
+                                &copy; 2026 Dra. Estefi Pediatra &middot; estefipediatra.com
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+
+                <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:#A0A0A0; font-size:11px; margin:16px 0 0; text-align:center;">
+                    Este es un correo autom&aacute;tico del sistema de turnos de la Dra. Estefan&iacute;a.
+                </p>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>"""
 
 
 def send_appointment_reminder(appointment: Appointment) -> None:
@@ -411,6 +516,7 @@ def _send_email_with_attachment(
         The created EmailLog record.
     """
     from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@estefipediatra.com")
+    reply_to = getattr(settings, "DEFAULT_REPLY_TO_EMAIL", "estefiortigosa.peditra@gmail.com")
     body_preview = html_body[:500]
 
     try:
@@ -423,6 +529,7 @@ def _send_email_with_attachment(
                 "to": [to],
                 "subject": subject,
                 "html": html_body,
+                "reply_to": [reply_to],
                 "attachments": [attachment],
             }
         )
