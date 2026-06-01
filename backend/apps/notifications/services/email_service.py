@@ -161,7 +161,7 @@ def _build_appointment_html(
                     <table role="presentation" cellpadding="0" cellspacing="0">
                         <tr>
                             <td style="background-color:#FFFFFF; border:2px solid #4A8590; border-radius:8px; text-align:center; padding:10px 22px;">
-                                <a href="{reschedule_url}" style="color:#4A8590; font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; font-size:13px; font-weight:600; text-decoration:none; display:inline-block; white-space:nowrap;">Reagendar</a>
+                                <a href="{reschedule_url}" style="color:#4A8590; font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; font-size:14px; font-weight:600; text-decoration:none; display:inline-block; white-space:nowrap; letter-spacing:0.3px;">Reagendar</a>
                             </td>
                         </tr>
                     </table>
