@@ -65,8 +65,6 @@ class PaymentViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ("update", "partial_update", "export"):
             return [IsDoctor()]
-        if self.action == "webhook":
-            return [AllowAny()]
         return [IsAuthenticated()]
 
     def get_serializer_class(self):
@@ -122,37 +120,6 @@ class PaymentViewSet(viewsets.ModelViewSet):
         result = strategy.create_preference(payment)
 
         return Response(result, status=status.HTTP_200_OK)
-
-    @action(detail=False, methods=["post"], permission_classes=[AllowAny])
-    def webhook(self, request: Request) -> Response:
-        """
-        MercadoPago webhook endpoint.
-
-        AllowAny — MercadoPago sends POST requests without authentication.
-        In production, validate the X-Signature header from MercadoPago
-        before processing the payload.
-        """
-        data = request.data
-        notification_type = data.get("type", "")
-
-        if notification_type != "payment":
-            logger.info("Billing webhook: ignored notification type=%s", notification_type)
-            return Response({"detail": "Notification type ignored."}, status=status.HTTP_200_OK)
-
-        try:
-            strategy = get_payment_strategy(Payment.MERCADOPAGO)
-            payment = strategy.process_webhook(data)
-            logger.info("Billing webhook: Payment #%s updated to %s", payment.pk, payment.status)
-            return Response({"detail": "OK"}, status=status.HTTP_200_OK)
-        except Payment.DoesNotExist:
-            logger.warning("Billing webhook: payment not found for data=%s", data)
-            return Response({"detail": "Payment not found."}, status=status.HTTP_404_NOT_FOUND)
-        except Exception as exc:
-            logger.error("Billing webhook: unexpected error: %s", exc, exc_info=True)
-            return Response(
-                {"detail": "Internal error processing webhook."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
 
     @action(detail=False, methods=["get"], permission_classes=[IsDoctor])
     def export(self, request: Request) -> HttpResponse:
