@@ -139,7 +139,7 @@ def _build_appointment_html(
                     <table role="presentation" cellpadding="0" cellspacing="0">
                         <tr>
                             <td style="background-color:#4A8590; border-radius:8px; text-align:center; padding:12px 24px;">
-                                <a href="{confirm_url}" style="color:#FFFFFF; font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:13px; font-weight:600; text-decoration:none; display:inline-block; white-space:nowrap;">Confirmar asistencia</a>
+                                <a href="{confirm_url}" style="color:#FFFFFF; font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; font-size:13px; font-weight:600; text-decoration:none; display:inline-block; white-space:nowrap;">Confirmar asistencia</a>
                             </td>
                         </tr>
                     </table>
@@ -150,7 +150,7 @@ def _build_appointment_html(
                     <table role="presentation" cellpadding="0" cellspacing="0">
                         <tr>
                             <td style="background-color:#F7F0E5; border-radius:8px; text-align:center; padding:12px 24px;">
-                                <a href="{cancel_url}" style="color:#2C2C2C; font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:13px; font-weight:600; text-decoration:none; display:inline-block; white-space:nowrap;">Cancelar cita</a>
+                                <a href="{cancel_url}" style="color:#2C2C2C; font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; font-size:13px; font-weight:600; text-decoration:none; display:inline-block; white-space:nowrap;">Cancelar cita</a>
                             </td>
                         </tr>
                     </table>
@@ -161,7 +161,7 @@ def _build_appointment_html(
                     <table role="presentation" cellpadding="0" cellspacing="0">
                         <tr>
                             <td style="background-color:#FFFFFF; border:2px solid #4A8590; border-radius:8px; text-align:center; padding:10px 22px;">
-                                <a href="{reschedule_url}" style="color:#4A8590; font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:13px; font-weight:600; text-decoration:none; display:inline-block; white-space:nowrap;">Reagendar</a>
+                                <a href="{reschedule_url}" style="color:#4A8590; font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; font-size:13px; font-weight:600; text-decoration:none; display:inline-block; white-space:nowrap;">Reagendar</a>
                             </td>
                         </tr>
                     </table>
@@ -183,6 +183,11 @@ def _build_appointment_html(
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{title}</title>
+    <!--[if !mso]><!-->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&amp;family=Plus+Jakarta+Sans:wght@400;600&amp;display=swap');
+    </style>
+    <!--<![endif]-->
 </head>
 <body style="margin:0; padding:0; background-color:#FBF8F3;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#FBF8F3;">
@@ -195,15 +200,15 @@ def _build_appointment_html(
                     <tr>
                         <td style="background-color:#4A8590; padding:32px 40px; text-align:center;">
                             <img src="{logo_url}" alt="Dra. Estefi Pediatra" width="72" height="72" style="width:72px; height:72px; border-radius:50%; object-fit:cover; border:3px solid rgba(255,255,255,0.2); display:block; margin:0 auto;">
-                            <h1 style="font-family:'Fraunces',Georgia,serif; color:#FFFFFF; margin:14px 0 0; font-size:22px; font-weight:600;">Dra. Estefi</h1>
-                            <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:rgba(255,255,255,0.75); margin:4px 0 0; font-size:12px; letter-spacing:0.5px;">Pediatra &middot; Sur de Chile</p>
+                            <h1 style="font-family:'Fraunces',Georgia,'Times New Roman',serif; color:#FFFFFF; margin:14px 0 0; font-size:22px; font-weight:600;">Dra. Estefi</h1>
+                            <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.75); margin:4px 0 0; font-size:12px; letter-spacing:0.5px;">Pediatra &middot; Sur de Chile</p>
                         </td>
                     </tr>
 
                     <!-- Body content -->
                     <tr>
                         <td style="padding:36px 40px;">
-                            <h2 style="font-family:'Fraunces',Georgia,serif; color:#4A8590; font-size:20px; margin:0 0 20px; font-weight:600;">{title}</h2>
+                            <h2 style="font-family:'Fraunces',Georgia,'Times New Roman',serif; color:#4A8590; font-size:20px; margin:0 0 20px; font-weight:600;">{title}</h2>
                             {body_html}
                             {action_buttons_html}
                         </td>
@@ -213,17 +218,17 @@ def _build_appointment_html(
                     <tr>
                         <td style="background-color:#2C2C2C; padding:28px 40px; text-align:center;">
                             <img src="{logo_url}" alt="" width="44" height="44" style="width:44px; height:44px; border-radius:50%; border:2px solid rgba(255,255,255,0.15); display:block; margin:0 auto 12px;">
-                            <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:rgba(255,255,255,0.6); font-size:13px; margin:0 0 4px; font-weight:600;">Dra. Estefi</p>
-                            <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:rgba(255,255,255,0.35); font-size:12px; margin:0 0 20px;">Pediatr&iacute;a con tiempo, calidez y atenci&oacute;n personalizada</p>
+                            <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.6); font-size:13px; margin:0 0 4px; font-weight:600;">Dra. Estefi</p>
+                            <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.35); font-size:12px; margin:0 0 20px;">Pediatr&iacute;a con tiempo, calidez y atenci&oacute;n personalizada</p>
 
-                            <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:12px; color:rgba(255,255,255,0.5); line-height:1.8; margin:0 0 16px;">
+                            <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; font-size:12px; color:rgba(255,255,255,0.5); line-height:1.8; margin:0 0 16px;">
                                 Puc&oacute;n &amp; Villarrica &middot; La Araucan&iacute;a, Chile<br>
                                 <a href="tel:+56958455537" style="color:#7BB5BD; text-decoration:none;">+56 9 5845 5537</a>
                                 &nbsp;&middot;&nbsp;
                                 <a href="mailto:estefiortigosa.peditra@gmail.com" style="color:#7BB5BD; text-decoration:none;">estefiortigosa.peditra@gmail.com</a>
                             </p>
 
-                            <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:12px; margin:0;">
+                            <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; font-size:12px; margin:0;">
                                 <a href="https://www.instagram.com/estefiortigosa.pediatra/" style="color:#7BB5BD; text-decoration:none; margin:0 8px;">Instagram</a>
                                 <a href="https://estefipediatra.com" style="color:#7BB5BD; text-decoration:none; margin:0 8px;">Web</a>
                             </p>
@@ -233,14 +238,14 @@ def _build_appointment_html(
                     <!-- Bottom bar -->
                     <tr>
                         <td style="background-color:#1f1f1f; padding:14px 40px; text-align:center;">
-                            <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:rgba(255,255,255,0.25); font-size:11px; margin:0;">
+                            <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.25); font-size:11px; margin:0;">
                                 &copy; 2026 Dra. Estefi Pediatra &middot; estefipediatra.com
                             </p>
                         </td>
                     </tr>
                 </table>
 
-                <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:#A0A0A0; font-size:11px; margin:16px 0 0; text-align:center;">
+                <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:#A0A0A0; font-size:11px; margin:16px 0 0; text-align:center;">
                     Este es un correo autom&aacute;tico del sistema de turnos de la Dra. Estefan&iacute;a.
                 </p>
             </td>
