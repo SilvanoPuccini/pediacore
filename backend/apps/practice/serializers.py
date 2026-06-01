@@ -107,6 +107,8 @@ class WorkingHoursSerializer(serializers.ModelSerializer):
             "day_of_week_display",
             "start_time",
             "end_time",
+            "is_online",
+            "service",
             "is_active",
             "created_at",
             "updated_at",

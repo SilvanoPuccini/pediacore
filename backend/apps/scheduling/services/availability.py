@@ -44,9 +44,23 @@ def get_available_slots(
 
     day_of_week = date.weekday()
 
-    # Fetch relevant working hours blocks
+    # Fetch relevant working hours blocks.
+    # If a service has dedicated blocks, ONLY those apply (ignoring general blocks).
+    # Otherwise, general blocks (service=NULL) apply.
+    has_dedicated = WorkingHours.objects.filter(
+        practice=practice,
+        service_id=service_id,
+        is_active=True,
+    ).exists()
+
+    if has_dedicated:
+        service_filter = Q(service_id=service_id)
+    else:
+        service_filter = Q(service__isnull=True)
+
     if is_online:
         working_hours_qs = WorkingHours.objects.filter(
+            service_filter,
             practice=practice,
             is_online=True,
             day_of_week=day_of_week,
@@ -54,6 +68,7 @@ def get_available_slots(
         )
     else:
         working_hours_qs = WorkingHours.objects.filter(
+            service_filter,
             location=location,
             is_online=False,
             day_of_week=day_of_week,
