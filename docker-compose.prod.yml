@@ -36,6 +36,22 @@ services:
       - "8000"
     command: sh -c "python manage.py migrate --noinput && python manage.py collectstatic --noinput && chown -R django:django /app/staticfiles /var/log/pediacore && exec su -s /bin/sh django -c 'gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 120 --access-logfile - --error-logfile -'"
 
+  backend-qcluster:
+    image: pediacore-backend:latest
+    restart: unless-stopped
+    env_file: ./backend/.env
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.production
+    volumes:
+      - media_files:/app/media
+      - log_files:/var/log/pediacore
+    depends_on:
+      postgres:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    command: sh -c "exec python manage.py qcluster"
+
   nginx:
     build:
       context: .

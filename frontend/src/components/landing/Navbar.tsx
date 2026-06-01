@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Menu, X, MapPin, Clock, Phone, LogOut, User } from "lucide-react";
+import { Menu, X, MapPin, Clock, Phone, LogOut, User, CalendarDays } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth";
@@ -111,6 +111,15 @@ export default function Navbar() {
                   <User size={14} />
                   {user.first_name}
                 </span>
+                {user.role === "TUTOR" && (
+                  <Link
+                    to="/portal/turnos"
+                    className="flex items-center gap-1.5 text-[13px] text-[var(--ink2)] hover:text-[var(--ink)] transition-colors px-3 py-2 rounded-[10px] hover:bg-[var(--cream)]"
+                  >
+                    <CalendarDays size={14} />
+                    Mis Turnos
+                  </Link>
+                )}
                 {!isBooking && (
                   <Link
                     to="/booking"
@@ -188,19 +197,31 @@ export default function Navbar() {
             ))}
             <div className="mt-3 flex flex-col gap-2">
               {isAuthenticated && user && (
-                <div className="flex items-center justify-between px-3 py-2.5 bg-[var(--cream)] rounded-lg">
-                  <span className="flex items-center gap-1.5 text-[14px] text-[var(--ink)]">
-                    <User size={15} />
-                    {user.first_name}
-                  </span>
-                  <button
-                    onClick={() => { logout(); setMobileOpen(false); }}
-                    className="flex items-center gap-1.5 text-[13px] text-[var(--ink3)] hover:text-[var(--ink)]"
-                  >
-                    <LogOut size={14} />
-                    Salir
-                  </button>
-                </div>
+                <>
+                  <div className="flex items-center justify-between px-3 py-2.5 bg-[var(--cream)] rounded-lg">
+                    <span className="flex items-center gap-1.5 text-[14px] text-[var(--ink)]">
+                      <User size={15} />
+                      {user.first_name}
+                    </span>
+                    <button
+                      onClick={() => { logout(); setMobileOpen(false); }}
+                      className="flex items-center gap-1.5 text-[13px] text-[var(--ink3)] hover:text-[var(--ink)]"
+                    >
+                      <LogOut size={14} />
+                      Salir
+                    </button>
+                  </div>
+                  {user.role === "TUTOR" && (
+                    <Link
+                      to="/portal/turnos"
+                      className="flex items-center gap-2 px-3 py-2.5 text-[14px] text-[var(--ink2)] hover:text-[var(--ink)] hover:bg-[var(--cream)] rounded-lg transition-colors"
+                      onClick={() => setMobileOpen(false)}
+                    >
+                      <CalendarDays size={15} />
+                      Mis Turnos
+                    </Link>
+                  )}
+                </>
               )}
               <Link
                 to={isBooking ? "/" : "/booking"}

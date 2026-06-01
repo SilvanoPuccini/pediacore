@@ -28,6 +28,7 @@ from apps.patients.serializers import (
     PatientUpdateSerializer,
     TutorPatientCreateSerializer,
     TutorPatientSerializer,
+    TutorPatientUpdateSerializer,
 )
 
 User = get_user_model()
@@ -47,7 +48,10 @@ class PatientViewSet(ModelViewSet):
         if self.action == "destroy":
             # Tutors unlink; doctors hard-delete
             return [IsAuthenticated()]
-        # update / partial_update → doctor only
+        if self.action == "partial_update":
+            # Tutors may patch their own patients (restricted fields via serializer)
+            return [IsAuthenticated()]
+        # update (full PUT) → doctor only
         return [IsDoctor()]
 
     def perform_destroy(self, instance: Patient) -> None:
@@ -67,9 +71,42 @@ class PatientViewSet(ModelViewSet):
     def get_serializer_class(self):
         if self.action == "create":
             return PatientCreateSerializer
-        if self.action in ("update", "partial_update"):
+        if self.action == "update":
+            return PatientUpdateSerializer
+        if self.action == "partial_update":
+            user = self.request.user
+            if user.role == User.TUTOR:
+                return TutorPatientUpdateSerializer
             return PatientUpdateSerializer
         return PatientSerializer
+
+    def partial_update(self, request: Request, *args, **kwargs) -> Response:
+        """
+        PATCH a patient record.
+
+        - TUTOR: restricted to allowed fields; ownership is verified explicitly
+          (the queryset already filters, but we add an extra guard for safety).
+        - DOCTOR: full field access via PatientUpdateSerializer.
+        """
+        instance = self.get_object()
+
+        if request.user.role == User.TUTOR:
+            linked = TutorPatient.objects.filter(
+                tutor=request.user,
+                patient=instance,
+                deleted_at__isnull=True,
+            ).exists()
+            if not linked:
+                from rest_framework.exceptions import PermissionDenied
+
+                raise PermissionDenied(
+                    "No tenés permiso para editar este paciente."
+                )
+
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(PatientSerializer(instance).data)
 
     def get_queryset(self) -> QuerySet[Patient]:
         user = self.request.user
