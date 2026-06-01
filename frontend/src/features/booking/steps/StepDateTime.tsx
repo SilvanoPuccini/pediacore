@@ -36,7 +36,7 @@ export default function StepDateTime() {
     [services, serviceId]
   );
 
-  const { data: availableDays } = useAvailableDays(locationId);
+  const { data: availableDays } = useAvailableDays(locationId, serviceId);
 
   const { data: slots, isLoading: slotsLoading } = useSlots({
     locationId,

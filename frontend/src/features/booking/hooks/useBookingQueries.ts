@@ -38,22 +38,26 @@ interface WorkingHoursEntry {
   day_of_week: number;
 }
 
-export function useAvailableDays(locationId: number | "online" | null) {
+export function useAvailableDays(locationId: number | "online" | null, serviceId: number | null = null) {
   const isOnline = locationId === "online";
 
   return useQuery<number[]>({
-    queryKey: ["available-days", locationId],
+    queryKey: ["available-days", locationId, serviceId],
     queryFn: async () => {
-      let url: string;
+      const params: Record<string, string | number> = {};
+      if (serviceId) params.service = serviceId;
+
       if (isOnline) {
-        // Get online working hours from online-hours endpoint days
         const { data } = await api.get<{ results: WorkingHoursEntry[] }>(
-          `/practices/${PRACTICE_SLUG}/working-hours/online/`
+          `/practices/${PRACTICE_SLUG}/working-hours/online/`,
+          { params },
         );
         return [...new Set(data.results.map((wh) => wh.day_of_week))];
       } else {
-        url = `/locations/${locationId}/working-hours/`;
-        const { data } = await api.get<{ results: WorkingHoursEntry[] }>(url);
+        const { data } = await api.get<{ results: WorkingHoursEntry[] }>(
+          `/locations/${locationId}/working-hours/`,
+          { params },
+        );
         return [...new Set(data.results.map((wh) => wh.day_of_week))];
       }
     },

@@ -87,7 +87,19 @@ class WorkingHoursListView(ListAPIView):
 
     def get_queryset(self):
         location = get_object_or_404(Location, pk=self.kwargs["pk"], is_active=True)
-        return WorkingHours.objects.filter(location=location, is_active=True).select_related("location")
+        qs = WorkingHours.objects.filter(location=location, is_active=True).select_related("location")
+        service_id = self.request.query_params.get("service")
+        if service_id:
+            # If this service has dedicated presencial blocks, only return those.
+            # Otherwise return general blocks (service=NULL).
+            has_dedicated = WorkingHours.objects.filter(
+                location=location, service_id=service_id, is_online=False, is_active=True,
+            ).exists()
+            if has_dedicated:
+                qs = qs.filter(service_id=service_id)
+            else:
+                qs = qs.filter(service__isnull=True)
+        return qs
 
 
 class OnlineWorkingHoursListView(ListAPIView):
@@ -103,9 +115,21 @@ class OnlineWorkingHoursListView(ListAPIView):
 
     def get_queryset(self):
         practice = get_object_or_404(Practice, slug=self.kwargs["slug"], is_active=True)
-        return WorkingHours.objects.filter(
+        qs = WorkingHours.objects.filter(
             practice=practice, is_online=True, is_active=True
         ).order_by("day_of_week", "start_time")
+        service_id = self.request.query_params.get("service")
+        if service_id:
+            # If this service has dedicated online blocks, only return those.
+            # Otherwise return general blocks (service=NULL).
+            has_dedicated = WorkingHours.objects.filter(
+                practice=practice, service_id=service_id, is_online=True, is_active=True,
+            ).exists()
+            if has_dedicated:
+                qs = qs.filter(service_id=service_id)
+            else:
+                qs = qs.filter(service__isnull=True)
+        return qs
 
 
 class OnlineScheduleView(APIView):
