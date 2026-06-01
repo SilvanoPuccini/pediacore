@@ -147,9 +147,9 @@ class MercadoPagoStrategy(PaymentStrategy):
             ],
             "external_reference": str(payment.pk),
             "back_urls": {
-                "success": f"{frontend_url}/booking/success",
-                "failure": f"{frontend_url}/booking/failure",
-                "pending": f"{frontend_url}/booking/pending",
+                "success": f"{frontend_url}/booking/confirmed",
+                "failure": f"{frontend_url}/booking?payment=failure",
+                "pending": f"{frontend_url}/booking/confirmed?payment=pending",
             },
             "auto_return": "approved",
             "notification_url": notification_url,
