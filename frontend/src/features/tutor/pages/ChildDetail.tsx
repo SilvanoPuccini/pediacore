@@ -71,10 +71,10 @@ function humanizeMissing(fields: string[]): string {
 
 type EditableFields = Pick<
   Patient,
-  "insurance" | "country" | "region" | "comuna" | "address" | "phone"
+  "insurance" | "country" | "region" | "comuna" | "address" | "phone" | "phone_prefix"
 >;
 
-const EDITABLE_KEYS: (keyof EditableFields)[] = [
+const EDITABLE_KEYS: (keyof Omit<EditableFields, "phone_prefix">)[] = [
   "insurance",
   "country",
   "region",
@@ -83,7 +83,7 @@ const EDITABLE_KEYS: (keyof EditableFields)[] = [
   "phone",
 ];
 
-const EDITABLE_LABELS: Record<keyof EditableFields, string> = {
+const EDITABLE_LABELS: Record<string, string> = {
   insurance: "Previsión de salud",
   country: "País",
   region: "Región",
@@ -91,6 +91,19 @@ const EDITABLE_LABELS: Record<keyof EditableFields, string> = {
   address: "Dirección",
   phone: "Teléfono de contacto",
 };
+
+const PHONE_PREFIXES = [
+  { value: "+56", label: "🇨🇱 +56" },
+  { value: "+54", label: "🇦🇷 +54" },
+  { value: "+1", label: "🇺🇸 +1" },
+  { value: "+51", label: "🇵🇪 +51" },
+  { value: "+57", label: "🇨🇴 +57" },
+  { value: "+598", label: "🇺🇾 +598" },
+  { value: "+595", label: "🇵🇾 +595" },
+  { value: "+591", label: "🇧🇴 +591" },
+  { value: "+593", label: "🇪🇨 +593" },
+  { value: "+34", label: "🇪🇸 +34" },
+] as const;
 
 // ─── API calls ────────────────────────────────────────────────────────────────
 
@@ -137,6 +150,7 @@ export default function ChildDetail() {
         comuna: patient.comuna,
         address: patient.address,
         phone: patient.phone,
+        phone_prefix: patient.phone_prefix ?? "+56",
       });
     }
   }, [patient]);
@@ -152,6 +166,7 @@ export default function ChildDetail() {
         comuna: updated.comuna,
         address: updated.address,
         phone: updated.phone,
+        phone_prefix: updated.phone_prefix ?? "+56",
       });
       setBanner({ type: "success", message: "Los datos se guardaron correctamente." });
       setTimeout(() => setBanner(null), 4000);
@@ -354,19 +369,47 @@ export default function ChildDetail() {
         <h2 className="text-[17px] font-semibold text-ink">Datos de contacto y cobertura</h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {EDITABLE_KEYS.map((key) => (
-            <div key={key} className={key === "address" ? "sm:col-span-2" : ""}>
-              <label className="text-[13px] font-semibold text-ink mb-1.5 block">
-                {EDITABLE_LABELS[key]}
-              </label>
-              <input
-                type="text"
-                value={form[key] ?? ""}
-                onChange={(e) => handleChange(key, e.target.value)}
-                className="w-full px-4 py-3 rounded-[12px] border border-line bg-surface text-[14px] text-ink focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal"
-              />
-            </div>
-          ))}
+          {EDITABLE_KEYS.map((key) =>
+            key === "phone" ? (
+              <div key={key} className="sm:col-span-2">
+                <label className="text-[13px] font-semibold text-ink mb-1.5 block">
+                  {EDITABLE_LABELS[key]}
+                </label>
+                <div className="flex gap-2">
+                  <select
+                    value={form.phone_prefix ?? "+56"}
+                    onChange={(e) => handleChange("phone_prefix" as keyof EditableFields, e.target.value)}
+                    className="w-[110px] shrink-0 px-3 py-3 rounded-[12px] border border-line bg-surface text-[14px] text-ink focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal"
+                  >
+                    {PHONE_PREFIXES.map((p) => (
+                      <option key={p.value} value={p.value}>
+                        {p.label}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="tel"
+                    value={form[key] ?? ""}
+                    onChange={(e) => handleChange(key, e.target.value)}
+                    className="flex-1 px-4 py-3 rounded-[12px] border border-line bg-surface text-[14px] text-ink focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal"
+                    placeholder="9 1234 5678"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div key={key} className={key === "address" ? "sm:col-span-2" : ""}>
+                <label className="text-[13px] font-semibold text-ink mb-1.5 block">
+                  {EDITABLE_LABELS[key]}
+                </label>
+                <input
+                  type="text"
+                  value={form[key] ?? ""}
+                  onChange={(e) => handleChange(key, e.target.value)}
+                  className="w-full px-4 py-3 rounded-[12px] border border-line bg-surface text-[14px] text-ink focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal"
+                />
+              </div>
+            )
+          )}
         </div>
 
         <div className="flex justify-end pt-1">

@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Download, Receipt, AlertCircle } from "lucide-react";
+import { Download, Receipt, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import api from "@/lib/api";
 import type { PaymentListItem, InvoiceListItem, PaginatedResponse } from "@/types/api";
@@ -63,7 +64,11 @@ async function downloadInvoice(invoiceId: number): Promise<void> {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+const PAGE_SIZE = 5;
+
 export default function BillingHistory() {
+  const [page, setPage] = useState(1);
+
   const {
     data: payments,
     isLoading: loadingPayments,
@@ -119,12 +124,15 @@ export default function BillingHistory() {
     );
   }
 
+  const totalPages = Math.ceil(payments.length / PAGE_SIZE);
+  const paginated = payments.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   return (
     <div className="max-w-2xl mx-auto p-6 space-y-6">
       <h1 className="font-display text-[28px] text-ink">Historial de pagos</h1>
 
       <div className="space-y-4">
-        {payments.map((payment) => {
+        {paginated.map((payment) => {
           const invoice = invoiceMap.get(payment.id);
           const displayDate = payment.paid_at ?? payment.created_at;
 
@@ -142,7 +150,7 @@ export default function BillingHistory() {
                   <p className="text-[13px] text-ink3">
                     {payment.payment_method_display}
                   </p>
-                  <p className="text-[12px] text-ink3">{formatDate(displayDate)}</p>
+                  <p className="text-[13px] text-ink3">{formatDate(displayDate)}</p>
                 </div>
 
                 {/* Right: amount + status */}
@@ -166,7 +174,11 @@ export default function BillingHistory() {
                 <div className="mt-4 pt-4 border-t border-line">
                   <button
                     onClick={() => downloadInvoice(invoice.id)}
-                    className="flex items-center gap-2 text-[13px] font-semibold text-teal-dark hover:opacity-75 transition-opacity"
+                    className={cn(
+                      "flex items-center gap-2 rounded-[12px] px-4 py-2",
+                      "bg-teal-dark text-cream text-[13px] font-semibold",
+                      "hover:opacity-90 active:opacity-75 transition-opacity"
+                    )}
                   >
                     <Download className="w-4 h-4" />
                     Descargar comprobante
@@ -177,6 +189,41 @@ export default function BillingHistory() {
           );
         })}
       </div>
+
+      {/* Pagination controls */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-4 pt-2">
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className={cn(
+              "flex items-center justify-center w-9 h-9 rounded-[12px] border border-line",
+              "bg-surface text-ink transition-opacity",
+              page === 1 ? "opacity-30 cursor-not-allowed" : "hover:opacity-70"
+            )}
+            aria-label="Página anterior"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+
+          <span className="text-[13px] font-semibold text-ink2">
+            Página {page} de {totalPages}
+          </span>
+
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            className={cn(
+              "flex items-center justify-center w-9 h-9 rounded-[12px] border border-line",
+              "bg-surface text-ink transition-opacity",
+              page === totalPages ? "opacity-30 cursor-not-allowed" : "hover:opacity-70"
+            )}
+            aria-label="Página siguiente"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

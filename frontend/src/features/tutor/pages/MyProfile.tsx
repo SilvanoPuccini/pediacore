@@ -10,6 +10,7 @@ interface ProfileFormData {
   last_name: string;
   phone: string;
   phone_prefix: string;
+  phone_alt: string;
   rut: string;
 }
 
@@ -18,20 +19,21 @@ interface ProfileUpdatePayload {
   last_name: string;
   phone: string;
   phone_prefix: string;
+  phone_alt: string;
   rut: string;
 }
 
 const PHONE_PREFIXES = [
-  { value: "+56", label: "+56 (Chile)" },
-  { value: "+54", label: "+54 (Argentina)" },
-  { value: "+1", label: "+1 (EE.UU.)" },
-  { value: "+51", label: "+51 (Perú)" },
-  { value: "+57", label: "+57 (Colombia)" },
-  { value: "+598", label: "+598 (Uruguay)" },
-  { value: "+595", label: "+595 (Paraguay)" },
-  { value: "+591", label: "+591 (Bolivia)" },
-  { value: "+593", label: "+593 (Ecuador)" },
-  { value: "+34", label: "+34 (España)" },
+  { value: "+56", label: "🇨🇱 +56" },
+  { value: "+54", label: "🇦🇷 +54" },
+  { value: "+1", label: "🇺🇸 +1" },
+  { value: "+51", label: "🇵🇪 +51" },
+  { value: "+57", label: "🇨🇴 +57" },
+  { value: "+598", label: "🇺🇾 +598" },
+  { value: "+595", label: "🇵🇾 +595" },
+  { value: "+591", label: "🇧🇴 +591" },
+  { value: "+593", label: "🇪🇨 +593" },
+  { value: "+34", label: "🇪🇸 +34" },
 ] as const;
 
 function updateProfile(payload: ProfileUpdatePayload): Promise<User> {
@@ -47,6 +49,7 @@ export default function MyProfile() {
     last_name: user?.last_name ?? "",
     phone: user?.phone ?? "",
     phone_prefix: user?.phone_prefix ?? "+56",
+    phone_alt: user?.phone_alt ?? "",
     rut: user?.rut ?? "",
   });
 
@@ -61,6 +64,7 @@ export default function MyProfile() {
         last_name: user.last_name,
         phone: user.phone ?? "",
         phone_prefix: user.phone_prefix ?? "+56",
+        phone_alt: user.phone_alt ?? "",
         rut: user.rut ?? "",
       });
     }
@@ -79,6 +83,7 @@ export default function MyProfile() {
     const next: Partial<ProfileFormData> = {};
     if (!form.first_name.trim()) next.first_name = "El nombre es obligatorio.";
     if (!form.last_name.trim()) next.last_name = "El apellido es obligatorio.";
+    if (!form.phone.trim()) next.phone = "El teléfono es obligatorio.";
     setErrors(next);
     return Object.keys(next).length === 0;
   }
@@ -100,6 +105,7 @@ export default function MyProfile() {
       last_name: form.last_name.trim(),
       phone: form.phone.trim(),
       phone_prefix: form.phone_prefix,
+      phone_alt: form.phone_alt.trim(),
       rut: form.rut.trim(),
     });
   }
@@ -206,7 +212,7 @@ export default function MyProfile() {
             {/* Phone with prefix */}
             <div className="sm:col-span-2">
               <label htmlFor="phone" className="text-[13px] font-semibold text-ink mb-1.5 block">
-                Teléfono
+                Teléfono principal <span className="text-coral">*</span>
               </label>
               <div className="flex gap-2">
                 <select
@@ -214,7 +220,7 @@ export default function MyProfile() {
                   name="phone_prefix"
                   value={form.phone_prefix}
                   onChange={handleChange}
-                  className="w-[130px] shrink-0 px-3 py-3 rounded-[12px] border border-line bg-surface text-[14px] text-ink focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal transition-colors"
+                  className="w-[110px] shrink-0 px-3 py-3 rounded-[12px] border border-line bg-surface text-[14px] text-ink focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal transition-colors"
                 >
                   {PHONE_PREFIXES.map((p) => (
                     <option key={p.value} value={p.value}>
@@ -228,10 +234,31 @@ export default function MyProfile() {
                   type="tel"
                   value={form.phone}
                   onChange={handleChange}
-                  className="flex-1 px-4 py-3 rounded-[12px] border border-line bg-surface text-[14px] text-ink focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal transition-colors"
+                  className={`flex-1 px-4 py-3 rounded-[12px] border bg-surface text-[14px] text-ink focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal transition-colors ${
+                    errors.phone ? "border-coral" : "border-line"
+                  }`}
                   placeholder="9 1234 5678"
                 />
               </div>
+              {errors.phone && (
+                <p className="text-[12px] text-coral mt-1.5">{errors.phone}</p>
+              )}
+            </div>
+
+            {/* Alternate phone */}
+            <div className="sm:col-span-2">
+              <label htmlFor="phone_alt" className="text-[13px] font-semibold text-ink mb-1.5 block">
+                Teléfono alternativo <span className="text-ink3 font-normal">(opcional)</span>
+              </label>
+              <input
+                id="phone_alt"
+                name="phone_alt"
+                type="tel"
+                value={form.phone_alt}
+                onChange={handleChange}
+                className="w-full px-4 py-3 rounded-[12px] border border-line bg-surface text-[14px] text-ink focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal transition-colors"
+                placeholder="Otro número de contacto"
+              />
             </div>
 
             {/* Email — read only */}

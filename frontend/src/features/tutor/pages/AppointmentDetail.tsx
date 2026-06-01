@@ -254,6 +254,7 @@ export default function AppointmentDetail() {
   }
 
   const isConfirmed = appointment.status === "CONFIRMED";
+  const canCancel = appointment.status === "CONFIRMED" || appointment.status === "HOLD";
   const isCancelled = appointment.status === "CANCELLED";
 
   return (
@@ -340,9 +341,9 @@ export default function AppointmentDetail() {
         </div>
 
         {/* Actions */}
-        {isConfirmed && (
+        {canCancel && (
           <div className="flex flex-col gap-3">
-            {!appointment.attendance_confirmed && (
+            {isConfirmed && !appointment.attendance_confirmed && (
               <button
                 onClick={() => confirmAttendanceMutation.mutate()}
                 disabled={confirmAttendanceMutation.isPending}

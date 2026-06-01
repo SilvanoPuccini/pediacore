@@ -44,6 +44,7 @@ const MyChildren = lazy(() => import("@/features/tutor/pages/MyChildren"));
 const ChildDetail = lazy(() => import("@/features/tutor/pages/ChildDetail"));
 const MyProfile = lazy(() => import("@/features/tutor/pages/MyProfile"));
 const BillingHistory = lazy(() => import("@/features/tutor/pages/BillingHistory"));
+const TokenAction = lazy(() => import("@/features/tutor/pages/TokenAction"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -147,6 +148,7 @@ function AppRoutes() {
           <Route path="perfil" element={<MyProfile />} />
           <Route path="pagos" element={<BillingHistory />} />
         </Route>
+        <Route path="/a/:token" element={<TokenAction />} />
         <Route
           path="/admin"
           element={

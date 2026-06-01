@@ -5,6 +5,7 @@ export interface User {
   last_name: string;
   phone: string;
   phone_prefix: string;
+  phone_alt: string;
   rut: string;
   role: "VISITOR" | "TUTOR" | "DOCTOR";
   full_name: string;
@@ -160,6 +161,7 @@ export interface Patient {
   comuna: string;
   address: string;
   phone: string;
+  phone_prefix: string;
   created_at: string;
   tutors: TutorPatientLink[];
   profile_completion?: {
