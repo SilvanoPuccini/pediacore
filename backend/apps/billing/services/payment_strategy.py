@@ -220,7 +220,12 @@ class MercadoPagoStrategy(PaymentStrategy):
         try:
             signature_header = headers.get("HTTP_X_SIGNATURE", "")
             if not signature_header:
-                logger.warning("MercadoPago webhook: missing X-Signature header")
+                # Log all HTTP_ headers to diagnose what MP is actually sending
+                http_headers = {k: v for k, v in headers.items() if k.startswith("HTTP_")}
+                logger.warning(
+                    "MercadoPago webhook: missing X-Signature header. All HTTP headers: %s",
+                    http_headers,
+                )
                 return False
 
             # Parse ts and v1 from "ts=...,v1=..."
@@ -247,7 +252,25 @@ class MercadoPagoStrategy(PaymentStrategy):
 
             valid = hmac.compare_digest(expected, v1)
             if not valid:
-                logger.warning("MercadoPago webhook: invalid signature")
+                logger.warning(
+                    "MercadoPago webhook: SIGNATURE MISMATCH\n"
+                    "  X-Signature header: %s\n"
+                    "  data_id: %s\n"
+                    "  request_id: %s\n"
+                    "  ts: %s\n"
+                    "  message: %s\n"
+                    "  expected hash: %s\n"
+                    "  received v1:   %s\n"
+                    "  secret (first 4 chars): %s",
+                    signature_header,
+                    data_id,
+                    request_id,
+                    ts,
+                    message,
+                    expected,
+                    v1,
+                    secret[:4] + "..." if len(secret) > 4 else secret,
+                )
             return valid
 
         except Exception as exc:  # noqa: BLE001
