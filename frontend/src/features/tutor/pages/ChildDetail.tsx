@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, User, AlertCircle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import api from "@/lib/api";
+import { useAuthStore } from "@/stores/auth";
 import type { Patient } from "@/types/api";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -105,10 +106,18 @@ async function patchPatient(id: string, payload: Partial<EditableFields>): Promi
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+const RELATIONSHIP_LABELS: Record<string, string> = {
+  MOTHER: "Madre",
+  FATHER: "Padre",
+  GUARDIAN: "Tutor legal",
+  OTHER: "Otro",
+};
+
 export default function ChildDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const user = useAuthStore((s) => s.user);
 
   const [form, setForm] = useState<Partial<EditableFields>>({});
   const [banner, setBanner] = useState<{ type: "success" | "error"; message: string } | null>(null);
@@ -149,6 +158,23 @@ export default function ChildDetail() {
     },
     onError: () => {
       setBanner({ type: "error", message: "Ocurrió un error al guardar. Intentá de nuevo." });
+      setTimeout(() => setBanner(null), 5000);
+    },
+  });
+
+  // Find current tutor's link
+  const tutorLink = patient?.tutors?.find((t) => t.tutor === user?.id) ?? null;
+
+  const relationshipMutation = useMutation({
+    mutationFn: (relationship: string) =>
+      api.patch(`/patients/${id}/tutors/${tutorLink!.id}/`, { relationship }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["patient", id] });
+      setBanner({ type: "success", message: "Relación actualizada correctamente." });
+      setTimeout(() => setBanner(null), 4000);
+    },
+    onError: () => {
+      setBanner({ type: "error", message: "Ocurrió un error al actualizar la relación." });
       setTimeout(() => setBanner(null), 5000);
     },
   });
@@ -291,6 +317,37 @@ export default function ChildDetail() {
           </div>
         )}
       </div>
+
+      {/* Relationship card (only when a tutor link exists for current user) */}
+      {tutorLink && (
+        <div className="bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)] p-6 space-y-4">
+          <h2 className="text-[17px] font-semibold text-ink">Tu relación con {patient.first_name}</h2>
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(RELATIONSHIP_LABELS).map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => {
+                  if (key !== tutorLink.relationship) {
+                    relationshipMutation.mutate(key);
+                  }
+                }}
+                disabled={relationshipMutation.isPending}
+                className={cn(
+                  "px-4 py-2 rounded-[12px] text-[13px] font-semibold transition-all border",
+                  tutorLink.relationship === key
+                    ? "bg-teal-dark text-white border-teal-dark"
+                    : "bg-surface text-ink2 border-line hover:border-teal/40 hover:text-ink"
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {relationshipMutation.isPending && (
+            <p className="text-[12px] text-ink3">Guardando...</p>
+          )}
+        </div>
+      )}
 
       {/* Editable card */}
       <div className="bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)] p-6 space-y-5">

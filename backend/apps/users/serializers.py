@@ -19,6 +19,8 @@ class UserSerializer(serializers.ModelSerializer):
             "first_name",
             "last_name",
             "phone",
+            "phone_prefix",
+            "rut",
             "role",
             "full_name",
             "is_email_verified",
@@ -48,6 +50,8 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             "first_name",
             "last_name",
             "phone",
+            "phone_prefix",
+            "rut",
         ]
 
     def validate(self, attrs: dict) -> dict:
@@ -96,15 +100,17 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
 
 class UserProfileUpdateSerializer(serializers.ModelSerializer):
-    """Partial update serializer for user profile (name and phone only)."""
+    """Partial update serializer for user profile."""
 
     class Meta:
         model = User
-        fields = ["first_name", "last_name", "phone"]
+        fields = ["first_name", "last_name", "phone", "phone_prefix", "rut"]
 
     def update(self, instance: User, validated_data: dict) -> User:
         instance.first_name = validated_data.get("first_name", instance.first_name)
         instance.last_name = validated_data.get("last_name", instance.last_name)
         instance.phone = validated_data.get("phone", instance.phone)
+        instance.phone_prefix = validated_data.get("phone_prefix", instance.phone_prefix)
+        instance.rut = validated_data.get("rut", instance.rut)
         instance.save()
         return instance

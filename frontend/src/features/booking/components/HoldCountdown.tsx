@@ -25,7 +25,7 @@ export default function HoldCountdown({ holdExpiresAt, checkoutUrl }: HoldCountd
   }, [secondsLeft, checkoutUrl, reset]);
 
   return (
-    <div className="max-w-[560px] mx-auto px-4 py-12">
+    <div className="max-w-[560px] mx-auto px-4 pt-[110px] pb-12">
       <div className="bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)] p-8 text-center">
         {/* Spinner icon */}
         <div className="w-16 h-16 bg-teal/10 rounded-full flex items-center justify-center mx-auto mb-4">

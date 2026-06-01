@@ -4,10 +4,16 @@ export interface User {
   first_name: string;
   last_name: string;
   phone: string;
+  phone_prefix: string;
+  rut: string;
   role: "VISITOR" | "TUTOR" | "DOCTOR";
   full_name: string;
   is_email_verified: boolean;
   created_at: string;
+  profile_completion?: {
+    percentage: number;
+    missing: string[];
+  };
 }
 
 export interface LoginRequest {
@@ -129,6 +135,16 @@ export interface PatientCreate {
   practice: number;
 }
 
+export interface TutorPatientLink {
+  id: number;
+  tutor: number;
+  tutor_email: string;
+  tutor_full_name: string;
+  relationship: string;
+  is_primary: boolean;
+  created_at: string;
+}
+
 export interface Patient {
   id: number;
   first_name: string;
@@ -145,6 +161,7 @@ export interface Patient {
   address: string;
   phone: string;
   created_at: string;
+  tutors: TutorPatientLink[];
   profile_completion?: {
     percentage: number;
     missing: string[];

@@ -234,6 +234,22 @@ class PatientCreateSerializer(serializers.ModelSerializer):
         return attrs
 
 
+class TutorPatientRelationUpdateSerializer(serializers.ModelSerializer):
+    """Update the tutor's relationship to a patient."""
+
+    class Meta:
+        model = TutorPatient
+        fields = ["relationship"]
+
+    def validate_relationship(self, value: str) -> str:
+        valid = dict(TutorPatient.RELATIONSHIP_CHOICES)
+        if value not in valid:
+            raise serializers.ValidationError(
+                f"'{value}' is not a valid relationship. Choices: {', '.join(valid)}"
+            )
+        return value
+
+
 class TutorPatientUpdateSerializer(serializers.ModelSerializer):
     """
     Partial update serializer restricted to fields a TUTOR is allowed to edit.

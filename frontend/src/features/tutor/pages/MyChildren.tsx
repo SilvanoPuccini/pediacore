@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Baby, Plus, Trash2, X } from "lucide-react";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
+import InlinePatientForm from "@/features/booking/components/InlinePatientForm";
 import type { Patient, PaginatedResponse } from "@/types/api";
 
 // ─── Age calculation ──────────────────────────────────────────────────────────
@@ -112,10 +113,19 @@ interface PatientCardProps {
 }
 
 function PatientCard({ patient, onUnlink }: PatientCardProps) {
+  const navigate = useNavigate();
   const completion = patient.profile_completion;
 
   return (
-    <div className="bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)] p-5">
+    <div
+      onClick={() => navigate(`/portal/hijos/${patient.id}`)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") navigate(`/portal/hijos/${patient.id}`);
+      }}
+      className="bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)] p-5 cursor-pointer hover:border-teal/40 transition-colors"
+    >
       <div className="flex items-start justify-between gap-4">
         {/* Avatar + info */}
         <div className="flex items-center gap-4">
@@ -147,7 +157,10 @@ function PatientCard({ patient, onUnlink }: PatientCardProps) {
 
         {/* Unlink button */}
         <button
-          onClick={() => onUnlink(patient)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onUnlink(patient);
+          }}
           title="Quitar de tu lista"
           className={cn(
             "shrink-0 h-8 w-8 rounded-[10px] flex items-center justify-center",
@@ -229,6 +242,7 @@ function EmptyState() {
 
 export default function MyChildren() {
   const queryClient = useQueryClient();
+  const [showForm, setShowForm] = useState(false);
   const [pendingUnlink, setPendingUnlink] = useState<Patient | null>(null);
 
   const { data, isLoading } = useQuery({
@@ -261,18 +275,32 @@ export default function MyChildren() {
             </p>
           </div>
 
-          <Link
-            to="/booking"
-            className={cn(
-              "inline-flex items-center gap-2 h-10 px-4 rounded-[12px]",
-              "bg-teal text-white text-[13px] font-semibold",
-              "hover:bg-teal-dark transition-colors shrink-0"
-            )}
-          >
-            <Plus size={15} />
-            Agregar hijo
-          </Link>
+          {!showForm && (
+            <button
+              onClick={() => setShowForm(true)}
+              className={cn(
+                "inline-flex items-center gap-2 h-10 px-4 rounded-[12px]",
+                "bg-teal text-white text-[13px] font-semibold",
+                "hover:bg-teal-dark transition-colors shrink-0"
+              )}
+            >
+              <Plus size={15} />
+              Agregar hijo
+            </button>
+          )}
         </div>
+
+        {/* Inline form */}
+        {showForm && (
+          <div className="mb-8">
+            <InlinePatientForm
+              onSuccess={() => {
+                setShowForm(false);
+              }}
+              onCancel={() => setShowForm(false)}
+            />
+          </div>
+        )}
 
         {/* Content */}
         {isLoading ? (
