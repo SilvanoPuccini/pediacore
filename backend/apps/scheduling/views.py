@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import datetime
+import logging
+
+logger = logging.getLogger(__name__)
 
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
@@ -458,6 +461,7 @@ class BookingView(APIView):
                     {"detail": exc.message if hasattr(exc, "message") else str(exc)},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
+            logger.error("BookingView: payment failed — %s: %s", type(exc).__name__, exc)
             return Response(
                 {"detail": "Ocurrió un error al procesar el pago. Por favor, intentá de nuevo."},
                 status=status.HTTP_502_BAD_GATEWAY,
