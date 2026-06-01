@@ -268,14 +268,17 @@ class MercadoPagoWebhookView(APIView):
         data_id = str(data.get("data", {}).get("id", ""))
         request_id = request.META.get("HTTP_X_REQUEST_ID", "")
 
-        if not MercadoPagoStrategy.validate_webhook_signature(
-            headers=request.META,
-            data_id=data_id,
-            request_id=request_id,
-            secret=webhook_secret,
-        ):
-            logger.warning("MercadoPago webhook: invalid signature, rejecting request")
-            return Response({"detail": "Invalid signature."}, status=status.HTTP_403_FORBIDDEN)
+        if webhook_secret:
+            if not MercadoPagoStrategy.validate_webhook_signature(
+                headers=request.META,
+                data_id=data_id,
+                request_id=request_id,
+                secret=webhook_secret,
+            ):
+                logger.warning("MercadoPago webhook: invalid signature, rejecting request")
+                return Response({"detail": "Invalid signature."}, status=status.HTTP_403_FORBIDDEN)
+        else:
+            logger.info("MercadoPago webhook: MERCADOPAGO_WEBHOOK_SECRET not set, skipping signature validation")
 
         # ── 2. Ignore non-payment events ──────────────────────────────────────
         notification_type = data.get("type", "")
