@@ -8,20 +8,6 @@ import type { Appointment, Patient, PaginatedResponse } from "@/types/api";
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
 
-const DATE_FORMATTER = new Intl.DateTimeFormat("es-CL", {
-  weekday: "short",
-  day: "numeric",
-  month: "short",
-  timeZone: "America/Santiago",
-});
-
-function formatDate(dateStr: string): string {
-  const [year, month, day] = dateStr.split("-").map(Number);
-  const date = new Date(year, month - 1, day, 12, 0, 0);
-  const formatted = DATE_FORMATTER.format(date);
-  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
-}
-
 function formatTime(timeStr: string): string {
   return timeStr.slice(0, 5);
 }

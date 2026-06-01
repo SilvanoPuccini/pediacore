@@ -52,6 +52,17 @@ export default function BookingConfirmed() {
     [patients, patientId]
   );
 
+  // If no appointment AND not coming from MercadoPago, redirect to booking
+  useEffect(() => {
+    if (!appointmentId && !isFromMP && !selectedDate) {
+      navigate("/booking");
+    }
+  }, [appointmentId, isFromMP, selectedDate, navigate]);
+
+  const isApproved = !mpStatus || mpStatus === "approved";
+  const isPending = mpStatus === "pending" || mpStatus === "in_process";
+  const isFailed = mpStatus && !isApproved && !isPending;
+
   const { data: invoicesResp } = useQuery<PaginatedResponse<InvoiceListItem>>({
     queryKey: ["invoices-confirmed", appointmentId],
     queryFn: async () => {
@@ -84,22 +95,6 @@ export default function BookingConfirmed() {
     } finally {
       setDownloading(false);
     }
-  }
-
-  // If no appointment AND not coming from MercadoPago, redirect to booking
-  useEffect(() => {
-    if (!appointmentId && !isFromMP && !selectedDate) {
-      navigate("/booking");
-    }
-  }, [appointmentId, isFromMP, selectedDate, navigate]);
-
-  const isApproved = !mpStatus || mpStatus === "approved";
-  const isPending = mpStatus === "pending" || mpStatus === "in_process";
-  const isFailed = mpStatus && !isApproved && !isPending;
-
-  function handleGoHome() {
-    reset();
-    navigate("/");
   }
 
   function handleNewBooking() {

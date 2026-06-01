@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, User, AlertCircle, CheckCircle2 } from "lucide-react";
@@ -113,21 +113,24 @@ export default function ChildDetail() {
   const [form, setForm] = useState<Partial<EditableFields>>({});
   const [banner, setBanner] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
-  const { data: patient, isLoading, isError } = useQuery({
+  const { data: patient, isLoading, isError } = useQuery<Patient>({
     queryKey: ["patient", id],
     queryFn: () => fetchPatient(id!),
     enabled: !!id,
-    onSuccess: (data) => {
-      setForm({
-        insurance: data.insurance,
-        country: data.country,
-        region: data.region,
-        comuna: data.comuna,
-        address: data.address,
-        phone: data.phone,
-      });
-    },
   });
+
+  useEffect(() => {
+    if (patient) {
+      setForm({
+        insurance: patient.insurance,
+        country: patient.country,
+        region: patient.region,
+        comuna: patient.comuna,
+        address: patient.address,
+        phone: patient.phone,
+      });
+    }
+  }, [patient]);
 
   const mutation = useMutation({
     mutationFn: (payload: Partial<EditableFields>) => patchPatient(id!, payload),
