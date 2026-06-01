@@ -105,10 +105,33 @@ _EMAIL_BASE_URL = lambda: str(getattr(settings, "FRONTEND_URL", "https://estefip
 _EMAIL_LOGO_URL = lambda: f"{_EMAIL_BASE_URL()}/images/logo.jpg"
 
 
+def _location_lines(location) -> list[str]:
+    """
+    Return display lines for a location: name + address when available.
+
+    Returns a single-element list for online appointments, or a two-element
+    list (name line + address line) for in-person appointments that have an address.
+
+    Args:
+        location: Location instance or None (None → online appointment).
+    """
+    if not location:
+        return ["Lugar: Consulta Online"]
+    lines = [f"📍 {location.name}"]
+    if location.address:
+        lines.append(
+            f'<span style="padding-left:22px; color:#666666; font-size:14px;">'
+            f"{location.address}"
+            f"</span>"
+        )
+    return lines
+
+
 def _build_appointment_html(
     title: str,
     body_lines: list[str],
     token_urls: dict | None = None,
+    extra_html: str = "",
 ) -> str:
     """
     Build a professional brand-aligned HTML email body for appointment notifications.
@@ -118,6 +141,9 @@ def _build_appointment_html(
         body_lines: List of text lines to render as <p> elements.
         token_urls: Optional dict with keys 'confirm', 'cancel', 'reschedule'.
             When provided, action buttons are rendered below the body.
+        extra_html: Optional raw HTML block inserted after body_lines and before
+            action buttons. Use for banners or callout boxes that need full HTML
+            control (e.g. warning boxes with background color). Must use inline CSS.
     """
     body_html = "".join(
         '<p style="font-family:\'Plus Jakarta Sans\',Arial,sans-serif; '
@@ -210,6 +236,7 @@ def _build_appointment_html(
                         <td style="padding:36px 40px;">
                             <h2 style="font-family:'Fraunces',Georgia,'Times New Roman',serif; color:#4A8590; font-size:20px; margin:0 0 20px; font-weight:600;">{title}</h2>
                             {body_html}
+                            {extra_html}
                             {action_buttons_html}
                         </td>
                     </tr>
@@ -289,7 +316,7 @@ def send_appointment_reminder(appointment: Appointment) -> None:
                 f"programada para el <strong>{appointment.scheduled_date}</strong> "
                 f"a las <strong>{appointment.start_time:%H:%M}</strong>.",
                 f"Servicio: {appointment.service.name}",
-                f"Lugar: {appointment.location.name if appointment.location else 'Consulta Online'}",
+                *_location_lines(appointment.location),
                 "Si necesitás cancelar o reprogramar, por favor contactanos con anticipación.",
             ],
         )
@@ -354,7 +381,7 @@ def send_appointment_confirmation(
                 f"Fecha: {appointment.scheduled_date}",
                 f"Hora: {appointment.start_time:%H:%M}",
                 f"Servicio: {appointment.service.name}",
-                f"Lugar: {appointment.location.name if appointment.location else 'Consulta Online'}",
+                *_location_lines(appointment.location),
             ],
             token_urls=token_urls,
         )
@@ -430,7 +457,7 @@ def send_payment_receipt(payment) -> None:
     scheduled_date = appointment.scheduled_date if appointment else "—"
     start_time = appointment.start_time.strftime("%H:%M") if appointment else "—"
     service_name = appointment.service.name if appointment and appointment.service else "Consulta médica"
-    location_name = appointment.location.name if appointment and appointment.location else "Consulta Online"
+    location_lines = _location_lines(appointment.location if appointment else None)
 
     # Format amount: CLP is integer, no decimals
     try:
@@ -450,6 +477,18 @@ def send_payment_receipt(payment) -> None:
         if prefs and not getattr(prefs, "email_payment_received", True):
             continue
 
+        boleta_warning_html = """
+            <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:20px 0 0;">
+                <tr>
+                    <td style="background-color:#FFFBEB; border:1px solid #F59E0B; border-radius:8px; padding:14px 18px;">
+                        <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:#92400E; font-size:14px; line-height:1.5; margin:0;">
+                            ⚠️ <strong>Atención:</strong> El profesional no emite boletas por este servicio automáticamente.
+                            Si deseas tu boleta, contacta directamente al profesional.
+                        </p>
+                    </td>
+                </tr>
+            </table>"""
+
         subject = f"Comprobante de pago — {scheduled_date}"
         html_body = _build_appointment_html(
             title="Pago recibido",
@@ -460,9 +499,10 @@ def send_payment_receipt(payment) -> None:
                 f"Servicio: {service_name}",
                 f"Fecha: {scheduled_date}",
                 f"Hora: {start_time}",
-                f"Lugar: {location_name}",
+                *location_lines,
                 "Tu consulta ha sido confirmada. ¡Te esperamos!",
             ],
+            extra_html=boleta_warning_html,
         )
 
         Notification.objects.create(
@@ -593,7 +633,7 @@ def send_appointment_reschedule(
                 f"Nueva fecha: {appointment.scheduled_date}",
                 f"Nueva hora: {appointment.start_time:%H:%M}",
                 f"Servicio: {appointment.service.name}",
-                f"Lugar: {appointment.location.name if appointment.location else 'Consulta Online'}",
+                *_location_lines(appointment.location),
                 "Si necesitás hacer cambios adicionales, por favor contactanos.",
             ],
             token_urls=resolved_token_urls,
@@ -721,7 +761,6 @@ def send_24h_reminder(appointment) -> None:
             # Respect opt-out: no email, but flag will be set after the loop
             continue
 
-        location_display = appointment.location.name if appointment.location else "Consulta Online"
         subject = "Recordatorio: tu cita es mañana"
         html_body = _build_appointment_html(
             title="Recordatorio: tu cita es mañana",
@@ -731,7 +770,7 @@ def send_24h_reminder(appointment) -> None:
                 f"programada para <strong>mañana {appointment.scheduled_date}</strong> "
                 f"a las <strong>{appointment.start_time:%H:%M}</strong>.",
                 f"Servicio: {appointment.service.name}",
-                f"Lugar: {location_display}",
+                *_location_lines(appointment.location),
             ],
             token_urls=token_urls,
         )

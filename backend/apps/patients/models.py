@@ -168,6 +168,9 @@ class Patient(BaseModel):
         _("phone"), max_length=30, blank=True,
         help_text=_("Patient/tutor contact phone (separate from User.phone).")
     )
+    phone_prefix = models.CharField(
+        _("phone prefix"), max_length=10, default="+56", blank=True,
+    )
     blood_type = models.CharField(
         _("blood type"), max_length=5, blank=True, choices=BLOOD_TYPE_CHOICES
     )

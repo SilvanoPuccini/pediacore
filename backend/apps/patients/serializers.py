@@ -153,6 +153,7 @@ class PatientSerializer(serializers.ModelSerializer):
             "comuna",
             "address",
             "phone",
+            "phone_prefix",
             "is_active",
             "tutors",
             "created_at",
@@ -268,6 +269,7 @@ class TutorPatientUpdateSerializer(serializers.ModelSerializer):
             "comuna",
             "address",
             "phone",
+            "phone_prefix",
         ]
 
 
