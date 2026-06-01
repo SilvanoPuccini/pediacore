@@ -72,11 +72,10 @@ async function executeAction(token: string): Promise<void> {
 }
 
 class TokenError extends Error {
-  constructor(
-    public readonly status: number,
-    message: string
-  ) {
+  readonly status: number;
+  constructor(status: number, message: string) {
     super(message);
+    this.status = status;
   }
 }
 
