@@ -45,20 +45,20 @@ def get_available_slots(
     day_of_week = date.weekday()
 
     # Fetch relevant working hours blocks.
-    # If a service has dedicated blocks, ONLY those apply (ignoring general blocks).
-    # Otherwise, general blocks (service=NULL) apply.
-    has_dedicated = WorkingHours.objects.filter(
-        practice=practice,
-        service_id=service_id,
-        is_active=True,
-    ).exists()
-
-    if has_dedicated:
-        service_filter = Q(service_id=service_id)
-    else:
-        service_filter = Q(service__isnull=True)
-
+    # If a service has dedicated blocks IN THIS CONTEXT (online or presencial),
+    # ONLY those apply. Otherwise, general blocks (service=NULL) apply.
+    # This allows a service to have dedicated online blocks while still using
+    # general presencial blocks (e.g. Lactancia: dedicated Tue/Fri online,
+    # but shares the normal presencial schedule at each location).
     if is_online:
+        has_dedicated = WorkingHours.objects.filter(
+            practice=practice,
+            service_id=service_id,
+            is_online=True,
+            is_active=True,
+        ).exists()
+        service_filter = Q(service_id=service_id) if has_dedicated else Q(service__isnull=True)
+
         working_hours_qs = WorkingHours.objects.filter(
             service_filter,
             practice=practice,
@@ -67,6 +67,14 @@ def get_available_slots(
             is_active=True,
         )
     else:
+        has_dedicated = WorkingHours.objects.filter(
+            practice=practice,
+            service_id=service_id,
+            is_online=False,
+            is_active=True,
+        ).exists()
+        service_filter = Q(service_id=service_id) if has_dedicated else Q(service__isnull=True)
+
         working_hours_qs = WorkingHours.objects.filter(
             service_filter,
             location=location,

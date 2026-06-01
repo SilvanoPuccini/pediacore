@@ -304,9 +304,9 @@ class Command(BaseCommand):
                 ),
                 "duration_minutes": 45,
                 "price_clp": 40000,
-                "modality": "ONLINE",
+                "modality": "PRESENCIAL_Y_ONLINE",
                 "display_order": 6,
-                "locations": [],
+                "locations": [location_pucon, location_villarrica],
             },
             {
                 "name": "Curso RCP Infantil",
