@@ -217,6 +217,7 @@ class Command(BaseCommand):
         from apps.practice.models import Service
 
         services_data = [
+            # ── Presencial services ────────────────────────────────────────
             {
                 "name": "Consulta General - Control Niño Sano",
                 "slug": "control-nino-sano",
@@ -228,7 +229,7 @@ class Command(BaseCommand):
                 ),
                 "duration_minutes": 45,
                 "price_clp": 40000,
-                "modality": "PRESENCIAL_Y_ONLINE",
+                "modality": "PRESENCIAL",
                 "display_order": 1,
                 "locations": [location_pucon, location_villarrica],
             },
@@ -243,24 +244,55 @@ class Command(BaseCommand):
                 ),
                 "duration_minutes": 45,
                 "price_clp": 40000,
-                "modality": "PRESENCIAL_Y_ONLINE",
+                "modality": "PRESENCIAL",
                 "display_order": 2,
                 "locations": [location_pucon, location_villarrica],
             },
             {
-                "name": "Control por Enfermedad (FONASA)",
+                "name": "Control con valor preferencial (FONASA)",
                 "slug": "consulta-enfermedad-fonasa",
                 "description": (
-                    "Evaluación médica y tratamiento de patologías agudas infantiles "
-                    "con cobertura FONASA. Requiere presentar certificado de afiliación "
-                    "FONASA vigente del paciente al momento de la consulta."
+                    "Control de niño sano o por enfermedad con evaluación médica y "
+                    "tratamiento según corresponda. Requiere presentar certificado "
+                    "de afiliación FONASA vigente del paciente."
                 ),
                 "duration_minutes": 45,
                 "price_clp": 32000,
-                "modality": "PRESENCIAL_Y_ONLINE",
+                "modality": "PRESENCIAL",
                 "requires_fonasa_validation": True,
                 "display_order": 3,
-                "locations": [location_pucon, location_villarrica],
+                "locations": [location_pucon],
+            },
+            # ── Online services ───────────────────────────────────────────
+            {
+                "name": "Consulta General Online",
+                "slug": "control-nino-sano-online",
+                "description": (
+                    "Evaluación integral del crecimiento y desarrollo infantil con "
+                    "enfoque integrativo y funcional. Revisión de antecedentes, "
+                    "seguimiento del crecimiento y desarrollo, evaluación de hábitos, "
+                    "alimentación y sueño. Se despejan todas las dudas."
+                ),
+                "duration_minutes": 30,
+                "price_clp": 35000,
+                "modality": "ONLINE",
+                "display_order": 4,
+                "locations": [],
+            },
+            {
+                "name": "Control por Enfermedad Online",
+                "slug": "consulta-enfermedad-particular-online",
+                "description": (
+                    "Consulta médica para diagnóstico y manejo de enfermedades agudas "
+                    "y crónicas infantiles, abordadas desde una mirada integrativa y "
+                    "funcional. Si se requieren exámenes, su revisión posterior NO "
+                    "tiene costo adicional (se incluye dentro de la misma consulta)."
+                ),
+                "duration_minutes": 30,
+                "price_clp": 35000,
+                "modality": "ONLINE",
+                "display_order": 5,
+                "locations": [],
             },
             {
                 "name": "Asesoría de Lactancia",
@@ -272,9 +304,9 @@ class Command(BaseCommand):
                 ),
                 "duration_minutes": 45,
                 "price_clp": 40000,
-                "modality": "PRESENCIAL_Y_ONLINE",
-                "display_order": 4,
-                "locations": [location_pucon, location_villarrica],
+                "modality": "ONLINE",
+                "display_order": 6,
+                "locations": [],
             },
             {
                 "name": "Curso RCP Infantil",
@@ -335,20 +367,29 @@ class Command(BaseCommand):
         """
         Real schedules for the practice.
 
-        Pucón:
-          Monday:    10:00–16:00, break 13:00–13:45, max 7, slot 45 min
-          Wednesday:  9:45–13:30, no break,           max 5, slot 45 min
-          Thursday:  14:45–18:30, no break,            max 6, slot 45 min
+        Pucón (presencial, slot 45 min):
+          Monday:    10:00–16:00, break 13:00–13:45, max 7
+          Wednesday:  9:45–13:30, no break,           max 5
+          Thursday:  14:45–18:30, no break,            max 6
 
-        Villarrica:
-          Tuesday:  10:15–14:45, break 13:15–14:00, max 7, slot 45 min
-          Friday:   11:00–15:30, break 13:15–14:00, max 6, slot 45 min
+        Villarrica (presencial, slot 45 min):
+          Tuesday:  10:15–14:45, break 13:15–14:00, max 7
+          Friday:   11:00–15:30, break 13:15–14:00, max 6
 
-        Online (is_online=True, location=None):
-          Monday:   18:00–19:30, no break, max 3, slot 30 min
-          Thursday: 10:00–12:00, no break, max 4, slot 30 min
+        Online general (slot 30 min, service=None):
+          Monday:   18:00–19:30, max 3
+          Thursday: 10:00–12:00, max 4
+
+        Online lactancia (slot 60 min = 45 min + 15 gap, service=lactancia):
+          Tuesday:  18:00–21:00, max 3
+          Friday:   18:00–21:00, max 3
         """
-        from apps.practice.models import WorkingHours
+        from apps.practice.models import Service, WorkingHours
+
+        # Resolve lactancia service for dedicated blocks
+        lactancia = Service.objects.filter(
+            practice=practice, slug="asesoria-lactancia"
+        ).first()
 
         blocks = [
             # ── Pucón ──────────────────────────────────────────────────────────
@@ -362,6 +403,7 @@ class Command(BaseCommand):
                 "max_appointments": 7,
                 "slot_duration_minutes": 45,
                 "is_online": False,
+                "service": None,
                 "label": "Pucón Monday 10:00–16:00",
             },
             {
@@ -374,6 +416,7 @@ class Command(BaseCommand):
                 "max_appointments": 5,
                 "slot_duration_minutes": 45,
                 "is_online": False,
+                "service": None,
                 "label": "Pucón Wednesday 9:45–13:30",
             },
             {
@@ -386,6 +429,7 @@ class Command(BaseCommand):
                 "max_appointments": 6,
                 "slot_duration_minutes": 45,
                 "is_online": False,
+                "service": None,
                 "label": "Pucón Thursday 14:45–18:30",
             },
             # ── Villarrica ────────────────────────────────────────────────────
@@ -399,6 +443,7 @@ class Command(BaseCommand):
                 "max_appointments": 7,
                 "slot_duration_minutes": 45,
                 "is_online": False,
+                "service": None,
                 "label": "Villarrica Tuesday 10:15–14:45",
             },
             {
@@ -411,9 +456,10 @@ class Command(BaseCommand):
                 "max_appointments": 6,
                 "slot_duration_minutes": 45,
                 "is_online": False,
+                "service": None,
                 "label": "Villarrica Friday 11:00–15:30",
             },
-            # ── Online ────────────────────────────────────────────────────────
+            # ── Online general ────────────────────────────────────────────────
             {
                 "location": None,
                 "day_of_week": WorkingHours.MONDAY,
@@ -424,6 +470,7 @@ class Command(BaseCommand):
                 "max_appointments": 3,
                 "slot_duration_minutes": 30,
                 "is_online": True,
+                "service": None,
                 "label": "Online Monday 18:00–19:30",
             },
             {
@@ -436,19 +483,47 @@ class Command(BaseCommand):
                 "max_appointments": 4,
                 "slot_duration_minutes": 30,
                 "is_online": True,
+                "service": None,
                 "label": "Online Thursday 10:00–12:00",
+            },
+            # ── Online lactancia (dedicated) ──────────────────────────────────
+            {
+                "location": None,
+                "day_of_week": WorkingHours.TUESDAY,
+                "start_time": datetime.time(18, 0),
+                "end_time": datetime.time(21, 0),
+                "break_start": None,
+                "break_end": None,
+                "max_appointments": 3,
+                "slot_duration_minutes": 60,
+                "is_online": True,
+                "service": lactancia,
+                "label": "Online Lactancia Tuesday 18:00–21:00",
+            },
+            {
+                "location": None,
+                "day_of_week": WorkingHours.FRIDAY,
+                "start_time": datetime.time(18, 0),
+                "end_time": datetime.time(21, 0),
+                "break_start": None,
+                "break_end": None,
+                "max_appointments": 3,
+                "slot_duration_minutes": 60,
+                "is_online": True,
+                "service": lactancia,
+                "label": "Online Lactancia Friday 18:00–21:00",
             },
         ]
 
         for block in blocks:
             label = block.pop("label")
-            # Use start_time as part of the lookup key to allow multiple blocks per day
             wh, created = WorkingHours.objects.get_or_create(
                 practice=practice,
                 location=block["location"],
                 day_of_week=block["day_of_week"],
                 start_time=block["start_time"],
                 is_online=block["is_online"],
+                service=block["service"],
                 defaults={
                     **block,
                     "is_active": True,
@@ -462,25 +537,25 @@ class Command(BaseCommand):
     # ------------------------------------------------------------------
 
     def _cleanup_old_working_hours(self, practice, location_pucon, location_villarrica):
-        """Remove working hours blocks that no longer match the real schedule.
+        """Remove working hours blocks that no longer match the real schedule."""
+        from apps.practice.models import Service, WorkingHours
 
-        The seed uses get_or_create keyed on (practice, location, day_of_week,
-        start_time, is_online), so stale rows from a previous seed run (e.g.
-        the old Mon-Fri 09:00–19:00 blocks) will not be overwritten — they
-        must be deleted explicitly.
-        """
-        from apps.practice.models import WorkingHours
+        lactancia = Service.objects.filter(
+            practice=practice, slug="asesoria-lactancia"
+        ).first()
+        lactancia_pk = lactancia.pk if lactancia else None
 
-        # Valid (location, day_of_week, start_time, is_online) tuples after this seed
+        # Valid (location, day_of_week, start_time, is_online, service_id) tuples
         valid_keys = {
-            (location_pucon.pk,      WorkingHours.MONDAY,    datetime.time(10,  0),  False),
-            (location_pucon.pk,      WorkingHours.WEDNESDAY, datetime.time( 9, 45),  False),
-            (location_pucon.pk,      WorkingHours.THURSDAY,  datetime.time(14, 45),  False),
-            (location_villarrica.pk, WorkingHours.TUESDAY,   datetime.time(10, 15),  False),
-            (location_villarrica.pk, WorkingHours.FRIDAY,    datetime.time(11,  0),  False),
-            # Online blocks have location=None; use None as the key
-            (None,                   WorkingHours.MONDAY,    datetime.time(18,  0),  True),
-            (None,                   WorkingHours.THURSDAY,  datetime.time(10,  0),  True),
+            (location_pucon.pk,      WorkingHours.MONDAY,    datetime.time(10,  0),  False, None),
+            (location_pucon.pk,      WorkingHours.WEDNESDAY, datetime.time( 9, 45),  False, None),
+            (location_pucon.pk,      WorkingHours.THURSDAY,  datetime.time(14, 45),  False, None),
+            (location_villarrica.pk, WorkingHours.TUESDAY,   datetime.time(10, 15),  False, None),
+            (location_villarrica.pk, WorkingHours.FRIDAY,    datetime.time(11,  0),  False, None),
+            (None,                   WorkingHours.MONDAY,    datetime.time(18,  0),  True,  None),
+            (None,                   WorkingHours.THURSDAY,  datetime.time(10,  0),  True,  None),
+            (None,                   WorkingHours.TUESDAY,   datetime.time(18,  0),  True,  lactancia_pk),
+            (None,                   WorkingHours.FRIDAY,    datetime.time(18,  0),  True,  lactancia_pk),
         }
 
         stale_qs = WorkingHours.objects.filter(practice=practice)
@@ -491,6 +566,7 @@ class Command(BaseCommand):
                 wh.day_of_week,
                 wh.start_time,
                 wh.is_online,
+                wh.service_id,
             )
             if key not in valid_keys:
                 wh.delete()

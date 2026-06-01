@@ -79,9 +79,10 @@ class WorkingHoursAdmin(admin.ModelAdmin):
         "max_appointments",
         "slot_duration_minutes",
         "is_online",
+        "service",
         "is_active",
     ]
-    list_filter = ["is_active", "is_online", "practice", "location", "day_of_week"]
+    list_filter = ["is_active", "is_online", "practice", "location", "day_of_week", "service"]
     list_editable = [
         "break_start",
         "break_end",
@@ -92,7 +93,7 @@ class WorkingHoursAdmin(admin.ModelAdmin):
     readonly_fields = ["created_at", "updated_at"]
     fieldsets = [
         (None, {
-            "fields": ["practice", "location", "day_of_week", "is_online"],
+            "fields": ["practice", "location", "day_of_week", "is_online", "service"],
         }),
         ("Time range", {
             "fields": ["start_time", "end_time"],

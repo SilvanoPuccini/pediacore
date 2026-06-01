@@ -243,6 +243,16 @@ class WorkingHours(TimeStampedModel):
         default=False,
         help_text=_("If True, this block is for online consultations (location should be left blank)."),
     )
+    service = models.ForeignKey(
+        Service,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="dedicated_working_hours",
+        verbose_name=_("service"),
+        help_text=_("If set, this block only applies to this specific service. "
+                     "Leave blank for general blocks that apply to all services."),
+    )
     is_active = models.BooleanField(_("active"), default=True)
 
     class Meta:
