@@ -48,6 +48,7 @@ def hold_appointment(
     scheduled_date: datetime.date,
     start_time: datetime.time,
     is_online: bool = False,
+    call_platform: str = "",
     notes: str = "",
 ) -> tuple[Appointment, Payment, str]:
     """
@@ -116,6 +117,7 @@ def hold_appointment(
             end_time=end_time,
             status=Appointment.HOLD,
             is_online=is_online,
+            call_platform=call_platform,
             hold_expires_at=hold_expires_at,
             notes=notes,
         )

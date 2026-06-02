@@ -444,6 +444,7 @@ class BookingView(APIView):
                 scheduled_date=data["scheduled_date"],
                 start_time=data["start_time"],
                 is_online=data.get("is_online", False),
+                call_platform=data.get("call_platform", ""),
                 notes=data.get("notes", ""),
             )
         except PermissionError as exc:

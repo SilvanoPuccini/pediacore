@@ -223,6 +223,11 @@ DEFAULT_REPLY_TO_EMAIL = config("DEFAULT_REPLY_TO_EMAIL", default="estefiortigos
 MERCADOPAGO_ACCESS_TOKEN = config("MERCADOPAGO_ACCESS_TOKEN", default="")
 MERCADOPAGO_WEBHOOK_SECRET = config("MERCADOPAGO_WEBHOOK_SECRET", default="")
 
+# Zoom (Server-to-Server OAuth)
+ZOOM_ACCOUNT_ID = config("ZOOM_ACCOUNT_ID", default="")
+ZOOM_CLIENT_ID = config("ZOOM_CLIENT_ID", default="")
+ZOOM_CLIENT_SECRET = config("ZOOM_CLIENT_SECRET", default="")
+
 # URLs for payment back_urls and notification_url
 FRONTEND_URL = config("FRONTEND_URL", default="https://estefipediatra.com")
 BACKEND_URL = config("BACKEND_URL", default="https://api.estefipediatra.com")

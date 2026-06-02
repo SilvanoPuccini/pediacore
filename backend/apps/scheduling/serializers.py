@@ -37,6 +37,7 @@ class AppointmentListSerializer(serializers.ModelSerializer):
             "status_display",
             "is_online",
             "hold_expires_at",
+            "call_platform",
             "meeting_link",
             "attendance_confirmed",
             "created_at",
@@ -434,6 +435,12 @@ class BookingSerializer(serializers.Serializer):
     scheduled_date = serializers.DateField()
     start_time = serializers.TimeField()
     is_online = serializers.BooleanField(default=False)
+    call_platform = serializers.ChoiceField(
+        choices=Appointment.CALL_PLATFORM_CHOICES,
+        required=False,
+        allow_blank=True,
+        default="",
+    )
     notes = serializers.CharField(required=False, allow_blank=True, default="")
 
     def validate(self, attrs: dict) -> dict:

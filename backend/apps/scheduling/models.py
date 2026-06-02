@@ -98,9 +98,24 @@ class Appointment(BaseModel):
         _("hold expires at"), null=True, blank=True,
         help_text=_("When the HOLD reservation expires if payment is not completed."),
     )
+    WHATSAPP = "WHATSAPP"
+    ZOOM = "ZOOM"
+
+    CALL_PLATFORM_CHOICES = [
+        (WHATSAPP, _("WhatsApp")),
+        (ZOOM, _("Zoom")),
+    ]
+
+    call_platform = models.CharField(
+        _("call platform"),
+        max_length=20,
+        choices=CALL_PLATFORM_CHOICES,
+        blank=True,
+        help_text=_("Platform for online consultations (WhatsApp or Zoom)."),
+    )
     meeting_link = models.URLField(
         _("meeting link"), blank=True,
-        help_text=_("Video call link for online appointments."),
+        help_text=_("Video call link for online appointments (auto-generated for Zoom)."),
     )
 
     # ── Attendance confirmation ──────────────────────────────────────────────

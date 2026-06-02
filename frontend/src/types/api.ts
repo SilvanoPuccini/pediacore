@@ -114,6 +114,7 @@ export interface BookingRequest {
   scheduled_date: string;  // "YYYY-MM-DD"
   start_time: string;      // "HH:MM:SS"
   is_online: boolean;
+  call_platform?: "WHATSAPP" | "ZOOM" | "";
   notes: string;
 }
 
@@ -184,6 +185,7 @@ export interface Appointment {
   status: string;
   status_display: string;
   is_online: boolean;
+  call_platform: "WHATSAPP" | "ZOOM" | "";
   hold_expires_at: string | null;
   meeting_link: string;
   attendance_confirmed: boolean;

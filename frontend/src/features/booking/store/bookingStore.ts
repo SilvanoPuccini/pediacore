@@ -27,6 +27,8 @@ interface BookingState {
   selectedSlot: AvailableSlot | null;
   // Step 5
   patientId: number | null;
+  // Call platform (online only)
+  callPlatform: "WHATSAPP" | "ZOOM" | "";
   // Step 7
   notes: string;
   acceptedPolicy: boolean;
@@ -49,6 +51,7 @@ interface BookingActions {
   setDate: (date: string) => void;
   setSlot: (slot: AvailableSlot) => void;
   setPatient: (id: number) => void;
+  setCallPlatform: (platform: "WHATSAPP" | "ZOOM" | "") => void;
   setNotes: (notes: string) => void;
   setAcceptedPolicy: (v: boolean) => void;
   setAcceptedTerms: (v: boolean) => void;
@@ -66,6 +69,7 @@ const initialState: BookingState = {
   selectedDate: null,
   selectedSlot: null,
   patientId: null,
+  callPlatform: "",
   notes: "",
   acceptedPolicy: false,
   acceptedTerms: false,
@@ -96,6 +100,8 @@ export const useBookingStore = create<BookingStore>()(
       setSlot: (slot) => set({ selectedSlot: slot, lastActivity: Date.now() }),
 
       setPatient: (id) => set({ patientId: id, lastActivity: Date.now() }),
+
+      setCallPlatform: (platform) => set({ callPlatform: platform, lastActivity: Date.now() }),
 
       setNotes: (notes) => set({ notes, lastActivity: Date.now() }),
 
