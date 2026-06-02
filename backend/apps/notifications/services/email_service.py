@@ -118,17 +118,17 @@ def _location_lines(location) -> list[str]:
     if not location:
         return ["Lugar: Consulta Online"]
     pin_svg = (
-        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" '
-        'stroke="#4A8590" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" '
-        'style="display:inline-block;vertical-align:middle;margin-right:4px;">'
-        '<path d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/>'
-        '<path d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/>'
+        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" '
+        'stroke="#4A8590" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" '
+        'style="display:inline-block;vertical-align:middle;margin-right:6px;">'
+        '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>'
+        '<circle cx="12" cy="10" r="4" fill="#4A8590"/>'
         "</svg>"
     )
     lines = [f"{pin_svg}{location.name}"]
     if location.address:
         lines.append(
-            f'<span style="padding-left:22px; color:#666666; font-size:14px;">'
+            f'<span style="padding-left:26px; color:#666666; font-size:14px;">'
             f"{location.address}"
             f"</span>"
         )
@@ -496,7 +496,7 @@ def send_payment_receipt(payment) -> None:
                 <tr>
                     <td style="background-color:#FFFBEB; border:1px solid #F59E0B; border-radius:8px; padding:14px 18px;">
                         <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:#92400E; font-size:14px; line-height:1.5; margin:0;">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#92400E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:6px;"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><strong>Atención:</strong> El profesional no emite boletas por este servicio automáticamente.
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#92400E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:6px;"><path d="M12 2L2 19.5a1.5 1.5 0 0 0 1.3 2.2h17.4a1.5 1.5 0 0 0 1.3-2.2L12 2z"/><path d="M12 9v4" stroke="#92400E" stroke-width="2.5" stroke-linecap="round"/><circle cx="12" cy="17" r="1" fill="#92400E"/></svg><strong>Atención:</strong> El profesional no emite boletas por este servicio automáticamente.
                             Si deseas tu boleta, contacta directamente al profesional.
                         </p>
                     </td>
