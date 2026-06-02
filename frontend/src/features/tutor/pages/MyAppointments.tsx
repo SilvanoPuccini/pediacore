@@ -1,10 +1,25 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, MapPin, Wifi, Clock, User, Stethoscope } from "lucide-react";
+import {
+  CalendarDays,
+  MapPin,
+  Wifi,
+  Clock,
+  User,
+  Stethoscope,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { Appointment, PaginatedResponse } from "@/types/api";
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const PAGE_SIZE = 5;
+const UPCOMING_STATUSES = "CONFIRMED,HOLD";
+const PAST_STATUSES = "COMPLETED,NO_SHOW,CANCELLED,EXPIRED";
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
 
@@ -17,33 +32,19 @@ const DATE_FORMATTER = new Intl.DateTimeFormat("es-CL", {
 });
 
 function formatDate(dateStr: string): string {
-  // dateStr is "YYYY-MM-DD" — parse as local noon to avoid UTC offset drift
   const [year, month, day] = dateStr.split("-").map(Number);
   const date = new Date(year, month - 1, day, 12, 0, 0);
   const formatted = DATE_FORMATTER.format(date);
-  // Capitalize first letter
   return formatted.charAt(0).toUpperCase() + formatted.slice(1);
 }
 
 function formatTime(timeStr: string): string {
-  // timeStr is "HH:MM:SS" or "HH:MM"
   return timeStr.slice(0, 5);
-}
-
-function todayDateString(): string {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, "0");
-  const d = String(now.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
 }
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
 
-const STATUS_CONFIG: Record<
-  string,
-  { label: string; classes: string }
-> = {
+const STATUS_CONFIG: Record<string, { label: string; classes: string }> = {
   CONFIRMED: {
     label: "Confirmado",
     classes: "bg-teal/10 text-teal-dark border border-teal/20",
@@ -91,7 +92,10 @@ function StatusBadge({ status }: { status: string }) {
 
 function AppointmentCard({ appointment }: { appointment: Appointment }) {
   return (
-    <div className="bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)] p-5 flex flex-col gap-4">
+    <Link
+      to={`/portal/turnos/${appointment.id}`}
+      className="group block bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)] p-5 flex flex-col gap-4 hover:border-teal/40 hover:shadow-md transition-all"
+    >
       {/* Header row */}
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -108,7 +112,13 @@ function AppointmentCard({ appointment }: { appointment: Appointment }) {
             </span>
           </div>
         </div>
-        <StatusBadge status={appointment.status} />
+        <div className="flex items-center gap-2">
+          <StatusBadge status={appointment.status} />
+          <ChevronRight
+            size={15}
+            className="text-ink3 group-hover:text-teal-dark transition-colors shrink-0"
+          />
+        </div>
       </div>
 
       {/* Details */}
@@ -138,19 +148,18 @@ function AppointmentCard({ appointment }: { appointment: Appointment }) {
         </div>
       </div>
 
-      {/* Online meeting link */}
-      {appointment.is_online && appointment.meeting_link && appointment.status === "CONFIRMED" && (
-        <a
-          href={appointment.meeting_link}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-teal-dark underline underline-offset-2"
-        >
-          <Wifi size={12} />
-          Unirse a la consulta online
-        </a>
-      )}
-    </div>
+      {/* Online meeting link indicator */}
+      {appointment.is_online &&
+        appointment.meeting_link &&
+        appointment.status === "CONFIRMED" && (
+          <div className="flex items-center gap-1.5">
+            <Wifi size={12} className="text-teal-dark" />
+            <span className="text-[12px] font-semibold text-teal-dark">
+              Consulta online disponible
+            </span>
+          </div>
+        )}
+    </Link>
   );
 }
 
@@ -164,7 +173,9 @@ function EmptyState({ tab }: { tab: "upcoming" | "past" }) {
       </div>
       <div>
         <p className="text-[14px] font-semibold text-ink mb-1">
-          {tab === "upcoming" ? "No tenés turnos próximos" : "No hay turnos anteriores"}
+          {tab === "upcoming"
+            ? "No tenés turnos próximos"
+            : "No hay turnos anteriores"}
         </p>
         <p className="text-[13px] text-ink3">
           {tab === "upcoming"
@@ -192,12 +203,10 @@ function TabButton({
   active,
   onClick,
   children,
-  count,
 }: {
   active: boolean;
   onClick: () => void;
   children: React.ReactNode;
-  count?: number;
 }) {
   return (
     <button
@@ -210,57 +219,101 @@ function TabButton({
       )}
     >
       {children}
-      {count !== undefined && count > 0 && (
-        <span
-          className={cn(
-            "inline-flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full text-[11px] font-bold",
-            active ? "bg-white/20 text-white" : "bg-cream text-ink3"
-          )}
-        >
-          {count}
-        </span>
-      )}
     </button>
+  );
+}
+
+// ─── Pagination controls ──────────────────────────────────────────────────────
+
+function PaginationControls({
+  page,
+  totalPages,
+  onPrev,
+  onNext,
+}: {
+  page: number;
+  totalPages: number;
+  onPrev: () => void;
+  onNext: () => void;
+}) {
+  if (totalPages <= 1) return null;
+  return (
+    <div className="flex items-center justify-center gap-4 pt-2">
+      <button
+        onClick={onPrev}
+        disabled={page === 1}
+        aria-label="Página anterior"
+        className={cn(
+          "flex items-center justify-center w-9 h-9 rounded-[12px] border border-line bg-surface text-ink transition-opacity",
+          page === 1 ? "opacity-30 cursor-not-allowed" : "hover:opacity-70"
+        )}
+      >
+        <ChevronLeft size={16} />
+      </button>
+
+      <span className="text-[13px] font-semibold text-ink2">
+        Página {page} de {totalPages}
+      </span>
+
+      <button
+        onClick={onNext}
+        disabled={page === totalPages}
+        aria-label="Página siguiente"
+        className={cn(
+          "flex items-center justify-center w-9 h-9 rounded-[12px] border border-line bg-surface text-ink transition-opacity",
+          page === totalPages
+            ? "opacity-30 cursor-not-allowed"
+            : "hover:opacity-70"
+        )}
+      >
+        <ChevronRight size={16} />
+      </button>
+    </div>
   );
 }
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-const UPCOMING_STATUSES = new Set(["CONFIRMED", "HOLD"]);
-const PAST_STATUSES = new Set(["COMPLETED", "NO_SHOW", "CANCELLED", "EXPIRED"]);
-
 export default function MyAppointments() {
   const [activeTab, setActiveTab] = useState<"upcoming" | "past">("upcoming");
+  const [upcomingPage, setUpcomingPage] = useState(1);
+  const [pastPage, setPastPage] = useState(1);
+
+  const page = activeTab === "upcoming" ? upcomingPage : pastPage;
+  const setPage = activeTab === "upcoming" ? setUpcomingPage : setPastPage;
+  const statusFilter =
+    activeTab === "upcoming" ? UPCOMING_STATUSES : PAST_STATUSES;
+  // Upcoming: oldest first (next appointment at top); past: newest first
+  const ordering =
+    activeTab === "upcoming"
+      ? "scheduled_date,start_time"
+      : "-scheduled_date,-start_time";
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["appointments"],
+    queryKey: ["appointments", activeTab, page],
     queryFn: async () => {
-      const response = await api.get<PaginatedResponse<Appointment>>("/appointments/");
+      const response = await api.get<PaginatedResponse<Appointment>>(
+        "/appointments/",
+        {
+          params: {
+            status: statusFilter,
+            ordering,
+            page,
+            page_size: PAGE_SIZE,
+          },
+        }
+      );
       return response.data;
     },
   });
 
-  const today = todayDateString();
+  const results = data?.results ?? [];
+  const totalCount = data?.count ?? 0;
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
-  const upcoming = (data?.results ?? [])
-    .filter(
-      (a) =>
-        UPCOMING_STATUSES.has(a.status) && a.scheduled_date >= today
-    )
-    .sort((a, b) => {
-      const dateCmp = a.scheduled_date.localeCompare(b.scheduled_date);
-      return dateCmp !== 0 ? dateCmp : a.start_time.localeCompare(b.start_time);
-    });
-
-  const past = (data?.results ?? [])
-    .filter((a) => PAST_STATUSES.has(a.status) || a.scheduled_date < today)
-    .filter((a) => !upcoming.includes(a))
-    .sort((a, b) => {
-      const dateCmp = b.scheduled_date.localeCompare(a.scheduled_date);
-      return dateCmp !== 0 ? dateCmp : b.start_time.localeCompare(a.start_time);
-    });
-
-  const displayed = activeTab === "upcoming" ? upcoming : past;
+  function handleTabChange(tab: "upcoming" | "past") {
+    setActiveTab(tab);
+  }
 
   return (
     <div className="max-w-3xl">
@@ -287,15 +340,13 @@ export default function MyAppointments() {
       <div className="flex items-center gap-2 mb-5 p-1 bg-cream rounded-[14px] w-fit">
         <TabButton
           active={activeTab === "upcoming"}
-          onClick={() => setActiveTab("upcoming")}
-          count={upcoming.length}
+          onClick={() => handleTabChange("upcoming")}
         >
           Próximos
         </TabButton>
         <TabButton
           active={activeTab === "past"}
-          onClick={() => setActiveTab("past")}
-          count={past.length}
+          onClick={() => handleTabChange("past")}
         >
           Anteriores
         </TabButton>
@@ -313,14 +364,25 @@ export default function MyAppointments() {
             Intentá recargar la página. Si el problema persiste, contactanos.
           </p>
         </div>
-      ) : displayed.length === 0 ? (
+      ) : results.length === 0 ? (
         <EmptyState tab={activeTab} />
       ) : (
-        <div className="grid grid-cols-1 gap-3">
-          {displayed.map((appointment) => (
-            <AppointmentCard key={appointment.id} appointment={appointment} />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 gap-3">
+            {results.map((appointment) => (
+              <AppointmentCard key={appointment.id} appointment={appointment} />
+            ))}
+          </div>
+
+          <div className="mt-4">
+            <PaginationControls
+              page={page}
+              totalPages={totalPages}
+              onPrev={() => setPage((p) => Math.max(1, p - 1))}
+              onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
+            />
+          </div>
+        </>
       )}
     </div>
   );

@@ -201,6 +201,7 @@ export interface AppointmentDetail extends Appointment {
   confirmed_at: string | null;
   rescheduled_from: number | null;
   rescheduled_at: string | null;
+  payment_id: number | null;
 }
 
 export interface Payment {
