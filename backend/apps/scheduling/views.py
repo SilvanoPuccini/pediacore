@@ -150,6 +150,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
+        refund_failed = False
         try:
             result = cancel_appointment(
                 appointment,
@@ -158,9 +159,17 @@ class AppointmentViewSet(viewsets.ModelViewSet):
                 cancelled_by=request.user,
             )
         except PaymentRefundError as exc:
-            return Response(
-                {"detail": f"Refund processing failed: {exc}"},
-                status=status.HTTP_502_BAD_GATEWAY,
+            logger.warning(
+                "cancel: refund failed for Appointment #%s, cancelling without refund: %s",
+                appointment.pk,
+                exc,
+            )
+            refund_failed = True
+            result = cancel_appointment(
+                appointment,
+                reason=reason,
+                refund=False,
+                cancelled_by=request.user,
             )
 
         refund_info = result.get("refund_info")
@@ -180,6 +189,8 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         )
 
         response_data: dict = {"detail": "Appointment cancelled."}
+        if refund_failed:
+            response_data["refund_warning"] = "Refund could not be processed automatically. Contact the clinic."
         if refund_info:
             response_data["refund_amount"] = refund_info.get("refund_amount")
             response_data["penalty_percentage"] = refund_info.get("penalty_percentage")
