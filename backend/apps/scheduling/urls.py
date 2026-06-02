@@ -11,6 +11,7 @@ from apps.scheduling.views import (
     BookingView,
     CancellationPolicyView,
     CancellationTierViewSet,
+    RescheduleViaTokenView,
     TokenResolveView,
     WaitlistViewSet,
 )
@@ -28,6 +29,7 @@ urlpatterns = [
     # Must be BEFORE router.urls so they're not matched by the router's appointment-detail pattern
     path("appointments/resolve/<str:token>/", TokenResolveView.as_view(), name="token-resolve"),
     path("appointments/action/", AppointmentActionView.as_view(), name="appointment-action"),
+    path("appointments/reschedule-via-token/", RescheduleViaTokenView.as_view(), name="reschedule-via-token"),
     path("admin/cancellation-policy/", CancellationPolicyView.as_view(), name="admin-cancellation-policy"),
     path("admin/auto-responder/", AutoResponderConfigView.as_view(), name="admin-auto-responder"),
     path("", include(router.urls)),

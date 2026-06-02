@@ -45,6 +45,7 @@ const ChildDetail = lazy(() => import("@/features/tutor/pages/ChildDetail"));
 const MyProfile = lazy(() => import("@/features/tutor/pages/MyProfile"));
 const BillingHistory = lazy(() => import("@/features/tutor/pages/BillingHistory"));
 const TokenAction = lazy(() => import("@/features/tutor/pages/TokenAction"));
+const RescheduleFromToken = lazy(() => import("@/features/tutor/pages/RescheduleFromToken"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -149,6 +150,7 @@ function AppRoutes() {
           <Route path="pagos" element={<BillingHistory />} />
         </Route>
         <Route path="/a/:token" element={<TokenAction />} />
+        <Route path="/a/:token/reschedule" element={<RescheduleFromToken />} />
         <Route
           path="/admin"
           element={

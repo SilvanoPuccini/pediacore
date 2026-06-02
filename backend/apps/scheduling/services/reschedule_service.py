@@ -46,7 +46,7 @@ def reschedule_appointment(
     appointment: Appointment,
     new_date: datetime.date,
     new_time: datetime.time,
-    rescheduled_by: User,
+    rescheduled_by: User | None = None,
 ) -> Appointment:
     """
     Reschedule a CONFIRMED appointment to a new date/time atomically.

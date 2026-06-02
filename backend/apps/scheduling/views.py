@@ -39,6 +39,7 @@ from apps.scheduling.serializers import (
     CancellationTierSerializer,
     ConfirmAttendanceSerializer,
     RescheduleSerializer,
+    RescheduleViaTokenSerializer,
     TokenResolveSerializer,
     WaitlistEntrySerializer,
 )
@@ -550,6 +551,10 @@ class TokenResolveView(APIView):
                 "start_time": appointment.start_time,
                 "location_name": location_name,
                 "action_available": action_available,
+                "service_id": appointment.service_id,
+                "location_id": appointment.location_id,
+                "practice_slug": appointment.practice.slug,
+                "is_online": appointment.is_online,
             }
         )
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -586,5 +591,96 @@ class AppointmentActionView(APIView):
             return Response({"detail": "Token not found."}, status=status.HTTP_404_NOT_FOUND)
         except (TokenExpiredError, TokenUsedError):
             return Response({"detail": "Token is no longer valid."}, status=status.HTTP_410_GONE)
+        except Exception as exc:
+            logger.error("AppointmentActionView: unexpected error for token %s: %s", token_str[:12], exc)
+            return Response(
+                {"detail": "Could not process the action. Please try again later."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
         return Response(result, status=status.HTTP_200_OK)
+
+
+class RescheduleViaTokenView(APIView):
+    """
+    POST /api/v1/appointments/reschedule-via-token/
+
+    Public endpoint (AllowAny). Validates a RESCHEDULE token and atomically
+    reschedules the appointment to a new date/time without requiring auth.
+
+    Request body: { "token": "...", "scheduled_date": "YYYY-MM-DD", "start_time": "HH:MM" }
+    """
+
+    permission_classes = [AllowAny]
+
+    def post(self, request: Request) -> Response:
+        serializer = RescheduleViaTokenSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        token_str = serializer.validated_data["token"]
+        new_date = serializer.validated_data["scheduled_date"]
+        new_time = serializer.validated_data["start_time"]
+
+        try:
+            token_obj = validate_token(token_str)
+        except TokenNotFoundError:
+            return Response({"detail": "Token not found."}, status=status.HTTP_404_NOT_FOUND)
+        except (TokenExpiredError, TokenUsedError):
+            return Response({"detail": "Token is no longer valid."}, status=status.HTTP_410_GONE)
+
+        if token_obj.action != token_obj.RESCHEDULE:
+            return Response(
+                {"detail": "This token is not for rescheduling."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        appointment = token_obj.appointment
+
+        try:
+            new_appointment = reschedule_appointment(
+                appointment=appointment,
+                new_date=new_date,
+                new_time=new_time,
+            )
+        except AppointmentNotReschedulableError as exc:
+            return Response(
+                {"detail": str(exc), "code": "APPOINTMENT_NOT_RESCHEDULABLE"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except SlotUnavailableError as exc:
+            return Response(
+                {"detail": str(exc), "code": "SLOT_CONFLICT"},
+                status=status.HTTP_409_CONFLICT,
+            )
+        except Exception as exc:
+            logger.error(
+                "RescheduleViaTokenView: unexpected error for token %s: %s",
+                token_str[:12],
+                exc,
+            )
+            return Response(
+                {"detail": "Could not process the reschedule."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        # Token is consumed by reschedule_appointment (invalidates old tokens)
+        # but mark this specific token used explicitly
+        token_obj.used_at = timezone.now()
+        token_obj.save(update_fields=["used_at"])
+
+        logger.info(
+            "RescheduleViaTokenView: rescheduled Appointment #%s to #%s",
+            appointment.pk,
+            new_appointment.pk,
+        )
+
+        return Response(
+            {
+                "success": True,
+                "new_appointment_id": new_appointment.pk,
+                "scheduled_date": str(new_appointment.scheduled_date),
+                "start_time": str(new_appointment.start_time),
+            },
+            status=status.HTTP_201_CREATED,
+        )
