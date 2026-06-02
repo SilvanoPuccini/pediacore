@@ -320,7 +320,7 @@ class Command(BaseCommand):
                 "price_clp": 60000,
                 "modality": "PRESENCIAL",
                 "requires_manual_coordination": True,
-                "display_order": 5,
+                "display_order": 7,
                 "locations": [location_pucon, location_villarrica],
             },
         ]
