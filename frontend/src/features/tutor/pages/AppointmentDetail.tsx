@@ -378,7 +378,7 @@ export default function AppointmentDetail() {
         </div>
 
         {/* Invoice download */}
-        {relatedInvoice && relatedInvoice.has_pdf && (
+        {relatedInvoice && (
           <div className="mb-4">
             <button
               onClick={async () => {

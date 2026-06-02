@@ -170,7 +170,7 @@ export default function BillingHistory() {
               </div>
 
               {/* Download button — only when invoice exists */}
-              {invoice && invoice.has_pdf && (
+              {invoice && (
                 <div className="mt-4 pt-4 border-t border-line">
                   <button
                     onClick={() => downloadInvoice(invoice.id)}
