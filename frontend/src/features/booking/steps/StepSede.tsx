@@ -8,6 +8,7 @@ import type { Location } from "@/types/api";
 const LOCATION_LOGOS: Record<string, string> = {
   pucon: "/images/logo_ccElvalle.png",
   villarrica: "/images/logo_AyI.png",
+  online: "/images/logo_videollamada.webp",
 };
 
 function SedeCard({
@@ -20,7 +21,7 @@ function SedeCard({
   onClick: () => void;
 }) {
   const isOnline = location.id === "online";
-  const slug = "slug" in location ? location.slug : undefined;
+  const slug = "slug" in location ? location.slug : isOnline ? "online" : undefined;
   const logo = slug ? LOCATION_LOGOS[slug] : undefined;
 
   return (
@@ -131,7 +132,7 @@ export default function StepSede() {
               location={{
                 id: "online",
                 name: "Atención Online",
-                address: "Videollamada por Google Meet",
+                address: "Agendar videollamada",
                 city: "Todo Chile",
                 display_hours: onlineHours,
               }}
