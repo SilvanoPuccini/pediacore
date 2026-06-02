@@ -11,6 +11,7 @@ Endpoints:
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 
 import mercadopago
 from django.conf import settings
@@ -362,6 +363,33 @@ class MercadoPagoWebhookView(APIView):
                 logger.error(
                     "MercadoPago webhook: send_payment_receipt failed for Payment #%s: %s",
                     payment.pk,
+                    exc,
+                )
+
+            # ── 7b. Generate Zoom meeting link if applicable ────────────────────
+            try:
+                if appointment and appointment.is_online and appointment.call_platform == "ZOOM":
+                    from apps.scheduling.services.zoom_service import create_zoom_meeting
+
+                    meeting_start = datetime.combine(
+                        appointment.scheduled_date, appointment.start_time
+                    )
+                    join_url = create_zoom_meeting(
+                        topic=f"Consulta — {appointment.patient.full_name}",
+                        start_time=meeting_start,
+                        duration_minutes=appointment.service.duration_minutes,
+                    )
+                    appointment.meeting_link = join_url
+                    appointment.save(update_fields=["meeting_link", "updated_at"])
+                    logger.info(
+                        "Zoom meeting created for Appointment #%s: %s",
+                        appointment.pk,
+                        join_url,
+                    )
+            except Exception as exc:
+                logger.error(
+                    "Zoom meeting creation failed for Appointment #%s: %s",
+                    appointment.pk if appointment else "—",
                     exc,
                 )
 

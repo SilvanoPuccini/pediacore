@@ -32,6 +32,9 @@ sentry-sdk[django]==2.19.2
 # Production server
 gunicorn==23.0.0
 
+# HTTP client (Zoom API)
+requests>=2.31.0
+
 # Email
 resend==2.30.1
 
