@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { ArrowLeft, MapPin, Stethoscope, CalendarDays, User } from "lucide-react";
 import { useBookingStore } from "../store/bookingStore";
 import { useLocations, useServices } from "../hooks/useBookingQueries";
 import { useAuthStore } from "@/stores/auth";
@@ -51,9 +52,7 @@ export default function StepAuth() {
         onClick={() => setStep(3)}
         className="flex items-center gap-1.5 text-[13px] text-ink2 hover:text-ink transition-colors"
       >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-        </svg>
+        <ArrowLeft size={16} className="text-ink2" />
         Volver
       </button>
 
@@ -64,12 +63,12 @@ export default function StepAuth() {
         </p>
         <div className="flex items-center gap-2 flex-wrap text-[13px]">
           <span className="flex items-center gap-1">
-            <svg className="w-4 h-4 shrink-0 text-ink2" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg>
+            <MapPin size={16} className="shrink-0 text-teal-dark" />
             <span className="font-semibold text-ink">{selectedLocation?.name}</span>
           </span>
           <span className="text-ink3">·</span>
           <span className="flex items-center gap-1">
-            <svg className="w-4 h-4 shrink-0 text-ink2" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" /></svg>
+            <Stethoscope size={16} className="shrink-0 text-teal-dark" />
             <span className="font-semibold text-ink">{selectedService?.name}</span>
           </span>
           {selectedService && (
@@ -81,7 +80,7 @@ export default function StepAuth() {
         </div>
         {selectedDate && selectedSlot && (
           <p className="text-[13px] text-ink2 mt-1.5 flex items-center gap-1">
-            <svg className="w-4 h-4 shrink-0 text-ink2" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>
+            <CalendarDays size={16} className="shrink-0 text-teal-dark" />
             <span className="capitalize">{formatDisplayDate(selectedDate)}</span> · {formatTime(selectedSlot.start_time)} hrs
           </p>
         )}
@@ -90,9 +89,7 @@ export default function StepAuth() {
       {/* Auth prompt */}
       <div className="bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)] p-6">
         <div className="w-14 h-14 bg-teal/10 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg className="w-7 h-7 text-teal-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-          </svg>
+          <User size={28} className="text-teal-dark" strokeWidth={1.8} />
         </div>
 
         <h2 className="font-display text-[20px] font-semibold text-ink mb-2 text-center">

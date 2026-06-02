@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Download } from "lucide-react";
+import { Download, MapPin, CalendarDays, Baby, CheckCircle2, ClipboardEdit, Clock, X } from "lucide-react";
 import SEOHead from "@/components/seo/SEOHead";
 import api from "@/lib/api";
 import { useBookingStore } from "./store/bookingStore";
@@ -144,9 +144,7 @@ export default function BookingConfirmed() {
         <SEOHead title="Pago no completado" description="El pago no se pudo completar." url="https://estefipediatra.com/booking/confirmed" />
         <div className="text-center mb-6">
           <div className="w-16 h-16 bg-coral/10 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-coral" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <X size={32} className="text-coral" strokeWidth={2.5} />
           </div>
           <h1 className="font-display text-[28px] font-semibold text-ink">Pago no completado</h1>
           <p className="text-[14px] text-ink2 mt-2">El pago no se pudo completar. Podés intentar de nuevo.</p>
@@ -174,9 +172,7 @@ export default function BookingConfirmed() {
         {isPending ? (
           <>
             <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <Clock size={32} className="text-amber-600" strokeWidth={2.5} />
             </div>
             <h1 className="font-display text-[28px] font-semibold text-ink">Pago en proceso</h1>
             <p className="text-[14px] text-ink2 mt-2">Tu pago está siendo procesado. Te notificaremos cuando se confirme.</p>
@@ -184,9 +180,7 @@ export default function BookingConfirmed() {
         ) : (
           <>
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-              </svg>
+              <CheckCircle2 size={32} className="text-green-600" strokeWidth={2.5} />
             </div>
             <h1 className="font-display text-[28px] font-semibold text-ink">
               ¡Tu turno está confirmado!
@@ -201,7 +195,7 @@ export default function BookingConfirmed() {
           <div className="space-y-3">
             {displayDate && (
               <div className="flex items-start gap-2.5">
-                <svg className="w-4 h-4 mt-0.5 shrink-0 text-ink2" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>
+                <CalendarDays size={16} className="mt-0.5 shrink-0 text-teal-dark" />
                 <div>
                   <p className="text-[14px] font-semibold text-ink capitalize">
                     {formatDisplayDate(displayDate)}
@@ -213,14 +207,14 @@ export default function BookingConfirmed() {
 
             {displayLocation && (
               <div className="flex items-start gap-2.5">
-                <svg className="w-4 h-4 mt-0.5 shrink-0 text-ink2" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg>
+                <MapPin size={16} className="mt-0.5 shrink-0 text-teal-dark" />
                 <p className="text-[14px] font-semibold text-ink">{displayLocation.name}</p>
               </div>
             )}
 
             {displayPatient && (
               <div className="flex items-start gap-2.5">
-                <svg className="w-4 h-4 mt-0.5 shrink-0 text-ink2" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>
+                <Baby size={16} className="mt-0.5 shrink-0 text-teal-dark" />
                 <p className="text-[14px] font-semibold text-ink">
                   {displayPatient.full_name ?? displayPatient.first_name}
                 </p>
@@ -233,21 +227,15 @@ export default function BookingConfirmed() {
           <p className="text-[13px] text-ink2">Te enviamos un email con:</p>
           <ul className="mt-2 space-y-1.5">
             <li className="flex items-center gap-2 text-[13px] text-ink2">
-              <svg className="w-4 h-4 text-green-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+              <CheckCircle2 size={16} className="text-green-600 shrink-0" />
               Comprobante de pago
             </li>
             <li className="flex items-center gap-2 text-[13px] text-ink2">
-              <svg className="w-4 h-4 text-green-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+              <CheckCircle2 size={16} className="text-green-600 shrink-0" />
               Detalles del turno
             </li>
             <li className="flex items-center gap-2 text-[13px] text-ink2">
-              <svg className="w-4 h-4 text-green-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+              <CheckCircle2 size={16} className="text-green-600 shrink-0" />
               Recordatorios automáticos
             </li>
           </ul>
@@ -258,7 +246,7 @@ export default function BookingConfirmed() {
       {selectedPatient && selectedPatient.profile_completion && selectedPatient.profile_completion.percentage < 100 && (
         <div className="bg-cream rounded-[16px] p-5 mb-6">
           <div className="flex items-start gap-3">
-            <svg className="w-4 h-4 mt-0.5 shrink-0 text-ink2" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
+            <ClipboardEdit size={16} className="mt-0.5 shrink-0 text-teal-dark" />
             <div className="flex-1">
               <p className="text-[14px] font-semibold text-ink">
                 Completá el perfil de {selectedPatient.first_name} ({selectedPatient.profile_completion.percentage}% completo)
