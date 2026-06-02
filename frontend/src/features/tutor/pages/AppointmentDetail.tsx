@@ -5,7 +5,6 @@ import {
   ArrowLeft,
   CalendarDays,
   Clock,
-  Download,
   MapPin,
   Stethoscope,
   User,
@@ -16,30 +15,7 @@ import {
 } from "lucide-react";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
-import type {
-  AppointmentDetail as AppointmentDetailType,
-  InvoiceListItem,
-  PaginatedResponse,
-} from "@/types/api";
-
-// ─── Invoice helpers ──────────────────────────────────────────────────────────
-
-async function fetchInvoices(): Promise<InvoiceListItem[]> {
-  const { data } = await api.get<PaginatedResponse<InvoiceListItem>>("/invoices/");
-  return data.results;
-}
-
-async function downloadInvoice(invoiceId: number): Promise<void> {
-  const response = await api.get(`/invoices/${invoiceId}/download/`, {
-    responseType: "blob",
-  });
-  const url = URL.createObjectURL(response.data as Blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `comprobante-${invoiceId}.pdf`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
+import type { AppointmentDetail as AppointmentDetailType } from "@/types/api";
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
 
@@ -69,8 +45,12 @@ const STATUS_CONFIG: Record<string, { label: string; classes: string }> = {
     label: "Confirmado",
     classes: "bg-teal/10 text-teal-dark border border-teal/20",
   },
+  CONFIRMED_ATTENDANCE: {
+    label: "Asistencia confirmada",
+    classes: "bg-green-50 text-green-700 border border-green-200",
+  },
   COMPLETED: {
-    label: "Completado",
+    label: "Atendido",
     classes: "bg-green-50 text-green-700 border border-green-200",
   },
   CANCELLED: {
@@ -78,21 +58,35 @@ const STATUS_CONFIG: Record<string, { label: string; classes: string }> = {
     classes: "bg-gray-100 text-gray-500 border border-gray-200",
   },
   NO_SHOW: {
-    label: "No asistió",
+    label: "No se presentó",
     classes: "bg-coral/10 text-coral border border-coral/20",
   },
   HOLD: {
-    label: "Reserva pendiente",
+    label: "Reservado",
     classes: "bg-amber-50 text-amber-700 border border-amber-200",
   },
   EXPIRED: {
     label: "Expirado",
     classes: "bg-gray-100 text-gray-400 border border-gray-200",
   },
+  RESCHEDULED: {
+    label: "Reagendado",
+    classes: "bg-blue-50 text-blue-600 border border-blue-200",
+  },
 };
 
-function StatusBadge({ status }: { status: string }) {
-  const config = STATUS_CONFIG[status] ?? {
+function StatusBadge({
+  status,
+  attendanceConfirmed,
+}: {
+  status: string;
+  attendanceConfirmed?: boolean;
+}) {
+  const key =
+    status === "CONFIRMED" && attendanceConfirmed
+      ? "CONFIRMED_ATTENDANCE"
+      : status;
+  const config = STATUS_CONFIG[key] ?? {
     label: status,
     classes: "bg-gray-100 text-gray-500 border border-gray-200",
   };
@@ -237,14 +231,6 @@ export default function AppointmentDetail() {
     enabled: !!id,
   });
 
-  const { data: invoices } = useQuery({
-    queryKey: ["invoices"],
-    queryFn: fetchInvoices,
-    enabled: !!appointment?.payment_id,
-  });
-
-  const [isDownloading, setIsDownloading] = useState(false);
-
   const cancelMutation = useMutation({
     mutationFn: () => api.post(`/appointments/${id}/cancel/`),
     onSuccess: () => {
@@ -289,11 +275,6 @@ export default function AppointmentDetail() {
   const canCancel = appointment.status === "CONFIRMED" || appointment.status === "HOLD";
   const isCancelled = appointment.status === "CANCELLED";
 
-  // Find the invoice linked to this appointment's payment
-  const relatedInvoice = appointment.payment_id
-    ? invoices?.find((inv) => inv.payment === appointment.payment_id)
-    : undefined;
-
   return (
     <>
       <div className="max-w-xl">
@@ -311,7 +292,10 @@ export default function AppointmentDetail() {
           <h1 className="font-display text-[28px] font-semibold text-ink">
             Detalle del turno
           </h1>
-          <StatusBadge status={appointment.status} />
+          <StatusBadge
+            status={appointment.status}
+            attendanceConfirmed={appointment.attendance_confirmed}
+          />
         </div>
 
         {/* Main card */}
@@ -376,31 +360,6 @@ export default function AppointmentDetail() {
             />
           )}
         </div>
-
-        {/* Invoice download */}
-        {relatedInvoice && (
-          <div className="mb-4">
-            <button
-              onClick={async () => {
-                setIsDownloading(true);
-                try {
-                  await downloadInvoice(relatedInvoice.id);
-                } finally {
-                  setIsDownloading(false);
-                }
-              }}
-              disabled={isDownloading}
-              className={cn(
-                "flex items-center gap-2 rounded-[12px] px-4 py-2.5",
-                "bg-teal-dark text-cream text-[13px] font-semibold",
-                "hover:opacity-90 active:opacity-75 transition-opacity disabled:opacity-50"
-              )}
-            >
-              <Download size={15} />
-              {isDownloading ? "Descargando..." : "Descargar comprobante"}
-            </button>
-          </div>
-        )}
 
         {/* Actions */}
         {canCancel && (

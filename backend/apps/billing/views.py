@@ -80,7 +80,10 @@ class PaymentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
-        qs = Payment.objects.select_related("practice", "patient", "appointment", "paid_by")
+        qs = Payment.objects.select_related(
+            "practice", "patient", "appointment",
+            "appointment__service", "appointment__location", "paid_by",
+        )
 
         if user.role == User.TUTOR:
             from apps.patients.models import TutorPatient

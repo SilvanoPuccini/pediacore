@@ -25,6 +25,11 @@ class PaymentListSerializer(serializers.ModelSerializer):
     payment_method_display = serializers.CharField(
         source="get_payment_method_display", read_only=True
     )
+    service_name = serializers.SerializerMethodField()
+    scheduled_date = serializers.SerializerMethodField()
+    start_time = serializers.SerializerMethodField()
+    location_name = serializers.SerializerMethodField()
+    is_online = serializers.SerializerMethodField()
 
     class Meta:
         model = Payment
@@ -43,6 +48,11 @@ class PaymentListSerializer(serializers.ModelSerializer):
             "paid_at",
             "created_at",
             "updated_at",
+            "service_name",
+            "scheduled_date",
+            "start_time",
+            "location_name",
+            "is_online",
         ]
         read_only_fields = [
             "id",
@@ -51,10 +61,38 @@ class PaymentListSerializer(serializers.ModelSerializer):
             "payment_method_display",
             "created_at",
             "updated_at",
+            "service_name",
+            "scheduled_date",
+            "start_time",
+            "location_name",
+            "is_online",
         ]
 
     def get_patient_name(self, obj: Payment) -> str:
         return f"{obj.patient.first_name} {obj.patient.last_name}"
+
+    def get_service_name(self, obj: Payment) -> str | None:
+        apt = obj.appointment
+        return apt.service.name if apt and apt.service else None
+
+    def get_scheduled_date(self, obj: Payment) -> str | None:
+        apt = obj.appointment
+        return str(apt.scheduled_date) if apt else None
+
+    def get_start_time(self, obj: Payment) -> str | None:
+        apt = obj.appointment
+        return apt.start_time.strftime("%H:%M") if apt else None
+
+    def get_location_name(self, obj: Payment) -> str | None:
+        apt = obj.appointment
+        if not apt or not apt.location:
+            return None
+        loc = apt.location
+        return f"{loc.name} — {loc.address}" if loc.address else loc.name
+
+    def get_is_online(self, obj: Payment) -> bool:
+        apt = obj.appointment
+        return apt.is_online if apt else False
 
 
 class PaymentDetailSerializer(PaymentListSerializer):
