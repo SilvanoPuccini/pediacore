@@ -373,16 +373,22 @@ def send_appointment_confirmation(
             continue
 
         subject = f"Consulta confirmada — {appointment.scheduled_date}"
+        body_lines = [
+            f"Hola {tutor.first_name},",
+            f"La consulta de {appointment.patient} ha sido <strong>confirmada</strong>.",
+            f"Fecha: {appointment.scheduled_date}",
+            f"Hora: {appointment.start_time:%H:%M}",
+            f"Servicio: {appointment.service.name}",
+            *_location_lines(appointment.location),
+        ]
+        if appointment.is_online and appointment.meeting_link:
+            body_lines.append(
+                f'Enlace de videollamada: <a href="{appointment.meeting_link}">'
+                f"{appointment.meeting_link}</a>"
+            )
         html_body = _build_appointment_html(
             title="Consulta confirmada",
-            body_lines=[
-                f"Hola {tutor.first_name},",
-                f"La consulta de {appointment.patient} ha sido <strong>confirmada</strong>.",
-                f"Fecha: {appointment.scheduled_date}",
-                f"Hora: {appointment.start_time:%H:%M}",
-                f"Servicio: {appointment.service.name}",
-                *_location_lines(appointment.location),
-            ],
+            body_lines=body_lines,
             token_urls=token_urls,
         )
 
@@ -762,16 +768,22 @@ def send_24h_reminder(appointment) -> None:
             continue
 
         subject = "Recordatorio: tu cita es mañana"
+        reminder_lines = [
+            f"Hola {tutor.first_name},",
+            f"Este es un recordatorio de la consulta de {appointment.patient} "
+            f"programada para <strong>mañana {appointment.scheduled_date}</strong> "
+            f"a las <strong>{appointment.start_time:%H:%M}</strong>.",
+            f"Servicio: {appointment.service.name}",
+            *_location_lines(appointment.location),
+        ]
+        if appointment.is_online and appointment.meeting_link:
+            reminder_lines.append(
+                f'Enlace de videollamada: <a href="{appointment.meeting_link}">'
+                f"{appointment.meeting_link}</a>"
+            )
         html_body = _build_appointment_html(
             title="Recordatorio: tu cita es mañana",
-            body_lines=[
-                f"Hola {tutor.first_name},",
-                f"Este es un recordatorio de la consulta de {appointment.patient} "
-                f"programada para <strong>mañana {appointment.scheduled_date}</strong> "
-                f"a las <strong>{appointment.start_time:%H:%M}</strong>.",
-                f"Servicio: {appointment.service.name}",
-                *_location_lines(appointment.location),
-            ],
+            body_lines=reminder_lines,
             token_urls=token_urls,
         )
 
