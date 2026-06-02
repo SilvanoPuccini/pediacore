@@ -5,7 +5,6 @@ URL configuration for PEDIACORE project.
 from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
-from apps.scheduling.views import TokenResolveView
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularRedocView,
@@ -19,8 +18,6 @@ from rest_framework_simplejwt.views import (
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    # Public token resolve (AllowAny — used by frontend TokenAction page)
-    path("api/v1/appointments/token/<str:token>/", TokenResolveView.as_view(), name="token-resolve"),
     # JWT auth
     path("api/v1/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/v1/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
