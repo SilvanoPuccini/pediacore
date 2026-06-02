@@ -201,7 +201,7 @@ export default function BookingConfirmed() {
           <div className="space-y-3">
             {displayDate && (
               <div className="flex items-start gap-2.5">
-                <span className="text-[16px]">📅</span>
+                <svg className="w-4 h-4 mt-0.5 shrink-0 text-ink2" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>
                 <div>
                   <p className="text-[14px] font-semibold text-ink capitalize">
                     {formatDisplayDate(displayDate)}
@@ -213,14 +213,14 @@ export default function BookingConfirmed() {
 
             {displayLocation && (
               <div className="flex items-start gap-2.5">
-                <span className="text-[16px]">📍</span>
+                <svg className="w-4 h-4 mt-0.5 shrink-0 text-ink2" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg>
                 <p className="text-[14px] font-semibold text-ink">{displayLocation.name}</p>
               </div>
             )}
 
             {displayPatient && (
               <div className="flex items-start gap-2.5">
-                <span className="text-[16px]">👶</span>
+                <svg className="w-4 h-4 mt-0.5 shrink-0 text-ink2" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>
                 <p className="text-[14px] font-semibold text-ink">
                   {displayPatient.full_name ?? displayPatient.first_name}
                 </p>
@@ -258,7 +258,7 @@ export default function BookingConfirmed() {
       {selectedPatient && selectedPatient.profile_completion && selectedPatient.profile_completion.percentage < 100 && (
         <div className="bg-cream rounded-[16px] p-5 mb-6">
           <div className="flex items-start gap-3">
-            <span className="text-[16px]">📝</span>
+            <svg className="w-4 h-4 mt-0.5 shrink-0 text-ink2" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
             <div className="flex-1">
               <p className="text-[14px] font-semibold text-ink">
                 Completá el perfil de {selectedPatient.first_name} ({selectedPatient.profile_completion.percentage}% completo)
