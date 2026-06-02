@@ -36,7 +36,10 @@ function SedeCard({
     >
       <div className="flex items-start gap-3">
         {logo ? (
-          <div className="w-11 h-11 rounded-[10px] overflow-hidden flex-shrink-0 mt-0.5">
+          <div className={[
+            "rounded-[10px] overflow-hidden flex-shrink-0 mt-0.5",
+            isOnline ? "w-14 h-14" : "w-11 h-11",
+          ].join(" ")}>
             <img src={logo} alt={location.name} className="w-full h-full object-contain" />
           </div>
         ) : (
