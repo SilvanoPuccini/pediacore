@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   CalendarDays,
   Clock,
+  Download,
   MapPin,
   Stethoscope,
   User,
@@ -15,7 +16,30 @@ import {
 } from "lucide-react";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
-import type { AppointmentDetail as AppointmentDetailType } from "@/types/api";
+import type {
+  AppointmentDetail as AppointmentDetailType,
+  InvoiceListItem,
+  PaginatedResponse,
+} from "@/types/api";
+
+// ─── Invoice helpers ──────────────────────────────────────────────────────────
+
+async function fetchInvoices(): Promise<InvoiceListItem[]> {
+  const { data } = await api.get<PaginatedResponse<InvoiceListItem>>("/invoices/");
+  return data.results;
+}
+
+async function downloadInvoice(invoiceId: number): Promise<void> {
+  const response = await api.get(`/invoices/${invoiceId}/download/`, {
+    responseType: "blob",
+  });
+  const url = URL.createObjectURL(response.data as Blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `comprobante-${invoiceId}.pdf`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
 
@@ -213,6 +237,14 @@ export default function AppointmentDetail() {
     enabled: !!id,
   });
 
+  const { data: invoices } = useQuery({
+    queryKey: ["invoices"],
+    queryFn: fetchInvoices,
+    enabled: !!appointment?.payment_id,
+  });
+
+  const [isDownloading, setIsDownloading] = useState(false);
+
   const cancelMutation = useMutation({
     mutationFn: () => api.post(`/appointments/${id}/cancel/`),
     onSuccess: () => {
@@ -256,6 +288,11 @@ export default function AppointmentDetail() {
   const isConfirmed = appointment.status === "CONFIRMED";
   const canCancel = appointment.status === "CONFIRMED" || appointment.status === "HOLD";
   const isCancelled = appointment.status === "CANCELLED";
+
+  // Find the invoice linked to this appointment's payment
+  const relatedInvoice = appointment.payment_id
+    ? invoices?.find((inv) => inv.payment === appointment.payment_id)
+    : undefined;
 
   return (
     <>
@@ -339,6 +376,31 @@ export default function AppointmentDetail() {
             />
           )}
         </div>
+
+        {/* Invoice download */}
+        {relatedInvoice && relatedInvoice.has_pdf && (
+          <div className="mb-4">
+            <button
+              onClick={async () => {
+                setIsDownloading(true);
+                try {
+                  await downloadInvoice(relatedInvoice.id);
+                } finally {
+                  setIsDownloading(false);
+                }
+              }}
+              disabled={isDownloading}
+              className={cn(
+                "flex items-center gap-2 rounded-[12px] px-4 py-2.5",
+                "bg-teal-dark text-cream text-[13px] font-semibold",
+                "hover:opacity-90 active:opacity-75 transition-opacity disabled:opacity-50"
+              )}
+            >
+              <Download size={15} />
+              {isDownloading ? "Descargando..." : "Descargar comprobante"}
+            </button>
+          </div>
+        )}
 
         {/* Actions */}
         {canCancel && (

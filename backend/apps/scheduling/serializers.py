@@ -63,6 +63,7 @@ class AppointmentListSerializer(serializers.ModelSerializer):
 class AppointmentDetailSerializer(AppointmentListSerializer):
     doctor_email = serializers.CharField(source="doctor.email", read_only=True)
     booked_by_email = serializers.SerializerMethodField()
+    payment_id = serializers.SerializerMethodField()
 
     class Meta(AppointmentListSerializer.Meta):
         fields = AppointmentListSerializer.Meta.fields + [
@@ -81,6 +82,7 @@ class AppointmentDetailSerializer(AppointmentListSerializer):
             "reminder_2h_sent",
             "rescheduled_from",
             "rescheduled_at",
+            "payment_id",
         ]
         read_only_fields = AppointmentListSerializer.Meta.read_only_fields + [
             "doctor_email",
@@ -92,10 +94,16 @@ class AppointmentDetailSerializer(AppointmentListSerializer):
             "reminder_24h_sent",
             "reminder_2h_sent",
             "rescheduled_at",
+            "payment_id",
         ]
 
     def get_booked_by_email(self, obj: Appointment) -> str | None:
         return obj.booked_by.email if obj.booked_by else None
+
+    def get_payment_id(self, obj: Appointment) -> int | None:
+        """Return the related Payment PK, or None if no payment exists."""
+        payment = getattr(obj, "payment", None)
+        return payment.pk if payment is not None else None
 
 
 class AppointmentCreateSerializer(serializers.ModelSerializer):
