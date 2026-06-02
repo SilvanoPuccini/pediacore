@@ -53,7 +53,7 @@ function formatTime(timeStr: string): string {
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
 async function resolveToken(token: string): Promise<TokenResolveResponse> {
-  const res = await fetch(`${API_BASE}/api/v1/appointments/resolve/${token}/`);
+  const res = await fetch(`${API_BASE}/appointments/resolve/${token}/`);
   if (res.status === 404) throw new TokenError(404, "Token no encontrado.");
   if (res.status === 410) throw new TokenError(410, "Este enlace ya fue utilizado o ha expirado.");
   if (!res.ok) throw new TokenError(res.status, "Ocurrió un error inesperado.");
@@ -61,7 +61,7 @@ async function resolveToken(token: string): Promise<TokenResolveResponse> {
 }
 
 async function executeAction(token: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/v1/appointments/action/`, {
+  const res = await fetch(`${API_BASE}/appointments/action/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ token }),
