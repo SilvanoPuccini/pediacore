@@ -135,6 +135,227 @@ def _location_lines(location) -> list[str]:
     return lines
 
 
+def _build_payment_receipt_html(
+    tutor_name: str,
+    amount_display: str,
+    currency: str,
+    patient_name: str,
+    service_name: str,
+    scheduled_date: str,
+    start_time: str,
+    location_name: str,
+    boleta_warning: bool = True,
+    pdf_download_url: str = "",
+) -> str:
+    """
+    Build a branded payment receipt email with structured layout.
+
+    Follows the brand design: hero section with checkmark, amount box,
+    detail rows with icons, optional boleta warning, and PDF download button.
+    All styles are inline for email client compatibility.
+    """
+    logo_url = _EMAIL_LOGO_URL()
+
+    # --- Detail rows ---
+    detail_rows = [
+        ("Paciente", patient_name, '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>'),
+        ("Servicio", service_name, '<path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>'),
+        ("Fecha", scheduled_date, '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>'),
+        ("Hora", start_time, '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>'),
+        ("Lugar", location_name, '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>'),
+    ]
+
+    rows_html = ""
+    for label, value, icon_path in detail_rows:
+        rows_html += f"""
+                        <tr>
+                            <td style="padding:12px 0; border-bottom:1px dashed #f0f0f0;">
+                                <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                                    <tr>
+                                        <td style="font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:14px; color:#666666; vertical-align:middle; width:130px;">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A8590" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:6px;">{icon_path}</svg>
+                                            {label}
+                                        </td>
+                                        <td style="font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:16px; color:#2C2C2C; font-weight:500; text-align:right; vertical-align:middle;">
+                                            {value}
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>"""
+
+    # --- Boleta warning ---
+    warning_html = ""
+    if boleta_warning:
+        warning_html = """
+                    <tr>
+                        <td style="padding:0 0 24px;">
+                            <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color:#FFFBEB; border:1px solid #F59E0B; border-radius:8px;">
+                                <tr>
+                                    <td style="padding:14px 18px;">
+                                        <table role="presentation" cellpadding="0" cellspacing="0">
+                                            <tr>
+                                                <td style="vertical-align:top; padding-right:10px;">
+                                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                                </td>
+                                                <td style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:#2C2C2C; font-size:14px; line-height:1.6;">
+                                                    Este es un comprobante de pago generado autom&aacute;ticamente. Si necesit&aacute;s una boleta o factura para reembolso, podr&aacute;s solicitarla el d&iacute;a de tu atenci&oacute;n en la recepci&oacute;n.
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>"""
+
+    # --- PDF download button ---
+    download_html = ""
+    if pdf_download_url:
+        download_html = f"""
+                    <tr>
+                        <td style="padding:0 0 24px;">
+                            <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                                <tr>
+                                    <td style="background-color:#4A8590; border-radius:8px; text-align:center; padding:14px 24px;">
+                                        <a href="{pdf_download_url}" style="color:#FFFFFF; font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:15px; font-weight:600; text-decoration:none; display:inline-block;">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:6px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                            Descargar Comprobante PDF
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>"""
+
+    return f"""<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprobante de pago</title>
+    <!--[if !mso]><!-->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&amp;family=Plus+Jakarta+Sans:wght@400;600&amp;display=swap');
+    </style>
+    <!--<![endif]-->
+</head>
+<body style="margin:0; padding:0; background-color:#FBF8F3;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#FBF8F3;">
+        <tr>
+            <td align="center" style="padding:32px 16px;">
+
+                <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background-color:#FFFFFF; border-radius:12px; overflow:hidden;">
+
+                    <!-- Header -->
+                    <tr>
+                        <td style="background-color:#4A8590; padding:32px 40px; text-align:center;">
+                            <img src="{logo_url}" alt="Dra. Estefi Pediatra" width="72" height="72" style="width:72px; height:72px; border-radius:50%; object-fit:cover; border:3px solid rgba(255,255,255,0.2); display:block; margin:0 auto;">
+                            <h1 style="font-family:'Fraunces',Georgia,'Times New Roman',serif; color:#FFFFFF; margin:14px 0 0; font-size:22px; font-weight:600;">Dra. Estefi</h1>
+                            <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:rgba(255,255,255,0.75); margin:4px 0 0; font-size:12px; letter-spacing:0.5px;">Pediatra &middot; Sur de Chile</p>
+                        </td>
+                    </tr>
+
+                    <!-- Body -->
+                    <tr>
+                        <td style="padding:36px 40px 0;">
+                            <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+
+                                <!-- Hero -->
+                                <tr>
+                                    <td style="text-align:center; padding:0 0 24px;">
+                                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4A8590" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:0 auto 12px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                                        <h2 style="font-family:'Fraunces',Georgia,'Times New Roman',serif; color:#4A8590; font-size:24px; margin:0 0 8px; font-weight:600;">Pago recibido</h2>
+                                        <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:#2C2C2C; font-size:16px; line-height:1.6; margin:0;">Gracias por confiar en nosotros.</p>
+                                    </td>
+                                </tr>
+
+                                <!-- Greeting -->
+                                <tr>
+                                    <td style="padding:0 0 24px;">
+                                        <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:#2C2C2C; font-size:16px; line-height:1.6; margin:0 0 8px;">Hola <strong>{tutor_name}</strong>,</p>
+                                        <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:#2C2C2C; font-size:16px; line-height:1.6; margin:0;">Hemos recibido el pago de tu pr&oacute;xima cita. A continuaci&oacute;n encontrar&aacute;s los detalles de tu comprobante.</p>
+                                    </td>
+                                </tr>
+
+                                <!-- Amount box -->
+                                <tr>
+                                    <td style="padding:0 0 24px;">
+                                        <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border:1px solid #e5e7eb; border-radius:12px;">
+                                            <tr>
+                                                <td style="padding:24px; text-align:center;">
+                                                    <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:12px; text-transform:uppercase; letter-spacing:2px; color:#6b7280; font-weight:700; margin:0 0 8px;">Total Pagado</p>
+                                                    <p style="font-family:'Fraunces',Georgia,'Times New Roman',serif; font-size:32px; color:#2C2C2C; font-weight:700; margin:0;">${amount_display} {currency}</p>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+
+                                <!-- Details header -->
+                                <tr>
+                                    <td style="padding:0 0 4px; border-bottom:1px solid #f0f0f0;">
+                                        <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:12px; text-transform:uppercase; letter-spacing:2px; color:#6b7280; font-weight:700; margin:0;">Detalles del Servicio</p>
+                                    </td>
+                                </tr>
+
+                                <!-- Detail rows -->
+                                {rows_html}
+
+                                <!-- Spacer -->
+                                <tr><td style="padding:12px 0;"></td></tr>
+
+                                <!-- Warning -->
+                                {warning_html}
+
+                                <!-- Download button -->
+                                {download_html}
+
+                                <!-- Disclaimer -->
+                                <tr>
+                                    <td style="text-align:center; padding:0 0 12px;">
+                                        <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:11px; color:#A0A0A0; margin:0;">Este es un correo autom&aacute;tico, por favor no respondas a este mensaje.</p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color:#2C2C2C; padding:28px 40px; text-align:center;">
+                            <img src="{logo_url}" alt="" width="44" height="44" style="width:44px; height:44px; border-radius:50%; border:2px solid rgba(255,255,255,0.15); display:block; margin:0 auto 12px;">
+                            <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:rgba(255,255,255,0.6); font-size:13px; margin:0 0 4px; font-weight:600;">Dra. Estefi</p>
+                            <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:rgba(255,255,255,0.35); font-size:12px; margin:0 0 20px;">Pediatr&iacute;a con tiempo, calidez y atenci&oacute;n personalizada</p>
+                            <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:12px; color:rgba(255,255,255,0.5); line-height:1.8; margin:0 0 16px;">
+                                Puc&oacute;n &amp; Villarrica &middot; La Araucan&iacute;a, Chile<br>
+                                <a href="tel:+56958455537" style="color:#7BB5BD; text-decoration:none;">+56 9 5845 5537</a>
+                                &nbsp;&middot;&nbsp;
+                                <a href="mailto:estefiortigosa.peditra@gmail.com" style="color:#7BB5BD; text-decoration:none;">estefiortigosa.peditra@gmail.com</a>
+                            </p>
+                            <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:12px; margin:0;">
+                                <a href="https://www.instagram.com/estefiortigosa.pediatra/" style="color:#7BB5BD; text-decoration:none; margin:0 8px;">Instagram</a>
+                                <a href="https://estefipediatra.com" style="color:#7BB5BD; text-decoration:none; margin:0 8px;">Web</a>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Bottom bar -->
+                    <tr>
+                        <td style="background-color:#1f1f1f; padding:14px 40px; text-align:center;">
+                            <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:rgba(255,255,255,0.25); font-size:11px; margin:0;">
+                                &copy; 2026 Dra. Estefi Pediatra &middot; estefipediatra.com
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>"""
+
+
 def _build_appointment_html(
     title: str,
     body_lines: list[str],
@@ -471,7 +692,6 @@ def send_payment_receipt(payment) -> None:
     scheduled_date = appointment.scheduled_date if appointment else "—"
     start_time = appointment.start_time.strftime("%H:%M") if appointment else "—"
     service_name = appointment.service.name if appointment and appointment.service else "Consulta médica"
-    location_lines = _location_lines(appointment.location if appointment else None)
 
     # Format amount: CLP is integer, no decimals
     try:
@@ -491,32 +711,36 @@ def send_payment_receipt(payment) -> None:
         if prefs and not getattr(prefs, "email_payment_received", True):
             continue
 
-        boleta_warning_html = """
-            <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:20px 0 0;">
-                <tr>
-                    <td style="background-color:#FFFBEB; border:1px solid #F59E0B; border-radius:8px; padding:14px 18px;">
-                        <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:#92400E; font-size:14px; line-height:1.5; margin:0;">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#92400E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:6px;"><path d="M12 2L2 19.5a1.5 1.5 0 0 0 1.3 2.2h17.4a1.5 1.5 0 0 0 1.3-2.2L12 2z"/><path d="M12 9v4" stroke="#92400E" stroke-width="2.5" stroke-linecap="round"/><circle cx="12" cy="17" r="1" fill="#92400E"/></svg><strong>Atención:</strong> El profesional no emite boletas por este servicio automáticamente.
-                            Si deseas tu boleta, contacta directamente al profesional.
-                        </p>
-                    </td>
-                </tr>
-            </table>"""
+        # Build PDF download URL if invoice exists
+        pdf_download_url = ""
+        try:
+            from apps.billing.models import Invoice
+
+            invoice = Invoice.objects.filter(payment=payment).first()
+            if invoice:
+                site_url = getattr(settings, "SITE_URL", "").rstrip("/")
+                pdf_download_url = f"{site_url}/api/v1/billing/invoices/{invoice.pk}/download/"
+        except Exception:
+            pass
+
+        # Resolve location display name
+        location_display = "Consulta Online"
+        if appointment and appointment.location:
+            location_display = appointment.location.name
+            if appointment.location.address:
+                location_display += f" — {appointment.location.address}"
 
         subject = f"Comprobante de pago — {scheduled_date}"
-        html_body = _build_appointment_html(
-            title="Pago recibido",
-            body_lines=[
-                f"Hola {tutor.first_name},",
-                f"Hemos recibido tu pago de <strong>${amount_display} {payment.currency}</strong>.",
-                f"Paciente: {patient}",
-                f"Servicio: {service_name}",
-                f"Fecha: {scheduled_date}",
-                f"Hora: {start_time}",
-                *location_lines,
-                "Tu consulta ha sido confirmada. ¡Te esperamos!",
-            ],
-            extra_html=boleta_warning_html,
+        html_body = _build_payment_receipt_html(
+            tutor_name=tutor.first_name,
+            amount_display=amount_display,
+            currency=payment.currency,
+            patient_name=str(patient),
+            service_name=service_name,
+            scheduled_date=str(scheduled_date),
+            start_time=start_time,
+            location_name=location_display,
+            pdf_download_url=pdf_download_url,
         )
 
         Notification.objects.create(

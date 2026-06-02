@@ -71,8 +71,8 @@ class TestSendPaymentReceiptSendsEmail:
         assert log is not None
         assert "Comprobante" in log.subject or "pago" in log.subject.lower()
 
-    def test_send_payment_receipt_body_contains_patient_name(self, settings):
-        """HTML body must reference the patient name."""
+    def test_send_payment_receipt_notification_contains_patient_name(self, settings):
+        """Notification message must reference the patient name."""
         settings.RESEND_API_KEY = ""
 
         from apps.notifications.services.email_service import send_payment_receipt
@@ -84,10 +84,11 @@ class TestSendPaymentReceiptSendsEmail:
 
         send_payment_receipt(payment)
 
-        log = EmailLog.objects.filter(recipient_email__isnull=False).first()
-        assert log is not None
-        # body_preview is first 500 chars of html_body
-        assert "Valentina" in log.body_preview or "López" in log.body_preview
+        notification = Notification.objects.filter(
+            notification_type=Notification.PAYMENT_RECEIVED,
+        ).first()
+        assert notification is not None
+        assert "Valentina" in notification.message or "López" in notification.message
 
     def test_send_payment_receipt_no_tutors_does_nothing(self, settings):
         """When no tutors are linked to the patient, no email is sent."""

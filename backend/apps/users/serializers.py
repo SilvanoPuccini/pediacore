@@ -71,26 +71,26 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
     @staticmethod
     def _send_welcome_email(user: User) -> None:
-        """Send a welcome email to the newly registered user."""
+        """Send a branded welcome email to the newly registered user."""
         try:
-            from apps.notifications.services.email_service import send_email
+            from apps.notifications.services.email_service import (
+                _build_appointment_html,
+                send_email,
+            )
 
-            html_body = f"""
-            <html>
-            <body style="font-family: sans-serif; color: #333;">
-                <h2>¡Bienvenida/o a Dra. Estefi Pediatra!</h2>
-                <p>Hola {user.first_name},</p>
-                <p>Tu cuenta fue creada correctamente. Ya podés reservar turnos
-                pediátricos en Pucón y Villarrica, o consultas online.</p>
-                <p>Ingresá a <a href="https://estefipediatra.com/booking">estefipediatra.com/booking</a>
-                para agendar tu primera consulta.</p>
-                <hr>
-                <p style="font-size: 12px; color: #888;">
-                    Consultorio Pediátrico — Dra. Estefanía
-                </p>
-            </body>
-            </html>
-            """
+            html_body = _build_appointment_html(
+                title="¡Bienvenida/o!",
+                body_lines=[
+                    f"Hola {user.first_name},",
+                    "Tu cuenta fue creada correctamente.",
+                    "Ya podés reservar turnos pediátricos en Pucón y Villarrica, "
+                    "o consultas online desde la comodidad de tu hogar.",
+                    'Ingresá a <a href="https://estefipediatra.com/booking" '
+                    'style="color:#4A8590; font-weight:600;">estefipediatra.com/booking</a> '
+                    "para agendar tu primera consulta.",
+                    "¡Te esperamos!",
+                ],
+            )
             send_email(
                 to=user.email,
                 subject="¡Bienvenida/o a Dra. Estefi Pediatra!",
