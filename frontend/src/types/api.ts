@@ -227,6 +227,11 @@ export interface PaymentListItem {
   payment_method_display: string;
   paid_at: string | null;
   created_at: string;
+  service_name: string | null;
+  scheduled_date: string | null;
+  start_time: string | null;
+  location_name: string | null;
+  is_online: boolean;
 }
 
 export interface InvoiceListItem {
