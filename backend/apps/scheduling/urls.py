@@ -11,6 +11,7 @@ from apps.scheduling.views import (
     BookingView,
     CancellationPolicyView,
     CancellationTierViewSet,
+    TokenResolveView,
     WaitlistViewSet,
 )
 
@@ -24,7 +25,8 @@ router.register(r"admin/cancellation-tiers", CancellationTierViewSet, basename="
 urlpatterns = [
     path("available-slots/", AvailableSlotsView.as_view(), name="available-slots"),
     path("book/", BookingView.as_view(), name="book"),
-    # Must be BEFORE router.urls so it's not matched by the router's appointment-detail pattern
+    # Must be BEFORE router.urls so they're not matched by the router's appointment-detail pattern
+    path("appointments/resolve/<str:token>/", TokenResolveView.as_view(), name="token-resolve"),
     path("appointments/action/", AppointmentActionView.as_view(), name="appointment-action"),
     path("admin/cancellation-policy/", CancellationPolicyView.as_view(), name="admin-cancellation-policy"),
     path("admin/auto-responder/", AutoResponderConfigView.as_view(), name="admin-auto-responder"),
