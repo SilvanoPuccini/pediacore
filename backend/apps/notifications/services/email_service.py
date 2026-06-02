@@ -324,16 +324,16 @@ def _build_payment_receipt_html(
                     <!-- Footer -->
                     <tr>
                         <td style="background-color:#2C2C2C; padding:28px 40px; text-align:center;">
-                            <img src="{logo_url}" alt="" width="44" height="44" style="width:44px; height:44px; border-radius:50%; border:2px solid rgba(255,255,255,0.15); display:block; margin:0 auto 12px;">
-                            <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:rgba(255,255,255,0.6); font-size:13px; margin:0 0 4px; font-weight:600;">Dra. Estefi</p>
-                            <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:rgba(255,255,255,0.35); font-size:12px; margin:0 0 20px;">Pediatr&iacute;a con tiempo, calidez y atenci&oacute;n personalizada</p>
-                            <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:12px; color:rgba(255,255,255,0.5); line-height:1.8; margin:0 0 16px;">
+                            <img src="{logo_url}" alt="" width="44" height="44" style="width:44px; height:44px; border-radius:50%; border:2px solid rgba(255,255,255,0.2); display:block; margin:0 auto 12px;">
+                            <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.9); font-size:13px; margin:0 0 4px; font-weight:600;">Dra. Estefi</p>
+                            <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.6); font-size:12px; margin:0 0 20px;">Pediatr&iacute;a con tiempo, calidez y atenci&oacute;n personalizada</p>
+                            <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; font-size:12px; color:rgba(255,255,255,0.7); line-height:1.8; margin:0 0 16px;">
                                 Puc&oacute;n &amp; Villarrica &middot; La Araucan&iacute;a, Chile<br>
                                 <a href="tel:+56958455537" style="color:#7BB5BD; text-decoration:none;">+56 9 5845 5537</a>
                                 &nbsp;&middot;&nbsp;
                                 <a href="mailto:estefiortigosa.peditra@gmail.com" style="color:#7BB5BD; text-decoration:none;">estefiortigosa.peditra@gmail.com</a>
                             </p>
-                            <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:12px; margin:0;">
+                            <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; font-size:12px; margin:0;">
                                 <a href="https://www.instagram.com/estefiortigosa.pediatra/" style="color:#7BB5BD; text-decoration:none; margin:0 8px;">Instagram</a>
                                 <a href="https://estefipediatra.com" style="color:#7BB5BD; text-decoration:none; margin:0 8px;">Web</a>
                             </p>
@@ -343,7 +343,7 @@ def _build_payment_receipt_html(
                     <!-- Bottom bar -->
                     <tr>
                         <td style="background-color:#1f1f1f; padding:14px 40px; text-align:center;">
-                            <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:rgba(255,255,255,0.25); font-size:11px; margin:0;">
+                            <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.5); font-size:11px; margin:0;">
                                 &copy; 2026 Dra. Estefi Pediatra &middot; estefipediatra.com
                             </p>
                         </td>
@@ -365,22 +365,223 @@ def _build_appointment_html(
     """
     Build a professional brand-aligned HTML email body for appointment notifications.
 
+    Renders a structured layout with a contextual hero icon, a greeting paragraph,
+    structured detail rows (lines containing known labels like "Fecha:", "Hora:",
+    "Servicio:", "Lugar:") and plain paragraphs for narrative text.
+    Lines starting with an SVG or <span> tag (from _location_lines) are rendered
+    as location detail rows automatically.
+
     Args:
         title: The heading displayed at the top of the email.
-        body_lines: List of text lines to render as <p> elements.
+        body_lines: List of text lines. First line is treated as the greeting.
+            Lines with known "Label:" prefixes become structured rows with icons.
+            SVG/span-prefixed lines become location rows. All others are paragraphs.
         token_urls: Optional dict with keys 'confirm', 'cancel', 'reschedule'.
             When provided, action buttons are rendered below the body.
         extra_html: Optional raw HTML block inserted after body_lines and before
             action buttons. Use for banners or callout boxes that need full HTML
             control (e.g. warning boxes with background color). Must use inline CSS.
     """
-    body_html = "".join(
-        '<p style="font-family:\'Plus Jakarta Sans\',Arial,sans-serif; '
-        'color:#2C2C2C; font-size:16px; line-height:1.6; margin:0 0 12px;">'
-        f"{line}</p>"
-        for line in body_lines
+    # ------------------------------------------------------------------ #
+    # Hero icon — contextual SVG based on title keywords                  #
+    # ------------------------------------------------------------------ #
+    title_lower = title.lower()
+    if "confirmada" in title_lower or "confirmado" in title_lower:
+        hero_svg_path = (
+            '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>'
+            '<polyline points="22 4 12 14.01 9 11.01"/>'
+        )
+    elif "cancelada" in title_lower or "cancelado" in title_lower:
+        hero_svg_path = (
+            '<circle cx="12" cy="12" r="10"/>'
+            '<line x1="15" y1="9" x2="9" y2="15"/>'
+            '<line x1="9" y1="9" x2="15" y2="15"/>'
+        )
+    elif "reagendada" in title_lower or "reprogramar" in title_lower or "reagendado" in title_lower:
+        hero_svg_path = (
+            '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>'
+            '<line x1="16" y1="2" x2="16" y2="6"/>'
+            '<line x1="8" y1="2" x2="8" y2="6"/>'
+            '<line x1="3" y1="10" x2="21" y2="10"/>'
+            '<polyline points="14 14 16 16 20 12"/>'
+        )
+    elif (
+        "recordatorio" in title_lower
+        or "mañana" in title_lower
+        or "2 horas" in title_lower
+        or "horas" in title_lower
+    ):
+        hero_svg_path = (
+            '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>'
+            '<path d="M13.73 21a2 2 0 0 1-3.46 0"/>'
+        )
+    elif "bienvenida" in title_lower or "bienvenido" in title_lower:
+        hero_svg_path = (
+            '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06'
+            'a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06'
+            'a5.5 5.5 0 0 0 0-7.78z"/>'
+        )
+    else:
+        hero_svg_path = (
+            '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>'
+            '<line x1="16" y1="2" x2="16" y2="6"/>'
+            '<line x1="8" y1="2" x2="8" y2="6"/>'
+            '<line x1="3" y1="10" x2="21" y2="10"/>'
+        )
+
+    hero_svg = (
+        f'<svg width="48" height="48" viewBox="0 0 24 24" fill="none" '
+        f'stroke="#4A8590" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" '
+        f'style="display:block;margin:0 auto 12px;">{hero_svg_path}</svg>'
     )
 
+    # ------------------------------------------------------------------ #
+    # Icon SVG paths for structured detail rows (16×16)                   #
+    # ------------------------------------------------------------------ #
+    _ICON_CALENDAR = (
+        '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>'
+        '<line x1="16" y1="2" x2="16" y2="6"/>'
+        '<line x1="8" y1="2" x2="8" y2="6"/>'
+        '<line x1="3" y1="10" x2="21" y2="10"/>'
+    )
+    _ICON_CLOCK = (
+        '<circle cx="12" cy="12" r="10"/>'
+        '<polyline points="12 6 12 12 16 14"/>'
+    )
+    _ICON_SERVICE = (
+        '<path d="M18 20V10"/>'
+        '<path d="M12 20V4"/>'
+        '<path d="M6 20v-6"/>'
+    )
+    _ICON_LOCATION = (
+        '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>'
+        '<circle cx="12" cy="10" r="3"/>'
+    )
+    _ICON_LINK = (
+        '<path d="M15 7h3a5 5 0 0 1 5 5 5 5 0 0 1-5 5h-3m-6 0H6a5 5 0 0 1-5-5'
+        ' 5 5 0 0 1 5-5h3"/>'
+        '<line x1="8" y1="12" x2="16" y2="12"/>'
+    )
+
+    # Maps label prefix (lowercase, stripped) → icon path
+    _LABEL_ICON_MAP = {
+        "fecha": _ICON_CALENDAR,
+        "nueva fecha": _ICON_CALENDAR,
+        "hora": _ICON_CLOCK,
+        "nueva hora": _ICON_CLOCK,
+        "servicio": _ICON_SERVICE,
+        "lugar": _ICON_LOCATION,
+        "enlace": _ICON_LINK,
+        "enlace de videollamada": _ICON_LINK,
+        "enlace de reunión": _ICON_LINK,
+    }
+
+    def _make_detail_row(label: str, value: str, icon_path: str) -> str:
+        icon_svg = (
+            f'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" '
+            f'stroke="#4A8590" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" '
+            f'style="display:inline-block;vertical-align:middle;margin-right:6px;">'
+            f'{icon_path}</svg>'
+        )
+        return f"""
+                        <tr>
+                            <td style="padding:12px 0; border-bottom:1px dashed #f0f0f0;">
+                                <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                                    <tr>
+                                        <td style="font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:14px; color:#666666; vertical-align:middle; width:150px;">
+                                            {icon_svg}{label}
+                                        </td>
+                                        <td style="font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:16px; color:#2C2C2C; font-weight:500; text-align:right; vertical-align:middle;">
+                                            {value}
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>"""
+
+    def _make_location_row(content: str) -> str:
+        """Render a raw SVG/span location line as a structured row."""
+        icon_svg = (
+            f'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" '
+            f'stroke="#4A8590" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" '
+            f'style="display:inline-block;vertical-align:middle;margin-right:6px;">'
+            f'{_ICON_LOCATION}</svg>'
+        )
+        return f"""
+                        <tr>
+                            <td style="padding:12px 0; border-bottom:1px dashed #f0f0f0;">
+                                <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                                    <tr>
+                                        <td style="font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:14px; color:#666666; vertical-align:middle; width:150px;">
+                                            {icon_svg}Lugar
+                                        </td>
+                                        <td style="font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:16px; color:#2C2C2C; font-weight:500; text-align:right; vertical-align:middle;">
+                                            {content}
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>"""
+
+    def _make_paragraph(text: str) -> str:
+        return (
+            f'<p style="font-family:\'Plus Jakarta Sans\',Arial,sans-serif; '
+            f'color:#2C2C2C; font-size:16px; line-height:1.6; margin:0 0 12px;">'
+            f'{text}</p>'
+        )
+
+    # ------------------------------------------------------------------ #
+    # Parse body_lines → greeting + detail rows + paragraphs              #
+    # ------------------------------------------------------------------ #
+    greeting_html = ""
+    detail_rows_html = ""
+    paragraph_html = ""
+    has_detail_rows = False
+
+    for i, line in enumerate(body_lines):
+        if i == 0:
+            # First line is always the greeting
+            greeting_html = _make_paragraph(line)
+            continue
+
+        # Lines starting with SVG or <span> come from _location_lines()
+        stripped = line.strip()
+        if stripped.startswith("<svg") or stripped.startswith("<span"):
+            detail_rows_html += _make_location_row(stripped)
+            has_detail_rows = True
+            continue
+
+        # Try to match "Label: value" pattern against known labels
+        if ":" in line:
+            colon_pos = line.index(":")
+            raw_label = line[:colon_pos].strip()
+            value = line[colon_pos + 1:].strip()
+            label_lower = raw_label.lower()
+            if label_lower in _LABEL_ICON_MAP:
+                detail_rows_html += _make_detail_row(raw_label, value, _LABEL_ICON_MAP[label_lower])
+                has_detail_rows = True
+                continue
+
+        # Fallback: render as paragraph
+        paragraph_html += _make_paragraph(line)
+
+    # Wrap detail rows in table structure when present
+    detail_section_html = ""
+    if has_detail_rows:
+        detail_section_html = f"""
+                            <!-- Details header -->
+                            <tr>
+                                <td style="padding:0 0 4px; border-bottom:1px solid #f0f0f0;">
+                                    <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:12px; text-transform:uppercase; letter-spacing:2px; color:#6b7280; font-weight:700; margin:0;">Detalles de la cita</p>
+                                </td>
+                            </tr>
+                            {detail_rows_html}
+                            <!-- Spacer after rows -->
+                            <tr><td style="padding:8px 0;"></td></tr>"""
+
+    # ------------------------------------------------------------------ #
+    # Action buttons                                                       #
+    # ------------------------------------------------------------------ #
     action_buttons_html = ""
     if token_urls:
         confirm_url = token_urls.get("confirm", "")
@@ -462,22 +663,54 @@ def _build_appointment_html(
 
                     <!-- Body content -->
                     <tr>
-                        <td style="padding:36px 40px;">
-                            <h2 style="font-family:'Fraunces',Georgia,'Times New Roman',serif; color:#4A8590; font-size:20px; margin:0 0 20px; font-weight:600;">{title}</h2>
-                            {body_html}
-                            {extra_html}
-                            {action_buttons_html}
+                        <td style="padding:36px 40px 0;">
+                            <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+
+                                <!-- Hero -->
+                                <tr>
+                                    <td style="text-align:center; padding:0 0 24px;">
+                                        {hero_svg}
+                                        <h2 style="font-family:'Fraunces',Georgia,'Times New Roman',serif; color:#4A8590; font-size:24px; margin:0; font-weight:600;">{title}</h2>
+                                    </td>
+                                </tr>
+
+                                <!-- Greeting -->
+                                <tr>
+                                    <td style="padding:0 0 20px;">
+                                        {greeting_html}
+                                    </td>
+                                </tr>
+
+                                {detail_section_html}
+
+                                <!-- Narrative paragraphs (non-structured lines) -->
+                                {f'<tr><td style="padding:0 0 8px;">{paragraph_html}</td></tr>' if paragraph_html else ''}
+
+                                <!-- Extra HTML (caller-supplied banners, callouts) -->
+                                {f'<tr><td style="padding:0 0 8px;">{extra_html}</td></tr>' if extra_html else ''}
+
+                                <!-- Action buttons -->
+                                {f'<tr><td style="padding:0 0 24px;">{action_buttons_html}</td></tr>' if action_buttons_html else ''}
+
+                                <!-- Disclaimer -->
+                                <tr>
+                                    <td style="text-align:center; padding:0 0 12px;">
+                                        <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:11px; color:#A0A0A0; margin:0;">Este es un correo autom&aacute;tico, por favor no respondas a este mensaje.</p>
+                                    </td>
+                                </tr>
+
+                            </table>
                         </td>
                     </tr>
 
                     <!-- Footer: contact + social -->
                     <tr>
                         <td style="background-color:#2C2C2C; padding:28px 40px; text-align:center;">
-                            <img src="{logo_url}" alt="" width="44" height="44" style="width:44px; height:44px; border-radius:50%; border:2px solid rgba(255,255,255,0.15); display:block; margin:0 auto 12px;">
-                            <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.6); font-size:13px; margin:0 0 4px; font-weight:600;">Dra. Estefi</p>
-                            <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.35); font-size:12px; margin:0 0 20px;">Pediatr&iacute;a con tiempo, calidez y atenci&oacute;n personalizada</p>
+                            <img src="{logo_url}" alt="" width="44" height="44" style="width:44px; height:44px; border-radius:50%; border:2px solid rgba(255,255,255,0.2); display:block; margin:0 auto 12px;">
+                            <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.9); font-size:13px; margin:0 0 4px; font-weight:600;">Dra. Estefi</p>
+                            <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.6); font-size:12px; margin:0 0 20px;">Pediatr&iacute;a con tiempo, calidez y atenci&oacute;n personalizada</p>
 
-                            <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; font-size:12px; color:rgba(255,255,255,0.5); line-height:1.8; margin:0 0 16px;">
+                            <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; font-size:12px; color:rgba(255,255,255,0.7); line-height:1.8; margin:0 0 16px;">
                                 Puc&oacute;n &amp; Villarrica &middot; La Araucan&iacute;a, Chile<br>
                                 <a href="tel:+56958455537" style="color:#7BB5BD; text-decoration:none;">+56 9 5845 5537</a>
                                 &nbsp;&middot;&nbsp;
@@ -494,16 +727,12 @@ def _build_appointment_html(
                     <!-- Bottom bar -->
                     <tr>
                         <td style="background-color:#1f1f1f; padding:14px 40px; text-align:center;">
-                            <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.25); font-size:11px; margin:0;">
+                            <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.5); font-size:11px; margin:0;">
                                 &copy; 2026 Dra. Estefi Pediatra &middot; estefipediatra.com
                             </p>
                         </td>
                     </tr>
                 </table>
-
-                <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:#A0A0A0; font-size:11px; margin:16px 0 0; text-align:center;">
-                    Este es un correo autom&aacute;tico del sistema de turnos de la Dra. Estefan&iacute;a.
-                </p>
             </td>
         </tr>
     </table>
