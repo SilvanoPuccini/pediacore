@@ -415,15 +415,15 @@ export default function TokenAction() {
             ) : action === "RESCHEDULE" ? (
               <div className="pt-2 flex flex-col gap-3">
                 <p className="text-[13px] text-ink2 leading-relaxed">
-                  Para reagendar tu turno, usá el sistema de reservas en línea. Tu turno actual
-                  quedará cancelado al confirmar el nuevo.
+                  Elegí una nueva fecha y horario para tu consulta. Tu turno actual
+                  se cancelará automáticamente al confirmar el nuevo.
                 </p>
                 <Link
-                  to="/booking"
+                  to={`/a/${token}/reschedule`}
                   className="w-full py-3 rounded-[12px] bg-teal text-white text-[13px] font-semibold hover:bg-teal-dark transition-colors flex items-center justify-center gap-2"
                 >
                   <CalendarClock className="w-4 h-4" />
-                  Elegir nuevo turno
+                  Elegir nueva fecha
                 </Link>
               </div>
             ) : (

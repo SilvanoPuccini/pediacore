@@ -384,12 +384,24 @@ class TokenResolveSerializer(serializers.Serializer):
     start_time = serializers.TimeField()
     location_name = serializers.CharField()
     action_available = serializers.BooleanField()
+    service_id = serializers.IntegerField()
+    location_id = serializers.IntegerField(allow_null=True)
+    practice_slug = serializers.CharField()
+    is_online = serializers.BooleanField()
 
 
 class AppointmentActionSerializer(serializers.Serializer):
     """Input serializer for POST /api/v1/appointments/action/"""
 
     token = serializers.CharField(required=True)
+
+
+class RescheduleViaTokenSerializer(serializers.Serializer):
+    """Input serializer for POST /api/v1/appointments/reschedule-via-token/"""
+
+    token = serializers.CharField(required=True)
+    scheduled_date = serializers.DateField()
+    start_time = serializers.TimeField()
 
 
 class ConfirmAttendanceSerializer(serializers.Serializer):

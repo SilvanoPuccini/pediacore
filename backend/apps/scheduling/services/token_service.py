@@ -210,9 +210,14 @@ def execute_token_action(token_str: str) -> dict:
                 "message": f"Appointment cannot be cancelled (status: {appointment.status}).",
             }
 
+        from apps.billing.services.payment_strategy import PaymentRefundError
         from apps.scheduling.services.cancellation import cancel_appointment
 
-        result = cancel_appointment(appointment, reason="Cancelled via email link")
+        try:
+            result = cancel_appointment(appointment, reason="Cancelled via email link")
+        except PaymentRefundError:
+            # Cancel anyway without refund if provider fails
+            result = cancel_appointment(appointment, reason="Cancelled via email link", refund=False)
 
         token.used_at = timezone.now()
         token.save(update_fields=["used_at"])
