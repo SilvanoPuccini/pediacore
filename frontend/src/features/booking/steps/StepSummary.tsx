@@ -1,4 +1,5 @@
 import { useMemo, useEffect } from "react";
+import React from "react";
 import { useBookingStore } from "../store/bookingStore";
 import { useLocations, useServices, useMyPatients } from "../hooks/useBookingQueries";
 import { useBookAppointment } from "../hooks/useBookingMutations";
@@ -11,10 +12,10 @@ const DOCTOR_ID = 1;
 
 // ─── Detail row ──────────────────────────────────────────────────────────────
 
-function DetailRow({ icon, label, value }: { icon: string; label: string; value: string }) {
+function DetailRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-4">
-      <span className="text-[13px] text-ink2 shrink-0">
+      <span className="text-[13px] text-ink2 shrink-0 flex items-center gap-1.5">
         {icon} {label}
       </span>
       <span className="text-[13px] font-semibold text-ink text-right">{value}</span>
@@ -28,7 +29,9 @@ function CancellationPolicy() {
   return (
     <div className="bg-amber-50 border border-amber-200 rounded-[16px] p-5">
       <div className="flex items-center gap-2 mb-3">
-        <span className="text-[16px]">📋</span>
+        <svg className="w-4 h-4 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+        </svg>
         <h3 className="font-semibold text-[14px] text-ink">Política de cancelación</h3>
       </div>
       <ul className="space-y-2 text-[13px] text-ink2">
@@ -172,15 +175,15 @@ export default function StepSummary() {
           Resumen de tu turno
         </h2>
         <div className="space-y-3">
-          <DetailRow icon="📍" label="Sede" value={selectedLocation?.name ?? ""} />
-          <DetailRow icon="🩺" label="Servicio" value={selectedService?.name ?? ""} />
+          <DetailRow icon={<svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg>} label="Sede" value={selectedLocation?.name ?? ""} />
+          <DetailRow icon={<svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" /></svg>} label="Servicio" value={selectedService?.name ?? ""} />
           <DetailRow
-            icon="📅"
+            icon={<svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>}
             label="Fecha"
             value={selectedDate ? formatDisplayDate(selectedDate) : ""}
           />
           <DetailRow
-            icon="⏰"
+            icon={<svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
             label="Hora"
             value={
               selectedSlot
@@ -189,20 +192,20 @@ export default function StepSummary() {
             }
           />
           <DetailRow
-            icon="⏱"
+            icon={<svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
             label="Duración"
             value={selectedService ? `${selectedService.duration_minutes} minutos` : ""}
           />
-          <DetailRow icon="👶" label="Paciente" value={selectedPatient?.full_name ?? ""} />
+          <DetailRow icon={<svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>} label="Paciente" value={selectedPatient?.full_name ?? ""} />
           {isOnlineBooking && callPlatform && (
             <DetailRow
-              icon="📹"
+              icon={<svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" /></svg>}
               label="Plataforma"
               value={callPlatform === "WHATSAPP" ? "WhatsApp" : "Zoom"}
             />
           )}
           {user && (
-            <DetailRow icon="👤" label="Tutor" value={user.full_name} />
+            <DetailRow icon={<svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>} label="Tutor" value={user.full_name} />
           )}
           <div className="border-t border-line pt-3 mt-3">
             <div className="flex items-start justify-between gap-4">
@@ -340,8 +343,9 @@ export default function StepSummary() {
           </>
         )}
       </button>
-      <p className="text-[12px] text-ink3 text-center">
-        💳 Tarjeta de crédito · Débito · Transferencia
+      <p className="text-[12px] text-ink3 text-center flex items-center justify-center gap-1.5">
+        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" /></svg>
+        Tarjeta de crédito · Débito · Transferencia
       </p>
     </div>
   );
