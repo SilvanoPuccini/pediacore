@@ -1,15 +1,19 @@
 import SEOHead from "@/components/seo/SEOHead";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  AlertCircle,
   CalendarDays,
   CheckCircle,
   Clock,
   DollarSign,
+  ExternalLink,
   Users,
+  X,
 } from "lucide-react";
+import { useState } from "react";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
-import type { Appointment, Patient, Payment, PaginatedResponse } from "@/types/api";
+import type { Appointment, Patient, Payment, PaginatedResponse, PendingTransferPayment } from "@/types/api";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -177,6 +181,202 @@ function SectionHeader({ title }: { title: string }) {
   );
 }
 
+// ─── reject modal ─────────────────────────────────────────────────────────────
+
+interface RejectModalProps {
+  paymentId: number;
+  onClose: () => void;
+  onConfirm: (reason: string) => void;
+  isPending: boolean;
+}
+
+function RejectModal({ onClose, onConfirm, isPending }: RejectModalProps) {
+  const [reason, setReason] = useState("");
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+      <div className="bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)] w-full max-w-[440px] p-6">
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <h3 className="font-display text-[18px] font-semibold text-ink">
+            Rechazar transferencia
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-ink3 hover:text-ink transition-colors"
+          >
+            <X size={18} />
+          </button>
+        </div>
+        <p className="text-[13px] text-ink2 mb-4">
+          Indicá el motivo del rechazo. El tutor recibirá un email explicando la razón.
+        </p>
+        <textarea
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          rows={3}
+          placeholder="Ej: El monto transferido no coincide con el indicado..."
+          className="w-full px-4 py-3 rounded-[12px] border border-line bg-bg text-ink text-[13px] resize-none focus:outline-none focus:ring-2 focus:ring-coral/30 focus:border-coral"
+        />
+        <div className="flex gap-3 mt-4">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2.5 rounded-[10px] border border-line text-[13px] font-semibold text-ink2 hover:bg-bg transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={() => onConfirm(reason)}
+            disabled={!reason.trim() || isPending}
+            className="flex-1 px-4 py-2.5 rounded-[10px] bg-coral text-white text-[13px] font-semibold transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-y-0"
+          >
+            {isPending ? "Rechazando..." : "Rechazar"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── pending transfers section ───────────────────────────────────────────────
+
+function PendingTransfersSection() {
+  const queryClient = useQueryClient();
+  const [rejectTarget, setRejectTarget] = useState<number | null>(null);
+
+  const pendingTransfersQ = useQuery<PaginatedResponse<PendingTransferPayment>>({
+    queryKey: ["payments", "pending-transfers"],
+    queryFn: async () => {
+      const { data } = await api.get<PaginatedResponse<PendingTransferPayment>>(
+        `/payments/?status=PENDING&payment_method=TRANSFER&receipt_uploaded=true&page_size=50`
+      );
+      return data;
+    },
+    staleTime: 1000 * 60,
+  });
+
+  const confirmMutation = useMutation({
+    mutationFn: async (paymentId: number) => {
+      const { data } = await api.post(`/payments/${paymentId}/confirm-transfer/`);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["payments", "pending-transfers"] });
+    },
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: async ({ paymentId, reason }: { paymentId: number; reason: string }) => {
+      const { data } = await api.post(`/payments/${paymentId}/reject-transfer/`, { reason });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["payments", "pending-transfers"] });
+      setRejectTarget(null);
+    },
+  });
+
+  const pendingTransfers = pendingTransfersQ.data?.results ?? [];
+  const count = pendingTransfersQ.data?.count ?? 0;
+
+  if (pendingTransfersQ.isLoading) return null;
+  if (count === 0) return null;
+
+  return (
+    <>
+      {/* Banner */}
+      <div className="flex items-center gap-3 bg-coral/10 border border-coral/30 rounded-[16px] px-5 py-4">
+        <AlertCircle size={18} className="text-coral shrink-0" />
+        <p className="text-[14px] font-semibold text-ink">
+          {count} {count === 1 ? "transferencia pendiente" : "transferencias pendientes"} de revisar
+        </p>
+      </div>
+
+      {/* Cards */}
+      <section>
+        <SectionHeader title="Transferencias pendientes" />
+        <div className="bg-surface rounded-[16px] border border-line overflow-hidden">
+          <div className="divide-y divide-line">
+            {pendingTransfers.map((payment) => (
+              <div
+                key={payment.id}
+                className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-4 hover:bg-bg/60 transition-colors"
+              >
+                {/* Patient + service info */}
+                <div className="flex-1 min-w-[160px]">
+                  <p className="text-[13px] font-medium text-ink">
+                    {payment.patient_name}
+                  </p>
+                  <p className="text-[11px] text-ink3">
+                    {payment.service_name ?? "—"}
+                    {payment.scheduled_date ? ` · ${formatDate(payment.scheduled_date)}` : ""}
+                  </p>
+                </div>
+
+                {/* Amount */}
+                <span className="text-[14px] font-bold text-teal-dark">
+                  {formatCurrency(payment.amount, payment.currency)}
+                </span>
+
+                {/* Receipt link */}
+                {payment.receipt_file && (
+                  <a
+                    href={payment.receipt_file}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-[12px] font-medium text-teal-dark hover:underline"
+                  >
+                    <ExternalLink size={13} />
+                    Ver comprobante
+                  </a>
+                )}
+
+                {/* Actions */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => confirmMutation.mutate(payment.id)}
+                    disabled={confirmMutation.isPending}
+                    className={cn(
+                      "flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-[8px] transition-colors",
+                      "bg-teal/15 text-teal-dark hover:bg-teal/25",
+                      confirmMutation.isPending && "opacity-50 cursor-not-allowed"
+                    )}
+                  >
+                    <CheckCircle size={13} className="inline -mt-px" />
+                    Confirmar
+                  </button>
+                  <button
+                    onClick={() => setRejectTarget(payment.id)}
+                    disabled={rejectMutation.isPending}
+                    className={cn(
+                      "flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-[8px] transition-colors",
+                      "bg-coral/10 text-coral hover:bg-coral/20",
+                      rejectMutation.isPending && "opacity-50 cursor-not-allowed"
+                    )}
+                  >
+                    <X size={13} className="inline -mt-px" />
+                    Rechazar
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Reject modal */}
+      {rejectTarget !== null && (
+        <RejectModal
+          paymentId={rejectTarget}
+          onClose={() => setRejectTarget(null)}
+          onConfirm={(reason) => {
+            rejectMutation.mutate({ paymentId: rejectTarget, reason });
+          }}
+          isPending={rejectMutation.isPending}
+        />
+      )}
+    </>
+  );
+}
+
 // ─── main component ──────────────────────────────────────────────────────────
 
 export default function AdminDashboard() {
@@ -287,6 +487,10 @@ export default function AdminDashboard() {
         description="Administración de turnos y pacientes — Dra. Estefi Pediatría."
         url="https://estefipediatra.com/admin"
       />
+
+      {/* ── Pending transfers alert + section ── */}
+      <PendingTransfersSection />
+
       {/* ── Section 1: Stats ── */}
       <section>
         <SectionHeader title="Resumen de hoy" />
