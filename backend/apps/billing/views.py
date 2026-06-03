@@ -113,6 +113,16 @@ class PaymentViewSet(viewsets.ModelViewSet):
         if patient_id_param:
             qs = qs.filter(patient_id=patient_id_param)
 
+        payment_method_param = self.request.query_params.get("payment_method")
+        if payment_method_param:
+            qs = qs.filter(payment_method=payment_method_param)
+
+        receipt_uploaded = self.request.query_params.get("receipt_uploaded")
+        if receipt_uploaded == "true":
+            qs = qs.exclude(receipt_uploaded_at__isnull=True)
+        elif receipt_uploaded == "false":
+            qs = qs.filter(receipt_uploaded_at__isnull=True)
+
         return qs
 
     @action(detail=True, methods=["post"], url_path="create-preference")
