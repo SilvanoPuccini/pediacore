@@ -26,12 +26,6 @@ export default function WalletBrick({ preferenceId, onSuccess, onError }: Wallet
     <div className="rounded-[16px] overflow-hidden border border-line bg-surface p-2">
       <Wallet
         initialization={{ preferenceId, redirectMode: "blank" }}
-        customization={{
-          texts: {
-            action: "pay",
-            valueProp: "security_details",
-          },
-        }}
         onReady={onSuccess}
         onError={onError}
       />
