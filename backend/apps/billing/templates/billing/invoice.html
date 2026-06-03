@@ -2,343 +2,325 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comprobante {{ invoice.invoice_number }}</title>
     <style>
-        /* Base styles — WeasyPrint compatible */
         @page {
             size: A4;
-            margin: 2cm;
+            margin: 1.5cm;
         }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-            font-size: 12pt;
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            font-size: 11px;
             color: #1a1a1a;
-            margin: 0;
-            padding: 0;
+            line-height: 1.4;
         }
 
-        /* Header */
+        /* Banner de advertencia */
+        .aviso-no-tributario {
+            background: #FEF3C7;
+            border: 1px solid #F59E0B;
+            color: #92400E;
+            padding: 8px 12px;
+            font-size: 9px;
+            text-align: center;
+            border-radius: 4px;
+            margin-bottom: 16px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+
+        /* Encabezado */
         .header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 2em;
-            padding-bottom: 1em;
-            border-bottom: 2px solid #2563EB;
+            border-bottom: 2px solid #0EA5A4;
+            padding-bottom: 16px;
+            margin-bottom: 16px;
         }
-
-        .practice-info h1 {
-            font-size: 18pt;
-            color: #2563EB;
-            margin: 0 0 0.2em 0;
-        }
-
-        .practice-info p {
-            margin: 0.1em 0;
-            font-size: 10pt;
-            color: #555;
-        }
-
-        .invoice-meta {
-            text-align: right;
-        }
-
-        .invoice-meta .invoice-number {
-            font-size: 14pt;
+        .emisor { max-width: 60%; }
+        .emisor .nombre {
+            font-size: 16px;
             font-weight: bold;
-            color: #1a1a1a;
+            color: #0F172A;
         }
-
-        .invoice-meta .invoice-date {
-            font-size: 10pt;
-            color: #555;
-            margin-top: 0.3em;
-        }
-
-        /* Badge */
-        .badge {
-            display: inline-block;
-            background-color: #DBEAFE;
-            color: #1D4ED8;
-            font-size: 8pt;
-            font-weight: bold;
-            padding: 0.2em 0.6em;
-            border-radius: 3px;
-            margin-top: 0.5em;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        /* Patient section */
-        .section {
-            margin: 1.5em 0;
-        }
-
-        .section-title {
-            font-size: 10pt;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
+        .emisor .detalle {
+            font-size: 10px;
             color: #6B7280;
+            margin-top: 4px;
+        }
+        .recuadro-doc {
+            border: 2px solid #0EA5A4;
+            border-radius: 6px;
+            padding: 10px 16px;
+            text-align: center;
+            min-width: 180px;
+        }
+        .recuadro-doc .tipo {
+            font-size: 10px;
+            font-weight: bold;
+            color: #0EA5A4;
+            text-transform: uppercase;
+        }
+        .recuadro-doc .rut-emisor {
+            font-size: 11px;
+            margin: 4px 0;
+            color: #0F172A;
+        }
+        .recuadro-doc .numero {
+            font-size: 18px;
+            font-weight: bold;
+            color: #0F172A;
+            margin-top: 4px;
+        }
+
+        /* Secciones */
+        .seccion {
+            margin-bottom: 16px;
+        }
+        .seccion-titulo {
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #0EA5A4;
             border-bottom: 1px solid #E5E7EB;
-            padding-bottom: 0.3em;
-            margin-bottom: 0.8em;
+            padding-bottom: 4px;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
         }
-
-        .field-row {
-            display: flex;
-            margin: 0.3em 0;
+        .datos-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px 24px;
         }
+        .dato { font-size: 10px; }
+        .dato .label { color: #6B7280; }
+        .dato .valor { color: #0F172A; font-weight: 600; }
 
-        .field-label {
-            width: 140px;
-            font-weight: 600;
-            color: #374151;
-            font-size: 11pt;
-        }
-
-        .field-value {
-            color: #1a1a1a;
-            font-size: 11pt;
-        }
-
-        /* Items table */
-        table.items {
+        /* Tabla de detalle */
+        table {
             width: 100%;
             border-collapse: collapse;
-            margin: 1em 0;
+            margin-top: 8px;
         }
-
-        table.items thead tr {
-            background-color: #2563EB;
-            color: white;
-        }
-
-        table.items thead th {
-            padding: 0.6em 0.8em;
+        thead th {
+            background: #F3F4F6;
+            color: #374151;
+            font-size: 9px;
+            text-transform: uppercase;
             text-align: left;
-            font-size: 10pt;
-            font-weight: 600;
+            padding: 8px;
+            letter-spacing: 0.5px;
         }
-
-        table.items thead th:last-child {
-            text-align: right;
-        }
-
-        table.items tbody tr {
+        thead th.right { text-align: right; }
+        tbody td {
+            padding: 10px 8px;
             border-bottom: 1px solid #E5E7EB;
+            font-size: 10px;
         }
+        tbody td.right { text-align: right; }
 
-        table.items tbody tr:nth-child(even) {
-            background-color: #F9FAFB;
+        /* Totales */
+        .totales {
+            margin-top: 16px;
+            margin-left: auto;
+            width: 50%;
         }
-
-        table.items tbody td {
-            padding: 0.6em 0.8em;
-            font-size: 11pt;
-        }
-
-        table.items tbody td:last-child {
-            text-align: right;
-        }
-
-        /* Totals */
-        .totals {
-            margin-top: 1em;
+        .total-row {
             display: flex;
-            justify-content: flex-end;
+            justify-content: space-between;
+            padding: 6px 8px;
+            font-size: 11px;
         }
-
-        .totals-table {
-            width: 250px;
-            border-collapse: collapse;
-        }
-
-        .totals-table td {
-            padding: 0.3em 0.5em;
-            font-size: 11pt;
-        }
-
-        .totals-table .total-row {
-            background-color: #2563EB;
+        .total-row.neto { color: #6B7280; }
+        .total-row.retencion { color: #6B7280; }
+        .total-row.final {
+            background: #0EA5A4;
             color: white;
             font-weight: bold;
-            font-size: 12pt;
+            font-size: 13px;
+            border-radius: 4px;
+            margin-top: 4px;
         }
 
-        .totals-table td:last-child {
-            text-align: right;
+        /* Estado de pago */
+        .estado-pago {
+            display: inline-block;
+            background: #D1FAE5;
+            color: #065F46;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: bold;
+            margin-top: 8px;
         }
 
-        /* Footer */
-        .footer {
-            margin-top: 3em;
-            padding-top: 1em;
+        /* Footer legal */
+        .footer-legal {
+            margin-top: 32px;
+            padding-top: 16px;
             border-top: 1px solid #E5E7EB;
-            text-align: center;
-            font-size: 9pt;
+            font-size: 8px;
             color: #9CA3AF;
+            text-align: center;
+            line-height: 1.6;
         }
-
-        .footer strong {
-            color: #6B7280;
-        }
-
-        /* Payment status */
-        .status-completed {
-            color: #059669;
-            font-weight: bold;
-        }
-
-        .status-pending {
-            color: #D97706;
-            font-weight: bold;
-        }
+        .footer-legal strong { color: #6B7280; }
     </style>
 </head>
 <body>
 
-    <!-- Header -->
+    <!-- AVISO: no es documento tributario -->
+    <div class="aviso-no-tributario">
+        COMPROBANTE INTERNO DE PAGO — ESTE DOCUMENTO NO CONSTITUYE BOLETA NI
+        FACTURA ELECTRONICA Y NO TIENE VALIDEZ TRIBUTARIA ANTE EL SII
+    </div>
+
+    <!-- ENCABEZADO -->
     <div class="header">
-        <div class="practice-info">
-            <h1>{{ practice.name }}</h1>
+        <div class="emisor">
+            <div class="nombre">{{ practice.name }}</div>
+            <div class="detalle">
+                Pediatria
+                {% if practice.address %}<br>{{ practice.address }}{% endif %}
+                {% if practice.email %}<br>{{ practice.email }}{% endif %}
+                {% if practice.phone %} · {{ practice.phone }}{% endif %}
+            </div>
+        </div>
+        <div class="recuadro-doc">
+            <div class="tipo">Comprobante de Pago</div>
             {% if practice.tax_id %}
-                <p>RUT: {{ practice.tax_id }}</p>
+                <div class="rut-emisor">RUT: {{ practice.tax_id }}</div>
             {% endif %}
-            <p>Consulta Pediátrica</p>
-            <div class="badge">Comprobante Interno</div>
-        </div>
-
-        <div class="invoice-meta">
-            <div class="invoice-number">{{ invoice.invoice_number }}</div>
-            <div class="invoice-date">Fecha: {{ invoice.issued_at|date:"d/m/Y" }}</div>
+            <div class="numero">N° {{ invoice.invoice_number }}</div>
         </div>
     </div>
 
-    <!-- Payer information -->
-    <div class="section">
-        <div class="section-title">Datos del Titular</div>
-
-        {% if payment.paid_by %}
-        <div class="field-row">
-            <span class="field-label">Responsable:</span>
-            <span class="field-value">{{ payment.paid_by.full_name|default:payment.paid_by.email }}</span>
-        </div>
-        {% endif %}
-
-        {% if invoice.patient_rut %}
-        <div class="field-row">
-            <span class="field-label">RUT:</span>
-            <span class="field-value">{{ invoice.patient_rut }}</span>
-        </div>
-        {% endif %}
-
-        <div class="field-row">
-            <span class="field-label">Paciente:</span>
-            <span class="field-value">{{ invoice.patient_name }}</span>
+    <!-- DATOS DEL PAGADOR -->
+    <div class="seccion">
+        <div class="seccion-titulo">Datos del pagador</div>
+        <div class="datos-grid">
+            <div class="dato">
+                <span class="label">Tutor / Responsable: </span>
+                <span class="valor">{% if payment.paid_by %}{{ payment.paid_by.full_name|default:payment.paid_by.email }}{% else %}&mdash;{% endif %}</span>
+            </div>
+            <div class="dato">
+                <span class="label">RUT: </span>
+                <span class="valor">{{ invoice.patient_rut|default:"No registrado" }}</span>
+            </div>
+            <div class="dato">
+                <span class="label">Paciente: </span>
+                <span class="valor">{{ invoice.patient_name }}</span>
+            </div>
+            <div class="dato">
+                <span class="label">Email: </span>
+                <span class="valor">{% if payment.paid_by %}{{ payment.paid_by.email }}{% else %}&mdash;{% endif %}</span>
+            </div>
         </div>
     </div>
 
-    <!-- Appointment info -->
+    <!-- DATOS DE LA ATENCION -->
     {% if payment.appointment %}
-    <div class="section">
-        <div class="section-title">Información de la Consulta</div>
-
-        <div class="field-row">
-            <span class="field-label">Fecha:</span>
-            <span class="field-value">{{ payment.appointment.scheduled_date|date:"d/m/Y" }}</span>
+    <div class="seccion">
+        <div class="seccion-titulo">Detalle de la atencion</div>
+        <div class="datos-grid">
+            <div class="dato">
+                <span class="label">Fecha de atencion: </span>
+                <span class="valor">{{ payment.appointment.scheduled_date|date:"d/m/Y" }}</span>
+            </div>
+            <div class="dato">
+                <span class="label">Hora: </span>
+                <span class="valor">{{ payment.appointment.start_time|time:"H:i" }}</span>
+            </div>
+            <div class="dato">
+                <span class="label">Sede / Modalidad: </span>
+                <span class="valor">
+                    {% if payment.appointment.is_online %}
+                        Consulta online
+                    {% elif payment.appointment.location %}
+                        {{ payment.appointment.location.name }}
+                    {% else %}
+                        &mdash;
+                    {% endif %}
+                </span>
+            </div>
+            <div class="dato">
+                <span class="label">Fecha de pago: </span>
+                <span class="valor">{% if payment.paid_at %}{{ payment.paid_at|date:"d/m/Y H:i" }}{% else %}&mdash;{% endif %}</span>
+            </div>
         </div>
-
-        <div class="field-row">
-            <span class="field-label">Hora:</span>
-            <span class="field-value">{{ payment.appointment.start_time|time:"H:i" }}</span>
-        </div>
-
-        {% if payment.appointment.location %}
-        <div class="field-row">
-            <span class="field-label">Sede:</span>
-            <span class="field-value">{{ payment.appointment.location.name }}</span>
-        </div>
-        {% endif %}
     </div>
     {% endif %}
 
-    <!-- Services table -->
-    <div class="section">
-        <div class="section-title">Detalle</div>
-
-        <table class="items">
+    <!-- TABLA DE SERVICIO -->
+    <div class="seccion">
+        <div class="seccion-titulo">Servicio</div>
+        <table>
             <thead>
                 <tr>
-                    <th>Descripción</th>
-                    <th>Método de Pago</th>
-                    <th>Total</th>
+                    <th>Descripcion</th>
+                    <th>Duracion</th>
+                    <th class="right">Cantidad</th>
+                    <th class="right">Valor</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
                     <td>{{ invoice.service_description }}</td>
-                    <td>{{ payment.get_payment_method_display }}</td>
-                    <td>$ {{ invoice.subtotal|floatformat:0 }} {{ payment.currency }}</td>
+                    <td>{% if payment.appointment and payment.appointment.service %}{{ payment.appointment.service.duration_minutes }} min{% else %}&mdash;{% endif %}</td>
+                    <td class="right">1</td>
+                    <td class="right">${{ invoice.subtotal|floatformat:0 }}</td>
                 </tr>
             </tbody>
         </table>
+    </div>
 
-        <div class="totals">
-            <table class="totals-table">
-                <tr>
-                    <td>Subtotal</td>
-                    <td>$ {{ invoice.subtotal|floatformat:0 }}</td>
-                </tr>
-                {% if invoice.tax_amount %}
-                <tr>
-                    <td>IVA</td>
-                    <td>$ {{ invoice.tax_amount|floatformat:0 }}</td>
-                </tr>
-                {% endif %}
-                <tr class="total-row">
-                    <td>Total</td>
-                    <td>$ {{ invoice.total|floatformat:0 }} {{ payment.currency }}</td>
-                </tr>
-            </table>
+    <!-- TOTALES -->
+    <div class="totales">
+        <div class="total-row neto">
+            <span>Monto bruto</span>
+            <span>${{ invoice.subtotal|floatformat:0 }}</span>
+        </div>
+        {% if invoice.tax_amount %}
+        <div class="total-row retencion">
+            <span>Retencion honorarios</span>
+            <span>-${{ invoice.tax_amount|floatformat:0 }}</span>
+        </div>
+        {% else %}
+        <div class="total-row retencion">
+            <span>Retencion (13%)</span>
+            <span>&mdash;</span>
+        </div>
+        {% endif %}
+        <div class="total-row final">
+            <span>TOTAL PAGADO</span>
+            <span>${{ invoice.total|floatformat:0 }} {{ payment.currency }}</span>
         </div>
     </div>
 
-    <!-- Payment status -->
-    <div class="section">
-        <div class="section-title">Estado del Pago</div>
-
-        <div class="field-row">
-            <span class="field-label">Estado:</span>
-            <span class="field-value {% if payment.status == 'COMPLETED' %}status-completed{% else %}status-pending{% endif %}">
-                {{ payment.get_status_display }}
-            </span>
-        </div>
-
-        {% if payment.paid_at %}
-        <div class="field-row">
-            <span class="field-label">Fecha de pago:</span>
-            <span class="field-value">{{ payment.paid_at|date:"d/m/Y H:i" }}</span>
-        </div>
-        {% endif %}
-
-        {% if payment.external_id %}
-        <div class="field-row">
-            <span class="field-label">Referencia:</span>
-            <span class="field-value">{{ payment.external_id }}</span>
-        </div>
-        {% endif %}
+    <div style="text-align:right; margin-top:8px;">
+        <span class="estado-pago">{{ status_display }} · {{ payment.get_payment_method_display }}</span>
     </div>
 
-    <!-- Footer -->
-    <div class="footer">
-        <p>
-            <strong>{{ practice.name }}</strong><br>
-            Este documento es un comprobante interno de pago y NO es una boleta tributaria.<br>
-            Generado por PEDIACORE — Sistema de Gestión de Consultorios Pediátricos.
-        </p>
+    <!-- TRANSACCION -->
+    {% if payment.external_id %}
+    <div class="seccion" style="margin-top:24px;">
+        <div class="dato">
+            <span class="label">ID de transaccion: </span>
+            <span class="valor">{{ payment.external_id }}</span>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- FOOTER LEGAL -->
+    <div class="footer-legal">
+        <strong>{{ practice.name }}</strong>{% if practice.tax_id %} · {{ practice.tax_id }}{% endif %}<br>
+        Este comprobante acredita el pago realizado a traves de {{ payment.get_payment_method_display }}
+        con fines de respaldo interno y de control del paciente.<br>
+        <strong>NO reemplaza la boleta de honorarios electronica</strong>, la cual
+        sera emitida conforme a la normativa del Servicio de Impuestos Internos (SII)
+        de Chile.<br>
+        Documento generado automaticamente el {{ invoice.issued_at|date:"d/m/Y" }}.
     </div>
 
 </body>
