@@ -55,6 +55,7 @@ class PaymentListSerializer(serializers.ModelSerializer):
             "is_online",
             "receipt_file",
             "receipt_uploaded_at",
+            "metadata",
         ]
         read_only_fields = [
             "id",
@@ -70,6 +71,7 @@ class PaymentListSerializer(serializers.ModelSerializer):
             "is_online",
             "receipt_file",
             "receipt_uploaded_at",
+            "metadata",
         ]
 
     def get_patient_name(self, obj: Payment) -> str:

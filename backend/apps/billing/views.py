@@ -224,6 +224,23 @@ class PaymentViewSet(viewsets.ModelViewSet):
                 exc,
             )
 
+        # Fire-and-forget: analyse the receipt with Gemini OCR in the background.
+        # The upload succeeds regardless of whether the task is enqueued.
+        try:
+            from django_q.tasks import async_task
+
+            async_task(
+                "apps.billing.services.ocr_service.analyze_receipt_with_gemini",
+                payment.id,
+            )
+            logger.info("upload_receipt: OCR task enqueued for Payment #%s", payment.pk)
+        except Exception as exc:
+            logger.error(
+                "upload_receipt: could not enqueue OCR task for Payment #%s: %s",
+                payment.pk,
+                exc,
+            )
+
         return Response(
             {
                 "status": "pending",
