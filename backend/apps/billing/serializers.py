@@ -267,6 +267,55 @@ class InvoiceDetailSerializer(InvoiceListSerializer):
 
 
 # ---------------------------------------------------------------------------
+# Transfer action serializers
+# ---------------------------------------------------------------------------
+
+
+class ReceiptUploadSerializer(serializers.Serializer):
+    """Validates the receipt file upload for bank transfer payments."""
+
+    receipt = serializers.FileField()
+
+    def validate_receipt(self, value):
+        import os
+
+        # Max 10 MB
+        max_size = 10 * 1024 * 1024
+        if value.size > max_size:
+            raise serializers.ValidationError("File size must not exceed 10 MB.")
+
+        allowed_content_types = {
+            "application/pdf",
+            "image/jpeg",
+            "image/jpg",
+            "image/png",
+        }
+        allowed_extensions = {".pdf", ".jpg", ".jpeg", ".png"}
+
+        ext = os.path.splitext(value.name)[1].lower()
+        content_type = getattr(value, "content_type", "")
+
+        if ext not in allowed_extensions and content_type not in allowed_content_types:
+            raise serializers.ValidationError(
+                "Only PDF, JPG, JPEG, and PNG files are accepted."
+            )
+
+        return value
+
+
+class TransferConfirmSerializer(serializers.Serializer):
+    """Optional notes when confirming a bank transfer."""
+
+    notes = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class TransferRejectSerializer(serializers.Serializer):
+    """Required reason when rejecting a bank transfer."""
+
+    reason = serializers.CharField(required=True, allow_blank=False)
+
+
+# ---------------------------------------------------------------------------
 # PaymentProvider serializers
 # ---------------------------------------------------------------------------
 
