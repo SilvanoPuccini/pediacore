@@ -1,11 +1,12 @@
 import { useMemo, useEffect } from "react";
 import React from "react";
-import { ArrowLeft, MapPin, Stethoscope, CalendarDays, Clock, Timer, Baby, UserCircle, Video, CreditCard, ScrollText } from "lucide-react";
+import { ArrowLeft, MapPin, Stethoscope, CalendarDays, Clock, Timer, Baby, UserCircle, Video, ScrollText } from "lucide-react";
 import { useBookingStore } from "../store/bookingStore";
 import { useLocations, useServices, useMyPatients } from "../hooks/useBookingQueries";
 import { useBookAppointment } from "../hooks/useBookingMutations";
 import { useAuthStore } from "@/stores/auth";
 import { formatDisplayDate, formatTime, formatPrice } from "../utils";
+import PaymentMethodSelector from "../components/PaymentMethodSelector";
 import type { BookingRequest } from "@/types/api";
 
 const PRACTICE_ID = 1;
@@ -64,10 +65,12 @@ export default function StepSummary() {
     notes,
     acceptedPolicy,
     acceptedTerms,
+    paymentMethod,
     setCallPlatform,
     setNotes,
     setAcceptedPolicy,
     setAcceptedTerms,
+    setPaymentMethod,
     setStep,
     setBookingResult,
   } = useBookingStore();
@@ -131,6 +134,7 @@ export default function StepSummary() {
       is_online: isOnlineBooking,
       call_platform: isOnlineBooking ? callPlatform : "",
       notes,
+      payment_method: paymentMethod,
     };
 
     bookingMutation.mutate(payload, {
@@ -326,6 +330,9 @@ export default function StepSummary() {
         </div>
       )}
 
+      {/* Payment method selector */}
+      <PaymentMethodSelector value={paymentMethod} onChange={setPaymentMethod} />
+
       {/* Confirm button */}
       <button
         onClick={handleConfirmBooking}
@@ -334,16 +341,16 @@ export default function StepSummary() {
       >
         {bookingMutation.isPending ? (
           "Confirmando..."
+        ) : paymentMethod === "TRANSFER" ? (
+          <>
+            Reservar y pagar por transferencia
+          </>
         ) : (
           <>
             Pagar {selectedService ? formatPrice(selectedService.price_clp) : ""} con MercadoPago
           </>
         )}
       </button>
-      <p className="text-[12px] text-ink3 text-center flex items-center justify-center gap-1.5">
-        <CreditCard size={16} className="shrink-0 text-ink3" />
-        Tarjeta de crédito · Débito · Transferencia
-      </p>
     </div>
   );
 }

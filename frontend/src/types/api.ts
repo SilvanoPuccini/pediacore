@@ -121,14 +121,26 @@ export interface BookingRequest {
   is_online: boolean;
   call_platform?: "WHATSAPP" | "ZOOM" | "";
   notes: string;
+  payment_method?: "MERCADOPAGO" | "TRANSFER";
+}
+
+export interface BankDetails {
+  bank_name: string;
+  account_type: string;
+  account_number: string;
+  account_holder: string;
+  account_rut: string;
 }
 
 export interface BookingResponse {
-  checkout_url: string;
-  hold_expires_at: string;   // ISO UTC datetime
   appointment_id: number;
   payment_id: number;
-  preference_id: string;     // MP preference ID for Wallet Brick
+  checkout_url?: string;
+  preference_id?: string;
+  payment_method?: string;
+  bank_details?: BankDetails;
+  transfer_expires_at?: string;
+  hold_expires_at?: string;
 }
 
 export interface PatientCreate {
@@ -219,6 +231,21 @@ export interface Payment {
   provider: string;
   reference_id: string;
   created_at: string;
+}
+
+export interface PendingTransferPayment {
+  id: number;
+  appointment: number;
+  patient_name: string;
+  amount: string;
+  currency: string;
+  status: string;
+  payment_method: string;
+  receipt_file: string | null;
+  receipt_uploaded_at: string | null;
+  created_at: string;
+  service_name: string | null;
+  scheduled_date: string | null;
 }
 
 export interface PaymentListItem {
