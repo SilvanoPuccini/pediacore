@@ -50,12 +50,13 @@ def hold_appointment(
     is_online: bool = False,
     call_platform: str = "",
     notes: str = "",
-) -> tuple[Appointment, Payment, str]:
+) -> tuple[Appointment, Payment, str, str]:
     """
     Reserve a slot atomically and initiate the MercadoPago payment flow.
 
     Returns:
-        (appointment, payment, init_point) where init_point is the MP checkout URL.
+        (appointment, payment, init_point, preference_id)
+        where init_point is the MP checkout URL and preference_id is the MP preference ID.
 
     Raises:
         PermissionError: patient does not belong to the requesting tutor.
@@ -152,4 +153,4 @@ def hold_appointment(
             preference_id,
         )
 
-        return appointment, payment, init_point
+        return appointment, payment, init_point, preference_id
