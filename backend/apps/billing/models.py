@@ -126,6 +126,23 @@ class Payment(BaseModel):
     )
     notes = models.TextField(_("notes"), blank=True)
 
+    # ── Transfer receipt fields ───────────────────────────────────────────────
+    receipt_file = models.FileField(
+        _("receipt file"),
+        upload_to="transfer_receipts/",
+        blank=True,
+    )
+    receipt_uploaded_at = models.DateTimeField(
+        _("receipt uploaded at"),
+        null=True,
+        blank=True,
+    )
+    transfer_expires_at = models.DateTimeField(
+        _("transfer expires at"),
+        null=True,
+        blank=True,
+    )
+
     class Meta:
         db_table = "payments"
         ordering = ["-created_at"]
