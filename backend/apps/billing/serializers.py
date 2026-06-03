@@ -144,6 +144,8 @@ class PaymentDetailSerializer(PaymentListSerializer):
         return name if name else obj.paid_by.email
 
     def get_patient_rut(self, obj: Payment) -> str:
+        if obj.paid_by and obj.paid_by.rut:
+            return obj.paid_by.rut
         return obj.patient.rut or ""
 
     def _get_invoice(self, obj: Payment) -> Invoice | None:

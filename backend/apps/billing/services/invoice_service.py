@@ -59,7 +59,8 @@ def create_invoice_for_payment(payment: Payment) -> Invoice:
 
     patient = payment.patient
     patient_name = f"{patient.first_name} {patient.last_name}"
-    patient_rut = patient.rut or ""
+    paid_by = payment.paid_by
+    patient_rut = (paid_by.rut if paid_by and paid_by.rut else patient.rut) or ""
 
     service_description = ""
     if payment.appointment and payment.appointment.service:
