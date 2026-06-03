@@ -1239,3 +1239,192 @@ def send_2h_reminder(appointment) -> None:
 
     appointment.reminder_2h_sent = True
     appointment.save(update_fields=["reminder_2h_sent", "updated_at"])
+
+
+# ─── Transfer payment email helpers ──────────────────────────────────────────
+
+
+def _fmt_clp(amount) -> str:
+    """Format a CLP amount as '35.000' (thousands separator, no decimals)."""
+    try:
+        return f"{int(amount):,}".replace(",", ".")
+    except (TypeError, ValueError):
+        return str(amount)
+
+
+def send_transfer_receipt_uploaded(payment) -> None:
+    """
+    Notify the doctor that a tutor uploaded a transfer receipt.
+
+    Sent to: practice owner (doctor).
+    Subject: "<patient_name> subió un comprobante de $<amount> para el turno del <date>"
+
+    Args:
+        payment: The Payment instance with receipt_file set.
+    """
+    try:
+        appointment = payment.appointment
+    except Exception:
+        appointment = None
+
+    patient_name = str(payment.patient) if payment.patient else "Un tutor"
+    amount_display = _fmt_clp(payment.amount)
+    scheduled_date = _fmt_date(appointment.scheduled_date) if appointment else "—"
+    start_time = _fmt_time(appointment.start_time) if appointment else "—"
+
+    doctor = payment.practice.owner
+    subject = f"{patient_name} subió un comprobante de ${amount_display} para el turno del {_fmt_date_short(appointment.scheduled_date) if appointment else '—'}"
+
+    html_body = _build_appointment_html(
+        title="Nuevo comprobante de transferencia",
+        body_lines=[
+            f"Hola {doctor.first_name},",
+            f"<strong>{patient_name}</strong> subió un comprobante de transferencia bancaria "
+            f"por <strong>${amount_display} {payment.currency}</strong>.",
+            f"Fecha de la cita: {scheduled_date}",
+            f"Hora: {start_time}",
+            "Ingresá al panel de administración para revisar el comprobante y confirmar o rechazar el pago.",
+        ],
+    )
+
+    send_email(
+        to=doctor.email,
+        subject=subject,
+        html_body=html_body,
+        practice=payment.practice,
+    )
+
+
+def send_transfer_confirmed(payment) -> None:
+    """
+    Notify the tutor that their bank transfer was confirmed by the doctor.
+
+    Sent to: all tutors linked to payment.patient.
+
+    Args:
+        payment: The Payment instance (status=COMPLETED).
+    """
+    from apps.patients.models import TutorPatient
+
+    try:
+        appointment = payment.appointment
+    except Exception:
+        appointment = None
+
+    amount_display = _fmt_clp(payment.amount)
+    scheduled_date = _fmt_date(appointment.scheduled_date) if appointment else "—"
+    start_time = _fmt_time(appointment.start_time) if appointment else "—"
+
+    tutors_qs = TutorPatient.objects.filter(patient=payment.patient).select_related("tutor")
+
+    for link in tutors_qs:
+        tutor = link.tutor
+
+        subject = f"Tu pago fue confirmado — consulta del {_fmt_date_short(appointment.scheduled_date) if appointment else '—'}"
+        html_body = _build_appointment_html(
+            title="Pago confirmado",
+            body_lines=[
+                f"Hola {tutor.first_name},",
+                f"Tu transferencia de <strong>${amount_display} {payment.currency}</strong> "
+                f"fue recibida y confirmada por la doctora.",
+                f"Tu cita está confirmada para el {scheduled_date} a las {start_time}.",
+                f"Servicio: {appointment.service.name}" if appointment and appointment.service else "",
+                *(_location_lines(appointment.location) if appointment else []),
+            ],
+        )
+
+        send_email(
+            to=tutor.email,
+            subject=subject,
+            html_body=html_body,
+            practice=payment.practice,
+        )
+
+
+def send_transfer_rejected(payment, reason: str) -> None:
+    """
+    Notify the tutor that their bank transfer was rejected by the doctor.
+
+    Sent to: all tutors linked to payment.patient.
+
+    Args:
+        payment: The Payment instance (status=FAILED).
+        reason: Human-readable rejection reason from the doctor.
+    """
+    from apps.patients.models import TutorPatient
+
+    try:
+        appointment = payment.appointment
+    except Exception:
+        appointment = None
+
+    amount_display = _fmt_clp(payment.amount)
+    scheduled_date_short = _fmt_date_short(appointment.scheduled_date) if appointment else "—"
+
+    tutors_qs = TutorPatient.objects.filter(patient=payment.patient).select_related("tutor")
+
+    for link in tutors_qs:
+        tutor = link.tutor
+
+        subject = f"Tu pago fue rechazado — consulta del {scheduled_date_short}"
+        html_body = _build_appointment_html(
+            title="Pago rechazado",
+            body_lines=[
+                f"Hola {tutor.first_name},",
+                f"Lamentamos informarte que tu transferencia de "
+                f"<strong>${amount_display} {payment.currency}</strong> fue rechazada.",
+                f"Motivo: {reason}",
+                "Por favor contactanos para resolver la situación y coordinar el pago.",
+            ],
+        )
+
+        send_email(
+            to=tutor.email,
+            subject=subject,
+            html_body=html_body,
+            practice=payment.practice,
+        )
+
+
+def send_transfer_expired(payment) -> None:
+    """
+    Notify the tutor that their appointment was cancelled due to missing transfer receipt.
+
+    Sent to: all tutors linked to payment.patient.
+    Triggered by the expire_pending_transfers() job.
+
+    Args:
+        payment: The Payment instance (status=FAILED after expiry).
+    """
+    from apps.patients.models import TutorPatient
+
+    try:
+        appointment = payment.appointment
+    except Exception:
+        appointment = None
+
+    scheduled_date_short = _fmt_date_short(appointment.scheduled_date) if appointment else "—"
+
+    tutors_qs = TutorPatient.objects.filter(patient=payment.patient).select_related("tutor")
+
+    for link in tutors_qs:
+        tutor = link.tutor
+
+        subject = f"Tu turno fue cancelado — no se recibió comprobante ({scheduled_date_short})"
+        html_body = _build_appointment_html(
+            title="Turno cancelado",
+            body_lines=[
+                f"Hola {tutor.first_name},",
+                "Tu turno fue cancelado porque no recibimos el comprobante de transferencia "
+                "dentro del plazo de 48 horas.",
+                "Si querés reservar una nueva cita, podés hacerlo desde nuestra plataforma.",
+                "Si ya realizaste la transferencia, por favor contactanos para resolver la situación.",
+            ],
+        )
+
+        send_email(
+            to=tutor.email,
+            subject=subject,
+            html_body=html_body,
+            practice=payment.practice,
+        )
