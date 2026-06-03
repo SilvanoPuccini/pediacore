@@ -39,13 +39,15 @@ class Patient(BaseModel):
 
     # ── Document type ───────────────────────────────────────────────────────────
     RUT = "RUT"
+    DNI = "DNI"
     PASAPORTE = "PASAPORTE"
-    DNI_EXTRANJERO = "DNI_EXTRANJERO"
+    OTRO = "OTRO"
 
     DOCUMENT_TYPE_CHOICES = [
         (RUT, _("RUT (Chilean national ID)")),
+        (DNI, _("Foreign national ID (DNI)")),
         (PASAPORTE, _("Passport")),
-        (DNI_EXTRANJERO, _("Foreign national ID")),
+        (OTRO, _("Other")),
     ]
 
     # ── Insurance choices ───────────────────────────────────────────────────────

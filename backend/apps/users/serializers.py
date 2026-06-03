@@ -21,6 +21,7 @@ class UserSerializer(serializers.ModelSerializer):
             "phone",
             "phone_prefix",
             "phone_alt",
+            "document_type",
             "rut",
             "role",
             "full_name",
@@ -52,6 +53,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             "last_name",
             "phone",
             "phone_prefix",
+            "document_type",
             "rut",
         ]
 
@@ -166,7 +168,7 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["first_name", "last_name", "phone", "phone_prefix", "phone_alt", "rut"]
+        fields = ["first_name", "last_name", "phone", "phone_prefix", "phone_alt", "document_type", "rut"]
 
     def update(self, instance: User, validated_data: dict) -> User:
         instance.first_name = validated_data.get("first_name", instance.first_name)
@@ -174,6 +176,7 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
         instance.phone = validated_data.get("phone", instance.phone)
         instance.phone_prefix = validated_data.get("phone_prefix", instance.phone_prefix)
         instance.phone_alt = validated_data.get("phone_alt", instance.phone_alt)
+        instance.document_type = validated_data.get("document_type", instance.document_type)
         instance.rut = validated_data.get("rut", instance.rut)
         instance.save()
         return instance

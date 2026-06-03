@@ -25,13 +25,32 @@ class User(AbstractBaseUser, PermissionsMixin):
         (DOCTOR, _("Doctor")),
     ]
 
+    # Document type choices
+    RUT = "RUT"
+    DNI = "DNI"
+    PASAPORTE = "PASAPORTE"
+    OTRO = "OTRO"
+
+    DOCUMENT_TYPE_CHOICES = [
+        (RUT, _("RUT (Chilean national ID)")),
+        (DNI, _("Foreign national ID (DNI)")),
+        (PASAPORTE, _("Passport")),
+        (OTRO, _("Other")),
+    ]
+
     email = models.EmailField(_("email address"), unique=True)
     first_name = models.CharField(_("first name"), max_length=150, blank=True)
     last_name = models.CharField(_("last name"), max_length=150, blank=True)
     phone = models.CharField(_("phone number"), max_length=30, blank=True)
     phone_prefix = models.CharField(_("phone prefix"), max_length=10, default="+56", blank=True)
     phone_alt = models.CharField(_("alternate phone"), max_length=30, blank=True)
-    rut = models.CharField(_("RUT"), max_length=12, blank=True, help_text=_("Chilean RUT (e.g. 12.345.678-9)"))
+    document_type = models.CharField(
+        _("document type"),
+        max_length=20,
+        choices=DOCUMENT_TYPE_CHOICES,
+        default=RUT,
+    )
+    rut = models.CharField(_("RUT / document number"), max_length=12, blank=False, help_text=_("Chilean RUT or document number (e.g. 12.345.678-9)"))
     role = models.CharField(
         _("role"),
         max_length=20,
