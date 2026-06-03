@@ -434,9 +434,12 @@ class BookingView(APIView):
     POST /api/v1/book/
 
     Authenticated TUTOR endpoint that atomically reserves a slot and initiates
-    a MercadoPago payment. Returns the checkout URL and appointment details.
+    payment. Supports MERCADOPAGO (Wallet Brick) and TRANSFER payment methods.
 
-    Permissions: IsAuthenticated + IsTutor
+    For MERCADOPAGO: returns preference_id for Wallet Brick + hold_expires_at.
+    For TRANSFER: returns bank_details and transfer_expires_at.
+
+    Permissions: IsTutor
     """
 
     permission_classes = [IsTutor]
@@ -445,6 +448,8 @@ class BookingView(APIView):
         serializer = BookingSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
+
+        payment_method: str = data.get("payment_method", "MERCADOPAGO")
 
         try:
             appointment, payment, init_point, preference_id = hold_appointment(
@@ -458,6 +463,7 @@ class BookingView(APIView):
                 is_online=data.get("is_online", False),
                 call_platform=data.get("call_platform", ""),
                 notes=data.get("notes", ""),
+                payment_method=payment_method,
             )
         except PermissionError as exc:
             return Response(
@@ -484,6 +490,30 @@ class BookingView(APIView):
                 status=status.HTTP_502_BAD_GATEWAY,
             )
 
+        from apps.billing.models import Payment as PaymentModel
+
+        if payment_method == PaymentModel.TRANSFER:
+            practice = data["practice"]
+            bank_details = {
+                "bank_name": practice.bank_name,
+                "account_type": practice.account_type,
+                "account_number": practice.account_number,
+                "account_holder": practice.account_holder,
+                "account_rut": practice.account_rut,
+                "account_email": practice.account_email,
+            }
+            return Response(
+                {
+                    "appointment_id": appointment.pk,
+                    "payment_id": payment.pk,
+                    "payment_method": payment_method,
+                    "bank_details": bank_details,
+                    "transfer_expires_at": payment.transfer_expires_at,
+                },
+                status=status.HTTP_201_CREATED,
+            )
+
+        # MERCADOPAGO (default)
         return Response(
             {
                 "appointment_id": appointment.pk,
@@ -491,6 +521,7 @@ class BookingView(APIView):
                 "checkout_url": init_point,
                 "preference_id": preference_id,
                 "hold_expires_at": appointment.hold_expires_at,
+                "payment_method": payment_method,
             },
             status=status.HTTP_201_CREATED,
         )

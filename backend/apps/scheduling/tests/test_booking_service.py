@@ -354,3 +354,164 @@ class TestHoldAppointmentMpFailureRollback:
         # Transaction must have rolled back
         assert Appointment.objects.count() == initial_appointment_count
         assert Payment.objects.count() == initial_payment_count
+
+
+# ---------------------------------------------------------------------------
+# T-07: TRANSFER payment method path
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+class TestHoldAppointmentTransferPath:
+    def _setup(self):
+        practice = PracticeFactory(
+            bank_name="Banco prepago Tenpo",
+            account_type="Cuenta Vista",
+            account_number="111128625096",
+            account_holder="ESTEFANIA ORTIGOSA",
+            account_rut="28625096-3",
+            account_email="",
+        )
+        location = LocationFactory(practice=practice)
+        service = ServiceFactory(practice=practice, duration_minutes=30, price_clp=35000, is_active=True)
+        tutor = UserFactory()
+        patient = PatientFactory(practice=practice)
+        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
+        return practice, location, service, tutor, patient
+
+    def test_hold_appointment_transfer_creates_pending_appointment(self):
+        """TRANSFER path creates Appointment with status=PENDING (not HOLD)."""
+        from apps.scheduling.services.booking_service import hold_appointment
+
+        practice, location, service, tutor, patient = self._setup()
+
+        appointment, payment, init_point, preference_id = hold_appointment(
+            user=tutor,
+            practice=practice,
+            service=service,
+            location=location,
+            patient=patient,
+            scheduled_date=datetime.date(2026, 8, 1),
+            start_time=datetime.time(10, 0),
+            payment_method="TRANSFER",
+        )
+
+        assert appointment.status == Appointment.PENDING
+
+    def test_hold_appointment_transfer_creates_pending_payment(self):
+        """TRANSFER path creates Payment with status=PENDING, payment_method=TRANSFER."""
+        from apps.scheduling.services.booking_service import hold_appointment
+
+        practice, location, service, tutor, patient = self._setup()
+
+        appointment, payment, init_point, preference_id = hold_appointment(
+            user=tutor,
+            practice=practice,
+            service=service,
+            location=location,
+            patient=patient,
+            scheduled_date=datetime.date(2026, 8, 2),
+            start_time=datetime.time(10, 0),
+            payment_method="TRANSFER",
+        )
+
+        assert payment.status == Payment.PENDING
+        assert payment.payment_method == Payment.TRANSFER
+
+    def test_hold_appointment_transfer_sets_transfer_expires_at(self):
+        """TRANSFER path sets transfer_expires_at approximately 48h from now."""
+        import datetime as dt
+
+        from apps.scheduling.services.booking_service import (
+            TRANSFER_EXPIRY_HOURS,
+            hold_appointment,
+        )
+
+        practice, location, service, tutor, patient = self._setup()
+
+        before = timezone.now()
+        appointment, payment, init_point, preference_id = hold_appointment(
+            user=tutor,
+            practice=practice,
+            service=service,
+            location=location,
+            patient=patient,
+            scheduled_date=datetime.date(2026, 8, 3),
+            start_time=datetime.time(10, 0),
+            payment_method="TRANSFER",
+        )
+        after = timezone.now()
+
+        assert payment.transfer_expires_at is not None
+        expected_min = before + dt.timedelta(hours=TRANSFER_EXPIRY_HOURS - 1)
+        expected_max = after + dt.timedelta(hours=TRANSFER_EXPIRY_HOURS + 1)
+        assert expected_min <= payment.transfer_expires_at <= expected_max
+
+    def test_hold_appointment_transfer_no_mp_api_call(self):
+        """TRANSFER path does NOT call MercadoPagoStrategy.create_preference."""
+        from unittest.mock import patch
+
+        from apps.scheduling.services.booking_service import hold_appointment
+
+        practice, location, service, tutor, patient = self._setup()
+
+        with patch(
+            "apps.scheduling.services.booking_service.MercadoPagoStrategy.create_preference",
+        ) as mock_mp:
+            hold_appointment(
+                user=tutor,
+                practice=practice,
+                service=service,
+                location=location,
+                patient=patient,
+                scheduled_date=datetime.date(2026, 8, 4),
+                start_time=datetime.time(10, 0),
+                payment_method="TRANSFER",
+            )
+            mock_mp.assert_not_called()
+
+    def test_hold_appointment_transfer_returns_empty_init_point_and_preference_id(self):
+        """TRANSFER path returns empty strings for init_point and preference_id."""
+        from apps.scheduling.services.booking_service import hold_appointment
+
+        practice, location, service, tutor, patient = self._setup()
+
+        appointment, payment, init_point, preference_id = hold_appointment(
+            user=tutor,
+            practice=practice,
+            service=service,
+            location=location,
+            patient=patient,
+            scheduled_date=datetime.date(2026, 8, 5),
+            start_time=datetime.time(10, 0),
+            payment_method="TRANSFER",
+        )
+
+        assert init_point == ""
+        assert preference_id == ""
+
+    def test_hold_appointment_mercadopago_unchanged(self):
+        """Regression: MERCADOPAGO default path still works as before."""
+        from apps.scheduling.services.booking_service import hold_appointment
+
+        practice, location, service, tutor, patient = self._setup()
+
+        with patch(
+            "apps.scheduling.services.booking_service.MercadoPagoStrategy.create_preference",
+            return_value={"init_point": MP_INIT_POINT, "preference_id": MP_PREFERENCE_ID},
+        ):
+            appointment, payment, init_point, preference_id = hold_appointment(
+                user=tutor,
+                practice=practice,
+                service=service,
+                location=location,
+                patient=patient,
+                scheduled_date=datetime.date(2026, 8, 6),
+                start_time=datetime.time(10, 0),
+                payment_method="MERCADOPAGO",
+            )
+
+        assert appointment.status == Appointment.HOLD
+        assert payment.payment_method == Payment.MERCADOPAGO
+        assert init_point == MP_INIT_POINT
+        assert preference_id == MP_PREFERENCE_ID

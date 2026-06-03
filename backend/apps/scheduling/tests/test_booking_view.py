@@ -450,3 +450,127 @@ class TestBookingResponsePreferenceId:
 
         assert response.status_code == status.HTTP_201_CREATED
         assert "checkout_url" in response.data
+
+
+# ---------------------------------------------------------------------------
+# T-08: TRANSFER payment_method in BookingView
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+class TestBookingViewTransferPaymentMethod:
+    def _setup(self):
+        practice = PracticeFactory(
+            bank_name="Banco prepago Tenpo",
+            account_type="Cuenta Vista",
+            account_number="111128625096",
+            account_holder="ESTEFANIA ORTIGOSA",
+            account_rut="28625096-3",
+            account_email="",
+        )
+        location = LocationFactory(practice=practice)
+        service = ServiceFactory(practice=practice, duration_minutes=30, price_clp=35000, is_active=True)
+        tutor = UserFactory()
+        patient = PatientFactory(practice=practice)
+        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
+        return practice, location, service, tutor, patient
+
+    def _payload(self, practice, location, service, patient, date_str, time_str):
+        return {
+            "practice": practice.pk,
+            "service": service.pk,
+            "location": location.pk,
+            "patient": patient.pk,
+            "scheduled_date": date_str,
+            "start_time": time_str,
+            "is_online": False,
+        }
+
+    def test_booking_view_transfer_response_contains_bank_details(self):
+        """POST with payment_method=TRANSFER returns bank_details dict with 6 keys."""
+        practice, location, service, tutor, patient = self._setup()
+        client = APIClient()
+        client.force_authenticate(user=tutor)
+
+        payload = self._payload(practice, location, service, patient, "2026-10-01", "09:00")
+        payload["payment_method"] = "TRANSFER"
+
+        response = client.post(reverse("scheduling:book"), payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        data = response.json()
+        assert "bank_details" in data
+        bd = data["bank_details"]
+        for key in ("bank_name", "account_type", "account_number", "account_holder", "account_rut", "account_email"):
+            assert key in bd, f"Missing bank_details key: {key}"
+        assert bd["bank_name"] == "Banco prepago Tenpo"
+        assert bd["account_number"] == "111128625096"
+
+    def test_booking_view_transfer_response_no_preference_id(self):
+        """TRANSFER response must NOT contain preference_id."""
+        practice, location, service, tutor, patient = self._setup()
+        client = APIClient()
+        client.force_authenticate(user=tutor)
+
+        payload = self._payload(practice, location, service, patient, "2026-10-02", "09:00")
+        payload["payment_method"] = "TRANSFER"
+
+        response = client.post(reverse("scheduling:book"), payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert "preference_id" not in response.json()
+
+    def test_booking_view_transfer_response_has_transfer_expires_at(self):
+        """TRANSFER response includes transfer_expires_at."""
+        practice, location, service, tutor, patient = self._setup()
+        client = APIClient()
+        client.force_authenticate(user=tutor)
+
+        payload = self._payload(practice, location, service, patient, "2026-10-03", "09:00")
+        payload["payment_method"] = "TRANSFER"
+
+        response = client.post(reverse("scheduling:book"), payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        data = response.json()
+        assert "transfer_expires_at" in data
+        assert data["transfer_expires_at"] is not None
+
+    def test_booking_view_mercadopago_response_no_bank_details(self):
+        """MERCADOPAGO response must NOT contain bank_details."""
+        practice, location, service, tutor, patient = self._setup()
+        client = APIClient()
+        client.force_authenticate(user=tutor)
+
+        payload = self._payload(practice, location, service, patient, "2026-10-04", "09:00")
+        payload["payment_method"] = "MERCADOPAGO"
+
+        with mp_strategy_mock():
+            response = client.post(reverse("scheduling:book"), payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert "bank_details" not in response.json()
+
+    def test_booking_view_default_payment_method_is_mercadopago(self):
+        """Omitting payment_method from request defaults to MERCADOPAGO flow."""
+        practice, location, service, tutor, patient = self._setup()
+        client = APIClient()
+        client.force_authenticate(user=tutor)
+
+        payload = self._payload(practice, location, service, patient, "2026-10-05", "09:00")
+        # No payment_method key
+
+        with mp_strategy_mock():
+            response = client.post(reverse("scheduling:book"), payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        data = response.json()
+        assert "checkout_url" in data
+        assert "preference_id" in data
+
+    def test_booking_view_invalid_payment_method_returns_400(self):
+        """Posting an invalid payment_method value returns 400."""
+        practice, location, service, tutor, patient = self._setup()
+        client = APIClient()
+        client.force_authenticate(user=tutor)
+
+        payload = self._payload(practice, location, service, patient, "2026-10-06", "09:00")
+        payload["payment_method"] = "BITCOIN"
+
+        response = client.post(reverse("scheduling:book"), payload, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
