@@ -9,6 +9,7 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from apps.practice.views import (
+    BankDetailsView,
     BlockedSlotAdminViewSet,
     LocationListView,
     OnlineScheduleView,
@@ -27,6 +28,7 @@ router.register(r"admin/blocked-slots", BlockedSlotAdminViewSet, basename="admin
 
 urlpatterns = [
     # Public read-only endpoints
+    path("practice/bank-details/", BankDetailsView.as_view(), name="bank-details"),
     path("practices/<slug:slug>/", PracticeDetailView.as_view(), name="practice-detail"),
     path("practices/<slug:slug>/locations/", LocationListView.as_view(), name="location-list"),
     path("practices/<slug:slug>/services/", ServiceListView.as_view(), name="service-list"),

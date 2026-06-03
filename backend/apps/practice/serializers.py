@@ -149,3 +149,19 @@ class BlockedSlotSerializer(serializers.ModelSerializer):
         instance = BlockedSlot(**attrs)
         instance.clean()
         return attrs
+
+
+class BankDetailsSerializer(serializers.ModelSerializer):
+    """Read-only serializer for bank account details (public transfer payment instructions)."""
+
+    class Meta:
+        model = Practice
+        fields = [
+            "bank_name",
+            "account_type",
+            "account_number",
+            "account_holder",
+            "account_rut",
+            "account_email",
+        ]
+        read_only_fields = fields
