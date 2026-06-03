@@ -98,11 +98,21 @@ def generate_invoice_pdf(invoice: Invoice) -> bytes:
     Returns:
         bytes: The PDF (or HTML fallback) content.
     """
+    STATUS_LABELS = {
+        "PENDING": "Pendiente",
+        "PROCESSING": "Procesando",
+        "COMPLETED": "Pagado",
+        "FAILED": "Fallido",
+        "REFUNDED": "Reembolsado",
+    }
+
+    payment = invoice.payment
     context = {
         "invoice": invoice,
-        "payment": invoice.payment,
+        "payment": payment,
         "practice": invoice.practice,
-        "patient": invoice.payment.patient,
+        "patient": payment.patient,
+        "status_display": STATUS_LABELS.get(payment.status, payment.status),
     }
 
     html_string = render_to_string("billing/invoice.html", context)
