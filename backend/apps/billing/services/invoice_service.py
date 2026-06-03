@@ -106,6 +106,10 @@ def generate_invoice_pdf(invoice: Invoice) -> bytes:
         "REFUNDED": "Reembolsado",
     }
 
+    def _fmt_clp(amount) -> str:
+        """Format a Decimal/float as Chilean pesos: $40.000"""
+        return f"${int(amount):,}".replace(",", ".")
+
     payment = invoice.payment
     context = {
         "invoice": invoice,
@@ -113,6 +117,9 @@ def generate_invoice_pdf(invoice: Invoice) -> bytes:
         "practice": invoice.practice,
         "patient": payment.patient,
         "status_display": STATUS_LABELS.get(payment.status, payment.status),
+        "fmt_subtotal": _fmt_clp(invoice.subtotal),
+        "fmt_tax": _fmt_clp(invoice.tax_amount) if invoice.tax_amount else None,
+        "fmt_total": _fmt_clp(invoice.total),
     }
 
     html_string = render_to_string("billing/invoice.html", context)

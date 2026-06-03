@@ -269,7 +269,7 @@
                     <td>{{ invoice.service_description }}</td>
                     <td>{% if payment.appointment and payment.appointment.service %}{{ payment.appointment.service.duration_minutes }} min{% else %}&mdash;{% endif %}</td>
                     <td class="right">1</td>
-                    <td class="right">${{ invoice.subtotal|floatformat:0 }}</td>
+                    <td class="right">{{ fmt_subtotal }}</td>
                 </tr>
             </tbody>
         </table>
@@ -279,12 +279,12 @@
     <div class="totales">
         <div class="total-row neto">
             <span>Monto bruto</span>
-            <span>${{ invoice.subtotal|floatformat:0 }}</span>
+            <span>{{ fmt_subtotal }}</span>
         </div>
-        {% if invoice.tax_amount %}
+        {% if fmt_tax %}
         <div class="total-row retencion">
             <span>Retencion honorarios</span>
-            <span>-${{ invoice.tax_amount|floatformat:0 }}</span>
+            <span>-{{ fmt_tax }}</span>
         </div>
         {% else %}
         <div class="total-row retencion">
@@ -294,7 +294,7 @@
         {% endif %}
         <div class="total-row final">
             <span>TOTAL PAGADO</span>
-            <span>${{ invoice.total|floatformat:0 }} {{ payment.currency }}</span>
+            <span>{{ fmt_total }} {{ payment.currency }}</span>
         </div>
     </div>
 
