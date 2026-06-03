@@ -217,14 +217,16 @@
         </div>
     </div>
 
-    <!-- Patient information -->
+    <!-- Payer information -->
     <div class="section">
-        <div class="section-title">Datos del Paciente</div>
+        <div class="section-title">Datos del Titular</div>
 
+        {% if payment.paid_by %}
         <div class="field-row">
-            <span class="field-label">Nombre:</span>
-            <span class="field-value">{{ invoice.patient_name }}</span>
+            <span class="field-label">Responsable:</span>
+            <span class="field-value">{{ payment.paid_by.full_name|default:payment.paid_by.email }}</span>
         </div>
+        {% endif %}
 
         {% if invoice.patient_rut %}
         <div class="field-row">
@@ -233,12 +235,10 @@
         </div>
         {% endif %}
 
-        {% if payment.paid_by %}
         <div class="field-row">
-            <span class="field-label">Pagado por:</span>
-            <span class="field-value">{{ payment.paid_by.get_full_name|default:payment.paid_by.email }}</span>
+            <span class="field-label">Paciente:</span>
+            <span class="field-value">{{ invoice.patient_name }}</span>
         </div>
-        {% endif %}
     </div>
 
     <!-- Appointment info -->

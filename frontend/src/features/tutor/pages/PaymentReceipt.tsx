@@ -191,7 +191,7 @@ export default function PaymentReceipt() {
                 </p>
               </div>
               <div>
-                <p className="text-[11px] text-ink3 font-medium">RUT paciente</p>
+                <p className="text-[11px] text-ink3 font-medium">RUT titular</p>
                 <p className="text-[13px] text-ink font-semibold">
                   {payment.patient_rut || "No registrado"}
                 </p>
