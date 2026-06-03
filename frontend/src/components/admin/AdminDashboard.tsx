@@ -13,7 +13,7 @@ import {
 import { useState } from "react";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
-import type { Appointment, Patient, Payment, PaginatedResponse, PendingTransferPayment } from "@/types/api";
+import type { Appointment, OcrResult, Patient, Payment, PaginatedResponse, PendingTransferPayment } from "@/types/api";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -236,6 +236,111 @@ function RejectModal({ onClose, onConfirm, isPending }: RejectModalProps) {
   );
 }
 
+// ─── OCR analysis card ────────────────────────────────────────────────────────
+
+function confidenceColorClass(confidence: number): string {
+  if (confidence >= 80) return "text-teal-dark bg-teal/10";
+  if (confidence >= 50) return "text-mustard bg-mustard/10";
+  return "text-coral bg-coral/10";
+}
+
+function OcrFieldRow({
+  label,
+  value,
+  match,
+}: {
+  label: string;
+  value: string | null;
+  match?: boolean;
+}) {
+  if (value === null || value === undefined) return null;
+
+  let icon: string;
+  let statusText: string;
+
+  if (match === true) {
+    icon = "✅";
+    statusText = "coincide";
+  } else if (match === false) {
+    icon = "❌";
+    statusText = "no coincide";
+  } else {
+    icon = "ℹ️";
+    statusText = "";
+  }
+
+  return (
+    <div className="flex items-center gap-2 text-[12px]">
+      <span>{icon}</span>
+      <span className="text-ink2 font-medium">{label}:</span>
+      <span className="text-ink">{value}</span>
+      {statusText && (
+        <span className="text-ink3">({statusText})</span>
+      )}
+    </div>
+  );
+}
+
+function OcrAnalysisCard({ ocr }: { ocr: OcrResult }) {
+  if (ocr.error) return null;
+
+  const { extracted, matches, confidence } = ocr;
+  const colorClass = confidenceColorClass(confidence);
+
+  const formattedMonto =
+    extracted.monto !== null
+      ? new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP" }).format(
+          extracted.monto
+        )
+      : null;
+
+  const formattedFecha =
+    extracted.fecha !== null
+      ? new Date(extracted.fecha + "T12:00:00").toLocaleDateString("es-CL", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        })
+      : null;
+
+  return (
+    <div className="mt-3 rounded-[12px] border border-line bg-bg px-4 py-3 space-y-1.5">
+      <p className="text-[11px] font-semibold text-ink2 uppercase tracking-wide mb-2">
+        Análisis del comprobante
+      </p>
+      <OcrFieldRow
+        label="Monto"
+        value={formattedMonto}
+        match={matches.monto}
+      />
+      <OcrFieldRow
+        label="Fecha"
+        value={formattedFecha}
+        match={matches.fecha}
+      />
+      <OcrFieldRow
+        label="RUT"
+        value={extracted.rut_remitente}
+      />
+      <OcrFieldRow
+        label="Banco"
+        value={extracted.banco_origen}
+      />
+      <div className="flex items-center gap-2 mt-2 pt-2 border-t border-line">
+        <span className="text-[12px] text-ink2">Confianza:</span>
+        <span
+          className={cn(
+            "text-[12px] font-bold px-2 py-0.5 rounded-full",
+            colorClass
+          )}
+        >
+          {confidence}%
+        </span>
+      </div>
+    </div>
+  );
+}
+
 // ─── pending transfers section ───────────────────────────────────────────────
 
 function PendingTransfersSection() {
@@ -295,69 +400,87 @@ function PendingTransfersSection() {
         <SectionHeader title="Transferencias pendientes" />
         <div className="bg-surface rounded-[16px] border border-line overflow-hidden">
           <div className="divide-y divide-line">
-            {pendingTransfers.map((payment) => (
-              <div
-                key={payment.id}
-                className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-4 hover:bg-bg/60 transition-colors"
-              >
-                {/* Patient + service info */}
-                <div className="flex-1 min-w-[160px]">
-                  <p className="text-[13px] font-medium text-ink">
-                    {payment.patient_name}
-                  </p>
-                  <p className="text-[11px] text-ink3">
-                    {payment.service_name ?? "—"}
-                    {payment.scheduled_date ? ` · ${formatDate(payment.scheduled_date)}` : ""}
-                  </p>
-                </div>
+            {pendingTransfers.map((payment) => {
+              const ocrResult = payment.metadata?.ocr_result;
 
-                {/* Amount */}
-                <span className="text-[14px] font-bold text-teal-dark">
-                  {formatCurrency(payment.amount, payment.currency)}
-                </span>
+              return (
+                <div
+                  key={payment.id}
+                  className="px-5 py-4 hover:bg-bg/60 transition-colors"
+                >
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                    {/* Patient + service info */}
+                    <div className="flex-1 min-w-[160px]">
+                      <p className="text-[13px] font-medium text-ink">
+                        {payment.patient_name}
+                      </p>
+                      <p className="text-[11px] text-ink3">
+                        {payment.service_name ?? "—"}
+                        {payment.scheduled_date ? ` · ${formatDate(payment.scheduled_date)}` : ""}
+                      </p>
+                    </div>
 
-                {/* Receipt link */}
-                {payment.receipt_file && (
-                  <a
-                    href={payment.receipt_file}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-[12px] font-medium text-teal-dark hover:underline"
-                  >
-                    <ExternalLink size={13} />
-                    Ver comprobante
-                  </a>
-                )}
+                    {/* Amount */}
+                    <span className="text-[14px] font-bold text-teal-dark">
+                      {formatCurrency(payment.amount, payment.currency)}
+                    </span>
 
-                {/* Actions */}
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => confirmMutation.mutate(payment.id)}
-                    disabled={confirmMutation.isPending}
-                    className={cn(
-                      "flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-[8px] transition-colors",
-                      "bg-teal/15 text-teal-dark hover:bg-teal/25",
-                      confirmMutation.isPending && "opacity-50 cursor-not-allowed"
+                    {/* Receipt link */}
+                    {payment.receipt_file && (
+                      <a
+                        href={payment.receipt_file}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-[12px] font-medium text-teal-dark hover:underline"
+                      >
+                        <ExternalLink size={13} />
+                        Ver comprobante
+                      </a>
                     )}
-                  >
-                    <CheckCircle size={13} className="inline -mt-px" />
-                    Confirmar
-                  </button>
-                  <button
-                    onClick={() => setRejectTarget(payment.id)}
-                    disabled={rejectMutation.isPending}
-                    className={cn(
-                      "flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-[8px] transition-colors",
-                      "bg-coral/10 text-coral hover:bg-coral/20",
-                      rejectMutation.isPending && "opacity-50 cursor-not-allowed"
-                    )}
-                  >
-                    <X size={13} className="inline -mt-px" />
-                    Rechazar
-                  </button>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => confirmMutation.mutate(payment.id)}
+                        disabled={confirmMutation.isPending}
+                        className={cn(
+                          "flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-[8px] transition-colors",
+                          "bg-teal/15 text-teal-dark hover:bg-teal/25",
+                          confirmMutation.isPending && "opacity-50 cursor-not-allowed"
+                        )}
+                      >
+                        <CheckCircle size={13} className="inline -mt-px" />
+                        Confirmar
+                      </button>
+                      <button
+                        onClick={() => setRejectTarget(payment.id)}
+                        disabled={rejectMutation.isPending}
+                        className={cn(
+                          "flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-[8px] transition-colors",
+                          "bg-coral/10 text-coral hover:bg-coral/20",
+                          rejectMutation.isPending && "opacity-50 cursor-not-allowed"
+                        )}
+                      >
+                        <X size={13} className="inline -mt-px" />
+                        Rechazar
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* OCR analysis — shown when result is available (advisory only) */}
+                  {ocrResult && !ocrResult.error && (
+                    <OcrAnalysisCard ocr={ocrResult} />
+                  )}
+                  {/* Pending state: receipt uploaded but OCR not yet done */}
+                  {payment.receipt_file && !ocrResult && (
+                    <p className="mt-2 text-[11px] text-ink3 flex items-center gap-1.5">
+                      <Clock size={11} className="shrink-0" />
+                      Analizando comprobante...
+                    </p>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
