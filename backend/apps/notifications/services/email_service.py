@@ -8,6 +8,7 @@ making any network call.
 
 from __future__ import annotations
 
+import datetime as _dt
 import logging
 from typing import TYPE_CHECKING
 
@@ -20,6 +21,48 @@ if TYPE_CHECKING:
     from apps.scheduling.models import Appointment
 
 logger = logging.getLogger(__name__)
+
+# ─── Date / time formatting helpers ──────────────────────────────────────────
+
+_MONTHS_ES = [
+    "", "enero", "febrero", "marzo", "abril", "mayo", "junio",
+    "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+]
+
+
+def _fmt_date(d: _dt.date | str | None) -> str:
+    """Format a date as '10 de junio de 2026'."""
+    if d is None:
+        return "—"
+    if isinstance(d, str):
+        parts = d.split("-")
+        if len(parts) == 3:
+            d = _dt.date(int(parts[0]), int(parts[1]), int(parts[2]))
+        else:
+            return d
+    return f"{d.day} de {_MONTHS_ES[d.month]} de {d.year}"
+
+
+def _fmt_date_short(d: _dt.date | str | None) -> str:
+    """Format a date as '10/06/2026'."""
+    if d is None:
+        return "—"
+    if isinstance(d, str):
+        parts = d.split("-")
+        if len(parts) == 3:
+            d = _dt.date(int(parts[0]), int(parts[1]), int(parts[2]))
+        else:
+            return d
+    return f"{d.day:02d}/{d.month:02d}/{d.year}"
+
+
+def _fmt_time(t: _dt.time | str | None) -> str:
+    """Format a time as '10:30 hrs' or '16:30 hrs'."""
+    if t is None:
+        return "—"
+    if isinstance(t, str):
+        return f"{t[:5]} hrs"
+    return f"{t:%H:%M} hrs"
 
 
 def send_email(
@@ -765,14 +808,14 @@ def send_appointment_reminder(appointment: Appointment) -> None:
         if prefs and not prefs.email_appointment_reminder:
             continue
 
-        subject = f"Recordatorio de consulta — {appointment.scheduled_date}"
+        subject = f"Recordatorio de consulta — {_fmt_date_short(appointment.scheduled_date)}"
         html_body = _build_appointment_html(
             title="Recordatorio de consulta",
             body_lines=[
                 f"Hola {tutor.first_name},",
                 f"Este es un recordatorio de la consulta de {appointment.patient} "
-                f"programada para el <strong>{appointment.scheduled_date}</strong> "
-                f"a las <strong>{appointment.start_time:%H:%M}</strong>.",
+                f"programada para el <strong>{_fmt_date(appointment.scheduled_date)}</strong> "
+                f"a las <strong>{_fmt_time(appointment.start_time)}</strong>.",
                 f"Servicio: {appointment.service.name}",
                 *_location_lines(appointment.location),
                 "Si necesitás cancelar o reprogramar, por favor contactanos con anticipación.",
@@ -785,8 +828,8 @@ def send_appointment_reminder(appointment: Appointment) -> None:
             notification_type=Notification.APPOINTMENT_REMINDER,
             title="Recordatorio de consulta",
             message=(
-                f"Consulta de {appointment.patient} el {appointment.scheduled_date} "
-                f"a las {appointment.start_time:%H:%M}."
+                f"Consulta de {appointment.patient} el {_fmt_date_short(appointment.scheduled_date)} "
+                f"a las {_fmt_time(appointment.start_time)}."
             ),
             related_type="Appointment",
             related_id=appointment.pk,
@@ -830,12 +873,12 @@ def send_appointment_confirmation(
         if prefs and not prefs.email_appointment_confirmed:
             continue
 
-        subject = f"Consulta confirmada — {appointment.scheduled_date}"
+        subject = f"Consulta confirmada — {_fmt_date_short(appointment.scheduled_date)}"
         body_lines = [
             f"Hola {tutor.first_name},",
             f"La consulta de {appointment.patient} ha sido <strong>confirmada</strong>.",
-            f"Fecha: {appointment.scheduled_date}",
-            f"Hora: {appointment.start_time:%H:%M}",
+            f"Fecha: {_fmt_date(appointment.scheduled_date)}",
+            f"Hora: {_fmt_time(appointment.start_time)}",
             f"Servicio: {appointment.service.name}",
             *_location_lines(appointment.location),
         ]
@@ -855,7 +898,7 @@ def send_appointment_confirmation(
             recipient=tutor,
             notification_type=Notification.APPOINTMENT_CONFIRMED,
             title="Consulta confirmada",
-            message=f"La consulta de {appointment.patient} el {appointment.scheduled_date} fue confirmada.",
+            message=f"La consulta de {appointment.patient} el {_fmt_date_short(appointment.scheduled_date)} fue confirmada.",
             related_type="Appointment",
             related_id=appointment.pk,
         )
@@ -918,8 +961,8 @@ def send_payment_receipt(payment) -> None:
     except Exception:
         appointment = None
 
-    scheduled_date = appointment.scheduled_date if appointment else "—"
-    start_time = appointment.start_time.strftime("%H:%M") if appointment else "—"
+    scheduled_date = _fmt_date(appointment.scheduled_date) if appointment else "—"
+    start_time = _fmt_time(appointment.start_time) if appointment else "—"
     service_name = appointment.service.name if appointment and appointment.service else "Consulta médica"
 
     # Format amount: CLP is integer, no decimals
@@ -1091,14 +1134,14 @@ def send_appointment_reschedule(
         if prefs and not prefs.email_appointment_confirmed:
             continue
 
-        subject = f"Tu cita ha sido reagendada — {appointment.scheduled_date}"
+        subject = f"Tu cita ha sido reagendada — {_fmt_date_short(appointment.scheduled_date)}"
         html_body = _build_appointment_html(
             title="Tu cita ha sido reagendada",
             body_lines=[
                 f"Hola {tutor.first_name},",
                 f"Tu consulta de {appointment.patient} ha sido <strong>reagendada</strong>.",
-                f"Nueva fecha: {appointment.scheduled_date}",
-                f"Nueva hora: {appointment.start_time:%H:%M}",
+                f"Nueva fecha: {_fmt_date(appointment.scheduled_date)}",
+                f"Nueva hora: {_fmt_time(appointment.start_time)}",
                 f"Servicio: {appointment.service.name}",
                 *_location_lines(appointment.location),
                 "Si necesitás hacer cambios adicionales, por favor contactanos.",
@@ -1113,7 +1156,7 @@ def send_appointment_reschedule(
             title="Tu cita ha sido reagendada",
             message=(
                 f"La consulta de {appointment.patient} fue reagendada al "
-                f"{appointment.scheduled_date} a las {appointment.start_time:%H:%M}."
+                f"{_fmt_date_short(appointment.scheduled_date)} a las {_fmt_time(appointment.start_time)}."
             ),
             related_type="Appointment",
             related_id=appointment.pk,
@@ -1145,13 +1188,13 @@ def send_appointment_cancellation(appointment: Appointment) -> None:
         if prefs and not prefs.email_appointment_cancelled:
             continue
 
-        subject = f"Consulta cancelada — {appointment.scheduled_date}"
+        subject = f"Consulta cancelada — {_fmt_date_short(appointment.scheduled_date)}"
         html_body = _build_appointment_html(
             title="Consulta cancelada",
             body_lines=[
                 f"Hola {tutor.first_name},",
                 f"Lamentamos informarte que la consulta de {appointment.patient} "
-                f"del <strong>{appointment.scheduled_date}</strong> ha sido cancelada.",
+                f"del <strong>{_fmt_date(appointment.scheduled_date)}</strong> ha sido cancelada.",
                 "Por favor contactanos para reprogramar tu cita.",
             ],
         )
@@ -1161,7 +1204,7 @@ def send_appointment_cancellation(appointment: Appointment) -> None:
             recipient=tutor,
             notification_type=Notification.APPOINTMENT_CANCELLED,
             title="Consulta cancelada",
-            message=f"La consulta de {appointment.patient} el {appointment.scheduled_date} fue cancelada.",
+            message=f"La consulta de {appointment.patient} el {_fmt_date_short(appointment.scheduled_date)} fue cancelada.",
             related_type="Appointment",
             related_id=appointment.pk,
         )
@@ -1232,8 +1275,8 @@ def send_24h_reminder(appointment) -> None:
         reminder_lines = [
             f"Hola {tutor.first_name},",
             f"Este es un recordatorio de la consulta de {appointment.patient} "
-            f"programada para <strong>mañana {appointment.scheduled_date}</strong> "
-            f"a las <strong>{appointment.start_time:%H:%M}</strong>.",
+            f"programada para <strong>mañana {_fmt_date(appointment.scheduled_date)}</strong> "
+            f"a las <strong>{_fmt_time(appointment.start_time)}</strong>.",
             f"Servicio: {appointment.service.name}",
             *_location_lines(appointment.location),
         ]
@@ -1254,8 +1297,8 @@ def send_24h_reminder(appointment) -> None:
             notification_type=Notification.APPOINTMENT_REMINDER,
             title="Recordatorio: tu cita es mañana",
             message=(
-                f"Consulta de {appointment.patient} el {appointment.scheduled_date} "
-                f"a las {appointment.start_time:%H:%M}."
+                f"Consulta de {appointment.patient} el {_fmt_date_short(appointment.scheduled_date)} "
+                f"a las {_fmt_time(appointment.start_time)}."
             ),
             related_type="Appointment",
             related_id=appointment.pk,
@@ -1306,7 +1349,7 @@ def send_2h_reminder(appointment) -> None:
             body_lines=[
                 f"Hola {tutor.first_name},",
                 f"La consulta online de {appointment.patient} comienza hoy "
-                f"a las <strong>{appointment.start_time:%H:%M}</strong>.",
+                f"a las <strong>{_fmt_time(appointment.start_time)}</strong>.",
                 (
                     f'Enlace de reunión: <a href="{meeting_link}">{meeting_link}</a>'
                     if meeting_link
@@ -1323,7 +1366,7 @@ def send_2h_reminder(appointment) -> None:
             title="Tu consulta online empieza en 2 horas",
             message=(
                 f"Consulta online de {appointment.patient} hoy "
-                f"a las {appointment.start_time:%H:%M}."
+                f"a las {_fmt_time(appointment.start_time)}."
             ),
             related_type="Appointment",
             related_id=appointment.pk,
