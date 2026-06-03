@@ -118,10 +118,17 @@ def generate_invoice_pdf(invoice: Invoice) -> bytes:
         )
         pdf_bytes = html_string.encode("utf-8")
 
-    # Persist the file
-    from django.core.files.base import ContentFile
+    # Persist the file (best-effort — PDF is still returned if save fails)
+    try:
+        from django.core.files.base import ContentFile
 
-    filename = f"{invoice.invoice_number}.pdf"
-    invoice.pdf_file.save(filename, ContentFile(pdf_bytes), save=True)
+        filename = f"{invoice.invoice_number}.pdf"
+        invoice.pdf_file.save(filename, ContentFile(pdf_bytes), save=True)
+    except Exception as exc:
+        logger.warning(
+            "Could not persist PDF for Invoice %s: %s — returning in-memory bytes",
+            invoice.invoice_number,
+            exc,
+        )
 
     return pdf_bytes

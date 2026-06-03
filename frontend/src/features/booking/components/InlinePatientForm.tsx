@@ -10,6 +10,7 @@ interface FormErrors {
   first_name?: string;
   last_name?: string;
   date_of_birth?: string;
+  rut?: string;
   general?: string;
 }
 
@@ -26,6 +27,7 @@ export default function InlinePatientForm({ onSuccess, onCancel }: InlinePatient
   const [lastName, setLastName] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [sexAtBirth, setSexAtBirth] = useState<"M" | "F" | "NO_ESPECIFICA">("NO_ESPECIFICA");
+  const [rut, setRut] = useState("");
   const [insurance, setInsurance] = useState("");
   const [errors, setErrors] = useState<FormErrors>({});
 
@@ -43,6 +45,7 @@ export default function InlinePatientForm({ onSuccess, onCancel }: InlinePatient
         errs.date_of_birth = "La fecha no puede ser futura.";
       }
     }
+    if (!rut.trim()) errs.rut = "El RUT es requerido.";
     return errs;
   }
 
@@ -62,6 +65,7 @@ export default function InlinePatientForm({ onSuccess, onCancel }: InlinePatient
       date_of_birth: dateOfBirth,
       sex_at_birth: sexAtBirth,
       document_type: "RUT",
+      rut: rut.trim(),
       insurance: insurance || "",
       country: "Chile",
     };
@@ -81,6 +85,7 @@ export default function InlinePatientForm({ onSuccess, onCancel }: InlinePatient
             if (key === "first_name") fieldErrors.first_name = msgs;
             else if (key === "last_name") fieldErrors.last_name = msgs;
             else if (key === "date_of_birth") fieldErrors.date_of_birth = msgs;
+            else if (key === "rut") fieldErrors.rut = msgs;
             else fieldErrors.general = fieldErrors.general
               ? `${fieldErrors.general} ${msgs}`
               : msgs;
@@ -168,6 +173,25 @@ export default function InlinePatientForm({ onSuccess, onCancel }: InlinePatient
           />
           {errors.date_of_birth && (
             <p className="text-[11px] text-coral mt-0.5">{errors.date_of_birth}</p>
+          )}
+        </div>
+
+        {/* RUT */}
+        <div>
+          <label className="block text-[12px] font-semibold text-ink mb-1">
+            RUT del paciente <span className="text-coral">*</span>
+          </label>
+          <input
+            type="text"
+            value={rut}
+            onChange={(e) => setRut(e.target.value)}
+            placeholder="ej. 12.345.678-9"
+            className={`w-full px-3 py-2.5 rounded-[10px] border text-ink text-[13px] bg-bg focus:outline-none focus:ring-2 focus:ring-teal/30 ${
+              errors.rut ? "border-coral" : "border-line focus:border-teal"
+            }`}
+          />
+          {errors.rut && (
+            <p className="text-[11px] text-coral mt-0.5">{errors.rut}</p>
           )}
         </div>
 
