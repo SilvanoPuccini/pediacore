@@ -188,13 +188,12 @@ def _build_payment_receipt_html(
     start_time: str,
     location_name: str,
     boleta_warning: bool = True,
-    pdf_download_url: str = "",
 ) -> str:
     """
     Build a branded payment receipt email with structured layout.
 
     Follows the brand design: hero section with checkmark, amount box,
-    detail rows with icons, optional boleta warning, and PDF download button.
+    detail rows with icons, and optional boleta warning.
     All styles are inline for email client compatibility.
     """
     logo_url = _EMAIL_LOGO_URL()
@@ -246,25 +245,6 @@ def _build_payment_receipt_html(
                                                 </td>
                                             </tr>
                                         </table>
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>"""
-
-    # --- PDF download button ---
-    download_html = ""
-    if pdf_download_url:
-        download_html = f"""
-                    <tr>
-                        <td style="padding:0 0 24px;">
-                            <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
-                                <tr>
-                                    <td style="background-color:#4A8590; border-radius:8px; text-align:center; padding:14px 24px;">
-                                        <a href="{pdf_download_url}" style="color:#FFFFFF; font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:15px; font-weight:600; text-decoration:none; display:inline-block;">
-                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:6px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                                            Descargar Comprobante PDF
-                                        </a>
                                     </td>
                                 </tr>
                             </table>
@@ -350,9 +330,6 @@ def _build_payment_receipt_html(
 
                                 <!-- Warning -->
                                 {warning_html}
-
-                                <!-- Download button -->
-                                {download_html}
 
                                 <!-- Disclaimer -->
                                 <tr>
@@ -911,40 +888,11 @@ def send_appointment_confirmation(
         )
 
 
-def _get_invoice_pdf_attachment(payment) -> dict | None:
-    """
-    Try to retrieve the invoice PDF bytes for a payment.
-
-    Returns a Resend-compatible attachment dict, or None when no Invoice
-    or PDF is available (graceful degradation — email is still sent without attachment).
-    """
-    try:
-        from apps.billing.models import Invoice
-
-        invoice = Invoice.objects.get(payment=payment)
-        if invoice.pdf_file and invoice.pdf_file.name:
-            try:
-                pdf_bytes = invoice.pdf_file.read()
-                import base64
-
-                return {
-                    "filename": f"comprobante-{invoice.invoice_number}.pdf",
-                    "content": base64.b64encode(pdf_bytes).decode("utf-8"),
-                }
-            except Exception as exc:
-                logger.warning("Could not read invoice PDF for Payment #%s: %s", payment.pk, exc)
-                return None
-    except Exception:
-        return None
-    return None
-
-
 def send_payment_receipt(payment) -> None:
     """
     Send a payment receipt email to all tutors linked to the payment's patient.
 
     Checks each tutor's NotificationPreference.email_payment_received before sending.
-    Attaches the invoice PDF if available (graceful degradation when missing).
     Creates a Notification record for each tutor that receives the email.
 
     Args:
@@ -971,29 +919,12 @@ def send_payment_receipt(payment) -> None:
     except (TypeError, ValueError):
         amount_display = str(payment.amount)
 
-    # Try to get the invoice PDF attachment once (same for all tutors)
-    pdf_attachment = _get_invoice_pdf_attachment(payment)
-
-    api_key = getattr(settings, "RESEND_API_KEY", "")
-
     for link in tutors_qs:
         tutor = link.tutor
 
         prefs = NotificationPreference.objects.filter(user=tutor).first()
         if prefs and not getattr(prefs, "email_payment_received", True):
             continue
-
-        # Build PDF download URL if invoice exists
-        pdf_download_url = ""
-        try:
-            from apps.billing.models import Invoice
-
-            invoice = Invoice.objects.filter(payment=payment).first()
-            if invoice:
-                site_url = getattr(settings, "SITE_URL", "").rstrip("/")
-                pdf_download_url = f"{site_url}/api/v1/billing/invoices/{invoice.pk}/download/"
-        except Exception:
-            pass
 
         # Resolve location display name
         location_display = "Consulta Online"
@@ -1012,7 +943,6 @@ def send_payment_receipt(payment) -> None:
             scheduled_date=str(scheduled_date),
             start_time=start_time,
             location_name=location_display,
-            pdf_download_url=pdf_download_url,
         )
 
         Notification.objects.create(
@@ -1025,84 +955,12 @@ def send_payment_receipt(payment) -> None:
             related_id=payment.pk,
         )
 
-        # Send with or without PDF attachment
-        if api_key and pdf_attachment:
-            _send_email_with_attachment(
-                to=tutor.email,
-                subject=subject,
-                html_body=html_body,
-                practice=payment.practice,
-                attachment=pdf_attachment,
-                api_key=api_key,
-            )
-        else:
-            send_email(
-                to=tutor.email,
-                subject=subject,
-                html_body=html_body,
-                practice=payment.practice,
-            )
-
-
-def _send_email_with_attachment(
-    to: str,
-    subject: str,
-    html_body: str,
-    attachment: dict,
-    api_key: str,
-    practice=None,
-) -> EmailLog:
-    """
-    Send an email with a PDF attachment via the Resend API.
-
-    Falls back to send_email() (no attachment) if the API call fails.
-
-    Args:
-        to: Recipient email address.
-        subject: Email subject line.
-        html_body: Full HTML body.
-        attachment: Resend-compatible attachment dict with 'filename' and 'content'.
-        api_key: Resend API key.
-        practice: Optional Practice instance for EmailLog attribution.
-
-    Returns:
-        The created EmailLog record.
-    """
-    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@estefipediatra.com")
-    reply_to = getattr(settings, "DEFAULT_REPLY_TO_EMAIL", "estefiortigosa.peditra@gmail.com")
-    body_preview = html_body[:500]
-
-    try:
-        import resend
-
-        resend.api_key = api_key
-        response = resend.Emails.send(
-            {
-                "from": from_email,
-                "to": [to],
-                "subject": subject,
-                "html": html_body,
-                "reply_to": [reply_to],
-                "attachments": [attachment],
-            }
-        )
-        external_id = response.get("id", "") if isinstance(response, dict) else str(response)
-        log = EmailLog.objects.create(
-            practice=practice,
-            recipient_email=to,
+        send_email(
+            to=tutor.email,
             subject=subject,
-            body_preview=body_preview,
-            status=EmailLog.SENT,
-            provider="resend",
-            external_id=external_id,
-            sent_at=timezone.now(),
+            html_body=html_body,
+            practice=payment.practice,
         )
-        logger.info("Receipt email with PDF sent to %s (external_id=%s)", to, external_id)
-        return log
-    except Exception as exc:
-        logger.error("Failed to send receipt email with PDF to %s: %s — retrying without attachment", to, exc)
-        # Graceful degradation: send without attachment
-        return send_email(to=to, subject=subject, html_body=html_body, practice=practice)
 
 
 def send_appointment_reschedule(

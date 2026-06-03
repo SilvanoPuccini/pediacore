@@ -206,7 +206,7 @@ class PatientCreateSerializer(serializers.ModelSerializer):
             "sex_at_birth": {"required": False},
             "document_type": {"required": False},
             "country": {"required": False},
-            "rut": {"required": False},
+            "rut": {"required": True},
             "blood_type": {"required": False},
             "region": {"required": False},
             "comuna": {"required": False},

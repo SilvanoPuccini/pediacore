@@ -140,10 +140,10 @@ class Patient(BaseModel):
     rut = models.CharField(
         _("RUT / document number"),
         max_length=20,
-        blank=True,
+        blank=False,
         unique=True,
         null=True,
-        help_text=_("Chilean national ID (optional). Format: 12345678-9"),
+        help_text=_("Chilean national ID. Format: 12345678-9"),
     )
     insurance = models.CharField(
         _("insurance"),
