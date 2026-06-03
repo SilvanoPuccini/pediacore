@@ -37,6 +37,7 @@ interface BookingState {
   checkoutUrl: string | null;
   holdExpiresAt: string | null;      // ISO UTC string from backend
   appointmentId: number | null;
+  preferenceId: string | null;       // MP preference ID for Wallet Brick
   // Wizard
   step: BookingStep;
   lastActivity: number | null;  // Date.now() — for expiry detection
@@ -76,6 +77,7 @@ const initialState: BookingState = {
   checkoutUrl: null,
   holdExpiresAt: null,
   appointmentId: null,
+  preferenceId: null,
   step: 1,
   lastActivity: null,
 };
@@ -114,6 +116,7 @@ export const useBookingStore = create<BookingStore>()(
           checkoutUrl: result.checkout_url,
           holdExpiresAt: result.hold_expires_at,
           appointmentId: result.appointment_id,
+          preferenceId: result.preference_id ?? null,
           lastActivity: Date.now(),
         }),
 
@@ -130,6 +133,7 @@ export const useBookingStore = create<BookingStore>()(
         appointmentId: state.appointmentId,
         checkoutUrl: state.checkoutUrl,
         holdExpiresAt: state.holdExpiresAt,
+        preferenceId: state.preferenceId,
         step: state.step,
         lastActivity: state.lastActivity,
       }),

@@ -128,6 +128,7 @@ export interface BookingResponse {
   hold_expires_at: string;   // ISO UTC datetime
   appointment_id: number;
   payment_id: number;
+  preference_id: string;     // MP preference ID for Wallet Brick
 }
 
 export interface PatientCreate {

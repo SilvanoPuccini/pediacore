@@ -9,7 +9,7 @@ import StepAuth from "./steps/StepAuth";
 import StepPatient from "./steps/StepPatient";
 import StepTutor from "./steps/StepTutor";
 import StepSummary from "./steps/StepSummary";
-import HoldCountdown from "./components/HoldCountdown";
+import StepPayment from "./steps/StepPayment";
 
 // ─── Visual step mapping ─────────────────────────────────────────────────────
 // Internal steps 1-8, but indicator shows only 5 visible steps.
@@ -120,10 +120,7 @@ export default function BookingCalendar() {
   }, []);
 
   if (step === 8) {
-    const { checkoutUrl, holdExpiresAt } = useBookingStore.getState();
-    if (checkoutUrl && holdExpiresAt) {
-      return <HoldCountdown holdExpiresAt={holdExpiresAt} checkoutUrl={checkoutUrl} />;
-    }
+    return <StepPayment />;
   }
 
   return (
