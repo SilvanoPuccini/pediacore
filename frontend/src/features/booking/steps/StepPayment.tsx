@@ -1,36 +1,47 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useBookingStore } from "../store/bookingStore";
+import { useServices } from "../hooks/useBookingQueries";
 import WalletBrick from "../components/WalletBrick";
+import TransferInstructions from "../components/TransferInstructions";
 
 /**
  * StepPayment (step 8)
  *
- * Renders the MercadoPago Wallet Brick inline for MP payments.
- * Replaces the old HoldCountdown redirect flow.
- *
- * - Shows a countdown timer for the slot hold duration
- * - Renders WalletBrick with preferenceId from booking store
- * - On payment success: navigates to /booking/confirmed
+ * Renders the correct payment UI based on the selected payment method:
+ * - MERCADOPAGO: renders WalletBrick inline (replaces old redirect flow)
+ * - TRANSFER: renders TransferInstructions with bank details and receipt upload
  */
 export default function StepPayment() {
   const navigate = useNavigate();
   const preferenceId = useBookingStore((s) => s.preferenceId);
   const holdExpiresAt = useBookingStore((s) => s.holdExpiresAt);
+  const paymentMethod = useBookingStore((s) => s.paymentMethod);
+  const paymentId = useBookingStore((s) => s.paymentId);
+  const bankDetails = useBookingStore((s) => s.bankDetails);
+  const transferExpiresAt = useBookingStore((s) => s.transferExpiresAt);
+  const serviceId = useBookingStore((s) => s.serviceId);
   const reset = useBookingStore((s) => s.reset);
 
-  const [secondsLeft, setSecondsLeft] = useState(() =>
-    holdExpiresAt
-      ? Math.max(0, Math.round((new Date(holdExpiresAt).getTime() - Date.now()) / 1000))
-      : 0
-  );
+  const { data: servicesResp } = useServices();
+  const selectedService = (servicesResp?.results ?? []).find((s) => s.id === serviceId) ?? null;
 
-  // Countdown timer
+  const [secondsLeft, setSecondsLeft] = useState(() => {
+    if (paymentMethod === "TRANSFER" && transferExpiresAt) {
+      return Math.max(0, Math.round((new Date(transferExpiresAt).getTime() - Date.now()) / 1000));
+    }
+    return holdExpiresAt
+      ? Math.max(0, Math.round((new Date(holdExpiresAt).getTime() - Date.now()) / 1000))
+      : 0;
+  });
+
+  // Countdown timer (only for MP — transfer has 48h window)
   useEffect(() => {
+    if (paymentMethod === "TRANSFER") return;
     if (secondsLeft <= 0) return;
     const id = setInterval(() => setSecondsLeft((s) => Math.max(0, s - 1)), 1000);
     return () => clearInterval(id);
-  }, [secondsLeft]);
+  }, [secondsLeft, paymentMethod]);
 
   function handlePaymentSuccess() {
     navigate("/booking/confirmed");
@@ -41,6 +52,48 @@ export default function StepPayment() {
   const timeDisplay = minutes > 0
     ? `${minutes}:${String(secs).padStart(2, "0")} min`
     : `${secs}s`;
+
+  // ── Transfer flow ──────────────────────────────────────────────────────────
+
+  if (paymentMethod === "TRANSFER") {
+    if (!paymentId || !bankDetails) {
+      return (
+        <div className="max-w-[560px] mx-auto px-4 pt-[110px] pb-12">
+          <div className="bg-coral/10 border border-coral/30 rounded-[12px] px-4 py-3 text-center">
+            <p className="text-[13px] text-ink font-semibold">
+              No se pudieron cargar los datos de transferencia
+            </p>
+            <p className="text-[12px] text-ink2 mt-1">
+              Por favor, intentá de nuevo.
+            </p>
+            <button
+              onClick={() => { reset(); }}
+              className="mt-3 text-[13px] text-teal-dark font-semibold hover:underline"
+            >
+              Volver al inicio
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="max-w-[560px] mx-auto px-4 pt-[110px] pb-12">
+        <div className="space-y-4">
+          <h2 className="font-display text-[22px] font-semibold text-ink">
+            Instrucciones de pago
+          </h2>
+          <TransferInstructions
+            paymentId={paymentId}
+            amount={selectedService?.price_clp ?? 0}
+            bankDetails={bankDetails}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // ── MercadoPago flow ───────────────────────────────────────────────────────
 
   return (
     <div className="max-w-[560px] mx-auto px-4 pt-[110px] pb-12">
