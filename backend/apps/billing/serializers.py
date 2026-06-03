@@ -140,29 +140,28 @@ class PaymentDetailSerializer(PaymentListSerializer):
     def get_paid_by_name(self, obj: Payment) -> str | None:
         if not obj.paid_by:
             return None
-        name = obj.paid_by.get_full_name()
+        name = obj.paid_by.full_name
         return name if name else obj.paid_by.email
 
     def get_patient_rut(self, obj: Payment) -> str:
         return obj.patient.rut or ""
 
-    def get_has_invoice(self, obj: Payment) -> bool:
+    def _get_invoice(self, obj: Payment) -> Invoice | None:
         try:
-            return obj.invoice is not None
+            return obj.invoice
         except Invoice.DoesNotExist:
-            return False
+            return None
+
+    def get_has_invoice(self, obj: Payment) -> bool:
+        return self._get_invoice(obj) is not None
 
     def get_invoice_id(self, obj: Payment) -> int | None:
-        try:
-            return obj.invoice.id if obj.invoice else None
-        except Invoice.DoesNotExist:
-            return None
+        inv = self._get_invoice(obj)
+        return inv.id if inv else None
 
     def get_invoice_number(self, obj: Payment) -> str | None:
-        try:
-            return obj.invoice.invoice_number if obj.invoice else None
-        except Invoice.DoesNotExist:
-            return None
+        inv = self._get_invoice(obj)
+        return inv.invoice_number if inv else None
 
     def get_duration_minutes(self, obj: Payment) -> int | None:
         apt = obj.appointment
