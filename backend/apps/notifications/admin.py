@@ -50,7 +50,6 @@ class NotificationPreferenceAdmin(admin.ModelAdmin):
         "email_appointment_reminder",
         "email_appointment_confirmed",
         "email_appointment_cancelled",
-        "reminder_hours_before",
     ]
     list_filter = ["practice", "email_appointment_reminder"]
     search_fields = ["user__email"]

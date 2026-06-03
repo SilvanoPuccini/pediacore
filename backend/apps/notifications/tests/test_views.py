@@ -147,7 +147,6 @@ class TestNotificationPreferences:
         response = client.get(url)
         assert response.status_code == status.HTTP_200_OK
         assert response.data["email_appointment_reminder"] is True
-        assert response.data["reminder_hours_before"] == 24
 
     def test_update_preferences(self, tutor_client):
         client, tutor = tutor_client
@@ -160,12 +159,10 @@ class TestNotificationPreferences:
             "email_appointment_cancelled": True,
             "email_waitlist_available": False,
             "email_payment_received": True,
-            "reminder_hours_before": 48,
         }
         response = client.put(url, data=payload, format="json")
         assert response.status_code == status.HTTP_200_OK
         assert response.data["email_appointment_reminder"] is False
-        assert response.data["reminder_hours_before"] == 48
 
     def test_anon_cannot_get_preferences(self, api_client):
         url = reverse("notifications:notification-preferences")

@@ -1,10 +1,9 @@
 """
-Tests for notifications services (email_service and reminder_scheduler).
+Tests for notifications services (email_service).
 """
 
 from __future__ import annotations
 
-import datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -20,7 +19,6 @@ from apps.notifications.services.email_service import (
     send_appointment_reschedule,
     send_email,
 )
-from apps.notifications.services.reminder_scheduler import schedule_pending_reminders
 from apps.scheduling.models import Appointment
 from tests.factories.notifications import NotificationPreferenceFactory
 from tests.factories.patients import PatientFactory, TutorPatientFactory
@@ -202,84 +200,6 @@ class TestSendAppointmentCancellation:
             notification_type=Notification.APPOINTMENT_CANCELLED,
         ).exists()
 
-
-# ---------------------------------------------------------------------------
-# schedule_pending_reminders
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.django_db
-class TestSchedulePendingReminders:
-    def test_returns_count_of_dispatched_reminders(self, settings):
-        """Confirmed appointments in window are reminded; count is returned."""
-        settings.RESEND_API_KEY = ""
-        practice = PracticeFactory()
-        tutor = UserFactory()
-        patient = PatientFactory(practice=practice)
-        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
-
-        # Appointment in the past (already past reminder window)
-        past_date = timezone.now().date() - datetime.timedelta(days=1)
-        AppointmentFactory(
-            practice=practice,
-            patient=patient,
-            status=Appointment.CONFIRMED,
-            scheduled_date=past_date,
-            reminder_sent_at=None,
-        )
-
-        # Appointment today — within the default 24 h window
-        today = timezone.now().date()
-        appt = AppointmentFactory(
-            practice=practice,
-            patient=patient,
-            status=Appointment.CONFIRMED,
-            scheduled_date=today,
-            reminder_sent_at=None,
-        )
-
-        count = schedule_pending_reminders()
-        assert count >= 1
-
-        appt.refresh_from_db()
-        assert appt.reminder_sent_at is not None
-
-    def test_already_reminded_appointments_skipped(self, settings):
-        settings.RESEND_API_KEY = ""
-        practice = PracticeFactory()
-        tutor = UserFactory()
-        patient = PatientFactory(practice=practice)
-        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
-
-        already_reminded = AppointmentFactory(
-            practice=practice,
-            patient=patient,
-            status=Appointment.CONFIRMED,
-            scheduled_date=timezone.now().date(),
-            reminder_sent_at=timezone.now(),
-        )
-
-        initial_email_count = EmailLog.objects.count()
-        schedule_pending_reminders()
-        assert EmailLog.objects.count() == initial_email_count
-
-    def test_pending_status_appointments_skipped(self, settings):
-        settings.RESEND_API_KEY = ""
-        practice = PracticeFactory()
-        tutor = UserFactory()
-        patient = PatientFactory(practice=practice)
-        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
-
-        AppointmentFactory(
-            practice=practice,
-            patient=patient,
-            status=Appointment.PENDING,
-            scheduled_date=timezone.now().date(),
-            reminder_sent_at=None,
-        )
-
-        count = schedule_pending_reminders()
-        assert count == 0
 
 
 # ---------------------------------------------------------------------------

@@ -46,7 +46,6 @@ class NotificationPreferenceSerializer(serializers.ModelSerializer):
             "email_appointment_cancelled",
             "email_waitlist_available",
             "email_payment_received",
-            "reminder_hours_before",
             "created_at",
             "updated_at",
         ]
