@@ -233,6 +233,26 @@ export interface Payment {
   created_at: string;
 }
 
+export interface OcrExtracted {
+  monto: number | null;
+  fecha: string | null;
+  rut_remitente: string | null;
+  banco_origen: string | null;
+}
+
+export interface OcrMatches {
+  monto?: boolean;
+  fecha?: boolean;
+}
+
+export interface OcrResult {
+  extracted: OcrExtracted;
+  matches: OcrMatches;
+  confidence: number;
+  analyzed_at: string;
+  error?: string;
+}
+
 export interface PendingTransferPayment {
   id: number;
   appointment: number;
@@ -246,6 +266,10 @@ export interface PendingTransferPayment {
   created_at: string;
   service_name: string | null;
   scheduled_date: string | null;
+  metadata?: {
+    ocr_result?: OcrResult;
+    [key: string]: unknown;
+  };
 }
 
 export interface PaymentListItem {
