@@ -341,3 +341,112 @@ class TestConfirmActionAcceptsHold:
         response = client.post(url)
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+# ---------------------------------------------------------------------------
+# T-01: preference_id in BookingView response
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+class TestBookingResponsePreferenceId:
+    def test_booking_response_includes_preference_id(self):
+        """
+        RED → GREEN: BookingView response must include a non-null preference_id string
+        when payment method is MERCADOPAGO.
+        """
+        practice = PracticeFactory()
+        location = LocationFactory(practice=practice)
+        service = ServiceFactory(practice=practice, duration_minutes=30, price_clp=20000, is_active=True)
+        tutor = UserFactory()
+        patient = PatientFactory(practice=practice)
+        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
+
+        client = APIClient()
+        client.force_authenticate(user=tutor)
+
+        url = reverse("scheduling:book")
+        payload = {
+            "practice": practice.pk,
+            "service": service.pk,
+            "location": location.pk,
+            "patient": patient.pk,
+            "scheduled_date": "2026-09-01",
+            "start_time": "09:00",
+            "is_online": False,
+        }
+
+        with mp_strategy_mock():
+            response = client.post(url, payload, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        data = response.data
+        assert "preference_id" in data
+        assert data["preference_id"] is not None
+        assert isinstance(data["preference_id"], str)
+        assert len(data["preference_id"]) > 0
+
+    def test_booking_response_preference_id_matches_mp_strategy_result(self):
+        """
+        RED → GREEN: preference_id in the response must match the value returned
+        by MercadoPagoStrategy.create_preference() (i.e., MP_PREFERENCE_ID from the mock).
+        """
+        practice = PracticeFactory()
+        location = LocationFactory(practice=practice)
+        service = ServiceFactory(practice=practice, duration_minutes=30, price_clp=20000, is_active=True)
+        tutor = UserFactory()
+        patient = PatientFactory(practice=practice)
+        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
+
+        client = APIClient()
+        client.force_authenticate(user=tutor)
+
+        url = reverse("scheduling:book")
+        payload = {
+            "practice": practice.pk,
+            "service": service.pk,
+            "location": location.pk,
+            "patient": patient.pk,
+            "scheduled_date": "2026-09-02",
+            "start_time": "10:00",
+            "is_online": False,
+        }
+
+        with mp_strategy_mock():
+            response = client.post(url, payload, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        data = response.data
+        # preference_id in response must exactly match what the MP strategy returned
+        assert data["preference_id"] == MP_PREFERENCE_ID
+
+    def test_booking_response_still_includes_checkout_url(self):
+        """
+        Backward compatibility: checkout_url must still be present in the response.
+        """
+        practice = PracticeFactory()
+        location = LocationFactory(practice=practice)
+        service = ServiceFactory(practice=practice, duration_minutes=30, price_clp=20000, is_active=True)
+        tutor = UserFactory()
+        patient = PatientFactory(practice=practice)
+        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
+
+        client = APIClient()
+        client.force_authenticate(user=tutor)
+
+        url = reverse("scheduling:book")
+        payload = {
+            "practice": practice.pk,
+            "service": service.pk,
+            "location": location.pk,
+            "patient": patient.pk,
+            "scheduled_date": "2026-09-03",
+            "start_time": "11:00",
+            "is_online": False,
+        }
+
+        with mp_strategy_mock():
+            response = client.post(url, payload, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert "checkout_url" in response.data

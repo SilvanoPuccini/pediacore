@@ -72,7 +72,7 @@ class TestHoldAppointmentHappyPath:
             "apps.scheduling.services.booking_service.MercadoPagoStrategy.create_preference",
             side_effect=_make_create_preference_mock(),
         ):
-            appointment, payment, init_point = hold_appointment(
+            appointment, payment, init_point, preference_id = hold_appointment(
                 user=tutor,
                 practice=practice,
                 service=service,
@@ -104,8 +104,9 @@ class TestHoldAppointmentHappyPath:
         assert payment.patient == patient
         assert payment.amount == Decimal("25000")
 
-        # Return value
+        # Return values
         assert init_point == MP_INIT_POINT
+        assert preference_id == MP_PREFERENCE_ID
 
     def test_hold_appointment_stores_preference_id_in_metadata(self):
         """Payment.metadata must contain the MP preference_id."""
@@ -122,7 +123,7 @@ class TestHoldAppointmentHappyPath:
             "apps.scheduling.services.booking_service.MercadoPagoStrategy.create_preference",
             side_effect=_make_create_preference_mock(),
         ):
-            appointment, payment, init_point = hold_appointment(
+            appointment, payment, init_point, preference_id = hold_appointment(
                 user=tutor,
                 practice=practice,
                 service=service,
@@ -133,7 +134,8 @@ class TestHoldAppointmentHappyPath:
                 is_online=False,
             )
 
-        assert payment.metadata.get("preference_id") == MP_PREFERENCE_ID
+        # preference_id returned as 4th element of the tuple
+        assert preference_id == MP_PREFERENCE_ID
         # external_id must stay empty until webhook fires
         assert payment.external_id == ""
 
@@ -156,7 +158,7 @@ class TestHoldAppointmentHappyPath:
             "apps.scheduling.services.booking_service.MercadoPagoStrategy.create_preference",
             side_effect=_make_create_preference_mock(),
         ):
-            appointment, payment, _ = hold_appointment(
+            appointment, payment, _, _pref_id = hold_appointment(
                 user=tutor,
                 practice=practice,
                 service=service,

@@ -447,7 +447,7 @@ class BookingView(APIView):
         data = serializer.validated_data
 
         try:
-            appointment, payment, init_point = hold_appointment(
+            appointment, payment, init_point, preference_id = hold_appointment(
                 user=request.user,
                 practice=data["practice"],
                 service=data["service"],
@@ -489,6 +489,7 @@ class BookingView(APIView):
                 "appointment_id": appointment.pk,
                 "payment_id": payment.pk,
                 "checkout_url": init_point,
+                "preference_id": preference_id,
                 "hold_expires_at": appointment.hold_expires_at,
             },
             status=status.HTTP_201_CREATED,
