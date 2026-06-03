@@ -89,7 +89,7 @@ def analyze_receipt_with_gemini(payment_id: int) -> dict | None:
         import google.generativeai as genai  # optional dep — only imported here
 
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-2.0-flash")
+        model = genai.GenerativeModel("gemini-2.5-flash")
 
         if mime_type == "application/pdf":
             # PDFs must be uploaded first then referenced
