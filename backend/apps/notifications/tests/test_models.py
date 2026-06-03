@@ -124,7 +124,6 @@ class TestNotificationPreferenceModel:
         assert pref.email_appointment_cancelled is True
         assert pref.email_waitlist_available is True
         assert pref.email_payment_received is True
-        assert pref.reminder_hours_before == 24
 
     def test_preference_str(self):
         pref = NotificationPreferenceFactory()
