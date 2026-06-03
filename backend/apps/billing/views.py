@@ -21,6 +21,7 @@ from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -35,13 +36,22 @@ from apps.billing.serializers import (
     PaymentListSerializer,
     PaymentProviderSerializer,
     PaymentUpdateSerializer,
+    ReceiptUploadSerializer,
+    TransferConfirmSerializer,
+    TransferRejectSerializer,
 )
 from apps.billing.services.export_service import export_payments_xlsx
 from apps.billing.services.invoice_service import create_invoice_for_payment, generate_invoice_pdf
 from apps.billing.services.payment_strategy import MercadoPagoStrategy, get_payment_strategy
 from apps.core.pagination import StandardPagination
-from apps.core.permissions import IsDoctor
-from apps.notifications.services.email_service import send_appointment_confirmation, send_payment_receipt
+from apps.core.permissions import IsDoctor, IsTutor
+from apps.notifications.services.email_service import (
+    send_appointment_confirmation,
+    send_payment_receipt,
+    send_transfer_confirmed,
+    send_transfer_receipt_uploaded,
+    send_transfer_rejected,
+)
 from apps.scheduling.models import Appointment
 from apps.scheduling.services.token_service import create_tokens_for_appointment
 
@@ -149,6 +159,205 @@ class PaymentViewSet(viewsets.ModelViewSet):
         )
         response["Content-Disposition"] = 'attachment; filename="payments.xlsx"'
         return response
+
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="upload-receipt",
+        permission_classes=[IsTutor],
+        parser_classes=[MultiPartParser],
+    )
+    def upload_receipt(self, request: Request, pk=None) -> Response:
+        """
+        Upload a bank transfer receipt file for a pending transfer payment.
+
+        Only the tutor who owns the payment (paid_by) may upload.
+        Payment must be PENDING with payment_method=TRANSFER.
+        Accepts: PDF, JPG, JPEG, PNG. Max size: 10 MB.
+        """
+        payment = self.get_object()
+
+        # Ownership check: tutor must be the payer
+        if payment.paid_by != request.user:
+            return Response(
+                {"detail": "You do not have permission to upload a receipt for this payment."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        if payment.payment_method != Payment.TRANSFER:
+            return Response(
+                {"detail": "Receipt upload is only valid for bank transfer payments."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if payment.status != Payment.PENDING:
+            return Response(
+                {"detail": "Receipt can only be uploaded for pending payments."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = ReceiptUploadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        receipt_file = serializer.validated_data["receipt"]
+
+        payment.receipt_file = receipt_file
+        payment.receipt_uploaded_at = timezone.now()
+        payment.save(update_fields=["receipt_file", "receipt_uploaded_at", "updated_at"])
+
+        try:
+            send_transfer_receipt_uploaded(payment)
+        except Exception as exc:
+            logger.error(
+                "upload_receipt: failed to send notification for Payment #%s: %s",
+                payment.pk,
+                exc,
+            )
+
+        return Response(
+            {
+                "status": "pending",
+                "receipt_uploaded_at": payment.receipt_uploaded_at,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="confirm-transfer",
+        permission_classes=[IsDoctor],
+    )
+    def confirm_transfer(self, request: Request, pk=None) -> Response:
+        """
+        Confirm a bank transfer payment (doctor only).
+
+        Transitions Payment → COMPLETED, Appointment → CONFIRMED.
+        Creates an Invoice and sends confirmation email to the tutor.
+        """
+        payment = self.get_object()
+
+        if payment.payment_method != Payment.TRANSFER:
+            return Response(
+                {"detail": "confirm-transfer is only valid for bank transfer payments."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if payment.status != Payment.PENDING:
+            return Response(
+                {"detail": "Only pending transfer payments can be confirmed."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = TransferConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        notes = serializer.validated_data.get("notes", "")
+
+        with transaction.atomic():
+            payment.status = Payment.COMPLETED
+            payment.paid_at = timezone.now()
+            if notes:
+                payment.notes = notes
+            payment.save(update_fields=["status", "paid_at", "notes", "updated_at"])
+
+            appointment = payment.appointment
+            if appointment and appointment.status == Appointment.PENDING:
+                appointment.status = Appointment.CONFIRMED
+                appointment.confirmed_at = timezone.now()
+                appointment.save(update_fields=["status", "confirmed_at", "updated_at"])
+
+        # Post-confirmation pipeline (non-blocking)
+        try:
+            create_invoice_for_payment(payment)
+            logger.info("confirm_transfer: Invoice created for Payment #%s", payment.pk)
+        except Exception as exc:
+            logger.error(
+                "confirm_transfer: invoice creation failed for Payment #%s: %s",
+                payment.pk,
+                exc,
+            )
+
+        try:
+            generate_invoice_pdf(payment.invoice)
+        except Exception as exc:
+            logger.error(
+                "confirm_transfer: PDF generation failed for Payment #%s: %s",
+                payment.pk,
+                exc,
+            )
+
+        try:
+            send_transfer_confirmed(payment)
+        except Exception as exc:
+            logger.error(
+                "confirm_transfer: send_transfer_confirmed failed for Payment #%s: %s",
+                payment.pk,
+                exc,
+            )
+
+        try:
+            if appointment:
+                send_appointment_confirmation(appointment)
+        except Exception as exc:
+            logger.error(
+                "confirm_transfer: send_appointment_confirmation failed for Appointment #%s: %s",
+                appointment.pk if appointment else "—",
+                exc,
+            )
+
+        return Response({"status": "completed"}, status=status.HTTP_200_OK)
+
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="reject-transfer",
+        permission_classes=[IsDoctor],
+    )
+    def reject_transfer(self, request: Request, pk=None) -> Response:
+        """
+        Reject a bank transfer payment (doctor only).
+
+        Requires a 'reason' in the request body.
+        Transitions Payment → FAILED, Appointment → CANCELLED.
+        Sends a rejection email to the tutor.
+        """
+        payment = self.get_object()
+
+        if payment.payment_method != Payment.TRANSFER:
+            return Response(
+                {"detail": "reject-transfer is only valid for bank transfer payments."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if payment.status != Payment.PENDING:
+            return Response(
+                {"detail": "Only pending transfer payments can be rejected."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = TransferRejectSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        reason = serializer.validated_data["reason"]
+
+        with transaction.atomic():
+            payment.status = Payment.FAILED
+            payment.save(update_fields=["status", "updated_at"])
+
+            appointment = payment.appointment
+            if appointment:
+                appointment.status = Appointment.CANCELLED
+                appointment.save(update_fields=["status", "updated_at"])
+
+        try:
+            send_transfer_rejected(payment, reason)
+        except Exception as exc:
+            logger.error(
+                "reject_transfer: send_transfer_rejected failed for Payment #%s: %s",
+                payment.pk,
+                exc,
+            )
+
+        return Response({"status": "rejected"}, status=status.HTTP_200_OK)
 
 
 class InvoiceViewSet(viewsets.ReadOnlyModelViewSet):
