@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
+from apps.billing.models import Payment
 from apps.scheduling.models import (
     Appointment,
     AutoResponderConfig,
@@ -462,6 +463,11 @@ class BookingSerializer(serializers.Serializer):
         default="",
     )
     notes = serializers.CharField(required=False, allow_blank=True, default="")
+    payment_method = serializers.ChoiceField(
+        choices=Payment.PAYMENT_METHOD_CHOICES,
+        default=Payment.MERCADOPAGO,
+        required=False,
+    )
 
     def validate(self, attrs: dict) -> dict:
         service = attrs.get("service")

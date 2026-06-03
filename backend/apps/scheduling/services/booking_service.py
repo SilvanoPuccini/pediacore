@@ -5,9 +5,11 @@ Handles the atomic slot reservation flow:
   1. Validate patient ownership (PermissionError)
   2. Validate service is active (ValidationError)
   3. Acquire row-level lock and check for overlapping appointments
-  4. Create Appointment(HOLD) + Payment(PENDING)
-  5. Call MercadoPago strategy to obtain checkout URL
-  6. Return (appointment, payment, init_point)
+  4. Create Appointment + Payment (status and method depend on payment_method param)
+  5. For MERCADOPAGO: call MP strategy to obtain checkout URL
+     For TRANSFER: set transfer_expires_at, skip MP
+  6. Return (appointment, payment, init_point, preference_id)
+     TRANSFER path returns ("", "") for init_point and preference_id.
 
 If any step fails the entire transaction is rolled back.
 """
@@ -34,6 +36,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+TRANSFER_EXPIRY_HOURS = 48
+
 
 class SlotUnavailableError(Exception):
     """Raised when the requested slot is already taken by another appointment."""
@@ -50,19 +54,24 @@ def hold_appointment(
     is_online: bool = False,
     call_platform: str = "",
     notes: str = "",
+    payment_method: str = Payment.MERCADOPAGO,
 ) -> tuple[Appointment, Payment, str, str]:
     """
-    Reserve a slot atomically and initiate the MercadoPago payment flow.
+    Reserve a slot atomically and initiate the payment flow.
+
+    For MERCADOPAGO: creates Appointment(HOLD) and calls MP to get an init_point.
+    For TRANSFER: creates Appointment(PENDING) and sets transfer_expires_at = now + 48h.
 
     Returns:
         (appointment, payment, init_point, preference_id)
-        where init_point is the MP checkout URL and preference_id is the MP preference ID.
+        - MERCADOPAGO: init_point is the MP checkout URL, preference_id is the MP preference ID.
+        - TRANSFER: both init_point and preference_id are empty strings.
 
     Raises:
         PermissionError: patient does not belong to the requesting tutor.
-        ValidationError: service is inactive.
+        ValidationError: service is inactive or payment_method is invalid.
         SlotUnavailableError: the slot is already taken.
-        Exception: MP SDK failure — transaction is rolled back.
+        Exception: MP SDK failure (MERCADOPAGO only) — transaction is rolled back.
     """
     from apps.patients.models import TutorPatient
 
@@ -73,6 +82,11 @@ def hold_appointment(
     # ── 2. Service active check ───────────────────────────────────────────────
     if not service.is_active:
         raise ValidationError(f"Service '{service.name}' is not active and cannot be booked.")
+
+    # ── 2b. Payment method validation ────────────────────────────────────────
+    valid_methods = {choice[0] for choice in Payment.PAYMENT_METHOD_CHOICES}
+    if payment_method not in valid_methods:
+        raise ValidationError(f"Invalid payment method: '{payment_method}'.")
 
     with transaction.atomic():
         # ── 3. Overlap check with row-level lock ─────────────────────────────
@@ -102,55 +116,96 @@ def hold_appointment(
         # ── 4. Resolve doctor (practice owner) ───────────────────────────────
         doctor = practice.owner
 
-        # ── 5. Create Appointment(HOLD) ──────────────────────────────────────
-        hold_minutes = getattr(settings, "BOOKING_HOLD_MINUTES", 10)
-        hold_expires_at = timezone.now() + datetime.timedelta(minutes=hold_minutes)
+        if payment_method == Payment.MERCADOPAGO:
+            # ── 5a. MERCADOPAGO path ─────────────────────────────────────────
+            hold_minutes = getattr(settings, "BOOKING_HOLD_MINUTES", 10)
+            hold_expires_at = timezone.now() + datetime.timedelta(minutes=hold_minutes)
 
-        appointment = Appointment.objects.create(
-            practice=practice,
-            patient=patient,
-            service=service,
-            location=location,
-            doctor=doctor,
-            booked_by=user,
-            scheduled_date=scheduled_date,
-            start_time=start_time,
-            end_time=end_time,
-            status=Appointment.HOLD,
-            is_online=is_online,
-            call_platform=call_platform,
-            hold_expires_at=hold_expires_at,
-            notes=notes,
-        )
+            appointment = Appointment.objects.create(
+                practice=practice,
+                patient=patient,
+                service=service,
+                location=location,
+                doctor=doctor,
+                booked_by=user,
+                scheduled_date=scheduled_date,
+                start_time=start_time,
+                end_time=end_time,
+                status=Appointment.HOLD,
+                is_online=is_online,
+                call_platform=call_platform,
+                hold_expires_at=hold_expires_at,
+                notes=notes,
+            )
 
-        # ── 6. Create Payment(PENDING, MERCADOPAGO) ──────────────────────────
-        payment = Payment.objects.create(
-            practice=practice,
-            appointment=appointment,
-            patient=patient,
-            paid_by=user,
-            amount=service.price_clp,
-            currency="CLP",
-            status=Payment.PENDING,
-            payment_method=Payment.MERCADOPAGO,
-        )
+            payment = Payment.objects.create(
+                practice=practice,
+                appointment=appointment,
+                patient=patient,
+                paid_by=user,
+                amount=service.price_clp,
+                currency="CLP",
+                status=Payment.PENDING,
+                payment_method=Payment.MERCADOPAGO,
+            )
 
-        # ── 7. Call MercadoPago strategy ──────────────────────────────────────
-        access_token = getattr(settings, "MERCADOPAGO_ACCESS_TOKEN", "")
-        strategy = MercadoPagoStrategy(access_token=access_token)
-        result = strategy.create_preference(payment)
+            # Call MercadoPago strategy
+            access_token = getattr(settings, "MERCADOPAGO_ACCESS_TOKEN", "")
+            strategy = MercadoPagoStrategy(access_token=access_token)
+            result = strategy.create_preference(payment)
 
-        init_point: str = result["init_point"]
-        preference_id: str = result.get("preference_id", "")
+            init_point: str = result["init_point"]
+            preference_id: str = result.get("preference_id", "")
 
-        # create_preference() already saved metadata with provider + preference_id
-        # and set external_id = "". No need to overwrite here.
+            # create_preference() already saved metadata with provider + preference_id
+            # and set external_id = "". No need to overwrite here.
 
-        logger.info(
-            "Booking hold created: appointment=%s payment=%s preference=%s",
-            appointment.pk,
-            payment.pk,
-            preference_id,
-        )
+            logger.info(
+                "Booking hold created (MP): appointment=%s payment=%s preference=%s",
+                appointment.pk,
+                payment.pk,
+                preference_id,
+            )
 
-        return appointment, payment, init_point, preference_id
+            return appointment, payment, init_point, preference_id
+
+        else:
+            # ── 5b. TRANSFER path ────────────────────────────────────────────
+            appointment = Appointment.objects.create(
+                practice=practice,
+                patient=patient,
+                service=service,
+                location=location,
+                doctor=doctor,
+                booked_by=user,
+                scheduled_date=scheduled_date,
+                start_time=start_time,
+                end_time=end_time,
+                status=Appointment.PENDING,
+                is_online=is_online,
+                call_platform=call_platform,
+                notes=notes,
+            )
+
+            transfer_expires_at = timezone.now() + datetime.timedelta(hours=TRANSFER_EXPIRY_HOURS)
+
+            payment = Payment.objects.create(
+                practice=practice,
+                appointment=appointment,
+                patient=patient,
+                paid_by=user,
+                amount=service.price_clp,
+                currency="CLP",
+                status=Payment.PENDING,
+                payment_method=Payment.TRANSFER,
+                transfer_expires_at=transfer_expires_at,
+            )
+
+            logger.info(
+                "Booking created (TRANSFER): appointment=%s payment=%s expires=%s",
+                appointment.pk,
+                payment.pk,
+                transfer_expires_at.isoformat(),
+            )
+
+            return appointment, payment, "", ""
