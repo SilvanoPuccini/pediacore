@@ -1,3 +1,5 @@
+export type DocumentType = "RUT" | "DNI" | "PASAPORTE" | "OTRO";
+
 export interface User {
   id: number;
   email: string;
@@ -6,6 +8,7 @@ export interface User {
   phone: string;
   phone_prefix: string;
   phone_alt: string;
+  document_type: DocumentType;
   rut: string;
   role: "VISITOR" | "TUTOR" | "DOCTOR";
   full_name: string;
@@ -29,6 +32,8 @@ export interface RegisterRequest {
   first_name: string;
   last_name: string;
   phone: string;
+  document_type: DocumentType;
+  rut: string;
 }
 
 export interface TokenResponse {
@@ -130,8 +135,8 @@ export interface PatientCreate {
   last_name: string;
   date_of_birth: string;                           // "YYYY-MM-DD"
   sex_at_birth: "M" | "F" | "NO_ESPECIFICA";
-  document_type: "RUT" | "PASAPORTE" | "DNI_EXTRANJERO";
-  rut?: string;
+  document_type: DocumentType;
+  rut: string;
   insurance?: string;
   country: string;
   practice: number;
@@ -154,7 +159,7 @@ export interface Patient {
   full_name: string;
   date_of_birth: string;
   sex_at_birth: "M" | "F" | "NO_ESPECIFICA";
-  document_type: "RUT" | "PASAPORTE" | "DNI_EXTRANJERO";
+  document_type: DocumentType;
   rut: string;
   insurance: string;
   country: string;

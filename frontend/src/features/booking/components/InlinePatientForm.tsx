@@ -1,15 +1,23 @@
 import { useState } from "react";
 import { useCreatePatient } from "../hooks/useBookingMutations";
 import { useBookingStore } from "../store/bookingStore";
-import type { PatientCreate } from "@/types/api";
+import type { PatientCreate, DocumentType } from "@/types/api";
 
 // Single practice for TFM
 const PRACTICE_ID = 1;
+
+const DOCUMENT_TYPE_OPTIONS: { value: DocumentType; label: string }[] = [
+  { value: "RUT", label: "RUT (Chile)" },
+  { value: "DNI", label: "DNI extranjero" },
+  { value: "PASAPORTE", label: "Pasaporte" },
+  { value: "OTRO", label: "Otro" },
+];
 
 interface FormErrors {
   first_name?: string;
   last_name?: string;
   date_of_birth?: string;
+  document_type?: string;
   rut?: string;
   general?: string;
 }
@@ -27,6 +35,7 @@ export default function InlinePatientForm({ onSuccess, onCancel }: InlinePatient
   const [lastName, setLastName] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [sexAtBirth, setSexAtBirth] = useState<"M" | "F" | "NO_ESPECIFICA">("NO_ESPECIFICA");
+  const [documentType, setDocumentType] = useState<DocumentType>("RUT");
   const [rut, setRut] = useState("");
   const [insurance, setInsurance] = useState("");
   const [errors, setErrors] = useState<FormErrors>({});
@@ -64,7 +73,7 @@ export default function InlinePatientForm({ onSuccess, onCancel }: InlinePatient
       last_name: lastName.trim(),
       date_of_birth: dateOfBirth,
       sex_at_birth: sexAtBirth,
-      document_type: "RUT",
+      document_type: documentType,
       rut: rut.trim(),
       insurance: insurance || "",
       country: "Chile",
@@ -176,10 +185,28 @@ export default function InlinePatientForm({ onSuccess, onCancel }: InlinePatient
           )}
         </div>
 
-        {/* RUT */}
+        {/* Document type */}
         <div>
           <label className="block text-[12px] font-semibold text-ink mb-1">
-            RUT del paciente <span className="text-coral">*</span>
+            Tipo de documento
+          </label>
+          <select
+            value={documentType}
+            onChange={(e) => setDocumentType(e.target.value as DocumentType)}
+            className="w-full px-3 py-2.5 rounded-[10px] border border-line bg-bg text-ink text-[13px] focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal"
+          >
+            {DOCUMENT_TYPE_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Document number / RUT */}
+        <div>
+          <label className="block text-[12px] font-semibold text-ink mb-1">
+            Nº de documento <span className="text-coral">*</span>
           </label>
           <input
             type="text"

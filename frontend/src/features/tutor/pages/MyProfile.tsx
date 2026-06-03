@@ -3,7 +3,14 @@ import { useMutation } from "@tanstack/react-query";
 import { UserCircle, CheckCircle2, AlertCircle } from "lucide-react";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/auth";
-import type { User } from "@/types/api";
+import type { User, DocumentType } from "@/types/api";
+
+const DOCUMENT_TYPE_OPTIONS: { value: DocumentType; label: string }[] = [
+  { value: "RUT", label: "RUT (Chile)" },
+  { value: "DNI", label: "DNI extranjero" },
+  { value: "PASAPORTE", label: "Pasaporte" },
+  { value: "OTRO", label: "Otro" },
+];
 
 interface ProfileFormData {
   first_name: string;
@@ -11,6 +18,7 @@ interface ProfileFormData {
   phone: string;
   phone_prefix: string;
   phone_alt: string;
+  document_type: DocumentType;
   rut: string;
 }
 
@@ -20,6 +28,7 @@ interface ProfileUpdatePayload {
   phone: string;
   phone_prefix: string;
   phone_alt: string;
+  document_type: DocumentType;
   rut: string;
 }
 
@@ -50,6 +59,7 @@ export default function MyProfile() {
     phone: user?.phone ?? "",
     phone_prefix: user?.phone_prefix ?? "+56",
     phone_alt: user?.phone_alt ?? "",
+    document_type: user?.document_type ?? "RUT",
     rut: user?.rut ?? "",
   });
 
@@ -65,6 +75,7 @@ export default function MyProfile() {
         phone: user.phone ?? "",
         phone_prefix: user.phone_prefix ?? "+56",
         phone_alt: user.phone_alt ?? "",
+        document_type: user.document_type ?? "RUT",
         rut: user.rut ?? "",
       });
     }
@@ -84,6 +95,7 @@ export default function MyProfile() {
     if (!form.first_name.trim()) next.first_name = "El nombre es obligatorio.";
     if (!form.last_name.trim()) next.last_name = "El apellido es obligatorio.";
     if (!form.phone.trim()) next.phone = "El teléfono es obligatorio.";
+    if (!form.rut.trim()) next.rut = "El documento es obligatorio.";
     setErrors(next);
     return Object.keys(next).length === 0;
   }
@@ -106,6 +118,7 @@ export default function MyProfile() {
       phone: form.phone.trim(),
       phone_prefix: form.phone_prefix,
       phone_alt: form.phone_alt.trim(),
+      document_type: form.document_type,
       rut: form.rut.trim(),
     });
   }
@@ -193,10 +206,30 @@ export default function MyProfile() {
               )}
             </div>
 
-            {/* RUT */}
+            {/* Document type */}
+            <div>
+              <label htmlFor="document_type" className="text-[13px] font-semibold text-ink mb-1.5 block">
+                Tipo de documento
+              </label>
+              <select
+                id="document_type"
+                name="document_type"
+                value={form.document_type}
+                onChange={handleChange}
+                className="w-full px-4 py-3 rounded-[12px] border border-line bg-surface text-[14px] text-ink focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal transition-colors"
+              >
+                {DOCUMENT_TYPE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* RUT / document number */}
             <div>
               <label htmlFor="rut" className="text-[13px] font-semibold text-ink mb-1.5 block">
-                RUT
+                Nº de documento <span className="text-coral">*</span>
               </label>
               <input
                 id="rut"
@@ -204,9 +237,14 @@ export default function MyProfile() {
                 type="text"
                 value={form.rut}
                 onChange={handleChange}
-                className="w-full px-4 py-3 rounded-[12px] border border-line bg-surface text-[14px] text-ink focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal transition-colors"
+                className={`w-full px-4 py-3 rounded-[12px] border bg-surface text-[14px] text-ink focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal transition-colors ${
+                  errors.rut ? "border-coral" : "border-line"
+                }`}
                 placeholder="12.345.678-9"
               />
+              {errors.rut && (
+                <p className="text-[12px] text-coral mt-1.5">{errors.rut}</p>
+              )}
             </div>
 
             {/* Phone with prefix */}

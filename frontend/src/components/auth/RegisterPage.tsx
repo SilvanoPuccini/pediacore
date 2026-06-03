@@ -2,16 +2,25 @@ import { useState, type FormEvent, type ChangeEvent } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import SEOHead from "@/components/seo/SEOHead";
 import { useAuthStore } from "@/stores/auth";
-import type { RegisterRequest } from "@/types/api";
+import type { RegisterRequest, DocumentType } from "@/types/api";
 
 type FormFields = RegisterRequest;
 type FieldErrors = Partial<Record<keyof FormFields, string>>;
+
+const DOCUMENT_TYPE_OPTIONS: { value: DocumentType; label: string }[] = [
+  { value: "RUT", label: "RUT (Chile)" },
+  { value: "DNI", label: "DNI extranjero" },
+  { value: "PASAPORTE", label: "Pasaporte" },
+  { value: "OTRO", label: "Otro" },
+];
 
 const INITIAL_FORM: FormFields = {
   first_name: "",
   last_name: "",
   email: "",
   phone: "",
+  document_type: "RUT",
+  rut: "",
   password: "",
   password_confirm: "",
 };
@@ -28,7 +37,7 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
-  function handleChange(e: ChangeEvent<HTMLInputElement>) {
+  function handleChange(e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
     setFieldErrors((prev) => ({ ...prev, [name]: undefined }));
@@ -40,6 +49,7 @@ export default function RegisterPage() {
     if (!form.last_name.trim()) errors.last_name = "El apellido es requerido.";
     if (!form.email.trim()) errors.email = "El email es requerido.";
     if (!form.phone.trim()) errors.phone = "El teléfono es requerido.";
+    if (!form.rut.trim()) errors.rut = "El documento es requerido.";
     if (form.password.length < 8) errors.password = "Mínimo 8 caracteres.";
     if (form.password !== form.password_confirm)
       errors.password_confirm = "Las contraseñas no coinciden.";
@@ -237,6 +247,47 @@ export default function RegisterPage() {
                     {fieldErrors.phone}
                   </p>
                 )}
+              </div>
+
+              {/* Document type + RUT */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="document_type" className={labelClass}>
+                    Tipo de documento
+                  </label>
+                  <select
+                    id="document_type"
+                    name="document_type"
+                    value={form.document_type}
+                    onChange={handleChange}
+                    className={inputClass}
+                  >
+                    {DOCUMENT_TYPE_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="rut" className={labelClass}>
+                    Nº de documento
+                  </label>
+                  <input
+                    id="rut"
+                    name="rut"
+                    type="text"
+                    value={form.rut}
+                    onChange={handleChange}
+                    placeholder="12.345.678-9"
+                    className={inputClass}
+                  />
+                  {fieldErrors.rut && (
+                    <p className={errorClass} role="alert">
+                      {fieldErrors.rut}
+                    </p>
+                  )}
+                </div>
               </div>
 
               <div>
