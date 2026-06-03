@@ -83,6 +83,7 @@ class PaymentViewSet(viewsets.ModelViewSet):
         qs = Payment.objects.select_related(
             "practice", "patient", "appointment",
             "appointment__service", "appointment__location", "paid_by",
+            "invoice",
         )
 
         if user.role == User.TUTOR:

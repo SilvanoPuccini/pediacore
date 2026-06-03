@@ -49,8 +49,12 @@ const STATUS_CONFIG: Record<string, { label: string; classes: string }> = {
     label: "Confirmado",
     classes: "bg-teal/10 text-teal-dark border border-teal/20",
   },
+  CONFIRMED_ATTENDANCE: {
+    label: "Asistencia confirmada",
+    classes: "bg-green-50 text-green-700 border border-green-200",
+  },
   COMPLETED: {
-    label: "Completado",
+    label: "Atendido",
     classes: "bg-green-50 text-green-700 border border-green-200",
   },
   CANCELLED: {
@@ -58,21 +62,35 @@ const STATUS_CONFIG: Record<string, { label: string; classes: string }> = {
     classes: "bg-gray-100 text-gray-500 border border-gray-200",
   },
   NO_SHOW: {
-    label: "No asistió",
+    label: "No se presentó",
     classes: "bg-coral/10 text-coral border border-coral/20",
   },
   HOLD: {
-    label: "Reserva pendiente",
+    label: "Reservado",
     classes: "bg-amber-50 text-amber-700 border border-amber-200",
   },
   EXPIRED: {
     label: "Expirado",
     classes: "bg-gray-100 text-gray-400 border border-gray-200",
   },
+  RESCHEDULED: {
+    label: "Reagendado",
+    classes: "bg-blue-50 text-blue-600 border border-blue-200",
+  },
 };
 
-function StatusBadge({ status }: { status: string }) {
-  const config = STATUS_CONFIG[status] ?? {
+function StatusBadge({
+  status,
+  attendanceConfirmed,
+}: {
+  status: string;
+  attendanceConfirmed?: boolean;
+}) {
+  const key =
+    status === "CONFIRMED" && attendanceConfirmed
+      ? "CONFIRMED_ATTENDANCE"
+      : status;
+  const config = STATUS_CONFIG[key] ?? {
     label: status,
     classes: "bg-gray-100 text-gray-500 border border-gray-200",
   };
@@ -113,7 +131,10 @@ function AppointmentCard({ appointment }: { appointment: Appointment }) {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <StatusBadge status={appointment.status} />
+          <StatusBadge
+            status={appointment.status}
+            attendanceConfirmed={appointment.attendance_confirmed}
+          />
           <ChevronRight
             size={15}
             className="text-ink3 group-hover:text-teal-dark transition-colors shrink-0"

@@ -234,6 +234,20 @@ export interface PaymentListItem {
   is_online: boolean;
 }
 
+export interface PaymentDetail extends PaymentListItem {
+  paid_by: number | null;
+  paid_by_email: string | null;
+  paid_by_name: string | null;
+  patient_rut: string;
+  external_id: string;
+  external_status: string;
+  notes: string;
+  has_invoice: boolean;
+  invoice_id: number | null;
+  invoice_number: string | null;
+  duration_minutes: number | null;
+}
+
 export interface InvoiceListItem {
   id: number;
   payment: number;
