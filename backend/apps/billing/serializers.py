@@ -99,34 +99,74 @@ class PaymentDetailSerializer(PaymentListSerializer):
     """Full serializer for payment detail view."""
 
     paid_by_email = serializers.SerializerMethodField()
+    paid_by_name = serializers.SerializerMethodField()
+    patient_rut = serializers.SerializerMethodField()
     has_invoice = serializers.SerializerMethodField()
+    invoice_id = serializers.SerializerMethodField()
+    invoice_number = serializers.SerializerMethodField()
+    duration_minutes = serializers.SerializerMethodField()
 
     class Meta(PaymentListSerializer.Meta):
         fields = PaymentListSerializer.Meta.fields + [
             "paid_by",
             "paid_by_email",
+            "paid_by_name",
+            "patient_rut",
             "external_id",
             "external_status",
             "metadata",
             "notes",
             "has_invoice",
+            "invoice_id",
+            "invoice_number",
+            "duration_minutes",
         ]
         read_only_fields = PaymentListSerializer.Meta.read_only_fields + [
             "paid_by_email",
+            "paid_by_name",
+            "patient_rut",
             "external_id",
             "external_status",
             "metadata",
             "has_invoice",
+            "invoice_id",
+            "invoice_number",
+            "duration_minutes",
         ]
 
     def get_paid_by_email(self, obj: Payment) -> str | None:
         return obj.paid_by.email if obj.paid_by else None
+
+    def get_paid_by_name(self, obj: Payment) -> str | None:
+        if not obj.paid_by:
+            return None
+        name = obj.paid_by.get_full_name()
+        return name if name else obj.paid_by.email
+
+    def get_patient_rut(self, obj: Payment) -> str:
+        return obj.patient.rut or ""
 
     def get_has_invoice(self, obj: Payment) -> bool:
         try:
             return obj.invoice is not None
         except Invoice.DoesNotExist:
             return False
+
+    def get_invoice_id(self, obj: Payment) -> int | None:
+        try:
+            return obj.invoice.id if obj.invoice else None
+        except Invoice.DoesNotExist:
+            return None
+
+    def get_invoice_number(self, obj: Payment) -> str | None:
+        try:
+            return obj.invoice.invoice_number if obj.invoice else None
+        except Invoice.DoesNotExist:
+            return None
+
+    def get_duration_minutes(self, obj: Payment) -> int | None:
+        apt = obj.appointment
+        return apt.service.duration_minutes if apt and apt.service else None
 
 
 class PaymentCreateSerializer(serializers.ModelSerializer):

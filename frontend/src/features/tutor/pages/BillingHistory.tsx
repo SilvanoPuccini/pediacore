@@ -1,28 +1,21 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import {
   Receipt,
   AlertCircle,
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
-  CalendarDays,
-  Clock,
-  Stethoscope,
-  User,
-  MapPin,
-  Wifi,
-  Download,
-  CreditCard,
+  ChevronRight as ChevronNav,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import api from "@/lib/api";
-import type { PaymentListItem, InvoiceListItem, PaginatedResponse } from "@/types/api";
+import type { PaymentListItem, PaginatedResponse } from "@/types/api";
 
 // ─── Status labels (Spanish) ─────────────────────────────────────────────────
 
 const PAYMENT_STATUS_LABELS: Record<string, string> = {
-  COMPLETED: "Completado",
+  COMPLETED: "Pagado",
   PENDING: "Pendiente",
   PROCESSING: "Procesando",
   FAILED: "Fallido",
@@ -30,20 +23,12 @@ const PAYMENT_STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  COMPLETED: "bg-teal/10 text-teal-dark border border-teal/30",
+  COMPLETED: "bg-green-50 text-green-700 border border-green-200",
   PENDING: "bg-amber-50 text-amber-700 border border-amber-200",
   PROCESSING: "bg-blue-50 text-blue-600 border border-blue-200",
   FAILED: "bg-coral/10 text-coral border border-coral/30",
-  REFUNDED: "bg-[var(--line)] text-ink3 border border-line",
+  REFUNDED: "bg-gray-100 text-gray-500 border border-gray-200",
 };
-
-function statusLabel(status: string): string {
-  return PAYMENT_STATUS_LABELS[status] ?? status;
-}
-
-function statusClass(status: string): string {
-  return STATUS_STYLES[status] ?? STATUS_STYLES["REFUNDED"];
-}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -65,216 +50,57 @@ function formatDate(iso: string | null): string {
   });
 }
 
-function formatScheduledDate(dateStr: string | null): string {
-  if (!dateStr) return "—";
-  const [year, month, day] = dateStr.split("-").map(Number);
-  const date = new Date(year, month - 1, day, 12, 0, 0);
-  const formatted = new Intl.DateTimeFormat("es-CL", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "America/Santiago",
-  }).format(date);
-  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
-}
-
-// ─── API calls ───────────────────────────────────────────────────────────────
+// ─── API ─────────────────────────────────────────────────────────────────────
 
 async function fetchPayments(): Promise<PaymentListItem[]> {
   const { data } = await api.get<PaginatedResponse<PaymentListItem>>("/payments/");
   return data.results;
 }
 
-async function fetchInvoices(): Promise<InvoiceListItem[]> {
-  const { data } = await api.get<PaginatedResponse<InvoiceListItem>>("/invoices/");
-  return data.results;
-}
-
-async function downloadInvoice(invoiceId: number): Promise<void> {
-  const response = await api.get(`/invoices/${invoiceId}/download/`, {
-    responseType: "blob",
-  });
-  const url = URL.createObjectURL(response.data as Blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `comprobante-${invoiceId}.pdf`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-// ─── Detail row ──────────────────────────────────────────────────────────────
-
-function DetailRow({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: React.ElementType;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="flex items-center gap-3 py-2.5 border-b border-dashed border-line/60 last:border-0">
-      <div className="h-7 w-7 rounded-lg bg-cream flex items-center justify-center shrink-0">
-        <Icon size={13} className="text-teal-dark" />
-      </div>
-      <p className="text-[12px] text-ink3 font-medium w-20 shrink-0">{label}</p>
-      <p className="text-[14px] text-ink font-medium flex-1 text-right">{value}</p>
-    </div>
-  );
-}
-
 // ─── Payment card ────────────────────────────────────────────────────────────
 
-function PaymentCard({
-  payment,
-  invoice,
-}: {
-  payment: PaymentListItem;
-  invoice?: InvoiceListItem;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
+function PaymentCard({ payment }: { payment: PaymentListItem }) {
   const displayDate = payment.paid_at ?? payment.created_at;
+  const statusLabel = PAYMENT_STATUS_LABELS[payment.status] ?? payment.status;
+  const statusStyle = STATUS_STYLES[payment.status] ?? STATUS_STYLES.REFUNDED;
 
   return (
-    <div className="bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)] overflow-hidden">
-      {/* Clickable header */}
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full p-5 text-left hover:bg-cream/30 transition-colors"
-      >
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-1 min-w-0">
-            <p className="text-[15px] font-semibold text-ink truncate">
-              {payment.patient_name}
-            </p>
-            <p className="text-[13px] text-ink3">
-              {payment.payment_method_display}
-            </p>
-            <p className="text-[13px] text-ink3">{formatDate(displayDate)}</p>
-          </div>
+    <Link
+      to={`/portal/pagos/${payment.id}`}
+      className="group block bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)] p-5 hover:border-teal/40 hover:shadow-md transition-all"
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-1 min-w-0">
+          <p className="text-[15px] font-semibold text-ink truncate">
+            {payment.patient_name}
+          </p>
+          <p className="text-[13px] text-ink3">
+            {payment.service_name ?? "Consulta"}
+          </p>
+          <p className="text-[13px] text-ink3">{formatDate(displayDate)}</p>
+        </div>
 
-          <div className="flex flex-col items-end gap-2 shrink-0">
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="flex flex-col items-end gap-2">
             <p className="text-[16px] font-semibold text-ink">
               {formatCLP(payment.amount)}
             </p>
             <span
               className={cn(
                 "text-[11px] font-semibold px-2.5 py-1 rounded-full",
-                statusClass(payment.status)
+                statusStyle
               )}
             >
-              {statusLabel(payment.status)}
+              {statusLabel}
             </span>
           </div>
-        </div>
-
-        {/* Expand indicator */}
-        <div className="flex items-center justify-center mt-3">
-          <ChevronDown
+          <ChevronNav
             size={16}
-            className={cn(
-              "text-ink3 transition-transform duration-200",
-              expanded && "rotate-180"
-            )}
+            className="text-ink3 group-hover:text-teal-dark transition-colors"
           />
         </div>
-      </button>
-
-      {/* Expandable detail */}
-      {expanded && (
-        <div className="px-5 pb-5 border-t border-line">
-          {/* Amount highlight */}
-          <div className="my-4 p-4 border border-line rounded-xl text-center">
-            <p className="text-[11px] uppercase tracking-widest text-ink3 font-bold mb-1">
-              Total pagado
-            </p>
-            <p className="font-display text-[28px] font-bold text-ink">
-              {formatCLP(payment.amount)}
-            </p>
-          </div>
-
-          {/* Structured detail rows */}
-          <div className="mb-4">
-            <p className="text-[11px] uppercase tracking-widest text-ink3 font-bold mb-2 pb-1 border-b border-line">
-              Detalles del servicio
-            </p>
-
-            <DetailRow
-              icon={User}
-              label="Paciente"
-              value={payment.patient_name}
-            />
-            {payment.service_name && (
-              <DetailRow
-                icon={Stethoscope}
-                label="Servicio"
-                value={payment.service_name}
-              />
-            )}
-            {payment.scheduled_date && (
-              <DetailRow
-                icon={CalendarDays}
-                label="Fecha"
-                value={formatScheduledDate(payment.scheduled_date)}
-              />
-            )}
-            {payment.start_time && (
-              <DetailRow
-                icon={Clock}
-                label="Hora"
-                value={payment.start_time}
-              />
-            )}
-            <DetailRow
-              icon={payment.is_online ? Wifi : MapPin}
-              label="Lugar"
-              value={
-                payment.is_online
-                  ? "Consulta online"
-                  : payment.location_name ?? "—"
-              }
-            />
-            <DetailRow
-              icon={CreditCard}
-              label="Método"
-              value={payment.payment_method_display}
-            />
-          </div>
-
-          {/* PDF download */}
-          {invoice && (
-            <button
-              onClick={async () => {
-                setIsDownloading(true);
-                try {
-                  await downloadInvoice(invoice.id);
-                } finally {
-                  setIsDownloading(false);
-                }
-              }}
-              disabled={isDownloading}
-              className={cn(
-                "w-full flex items-center justify-center gap-2 rounded-[12px] px-4 py-3",
-                "bg-teal-dark text-cream text-[13px] font-semibold",
-                "hover:opacity-90 active:opacity-75 transition-opacity disabled:opacity-50"
-              )}
-            >
-              <Download size={15} />
-              {isDownloading ? "Descargando..." : "Descargar comprobante PDF"}
-            </button>
-          )}
-
-          {/* Disclaimer */}
-          <p className="text-[11px] text-ink3 text-center mt-3">
-            Este es un comprobante de pago interno, no constituye boleta ni
-            factura tributaria.
-          </p>
-        </div>
-      )}
-    </div>
+      </div>
+    </Link>
   );
 }
 
@@ -287,22 +113,14 @@ export default function BillingHistory() {
 
   const {
     data: payments,
-    isLoading: loadingPayments,
-    isError: errorPayments,
+    isLoading,
+    isError,
   } = useQuery({
     queryKey: ["payments"],
     queryFn: fetchPayments,
   });
 
-  const { data: invoices } = useQuery({
-    queryKey: ["invoices"],
-    queryFn: fetchInvoices,
-  });
-
-  const invoiceMap = new Map<number, InvoiceListItem>();
-  invoices?.forEach((inv) => invoiceMap.set(inv.payment, inv));
-
-  if (loadingPayments) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[300px]">
         <div className="w-8 h-8 border-4 border-teal border-t-transparent rounded-full animate-spin" />
@@ -310,7 +128,7 @@ export default function BillingHistory() {
     );
   }
 
-  if (errorPayments) {
+  if (isError) {
     return (
       <div className="max-w-2xl mx-auto p-6">
         <div className="bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)] p-6 flex items-center gap-3 text-coral">
@@ -343,13 +161,9 @@ export default function BillingHistory() {
     <div className="max-w-2xl mx-auto p-6 space-y-6">
       <h1 className="font-display text-[28px] text-ink">Historial de pagos</h1>
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         {paginated.map((payment) => (
-          <PaymentCard
-            key={payment.id}
-            payment={payment}
-            invoice={invoiceMap.get(payment.id)}
-          />
+          <PaymentCard key={payment.id} payment={payment} />
         ))}
       </div>
 
