@@ -16,6 +16,7 @@ from apps.core.pagination import StandardPagination
 from apps.core.permissions import IsDoctor
 from apps.practice.models import BlockedSlot, Location, Practice, Service, WorkingHours
 from apps.practice.serializers import (
+    BankDetailsSerializer,
     BlockedSlotSerializer,
     LocationSerializer,
     PracticeSerializer,
@@ -164,6 +165,37 @@ class OnlineScheduleView(APIView):
             parts.append(f"{' y '.join(days) if len(days) <= 2 else ', '.join(days)} · {time_range}")
 
         return Response({"display_hours": " | ".join(parts)})
+
+
+class BankDetailsView(APIView):
+    """
+    Public endpoint. Returns bank account details for transfer payments.
+
+    GET /api/v1/practice/bank-details/
+
+    Returns the 6 bank fields from the first Practice record.
+    No authentication required — needed by anonymous users during booking.
+    """
+
+    permission_classes = [AllowAny]
+
+    def get(self, request) -> Response:
+        from apps.practice.models import Practice
+
+        practice = Practice.objects.first()
+        if practice is None:
+            return Response(
+                {
+                    "bank_name": "",
+                    "account_type": "",
+                    "account_number": "",
+                    "account_holder": "",
+                    "account_rut": "",
+                    "account_email": "",
+                }
+            )
+        serializer = BankDetailsSerializer(practice)
+        return Response(serializer.data)
 
 
 # ---------------------------------------------------------------------------

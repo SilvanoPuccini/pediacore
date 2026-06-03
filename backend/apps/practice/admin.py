@@ -26,6 +26,10 @@ class PracticeAdmin(admin.ModelAdmin):
     fieldsets = [
         (None, {"fields": ["name", "slug", "description", "logo", "owner"]}),
         ("Contact", {"fields": ["email", "phone", "website"]}),
+        ("Bank Account", {
+            "fields": ["bank_name", "account_type", "account_number", "account_holder", "account_rut", "account_email"],
+            "description": "Bank account details shown to tutors when paying by transfer.",
+        }),
         ("Status", {"fields": ["is_active"]}),
         ("Timestamps", {"fields": ["created_at", "updated_at", "deleted_at"], "classes": ["collapse"]}),
     ]

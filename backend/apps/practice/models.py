@@ -39,6 +39,14 @@ class Practice(BaseModel):
         verbose_name=_("owner"),
     )
 
+    # ── Bank account fields (for transfer payments) ──────────────────────────
+    bank_name = models.CharField(_("bank name"), max_length=100, blank=True, default="")
+    account_type = models.CharField(_("account type"), max_length=50, blank=True, default="")
+    account_number = models.CharField(_("account number"), max_length=50, blank=True, default="")
+    account_holder = models.CharField(_("account holder"), max_length=150, blank=True, default="")
+    account_rut = models.CharField(_("account RUT"), max_length=20, blank=True, default="")
+    account_email = models.EmailField(_("account email"), blank=True, default="")
+
     class Meta:
         db_table = "practices"
         ordering = ["-created_at"]
