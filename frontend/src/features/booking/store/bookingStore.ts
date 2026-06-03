@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { AvailableSlot, BookingResponse } from "@/types/api";
+import type { AvailableSlot, BankDetails, BookingResponse } from "@/types/api";
 
 // ─── Step definitions ────────────────────────────────────────────────────────
 
@@ -33,11 +33,16 @@ interface BookingState {
   notes: string;
   acceptedPolicy: boolean;
   acceptedTerms: boolean;
+  // Step 7 — payment method selection
+  paymentMethod: "MERCADOPAGO" | "TRANSFER";
   // Post-submit (step 8)
   checkoutUrl: string | null;
   holdExpiresAt: string | null;      // ISO UTC string from backend
   appointmentId: number | null;
+  paymentId: number | null;
   preferenceId: string | null;       // MP preference ID for Wallet Brick
+  bankDetails: BankDetails | null;   // Transfer bank account info
+  transferExpiresAt: string | null;  // ISO UTC — 48h window for transfer
   // Wizard
   step: BookingStep;
   lastActivity: number | null;  // Date.now() — for expiry detection
@@ -56,6 +61,7 @@ interface BookingActions {
   setNotes: (notes: string) => void;
   setAcceptedPolicy: (v: boolean) => void;
   setAcceptedTerms: (v: boolean) => void;
+  setPaymentMethod: (method: "MERCADOPAGO" | "TRANSFER") => void;
   setBookingResult: (result: BookingResponse) => void;
   reset: () => void;
 }
@@ -74,10 +80,14 @@ const initialState: BookingState = {
   notes: "",
   acceptedPolicy: false,
   acceptedTerms: false,
+  paymentMethod: "MERCADOPAGO",
   checkoutUrl: null,
   holdExpiresAt: null,
   appointmentId: null,
+  paymentId: null,
   preferenceId: null,
+  bankDetails: null,
+  transferExpiresAt: null,
   step: 1,
   lastActivity: null,
 };
@@ -111,12 +121,17 @@ export const useBookingStore = create<BookingStore>()(
 
       setAcceptedTerms: (v) => set({ acceptedTerms: v, lastActivity: Date.now() }),
 
+      setPaymentMethod: (method) => set({ paymentMethod: method, lastActivity: Date.now() }),
+
       setBookingResult: (result) =>
         set({
-          checkoutUrl: result.checkout_url,
-          holdExpiresAt: result.hold_expires_at,
+          checkoutUrl: result.checkout_url ?? null,
+          holdExpiresAt: result.hold_expires_at ?? null,
           appointmentId: result.appointment_id,
+          paymentId: result.payment_id,
           preferenceId: result.preference_id ?? null,
+          bankDetails: result.bank_details ?? null,
+          transferExpiresAt: result.transfer_expires_at ?? null,
           lastActivity: Date.now(),
         }),
 
@@ -131,9 +146,13 @@ export const useBookingStore = create<BookingStore>()(
         selectedSlot: state.selectedSlot,
         patientId: state.patientId,
         appointmentId: state.appointmentId,
+        paymentId: state.paymentId,
         checkoutUrl: state.checkoutUrl,
         holdExpiresAt: state.holdExpiresAt,
         preferenceId: state.preferenceId,
+        paymentMethod: state.paymentMethod,
+        bankDetails: state.bankDetails,
+        transferExpiresAt: state.transferExpiresAt,
         step: state.step,
         lastActivity: state.lastActivity,
       }),
