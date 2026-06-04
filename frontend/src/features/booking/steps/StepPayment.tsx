@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowLeft } from "lucide-react";
 import { useBookingStore } from "../store/bookingStore";
 import { useServices } from "../hooks/useBookingQueries";
+import api from "@/lib/api";
 import WalletBrick from "../components/WalletBrick";
 import TransferInstructions from "../components/TransferInstructions";
 
@@ -9,7 +12,7 @@ import TransferInstructions from "../components/TransferInstructions";
  * StepPayment (step 8)
  *
  * Renders the correct payment UI based on the selected payment method:
- * - MERCADOPAGO: renders WalletBrick inline (replaces old redirect flow)
+ * - MERCADOPAGO: renders WalletBrick inline + polls payment status
  * - TRANSFER: renders TransferInstructions with bank details and receipt upload
  */
 export default function StepPayment() {
@@ -43,9 +46,19 @@ export default function StepPayment() {
     return () => clearInterval(id);
   }, [secondsLeft, paymentMethod]);
 
-  function handlePaymentSuccess() {
-    navigate("/booking/confirmed");
-  }
+  // ── Poll payment status every 3s (only for MP) ──────────────────────────────
+  const { data: paymentData } = useQuery({
+    queryKey: ["payment-poll", paymentId],
+    queryFn: () => api.get(`/payments/${paymentId}/`).then((r) => r.data),
+    enabled: !!paymentId && paymentMethod === "MERCADOPAGO",
+    refetchInterval: 3000,
+  });
+
+  useEffect(() => {
+    if (paymentData?.status === "COMPLETED") {
+      navigate("/booking/confirmed");
+    }
+  }, [paymentData, navigate]);
 
   const minutes = Math.floor(secondsLeft / 60);
   const secs = secondsLeft % 60;
@@ -79,6 +92,13 @@ export default function StepPayment() {
 
     return (
       <div className="max-w-[560px] mx-auto px-4 pt-[110px] pb-12">
+        <button
+          onClick={() => useBookingStore.getState().setStep(7)}
+          className="flex items-center gap-1.5 text-[14px] text-ink2 hover:text-teal-dark transition-colors mb-6"
+        >
+          <ArrowLeft size={16} />
+          Volver
+        </button>
         <div className="space-y-4">
           <h2 className="font-display text-[22px] font-semibold text-ink">
             Instrucciones de pago
@@ -118,10 +138,6 @@ export default function StepPayment() {
             </h2>
             <WalletBrick
               preferenceId={preferenceId}
-              onSuccess={handlePaymentSuccess}
-              onError={(err) => {
-                console.error("WalletBrick error:", err);
-              }}
             />
           </div>
         ) : (

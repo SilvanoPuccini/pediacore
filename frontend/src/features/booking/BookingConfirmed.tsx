@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Download, MapPin, CalendarDays, Baby, CheckCircle2, ClipboardEdit, Clock, X } from "lucide-react";
+import { MapPin, CalendarDays, Baby, CheckCircle2, ClipboardEdit, Clock, X } from "lucide-react";
 import SEOHead from "@/components/seo/SEOHead";
 import api from "@/lib/api";
 import { useBookingStore } from "./store/bookingStore";
 import { useLocations, useServices, useMyPatients } from "./hooks/useBookingQueries";
 import { formatDisplayDate, formatTime } from "./utils";
-import type { Appointment, InvoiceListItem, PaginatedResponse } from "@/types/api";
+import type { Appointment } from "@/types/api";
 import { useQuery } from "@tanstack/react-query";
 
 export default function BookingConfirmed() {
@@ -81,43 +81,6 @@ export default function BookingConfirmed() {
   const isApproved = !mpStatus || mpStatus === "approved";
   const isPending = mpStatus === "pending" || mpStatus === "in_process";
   const isFailed = mpStatus && !isApproved && !isPending;
-
-  const { data: invoicesResp } = useQuery<PaginatedResponse<InvoiceListItem>>({
-    queryKey: ["invoices-confirmed", effectiveAppointmentId],
-    queryFn: async () => {
-      const { data } = await api.get<PaginatedResponse<InvoiceListItem>>("/invoices/");
-      return data;
-    },
-    enabled: isApproved && !!effectiveAppointmentId,
-    // Poll every 3s when coming back from MP and webhook hasn't created the invoice yet
-    refetchInterval: (query) =>
-      isFromMP && !query.state.data?.results?.some((inv) => inv.has_pdf) ? 3000 : false,
-  });
-
-  const invoice = useMemo(() => {
-    if (!invoicesResp?.results || !effectiveAppointmentId) return null;
-    return invoicesResp.results.find((inv) => inv.has_pdf) ?? null;
-  }, [invoicesResp, effectiveAppointmentId]);
-
-  const [downloading, setDownloading] = useState(false);
-
-  async function handleDownloadInvoice() {
-    if (!invoice) return;
-    setDownloading(true);
-    try {
-      const response = await api.get(`/invoices/${invoice.id}/download/`, {
-        responseType: "blob",
-      });
-      const url = URL.createObjectURL(response.data as Blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `comprobante-${invoice.invoice_number}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } finally {
-      setDownloading(false);
-    }
-  }
 
   function handleNewBooking() {
     reset();
@@ -285,16 +248,6 @@ export default function BookingConfirmed() {
             </a>
           )}
         </div>
-        {invoice && (
-          <button
-            onClick={handleDownloadInvoice}
-            disabled={downloading}
-            className="w-full flex items-center justify-center gap-2 bg-surface border border-line text-ink rounded-[12px] px-5 py-3 font-semibold text-[13px] hover:bg-cream transition-colors disabled:opacity-50"
-          >
-            <Download size={15} />
-            {downloading ? "Descargando..." : "Descargar comprobante"}
-          </button>
-        )}
       </div>
     </div>
   );
