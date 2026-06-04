@@ -115,9 +115,11 @@ def analyze_receipt_with_gemini(payment_id: int) -> dict | None:
             response = model.generate_content([uploaded, _OCR_PROMPT])
         else:
             # Images can be sent as inline data
-            from google.generativeai.types import Part
+            from google.generativeai import protos
 
-            image_part = Part.from_bytes(data=file_bytes, mime_type=mime_type)
+            image_part = protos.Part(
+                inline_data=protos.Blob(mime_type=mime_type, data=file_bytes)
+            )
             response = model.generate_content([image_part, _OCR_PROMPT])
 
         raw_text = response.text.strip()
