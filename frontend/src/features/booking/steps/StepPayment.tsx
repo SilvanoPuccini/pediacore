@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import { useBookingStore } from "../store/bookingStore";
 import { useServices } from "../hooks/useBookingQueries";
@@ -12,7 +11,7 @@ import TransferInstructions from "../components/TransferInstructions";
  * StepPayment (step 8)
  *
  * Renders the correct payment UI based on the selected payment method:
- * - MERCADOPAGO: renders WalletBrick inline + polls payment status
+ * - MERCADOPAGO: renders WalletBrick inline ("redirect" mode — user goes to MP, returns via back_urls)
  * - TRANSFER: renders TransferInstructions with bank details and receipt upload
  */
 export default function StepPayment() {
@@ -49,20 +48,6 @@ export default function StepPayment() {
     const id = setInterval(() => setSecondsLeft((s) => Math.max(0, s - 1)), 1000);
     return () => clearInterval(id);
   }, [secondsLeft, paymentMethod]);
-
-  // ── Poll payment status every 3s (only for MP) ──────────────────────────────
-  const { data: paymentData } = useQuery({
-    queryKey: ["payment-poll", paymentId],
-    queryFn: () => api.get(`/payments/${paymentId}/`).then((r) => r.data),
-    enabled: !!paymentId && paymentMethod === "MERCADOPAGO",
-    refetchInterval: 3000,
-  });
-
-  useEffect(() => {
-    if (paymentData?.status === "COMPLETED") {
-      navigate("/booking/confirmed");
-    }
-  }, [paymentData, navigate]);
 
   // ── Go back: cancel hold + clear booking data ───────────────────────────────
   async function handleGoBack() {
