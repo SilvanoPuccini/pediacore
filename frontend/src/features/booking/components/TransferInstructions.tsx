@@ -4,6 +4,7 @@ import { CheckCircle, Copy, ExternalLink, Upload, X } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { useBookingStore } from "../store/bookingStore";
 import type { BankDetails } from "@/types/api";
 import { formatPrice } from "../utils";
 
@@ -179,7 +180,10 @@ export default function TransferInstructions({
             </p>
           </div>
           <button
-            onClick={() => navigate("/portal")}
+            onClick={() => {
+              useBookingStore.getState().reset();
+              navigate("/portal");
+            }}
             className="mt-2 text-[14px] font-semibold text-teal-dark hover:underline flex items-center gap-1.5"
           >
             <ExternalLink size={14} />
