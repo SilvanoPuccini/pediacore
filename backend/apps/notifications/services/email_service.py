@@ -145,7 +145,7 @@ def send_email(
 
 
 _EMAIL_BASE_URL = lambda: str(getattr(settings, "FRONTEND_URL", "https://estefipediatra.com"))
-_EMAIL_LOGO_URL = lambda: f"{_EMAIL_BASE_URL()}/images/logo.jpg"
+_EMAIL_LOGO_URL = lambda: f"{_EMAIL_BASE_URL()}/images/logo.png"
 
 
 def _location_lines(location) -> list[str]:
@@ -273,7 +273,7 @@ def _build_payment_receipt_html(
                     <!-- Header -->
                     <tr>
                         <td style="background-color:#4A8590; padding:32px 40px; text-align:center;">
-                            <img src="{logo_url}" alt="Dra. Estefi Pediatra" width="72" height="72" style="width:72px; height:72px; border-radius:50%; object-fit:cover; border:3px solid rgba(255,255,255,0.2); display:block; margin:0 auto;">
+                            <img src="{logo_url}" alt="Dra. Estefi Pediatra" width="88" height="88" style="width:88px; height:88px; border-radius:50%; object-fit:cover; background-color:#ffffff; border:3px solid rgba(255,255,255,0.2); display:block; margin:0 auto;">
                             <h1 style="font-family:'Fraunces',Georgia,'Times New Roman',serif; color:#FFFFFF; margin:14px 0 0; font-size:22px; font-weight:600;">Dra. Estefi</h1>
                             <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:rgba(255,255,255,0.75); margin:4px 0 0; font-size:12px; letter-spacing:0.5px;">Pediatra &middot; Sur de Chile</p>
                         </td>
@@ -344,7 +344,7 @@ def _build_payment_receipt_html(
                     <!-- Footer -->
                     <tr>
                         <td style="background-color:#2C2C2C; padding:28px 40px; text-align:center;">
-                            <img src="{logo_url}" alt="" width="44" height="44" style="width:44px; height:44px; border-radius:50%; border:2px solid rgba(255,255,255,0.2); display:block; margin:0 auto 12px;">
+                            <img src="{logo_url}" alt="" width="56" height="56" style="width:56px; height:56px; border-radius:50%; object-fit:cover; background-color:#ffffff; border:2px solid rgba(255,255,255,0.2); display:block; margin:0 auto 12px;">
                             <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.9); font-size:13px; margin:0 0 4px; font-weight:600;">Dra. Estefi</p>
                             <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.6); font-size:12px; margin:0 0 20px;">Pediatr&iacute;a con tiempo, calidez y atenci&oacute;n personalizada</p>
                             <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; font-size:12px; color:rgba(255,255,255,0.7); line-height:1.8; margin:0 0 16px;">
@@ -675,7 +675,7 @@ def _build_appointment_html(
                     <!-- Header: brand bar -->
                     <tr>
                         <td style="background-color:#4A8590; padding:32px 40px; text-align:center;">
-                            <img src="{logo_url}" alt="Dra. Estefi Pediatra" width="72" height="72" style="width:72px; height:72px; border-radius:50%; object-fit:cover; border:3px solid rgba(255,255,255,0.2); display:block; margin:0 auto;">
+                            <img src="{logo_url}" alt="Dra. Estefi Pediatra" width="88" height="88" style="width:88px; height:88px; border-radius:50%; object-fit:cover; background-color:#ffffff; border:3px solid rgba(255,255,255,0.2); display:block; margin:0 auto;">
                             <h1 style="font-family:'Fraunces',Georgia,'Times New Roman',serif; color:#FFFFFF; margin:14px 0 0; font-size:22px; font-weight:600;">Dra. Estefi</h1>
                             <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.75); margin:4px 0 0; font-size:12px; letter-spacing:0.5px;">Pediatra &middot; Sur de Chile</p>
                         </td>
@@ -726,7 +726,7 @@ def _build_appointment_html(
                     <!-- Footer: contact + social -->
                     <tr>
                         <td style="background-color:#2C2C2C; padding:28px 40px; text-align:center;">
-                            <img src="{logo_url}" alt="" width="44" height="44" style="width:44px; height:44px; border-radius:50%; border:2px solid rgba(255,255,255,0.2); display:block; margin:0 auto 12px;">
+                            <img src="{logo_url}" alt="" width="56" height="56" style="width:56px; height:56px; border-radius:50%; object-fit:cover; background-color:#ffffff; border:2px solid rgba(255,255,255,0.2); display:block; margin:0 auto 12px;">
                             <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.9); font-size:13px; margin:0 0 4px; font-weight:600;">Dra. Estefi</p>
                             <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.6); font-size:12px; margin:0 0 20px;">Pediatr&iacute;a con tiempo, calidez y atenci&oacute;n personalizada</p>
 

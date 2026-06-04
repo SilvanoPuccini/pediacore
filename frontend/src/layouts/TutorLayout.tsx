@@ -36,9 +36,9 @@ export default function TutorLayout() {
         {/* Sidebar header */}
         <div className="h-16 flex items-center gap-3 px-5 border-b border-line shrink-0">
           <img
-            src="/images/logo.jpg"
+            src="/images/logo.png"
             alt="Logo"
-            className="h-9 w-9 rounded-full object-cover"
+            className="h-11 w-11 rounded-full object-cover bg-white"
           />
           <div className="leading-tight">
             <div className="font-display text-[14px] font-semibold text-ink truncate max-w-[140px]">
