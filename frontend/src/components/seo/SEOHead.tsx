@@ -12,7 +12,7 @@ const BASE_TITLE = "Dra. Estefi · Pediatría en Pucón y Villarrica";
 const BASE_DESCRIPTION =
   "Pediatría cercana en Pucón y Villarrica. Atención presencial u online desde recién nacidos hasta los 18 años.";
 const BASE_URL = "https://estefipediatra.com";
-const DEFAULT_IMAGE = "https://estefipediatra.com/images/logo.jpg";
+const DEFAULT_IMAGE = "https://estefipediatra.com/images/logo.png";
 
 export default function SEOHead({
   title,

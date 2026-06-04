@@ -73,9 +73,9 @@ export default function Navbar() {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 shrink-0">
             <img
-              src="/images/logo.jpg"
+              src="/images/logo.png"
               alt="Logo Dra. Estefi Pediatra"
-              className="h-12 w-12 rounded-full object-cover"
+              className="h-14 w-14 rounded-full object-cover bg-white"
             />
             <div className="leading-tight">
               <div className="font-display text-[15px] font-semibold text-[var(--ink)] tracking-tight">

@@ -74,9 +74,9 @@ export default function Footer() {
             {/* Logo */}
             <div className="flex items-center gap-3">
               <img
-                src="/images/logo.jpg"
+                src="/images/logo.png"
                 alt="Dra. Estefi Pediatra"
-                className="w-12 h-12 rounded-full object-cover"
+                className="w-14 h-14 rounded-full object-cover bg-white"
               />
               <div>
                 <p className="font-display text-[15px] font-semibold text-white leading-tight">

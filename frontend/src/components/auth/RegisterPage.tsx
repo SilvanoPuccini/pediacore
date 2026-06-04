@@ -140,9 +140,9 @@ export default function RegisterPage() {
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
           <img
-            src="/images/logo.jpg"
+            src="/images/logo.png"
             alt="Logo Dra. Estefi Pediatra"
-            className="h-16 w-16 rounded-full object-cover mb-3"
+            className="h-20 w-20 rounded-full object-cover bg-white mb-3"
           />
           <div className="font-display text-[22px] font-semibold text-ink tracking-tight">
             Dra. Estefi
