@@ -23,6 +23,7 @@ export default function WalletBrick({ preferenceId }: WalletBrickProps) {
     <div className="rounded-[16px] overflow-hidden border border-line bg-surface p-2">
       <Wallet
         initialization={{ preferenceId, redirectMode: "blank" }}
+        onReady={() => console.log("WalletBrick ready")}
         onError={(err) => console.error("WalletBrick error:", err)}
       />
     </div>
