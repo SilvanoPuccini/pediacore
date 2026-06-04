@@ -22,7 +22,7 @@ export default function PaymentMethodSelector({ value, onChange }: PaymentMethod
           type="button"
           onClick={() => onChange("MERCADOPAGO")}
           className={cn(
-            "flex flex-col items-start gap-2 px-4 py-3.5 rounded-[16px] border text-left transition-all",
+            "flex flex-col items-start gap-2 px-4 py-3.5 rounded-[16px] border text-left transition-all cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/30",
             value === "MERCADOPAGO"
               ? "border-teal bg-teal/5 ring-2 ring-teal/20"
               : "border-line bg-surface hover:border-ink3"
@@ -53,7 +53,7 @@ export default function PaymentMethodSelector({ value, onChange }: PaymentMethod
           type="button"
           onClick={() => onChange("TRANSFER")}
           className={cn(
-            "flex flex-col items-start gap-2 px-4 py-3.5 rounded-[16px] border text-left transition-all",
+            "flex flex-col items-start gap-2 px-4 py-3.5 rounded-[16px] border text-left transition-all cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/30",
             value === "TRANSFER"
               ? "border-teal bg-teal/5 ring-2 ring-teal/20"
               : "border-line bg-surface hover:border-ink3"
