@@ -340,6 +340,186 @@ class PaymentViewSet(viewsets.ModelViewSet):
     @action(
         detail=True,
         methods=["post"],
+        url_path="process-card",
+        permission_classes=[IsTutor],
+    )
+    def process_card(self, request: Request, pk=None) -> Response:
+        """
+        Process an inline card payment using a token from the Payment Brick.
+
+        The frontend's CardPayment/Payment Brick tokenizes the card and sends
+        the token + payment details here. We call the MercadoPago API to create
+        the actual payment, then confirm the appointment.
+
+        Expected payload:
+            token, payment_method_id, issuer_id, installments,
+            payer.email, payer.identification.type, payer.identification.number
+        """
+        payment = self.get_object()
+
+        # Ownership check
+        if payment.paid_by != request.user:
+            return Response(
+                {"detail": "You do not have permission to process this payment."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        if payment.status != Payment.PENDING:
+            return Response(
+                {"detail": "Only pending payments can be processed."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Extract token data from request
+        data = request.data
+        token = data.get("token")
+        if not token:
+            return Response(
+                {"detail": "Card token is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from decimal import Decimal
+
+        amount = int(Decimal(str(payment.amount)))
+
+        # Resolve service description
+        service_name = "Consulta pediátrica"
+        if payment.appointment and payment.appointment.service:
+            service_name = payment.appointment.service.name
+
+        # Build payer info
+        payer_data = data.get("payer", {})
+        payer_email = payer_data.get("email", request.user.email)
+        identification = payer_data.get("identification", {})
+
+        payment_data = {
+            "transaction_amount": amount,
+            "token": token,
+            "description": service_name,
+            "installments": int(data.get("installments", 1)),
+            "payment_method_id": data.get("payment_method_id", ""),
+            "issuer_id": data.get("issuer_id", ""),
+            "payer": {
+                "email": payer_email,
+            },
+        }
+
+        # Add identification if provided
+        if identification.get("type") and identification.get("number"):
+            payment_data["payer"]["identification"] = {
+                "type": identification["type"],
+                "number": identification["number"],
+            }
+
+        # Call MercadoPago API to create the payment
+        access_token = getattr(settings, "MERCADOPAGO_ACCESS_TOKEN", "")
+        sdk = mercadopago.SDK(access_token)
+
+        try:
+            mp_response = sdk.payment().create(payment_data)
+        except Exception as exc:
+            logger.error("process_card: MP API call failed for Payment #%s: %s", payment.pk, exc)
+            return Response(
+                {"detail": "Error processing payment with MercadoPago."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        mp_status_code = mp_response.get("status")
+        mp_result = mp_response.get("response", {})
+        mp_payment_status = mp_result.get("status", "")
+        mp_payment_id = str(mp_result.get("id", ""))
+
+        logger.info(
+            "process_card: MP response status=%s mp_payment_status=%s mp_id=%s for Payment #%s",
+            mp_status_code,
+            mp_payment_status,
+            mp_payment_id,
+            payment.pk,
+        )
+
+        if mp_status_code not in (200, 201):
+            error_message = mp_result.get("message", "Payment was rejected.")
+            logger.warning(
+                "process_card: MP rejected Payment #%s — status=%s response=%s",
+                payment.pk, mp_status_code, mp_result,
+            )
+            return Response(
+                {"detail": error_message, "mp_status": mp_payment_status},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Payment approved — update records
+        if mp_payment_status == "approved":
+            with transaction.atomic():
+                payment.status = Payment.COMPLETED
+                payment.paid_at = timezone.now()
+                payment.external_id = mp_payment_id
+                payment.external_status = mp_payment_status
+                payment.metadata.update({
+                    "provider": "mercadopago",
+                    "mp_payment_id": mp_payment_id,
+                    "processing_mode": "card_inline",
+                })
+                payment.save(update_fields=[
+                    "status", "paid_at", "external_id", "external_status",
+                    "metadata", "updated_at",
+                ])
+
+                appointment = payment.appointment
+                if appointment and appointment.status in (Appointment.PENDING, Appointment.HOLD):
+                    appointment.status = Appointment.CONFIRMED
+                    appointment.confirmed_at = timezone.now()
+                    appointment.save(update_fields=["status", "confirmed_at", "updated_at"])
+
+            # Post-confirmation pipeline (non-blocking)
+            try:
+                create_invoice_for_payment(payment)
+            except Exception as exc:
+                logger.error("process_card: invoice creation failed for Payment #%s: %s", payment.pk, exc)
+
+            try:
+                if hasattr(payment, "invoice"):
+                    generate_invoice_pdf(payment.invoice)
+            except Exception as exc:
+                logger.error("process_card: PDF generation failed for Payment #%s: %s", payment.pk, exc)
+
+            try:
+                send_payment_receipt(payment)
+            except Exception as exc:
+                logger.error("process_card: send_payment_receipt failed for Payment #%s: %s", payment.pk, exc)
+
+            try:
+                if appointment:
+                    send_appointment_confirmation(appointment)
+            except Exception as exc:
+                logger.error("process_card: send_appointment_confirmation failed: %s", exc)
+
+            try:
+                if appointment:
+                    create_tokens_for_appointment(appointment)
+            except Exception as exc:
+                logger.error("process_card: create_tokens failed: %s", exc)
+
+            return Response(
+                {"status": "approved", "appointment_id": appointment.pk if appointment else None},
+                status=status.HTTP_200_OK,
+            )
+
+        # Pending/in_process — store external_id but don't confirm yet
+        payment.external_id = mp_payment_id
+        payment.external_status = mp_payment_status
+        payment.metadata.update({"provider": "mercadopago", "mp_payment_id": mp_payment_id})
+        payment.save(update_fields=["external_id", "external_status", "metadata", "updated_at"])
+
+        return Response(
+            {"status": mp_payment_status, "detail": "Payment is being processed."},
+            status=status.HTTP_202_ACCEPTED,
+        )
+
+    @action(
+        detail=True,
+        methods=["post"],
         url_path="reject-transfer",
         permission_classes=[IsDoctor],
     )

@@ -1,22 +1,21 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useBookingStore } from "../store/bookingStore";
 import { useServices } from "../hooks/useBookingQueries";
-import api from "@/lib/api";
+import { useAuthStore } from "@/stores/auth";
 import TransferInstructions from "../components/TransferInstructions";
-import WalletBrick from "../components/WalletBrick";
+import PaymentBrick from "../components/WalletBrick";
 
 /**
  * StepPayment (step 8)
  *
  * Renders the correct payment UI based on the selected payment method:
- * - MERCADOPAGO: renders WalletBrick ("blank" mode — opens MP in new tab, polls for confirmation)
+ * - MERCADOPAGO: renders CardPayment Brick inline (card form, no redirect)
  * - TRANSFER: renders TransferInstructions with bank details and receipt upload
  */
 export default function StepPayment() {
   const navigate = useNavigate();
-  const preferenceId = useBookingStore((s) => s.preferenceId);
   const holdExpiresAt = useBookingStore((s) => s.holdExpiresAt);
   const paymentMethod = useBookingStore((s) => s.paymentMethod);
   const paymentId = useBookingStore((s) => s.paymentId);
@@ -25,8 +24,11 @@ export default function StepPayment() {
   const serviceId = useBookingStore((s) => s.serviceId);
   const appointmentId = useBookingStore((s) => s.appointmentId);
   const reset = useBookingStore((s) => s.reset);
+  const { user } = useAuthStore();
 
   const [cancelling, setCancelling] = useState(false);
+  const [paymentApproved, setPaymentApproved] = useState(false);
+  const [cardError, setCardError] = useState<string | null>(null);
   const receiptUploaded = useBookingStore((s) => s.receiptUploaded);
   const setReceiptUploaded = useBookingStore((s) => s.setReceiptUploaded);
 
@@ -50,32 +52,17 @@ export default function StepPayment() {
     return () => clearInterval(id);
   }, [secondsLeft, paymentMethod]);
 
-  // ── Poll appointment status for MP payment completion ───────────────────────
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [paymentDetected, setPaymentDetected] = useState(false);
+  // ── Card payment callbacks ──────────────────────────────────────────────────
+  const handleApproved = useCallback(() => {
+    setPaymentApproved(true);
+    setTimeout(() => {
+      navigate(`/booking/confirmed?appointment_id=${appointmentId}`);
+    }, 1500);
+  }, [navigate, appointmentId]);
 
-  useEffect(() => {
-    if (paymentMethod !== "MERCADOPAGO" || !appointmentId) return;
-
-    pollingRef.current = setInterval(async () => {
-      try {
-        const { data } = await api.get<{ status: string }>(`/appointments/${appointmentId}/`);
-        if (data.status === "CONFIRMED") {
-          if (pollingRef.current) clearInterval(pollingRef.current);
-          setPaymentDetected(true);
-          setTimeout(() => {
-            navigate(`/booking/confirmed?appointment_id=${appointmentId}`);
-          }, 1500);
-        }
-      } catch {
-        // Silently ignore polling errors — will retry next interval
-      }
-    }, 3000);
-
-    return () => {
-      if (pollingRef.current) clearInterval(pollingRef.current);
-    };
-  }, [appointmentId, paymentMethod, navigate]);
+  const handleCardError = useCallback((message: string) => {
+    setCardError(message);
+  }, []);
 
   // ── Go back: cancel hold + clear booking data ───────────────────────────────
   async function handleGoBack() {
@@ -84,6 +71,7 @@ export default function StepPayment() {
     if (appointmentId) {
       setCancelling(true);
       try {
+        const api = (await import("@/lib/api")).default;
         await api.post(`/appointments/${appointmentId}/cancel/`, { reason: "user_cancelled_hold" });
       } catch {
         // Silently ignore — hold expires naturally in 10 min
@@ -158,17 +146,16 @@ export default function StepPayment() {
             amount={selectedService?.price_clp ?? 0}
             bankDetails={bankDetails}
             onUploadComplete={() => setReceiptUploaded(true)}
-
           />
         </div>
       </div>
     );
   }
 
-  // ── MercadoPago flow ───────────────────────────────────────────────────────
+  // ── MercadoPago flow (inline card form) ─────────────────────────────────────
 
-  // Payment detected — show success before redirect
-  if (paymentDetected) {
+  // Payment approved — show success before redirect
+  if (paymentApproved) {
     return (
       <div className="max-w-[560px] mx-auto px-4 pt-[110px] pb-12">
         <div className="bg-green-50 border border-green-200 rounded-[16px] px-6 py-8 text-center">
@@ -188,6 +175,8 @@ export default function StepPayment() {
     );
   }
 
+  const amount = selectedService?.price_clp ?? 0;
+
   return (
     <div className="max-w-[560px] mx-auto px-4 pt-[110px] pb-12">
       <div className="space-y-6">
@@ -203,22 +192,29 @@ export default function StepPayment() {
           </p>
         </div>
 
-        {/* Wallet Brick or error */}
-        {preferenceId ? (
+        {/* Card error */}
+        {cardError && (
+          <div className="bg-coral/10 border border-coral/30 rounded-[12px] px-4 py-3">
+            <p className="text-[13px] text-ink font-semibold">
+              No se pudo procesar el pago
+            </p>
+            <p className="text-[12px] text-ink2 mt-0.5">{cardError}</p>
+          </div>
+        )}
+
+        {/* Inline card payment form */}
+        {paymentId && amount > 0 ? (
           <div>
             <h2 className="font-display text-[20px] font-semibold text-ink mb-4 text-center">
               Completá el pago
             </h2>
-            <WalletBrick
-              preferenceId={preferenceId}
+            <PaymentBrick
+              paymentId={paymentId}
+              amount={amount}
+              payerEmail={user?.email ?? ""}
+              onApproved={handleApproved}
+              onError={handleCardError}
             />
-            <div className="mt-4 bg-surface border border-line rounded-[12px] px-4 py-3 flex items-start gap-3">
-              <Loader2 size={16} className="text-teal-dark animate-spin shrink-0 mt-0.5" />
-              <p className="text-[13px] text-ink2">
-                Al hacer clic, se abrirá MercadoPago en una nueva pestaña.
-                Completá el pago allí y esta página se actualizará automáticamente.
-              </p>
-            </div>
           </div>
         ) : (
           <div className="bg-coral/10 border border-coral/30 rounded-[12px] px-4 py-3 text-center">
