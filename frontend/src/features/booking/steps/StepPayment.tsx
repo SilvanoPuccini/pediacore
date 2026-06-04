@@ -24,7 +24,10 @@ export default function StepPayment() {
   const bankDetails = useBookingStore((s) => s.bankDetails);
   const transferExpiresAt = useBookingStore((s) => s.transferExpiresAt);
   const serviceId = useBookingStore((s) => s.serviceId);
+  const appointmentId = useBookingStore((s) => s.appointmentId);
   const reset = useBookingStore((s) => s.reset);
+
+  const [cancelling, setCancelling] = useState(false);
 
   const { data: servicesResp } = useServices();
   const selectedService = (servicesResp?.results ?? []).find((s) => s.id === serviceId) ?? null;
@@ -60,6 +63,35 @@ export default function StepPayment() {
     }
   }, [paymentData, navigate]);
 
+  // ── Go back: cancel hold + clear booking data ───────────────────────────────
+  async function handleGoBack() {
+    if (cancelling) return;
+    const store = useBookingStore.getState();
+    const apptId = store.appointmentId;
+
+    if (apptId) {
+      setCancelling(true);
+      try {
+        await api.post(`/appointments/${apptId}/cancel/`, { reason: "user_cancelled_hold" });
+      } catch {
+        // Silently ignore — hold expires naturally in 10 min
+      }
+      setCancelling(false);
+    }
+
+    useBookingStore.setState({
+      appointmentId: null,
+      paymentId: null,
+      preferenceId: null,
+      bankDetails: null,
+      checkoutUrl: null,
+      holdExpiresAt: null,
+      transferExpiresAt: null,
+    });
+
+    useBookingStore.getState().setStep(7);
+  }
+
   const minutes = Math.floor(secondsLeft / 60);
   const secs = secondsLeft % 60;
   const timeDisplay = minutes > 0
@@ -93,11 +125,12 @@ export default function StepPayment() {
     return (
       <div className="max-w-[560px] mx-auto px-4 pt-[110px] pb-12">
         <button
-          onClick={() => useBookingStore.getState().setStep(7)}
-          className="flex items-center gap-1.5 text-[14px] text-ink2 hover:text-teal-dark transition-colors mb-6"
+          onClick={handleGoBack}
+          disabled={cancelling}
+          className="flex items-center gap-1.5 text-[14px] text-ink2 hover:text-teal-dark transition-colors mb-6 disabled:opacity-50"
         >
           <ArrowLeft size={16} />
-          Volver
+          {cancelling ? "Cancelando..." : "Volver"}
         </button>
         <div className="space-y-4">
           <h2 className="font-display text-[22px] font-semibold text-ink">
