@@ -80,7 +80,7 @@ const initialState: BookingState = {
   patientId: null,
   callPlatform: "",
   notes: "",
-  acceptedPolicy: true,
+  acceptedPolicy: false,
   acceptedTerms: true,
   paymentMethod: "MERCADOPAGO",
   checkoutUrl: null,
