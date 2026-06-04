@@ -81,7 +81,7 @@ const initialState: BookingState = {
   callPlatform: "",
   notes: "",
   acceptedPolicy: false,
-  acceptedTerms: false,
+  acceptedTerms: true,
   paymentMethod: "MERCADOPAGO",
   checkoutUrl: null,
   holdExpiresAt: null,

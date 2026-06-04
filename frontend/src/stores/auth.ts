@@ -62,6 +62,10 @@ export const useAuthStore = create<AuthStore>((set) => ({
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
     set({ user: null, isAuthenticated: false });
+
+    // Clear booking state so next user doesn't inherit a stale payment flow
+    const { useBookingStore } = await import("@/features/booking/store/bookingStore");
+    useBookingStore.getState().reset();
   },
 
   fetchProfile: async () => {

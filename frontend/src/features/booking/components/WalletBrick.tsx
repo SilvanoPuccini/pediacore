@@ -59,6 +59,15 @@ export default memo(function PaymentBrick({
 
   return (
     <div className="rounded-[16px] overflow-hidden border border-line bg-surface">
+      {/* MP branding header */}
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-line bg-[#f5f5f5]">
+        <img
+          src="https://http2.mlstatic.com/frontend-assets/mp-web-navigation/ui-navigation/6.6.92/mercadopago/logo__large@2x.png"
+          alt="MercadoPago"
+          className="h-5"
+        />
+        <span className="text-[12px] text-ink3 ml-auto">Pago seguro</span>
+      </div>
       {processing && (
         <div className="bg-teal/5 border-b border-teal/20 px-4 py-3 flex items-center gap-3">
           <div className="w-4 h-4 border-2 border-teal-dark border-t-transparent rounded-full animate-spin" />
