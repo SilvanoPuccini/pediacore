@@ -6,28 +6,24 @@ initMercadoPago(MP_PUBLIC_KEY, { locale: "es-CL" });
 
 interface WalletBrickProps {
   preferenceId: string;
-  onSuccess?: () => void;
-  onError?: (error: unknown) => void;
 }
 
 /**
  * WalletBrick
  *
- * Renders the MercadoPago Wallet Brick inline — no external redirect.
- * The user completes payment within the embedded checkout frame.
+ * Renders the MercadoPago Wallet Brick inline in "blank" mode.
+ * The user completes payment in a popup/modal and returns to the page.
+ * The parent component polls payment status to detect completion.
  *
  * Props:
  *   preferenceId - MP preference ID returned by the booking API
- *   onSuccess    - called after successful payment (optional)
- *   onError      - called on Brick error (optional)
  */
-export default function WalletBrick({ preferenceId, onSuccess, onError }: WalletBrickProps) {
+export default function WalletBrick({ preferenceId }: WalletBrickProps) {
   return (
     <div className="rounded-[16px] overflow-hidden border border-line bg-surface p-2">
       <Wallet
         initialization={{ preferenceId, redirectMode: "blank" }}
-        onReady={onSuccess}
-        onError={onError}
+        onError={(err) => console.error("WalletBrick error:", err)}
       />
     </div>
   );
