@@ -1,5 +1,6 @@
 import { memo, useCallback, useState } from "react";
 import { initMercadoPago, CardPayment } from "@mercadopago/sdk-react";
+import type { ICardPaymentFormData, ICardPaymentBrickPayer } from "@mercadopago/sdk-react/esm/bricks/cardPayment/type";
 import api from "@/lib/api";
 
 // Initialize MercadoPago SDK once with the public key from env
@@ -33,7 +34,7 @@ export default memo(function PaymentBrick({
   const [processing, setProcessing] = useState(false);
 
   const handleSubmit = useCallback(
-    async (formData: Record<string, unknown>) => {
+    async (formData: ICardPaymentFormData<ICardPaymentBrickPayer>) => {
       setProcessing(true);
       try {
         const { data } = await api.post(`/payments/${paymentId}/process-card/`, formData);
