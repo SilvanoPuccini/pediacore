@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { CheckCircle, Copy, ExternalLink, Upload, X } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import api from "@/lib/api";
@@ -12,6 +13,7 @@ interface TransferInstructionsProps {
   paymentId: number;
   amount: number;
   bankDetails: BankDetails;
+  onUploadComplete?: () => void;
 }
 
 interface BankRow {
@@ -56,7 +58,9 @@ export default function TransferInstructions({
   paymentId,
   amount,
   bankDetails,
+  onUploadComplete,
 }: TransferInstructionsProps) {
+  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
@@ -85,6 +89,7 @@ export default function TransferInstructions({
     },
     onSuccess: () => {
       setUploadDone(true);
+      onUploadComplete?.();
     },
   });
 
@@ -173,13 +178,13 @@ export default function TransferInstructions({
               Tu comprobante fue enviado. Te avisaremos por email cuando la doctora lo confirme.
             </p>
           </div>
-          <a
-            href="/tutor"
+          <button
+            onClick={() => navigate("/portal")}
             className="mt-2 text-[14px] font-semibold text-teal-dark hover:underline flex items-center gap-1.5"
           >
             <ExternalLink size={14} />
             Ir a Mis turnos
-          </a>
+          </button>
         </div>
       </div>
     );

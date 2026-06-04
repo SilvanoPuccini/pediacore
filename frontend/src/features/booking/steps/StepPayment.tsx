@@ -28,6 +28,7 @@ export default function StepPayment() {
   const reset = useBookingStore((s) => s.reset);
 
   const [cancelling, setCancelling] = useState(false);
+  const [receiptUploaded, setReceiptUploaded] = useState(false);
 
   const { data: servicesResp } = useServices();
   const selectedService = (servicesResp?.results ?? []).find((s) => s.id === serviceId) ?? null;
@@ -122,22 +123,27 @@ export default function StepPayment() {
 
     return (
       <div className="max-w-[560px] mx-auto px-4 pt-[110px] pb-12">
-        <button
-          onClick={handleGoBack}
-          disabled={cancelling}
-          className="flex items-center gap-1.5 text-[14px] text-ink2 hover:text-teal-dark transition-colors mb-6 disabled:opacity-50"
-        >
-          <ArrowLeft size={16} />
-          {cancelling ? "Cancelando..." : "Volver"}
-        </button>
+        {!receiptUploaded && (
+          <button
+            onClick={handleGoBack}
+            disabled={cancelling}
+            className="flex items-center gap-1.5 text-[14px] text-ink2 hover:text-teal-dark transition-colors mb-6 disabled:opacity-50"
+          >
+            <ArrowLeft size={16} />
+            {cancelling ? "Cancelando..." : "Volver"}
+          </button>
+        )}
         <div className="space-y-4">
-          <h2 className="font-display text-[22px] font-semibold text-ink">
-            Instrucciones de pago
-          </h2>
+          {!receiptUploaded && (
+            <h2 className="font-display text-[22px] font-semibold text-ink">
+              Instrucciones de pago
+            </h2>
+          )}
           <TransferInstructions
             paymentId={paymentId}
             amount={selectedService?.price_clp ?? 0}
             bankDetails={bankDetails}
+            onUploadComplete={() => setReceiptUploaded(true)}
           />
         </div>
       </div>
