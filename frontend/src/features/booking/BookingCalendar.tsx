@@ -97,6 +97,11 @@ export default function BookingCalendar() {
   const { step, locationId, serviceId, setLocation, setService, lastActivity, reset } = useBookingStore();
   const [searchParams] = useSearchParams();
 
+  // Scroll to top on every step change
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [step]);
+
   useEffect(() => {
     // Reset if the persisted booking state is older than 30 minutes
     if (step > 1 && lastActivity) {
