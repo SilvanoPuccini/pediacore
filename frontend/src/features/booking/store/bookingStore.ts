@@ -43,6 +43,7 @@ interface BookingState {
   preferenceId: string | null;       // MP preference ID for Wallet Brick
   bankDetails: BankDetails | null;   // Transfer bank account info
   transferExpiresAt: string | null;  // ISO UTC — 48h window for transfer
+  receiptUploaded: boolean;           // Transfer: receipt was uploaded
   // Wizard
   step: BookingStep;
   lastActivity: number | null;  // Date.now() — for expiry detection
@@ -62,6 +63,7 @@ interface BookingActions {
   setAcceptedPolicy: (v: boolean) => void;
   setAcceptedTerms: (v: boolean) => void;
   setPaymentMethod: (method: "MERCADOPAGO" | "TRANSFER") => void;
+  setReceiptUploaded: (v: boolean) => void;
   setBookingResult: (result: BookingResponse) => void;
   reset: () => void;
 }
@@ -88,6 +90,7 @@ const initialState: BookingState = {
   preferenceId: null,
   bankDetails: null,
   transferExpiresAt: null,
+  receiptUploaded: false,
   step: 1,
   lastActivity: null,
 };
@@ -123,6 +126,8 @@ export const useBookingStore = create<BookingStore>()(
 
       setPaymentMethod: (method) => set({ paymentMethod: method, lastActivity: Date.now() }),
 
+      setReceiptUploaded: (v) => set({ receiptUploaded: v, lastActivity: Date.now() }),
+
       setBookingResult: (result) =>
         set({
           checkoutUrl: result.checkout_url ?? null,
@@ -153,6 +158,7 @@ export const useBookingStore = create<BookingStore>()(
         paymentMethod: state.paymentMethod,
         bankDetails: state.bankDetails,
         transferExpiresAt: state.transferExpiresAt,
+        receiptUploaded: state.receiptUploaded,
         step: state.step,
         lastActivity: state.lastActivity,
       }),

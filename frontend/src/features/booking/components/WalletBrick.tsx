@@ -11,9 +11,9 @@ interface WalletBrickProps {
 /**
  * WalletBrick
  *
- * Renders the MercadoPago Wallet Brick in "self" mode.
- * The user is redirected to MercadoPago, pays, and MP returns them to
- * /booking/confirmed?appointment_id=X via back_urls.success.
+ * Renders the MercadoPago Wallet Brick in "blank" mode.
+ * Opens MP checkout in a new tab so the user stays on the booking page.
+ * The parent component polls appointment status to detect payment completion.
  *
  * Props:
  *   preferenceId - MP preference ID returned by the booking API
@@ -22,7 +22,7 @@ export default function WalletBrick({ preferenceId }: WalletBrickProps) {
   return (
     <div className="rounded-[16px] overflow-hidden border border-line bg-surface p-2">
       <Wallet
-        initialization={{ preferenceId, redirectMode: "self" }}
+        initialization={{ preferenceId, redirectMode: "blank" }}
         onReady={() => console.log("WalletBrick ready")}
         onError={(err) => console.error("WalletBrick error:", err)}
       />

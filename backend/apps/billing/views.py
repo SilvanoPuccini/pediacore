@@ -305,7 +305,10 @@ class PaymentViewSet(viewsets.ModelViewSet):
             )
 
         try:
-            generate_invoice_pdf(payment.invoice)
+            if hasattr(payment, "invoice"):
+                generate_invoice_pdf(payment.invoice)
+            else:
+                logger.warning("confirm_transfer: no invoice to generate PDF for Payment #%s", payment.pk)
         except Exception as exc:
             logger.error(
                 "confirm_transfer: PDF generation failed for Payment #%s: %s",

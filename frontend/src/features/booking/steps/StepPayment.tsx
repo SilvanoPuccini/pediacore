@@ -1,19 +1,21 @@
-import { useState, useEffect } from "react";
-import { ArrowLeft } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { useBookingStore } from "../store/bookingStore";
 import { useServices } from "../hooks/useBookingQueries";
 import api from "@/lib/api";
-import WalletBrick from "../components/WalletBrick";
 import TransferInstructions from "../components/TransferInstructions";
+import WalletBrick from "../components/WalletBrick";
 
 /**
  * StepPayment (step 8)
  *
  * Renders the correct payment UI based on the selected payment method:
- * - MERCADOPAGO: renders WalletBrick inline ("redirect" mode — user goes to MP, returns via back_urls)
+ * - MERCADOPAGO: renders WalletBrick ("blank" mode — opens MP in new tab, polls for confirmation)
  * - TRANSFER: renders TransferInstructions with bank details and receipt upload
  */
 export default function StepPayment() {
+  const navigate = useNavigate();
   const preferenceId = useBookingStore((s) => s.preferenceId);
   const holdExpiresAt = useBookingStore((s) => s.holdExpiresAt);
   const paymentMethod = useBookingStore((s) => s.paymentMethod);
@@ -25,7 +27,8 @@ export default function StepPayment() {
   const reset = useBookingStore((s) => s.reset);
 
   const [cancelling, setCancelling] = useState(false);
-  const [receiptUploaded, setReceiptUploaded] = useState(false);
+  const receiptUploaded = useBookingStore((s) => s.receiptUploaded);
+  const setReceiptUploaded = useBookingStore((s) => s.setReceiptUploaded);
 
   const { data: servicesResp } = useServices();
   const selectedService = (servicesResp?.results ?? []).find((s) => s.id === serviceId) ?? null;
@@ -46,6 +49,33 @@ export default function StepPayment() {
     const id = setInterval(() => setSecondsLeft((s) => Math.max(0, s - 1)), 1000);
     return () => clearInterval(id);
   }, [secondsLeft, paymentMethod]);
+
+  // ── Poll appointment status for MP payment completion ───────────────────────
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [paymentDetected, setPaymentDetected] = useState(false);
+
+  useEffect(() => {
+    if (paymentMethod !== "MERCADOPAGO" || !appointmentId) return;
+
+    pollingRef.current = setInterval(async () => {
+      try {
+        const { data } = await api.get<{ status: string }>(`/appointments/${appointmentId}/`);
+        if (data.status === "CONFIRMED") {
+          if (pollingRef.current) clearInterval(pollingRef.current);
+          setPaymentDetected(true);
+          setTimeout(() => {
+            navigate(`/booking/confirmed?appointment_id=${appointmentId}`);
+          }, 1500);
+        }
+      } catch {
+        // Silently ignore polling errors — will retry next interval
+      }
+    }, 3000);
+
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, [appointmentId, paymentMethod, navigate]);
 
   // ── Go back: cancel hold + clear booking data ───────────────────────────────
   async function handleGoBack() {
@@ -69,6 +99,7 @@ export default function StepPayment() {
       checkoutUrl: null,
       holdExpiresAt: null,
       transferExpiresAt: null,
+      receiptUploaded: false,
     });
 
     useBookingStore.getState().setStep(7);
@@ -127,6 +158,7 @@ export default function StepPayment() {
             amount={selectedService?.price_clp ?? 0}
             bankDetails={bankDetails}
             onUploadComplete={() => setReceiptUploaded(true)}
+
           />
         </div>
       </div>
@@ -134,6 +166,27 @@ export default function StepPayment() {
   }
 
   // ── MercadoPago flow ───────────────────────────────────────────────────────
+
+  // Payment detected — show success before redirect
+  if (paymentDetected) {
+    return (
+      <div className="max-w-[560px] mx-auto px-4 pt-[110px] pb-12">
+        <div className="bg-green-50 border border-green-200 rounded-[16px] px-6 py-8 text-center">
+          <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-7 h-7 text-green-600" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+            </svg>
+          </div>
+          <h2 className="font-display text-[20px] font-semibold text-ink mb-1">
+            Pago confirmado
+          </h2>
+          <p className="text-[14px] text-ink2">
+            Redirigiendo a tu confirmación...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-[560px] mx-auto px-4 pt-[110px] pb-12">
@@ -159,6 +212,13 @@ export default function StepPayment() {
             <WalletBrick
               preferenceId={preferenceId}
             />
+            <div className="mt-4 bg-surface border border-line rounded-[12px] px-4 py-3 flex items-start gap-3">
+              <Loader2 size={16} className="text-teal-dark animate-spin shrink-0 mt-0.5" />
+              <p className="text-[13px] text-ink2">
+                Al hacer clic, se abrirá MercadoPago en una nueva pestaña.
+                Completá el pago allí y esta página se actualizará automáticamente.
+              </p>
+            </div>
           </div>
         ) : (
           <div className="bg-coral/10 border border-coral/30 rounded-[12px] px-4 py-3 text-center">

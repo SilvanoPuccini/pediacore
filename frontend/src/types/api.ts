@@ -130,6 +130,7 @@ export interface BankDetails {
   account_number: string;
   account_holder: string;
   account_rut: string;
+  account_email: string;
 }
 
 export interface BookingResponse {
