@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { useBookingStore } from "../store/bookingStore";
 import { useServices } from "../hooks/useBookingQueries";
@@ -15,7 +14,6 @@ import TransferInstructions from "../components/TransferInstructions";
  * - TRANSFER: renders TransferInstructions with bank details and receipt upload
  */
 export default function StepPayment() {
-  const navigate = useNavigate();
   const preferenceId = useBookingStore((s) => s.preferenceId);
   const holdExpiresAt = useBookingStore((s) => s.holdExpiresAt);
   const paymentMethod = useBookingStore((s) => s.paymentMethod);
