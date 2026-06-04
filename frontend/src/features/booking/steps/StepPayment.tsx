@@ -66,13 +66,11 @@ export default function StepPayment() {
   // ── Go back: cancel hold + clear booking data ───────────────────────────────
   async function handleGoBack() {
     if (cancelling) return;
-    const store = useBookingStore.getState();
-    const apptId = store.appointmentId;
 
-    if (apptId) {
+    if (appointmentId) {
       setCancelling(true);
       try {
-        await api.post(`/appointments/${apptId}/cancel/`, { reason: "user_cancelled_hold" });
+        await api.post(`/appointments/${appointmentId}/cancel/`, { reason: "user_cancelled_hold" });
       } catch {
         // Silently ignore — hold expires naturally in 10 min
       }
