@@ -75,6 +75,7 @@ export default function TransferInstructions({
     { label: "Número de cuenta", value: bankDetails.account_number },
     { label: "Titular", value: bankDetails.account_holder },
     { label: "RUT", value: bankDetails.account_rut },
+    { label: "Email", value: bankDetails.account_email },
   ];
 
   const uploadMutation = useMutation({
@@ -108,6 +109,7 @@ export default function TransferInstructions({
   }
 
   function handleFileSelect(file: File) {
+    uploadMutation.reset();
     const err = validateFile(file);
     if (err) {
       setFileError(err);
@@ -142,6 +144,7 @@ export default function TransferInstructions({
   function handleRemoveFile() {
     setSelectedFile(null);
     setFileError(null);
+    uploadMutation.reset();
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
