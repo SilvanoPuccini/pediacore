@@ -202,6 +202,16 @@ export default function StepPayment() {
           </div>
         )}
 
+        {/* Back button */}
+        <button
+          onClick={handleGoBack}
+          disabled={cancelling}
+          className="flex items-center gap-1.5 text-[14px] text-ink2 hover:text-teal-dark transition-colors disabled:opacity-50"
+        >
+          <ArrowLeft size={16} />
+          {cancelling ? "Cancelando..." : "Volver"}
+        </button>
+
         {/* Inline card payment form */}
         {paymentId && amount > 0 ? (
           <div>
