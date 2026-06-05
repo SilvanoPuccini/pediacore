@@ -143,7 +143,7 @@ export default function RegisterPage() {
             <img
               src="/images/logo.svg"
               alt="Logo Dra. Estefi Pediatra"
-              className="w-full h-full object-cover scale-[1.5]"
+              className="w-full h-full object-contain"
             />
           </div>
           <div className="font-display text-[22px] font-semibold text-ink tracking-tight group-hover:text-teal-dark transition-colors">
