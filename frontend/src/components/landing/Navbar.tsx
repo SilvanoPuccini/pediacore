@@ -95,7 +95,7 @@ export default function Navbar() {
                 )}
                 {!isBooking && user?.role === "DOCTOR" && (
                   <Link
-                    to="/admin"
+                    to="/dashboard"
                     className="flex items-center gap-1.5 text-[13px] text-[var(--ink2)] hover:text-[var(--ink)] transition-colors px-3 py-2 rounded-[10px] hover:bg-[var(--cream)]"
                   >
                     <LayoutDashboard size={14} />

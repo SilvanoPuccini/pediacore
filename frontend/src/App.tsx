@@ -214,7 +214,7 @@ function AppRoutes() {
         <Route path="/a/:token" element={<TokenAction />} />
         <Route path="/a/:token/reschedule" element={<RescheduleFromToken />} />
         <Route
-          path="/admin"
+          path="/dashboard"
           element={
             <ProtectedRoute role="DOCTOR">
               <AdminLayout>

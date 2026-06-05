@@ -1,0 +1,10 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block userlinks %}
+    <a href="/dashboard/" style="font-weight: 600; color: #10b981;">
+      Panel de control
+    </a>
+    /
+    {{ block.super }}
+{% endblock %}
