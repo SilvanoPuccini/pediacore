@@ -183,15 +183,17 @@ export default function StepPayment() {
         {/* Hold countdown banner */}
         <div
           data-testid="hold-countdown"
-          className="bg-amber-50 border border-amber-200 rounded-[16px] px-5 py-4"
+          className="bg-amber-50 border border-amber-200 rounded-[16px] px-5 py-5 text-center"
         >
-          <p className="text-[14px] text-amber-800 text-center">
+          <p className="text-[14px] text-amber-800 font-semibold">
             Tu lugar está reservado por{" "}
-            <span className="font-bold">{timeDisplay}</span>.
+            <span className="font-bold">{timeDisplay}</span>
+          </p>
+          <p className="text-[14px] text-amber-800 mt-1">
             Completá el pago para confirmar el turno.
           </p>
-          <p className="text-[12px] text-amber-700 text-center mt-2">
-            Aceptamos tarjetas de débito y crédito de cualquier banco.
+          <p className="text-[12px] text-amber-700 mt-2 leading-relaxed">
+            Aboná con tarjetas de débito y crédito de cualquier banco.
             Pago 100% seguro procesado por MercadoPago.
           </p>
         </div>
