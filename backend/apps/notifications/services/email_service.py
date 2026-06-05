@@ -273,8 +273,8 @@ def _build_payment_receipt_html(
                     <!-- Header -->
                     <tr>
                         <td style="background-color:#4A8590; padding:32px 40px; text-align:center;">
-                            <div style="width:72px; height:72px; border-radius:50%; overflow:hidden; background-color:#ffffff; border:3px solid rgba(255,255,255,0.2); margin:0 auto; line-height:0;">
-                                <img src="{logo_url}" alt="Dra. Estefi Pediatra" width="108" height="108" style="width:108px; height:108px; display:block; margin:-18px; object-fit:cover;">
+                            <div style="width:88px; height:88px; border-radius:50%; background-color:#ffffff; border:3px solid rgba(255,255,255,0.2); margin:0 auto; overflow:hidden;">
+                                <img src="{logo_url}" alt="Dra. Estefi Pediatra" width="88" height="88" style="width:88px; height:88px; display:block; object-fit:cover; object-position:center;">
                             </div>
                             <h1 style="font-family:'Fraunces',Georgia,'Times New Roman',serif; color:#FFFFFF; margin:14px 0 0; font-size:22px; font-weight:600;">Dra. Estefi</h1>
                             <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:rgba(255,255,255,0.75); margin:4px 0 0; font-size:12px; letter-spacing:0.5px;">Pediatra &middot; Sur de Chile</p>
@@ -346,8 +346,8 @@ def _build_payment_receipt_html(
                     <!-- Footer -->
                     <tr>
                         <td style="background-color:#2C2C2C; padding:28px 40px; text-align:center;">
-                            <div style="width:44px; height:44px; border-radius:50%; overflow:hidden; background-color:#ffffff; border:2px solid rgba(255,255,255,0.2); margin:0 auto 12px; line-height:0;">
-                                <img src="{logo_url}" alt="" width="66" height="66" style="width:66px; height:66px; display:block; margin:-11px; object-fit:cover;">
+                            <div style="width:52px; height:52px; border-radius:50%; background-color:#ffffff; border:2px solid rgba(255,255,255,0.2); margin:0 auto 12px; overflow:hidden;">
+                                <img src="{logo_url}" alt="" width="52" height="52" style="width:52px; height:52px; display:block; object-fit:cover; object-position:center;">
                             </div>
                             <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.9); font-size:13px; margin:0 0 4px; font-weight:600;">Dra. Estefi</p>
                             <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.6); font-size:12px; margin:0 0 20px;">Pediatr&iacute;a con tiempo, calidez y atenci&oacute;n personalizada</p>
@@ -679,8 +679,8 @@ def _build_appointment_html(
                     <!-- Header: brand bar -->
                     <tr>
                         <td style="background-color:#4A8590; padding:32px 40px; text-align:center;">
-                            <div style="width:72px; height:72px; border-radius:50%; overflow:hidden; background-color:#ffffff; border:3px solid rgba(255,255,255,0.2); margin:0 auto; line-height:0;">
-                                <img src="{logo_url}" alt="Dra. Estefi Pediatra" width="108" height="108" style="width:108px; height:108px; display:block; margin:-18px; object-fit:cover;">
+                            <div style="width:88px; height:88px; border-radius:50%; background-color:#ffffff; border:3px solid rgba(255,255,255,0.2); margin:0 auto; overflow:hidden;">
+                                <img src="{logo_url}" alt="Dra. Estefi Pediatra" width="88" height="88" style="width:88px; height:88px; display:block; object-fit:cover; object-position:center;">
                             </div>
                             <h1 style="font-family:'Fraunces',Georgia,'Times New Roman',serif; color:#FFFFFF; margin:14px 0 0; font-size:22px; font-weight:600;">Dra. Estefi</h1>
                             <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.75); margin:4px 0 0; font-size:12px; letter-spacing:0.5px;">Pediatra &middot; Sur de Chile</p>
@@ -732,8 +732,8 @@ def _build_appointment_html(
                     <!-- Footer: contact + social -->
                     <tr>
                         <td style="background-color:#2C2C2C; padding:28px 40px; text-align:center;">
-                            <div style="width:44px; height:44px; border-radius:50%; overflow:hidden; background-color:#ffffff; border:2px solid rgba(255,255,255,0.2); margin:0 auto 12px; line-height:0;">
-                                <img src="{logo_url}" alt="" width="66" height="66" style="width:66px; height:66px; display:block; margin:-11px; object-fit:cover;">
+                            <div style="width:52px; height:52px; border-radius:50%; background-color:#ffffff; border:2px solid rgba(255,255,255,0.2); margin:0 auto 12px; overflow:hidden;">
+                                <img src="{logo_url}" alt="" width="52" height="52" style="width:52px; height:52px; display:block; object-fit:cover; object-position:center;">
                             </div>
                             <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.9); font-size:13px; margin:0 0 4px; font-weight:600;">Dra. Estefi</p>
                             <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.6); font-size:12px; margin:0 0 20px;">Pediatr&iacute;a con tiempo, calidez y atenci&oacute;n personalizada</p>
@@ -1426,8 +1426,8 @@ def send_password_reset_email(user, reset_url: str) -> None:
                     <!-- Header -->
                     <tr>
                         <td style="background-color:#4A8590; padding:32px 40px; text-align:center;">
-                            <div style="width:72px; height:72px; border-radius:50%; overflow:hidden; background-color:#ffffff; border:3px solid rgba(255,255,255,0.2); margin:0 auto; line-height:0;">
-                                <img src="{logo_url}" alt="Dra. Estefi Pediatra" width="108" height="108" style="width:108px; height:108px; display:block; margin:-18px; object-fit:cover;">
+                            <div style="width:88px; height:88px; border-radius:50%; background-color:#ffffff; border:3px solid rgba(255,255,255,0.2); margin:0 auto; overflow:hidden;">
+                                <img src="{logo_url}" alt="Dra. Estefi Pediatra" width="88" height="88" style="width:88px; height:88px; display:block; object-fit:cover; object-position:center;">
                             </div>
                             <h1 style="font-family:'Fraunces',Georgia,'Times New Roman',serif; color:#FFFFFF; margin:14px 0 0; font-size:22px; font-weight:600;">Dra. Estefi</h1>
                             <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:rgba(255,255,255,0.75); margin:4px 0 0; font-size:12px; letter-spacing:0.5px;">Pediatra &middot; Sur de Chile</p>
@@ -1496,8 +1496,8 @@ def send_password_reset_email(user, reset_url: str) -> None:
                     <!-- Footer -->
                     <tr>
                         <td style="background-color:#2C2C2C; padding:28px 40px; text-align:center;">
-                            <div style="width:44px; height:44px; border-radius:50%; overflow:hidden; background-color:#ffffff; border:2px solid rgba(255,255,255,0.2); margin:0 auto 12px; line-height:0;">
-                                <img src="{logo_url}" alt="" width="66" height="66" style="width:66px; height:66px; display:block; margin:-11px; object-fit:cover;">
+                            <div style="width:52px; height:52px; border-radius:50%; background-color:#ffffff; border:2px solid rgba(255,255,255,0.2); margin:0 auto 12px; overflow:hidden;">
+                                <img src="{logo_url}" alt="" width="52" height="52" style="width:52px; height:52px; display:block; object-fit:cover; object-position:center;">
                             </div>
                             <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.9); font-size:13px; margin:0 0 4px; font-weight:600;">Dra. Estefi</p>
                             <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.6); font-size:12px; margin:0 0 20px;">Pediatr&iacute;a con tiempo, calidez y atenci&oacute;n personalizada</p>
@@ -1567,8 +1567,8 @@ def send_password_changed_email(user) -> None:
                     <!-- Header -->
                     <tr>
                         <td style="background-color:#4A8590; padding:32px 40px; text-align:center;">
-                            <div style="width:72px; height:72px; border-radius:50%; overflow:hidden; background-color:#ffffff; border:3px solid rgba(255,255,255,0.2); margin:0 auto; line-height:0;">
-                                <img src="{logo_url}" alt="Dra. Estefi Pediatra" width="108" height="108" style="width:108px; height:108px; display:block; margin:-18px; object-fit:cover;">
+                            <div style="width:88px; height:88px; border-radius:50%; background-color:#ffffff; border:3px solid rgba(255,255,255,0.2); margin:0 auto; overflow:hidden;">
+                                <img src="{logo_url}" alt="Dra. Estefi Pediatra" width="88" height="88" style="width:88px; height:88px; display:block; object-fit:cover; object-position:center;">
                             </div>
                             <h1 style="font-family:'Fraunces',Georgia,'Times New Roman',serif; color:#FFFFFF; margin:14px 0 0; font-size:22px; font-weight:600;">Dra. Estefi</h1>
                             <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:rgba(255,255,255,0.75); margin:4px 0 0; font-size:12px; letter-spacing:0.5px;">Pediatra &middot; Sur de Chile</p>
@@ -1634,8 +1634,8 @@ def send_password_changed_email(user) -> None:
                     <!-- Footer -->
                     <tr>
                         <td style="background-color:#2C2C2C; padding:28px 40px; text-align:center;">
-                            <div style="width:44px; height:44px; border-radius:50%; overflow:hidden; background-color:#ffffff; border:2px solid rgba(255,255,255,0.2); margin:0 auto 12px; line-height:0;">
-                                <img src="{logo_url}" alt="" width="66" height="66" style="width:66px; height:66px; display:block; margin:-11px; object-fit:cover;">
+                            <div style="width:52px; height:52px; border-radius:50%; background-color:#ffffff; border:2px solid rgba(255,255,255,0.2); margin:0 auto 12px; overflow:hidden;">
+                                <img src="{logo_url}" alt="" width="52" height="52" style="width:52px; height:52px; display:block; object-fit:cover; object-position:center;">
                             </div>
                             <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.9); font-size:13px; margin:0 0 4px; font-weight:600;">Dra. Estefi</p>
                             <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.6); font-size:12px; margin:0 0 20px;">Pediatr&iacute;a con tiempo, calidez y atenci&oacute;n personalizada</p>
