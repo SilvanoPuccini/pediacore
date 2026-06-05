@@ -215,9 +215,13 @@ export default function StepPayment() {
         {/* Inline card payment form */}
         {paymentId && amount > 0 ? (
           <div>
-            <h2 className="font-display text-[20px] font-semibold text-ink mb-4 text-center">
+            <h2 className="font-display text-[20px] font-semibold text-ink mb-1 text-center">
               Completá el pago
             </h2>
+            <p className="text-[13px] text-ink2 text-center mb-4">
+              Aceptamos tarjetas de débito y crédito de cualquier banco.
+              Pago 100% seguro procesado por MercadoPago.
+            </p>
             <PaymentBrick
               paymentId={paymentId}
               amount={amount}
