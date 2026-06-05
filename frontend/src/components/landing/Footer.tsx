@@ -104,20 +104,21 @@ export default function Footer() {
 
           {/* Servicios */}
           <FooterColumn title="Servicios">
-            <FooterLink href="#">Consulta pediátrica presencial</FooterLink>
-            <FooterLink href="#">Consulta online</FooterLink>
-            <FooterLink href="#">Control recién nacido</FooterLink>
-            <FooterLink href="#">Vacunación</FooterLink>
-            <FooterLink href="#">Lista de espera</FooterLink>
+            <FooterLink href="/servicios/control-nino-sano">Control de niño sano</FooterLink>
+            <FooterLink href="/servicios/control-enfermedad">Control por enfermedad</FooterLink>
+            <FooterLink href="/servicios/telemedicina">Consulta online</FooterLink>
+            <FooterLink href="/servicios/asesoria-lactancia">Asesoría de lactancia</FooterLink>
+            <FooterLink href="/servicios/alimentacion-infantil">Alimentación infantil</FooterLink>
+            <FooterLink href="/servicios/sueno-desarrollo">Sueño y desarrollo</FooterLink>
           </FooterColumn>
 
           {/* Conocer */}
           <FooterColumn title="Conocer">
-            <FooterLink href="#">Sobre Estefi</FooterLink>
-            <FooterLink href="#">Blog</FooterLink>
-            <FooterLink href="#">Sedes</FooterLink>
-            <FooterLink href="#">Preguntas frecuentes</FooterLink>
-            <FooterLink href="#">Testimonios</FooterLink>
+            <FooterLink href="/#dra-estefi">Sobre Estefi</FooterLink>
+            <FooterLink href="/#blog">Blog</FooterLink>
+            <FooterLink href="/#sedes">Sedes</FooterLink>
+            <FooterLink href="/#faq">Preguntas frecuentes</FooterLink>
+            <FooterLink href="/#testimonios">Testimonios</FooterLink>
           </FooterColumn>
 
           {/* Contacto */}
@@ -152,14 +153,11 @@ export default function Footer() {
             © 2026 Dra. Estefi Pediatra · estefipediatra.com
           </p>
           <div className="flex items-center gap-5">
-            <a href="#" className="text-[12px] text-white/40 hover:text-white/70 transition-colors">
+            <a href="/privacy" className="text-[12px] text-white/40 hover:text-white/70 transition-colors">
               Privacidad
             </a>
-            <a href="#" className="text-[12px] text-white/40 hover:text-white/70 transition-colors">
+            <a href="/terms" className="text-[12px] text-white/40 hover:text-white/70 transition-colors">
               Términos
-            </a>
-            <a href="#" className="text-[12px] text-white/40 hover:text-white/70 transition-colors">
-              Cookies
             </a>
           </div>
         </div>
