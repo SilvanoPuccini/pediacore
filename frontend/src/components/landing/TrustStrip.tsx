@@ -12,7 +12,7 @@ const TRUST_ITEMS: TrustItem[] = [
     icon: GraduationCap,
     iconBg: "bg-[var(--teal)]/15 text-[var(--teal-dark)]",
     title: "Pediatra titulada",
-    subtitle: "U. de Chile · Especialista",
+    subtitle: "U.N.C.P.B.A. · Argentina",
   },
   {
     icon: Monitor,
