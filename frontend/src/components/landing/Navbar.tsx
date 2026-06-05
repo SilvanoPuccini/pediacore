@@ -118,22 +118,20 @@ export default function Navbar() {
                 </button>
               </>
             ) : (
-              <Link
-                to={isBooking ? "/" : "/booking"}
-                className={cn(
-                  "relative overflow-hidden px-5 py-2.5 rounded-[10px] text-[13px] font-semibold text-white",
-                  "bg-[var(--teal-dark)] shadow-[var(--shadow-cta)]",
-                  "transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_40px_rgba(74,133,144,0.38)]",
-                  "group"
-                )}
-              >
-                <span
-                  className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700
-                    bg-gradient-to-l from-transparent via-white/20 to-transparent skew-x-[-20deg]"
-                  aria-hidden="true"
-                />
-                {isBooking ? "Volver al inicio" : "Reservar consulta"}
-              </Link>
+              <>
+                <Link
+                  to="/login"
+                  className="px-4 py-2 rounded-[10px] text-[13px] font-medium text-[var(--ink2)] hover:text-[var(--ink)] hover:bg-[var(--cream)] transition-colors"
+                >
+                  Ingresar
+                </Link>
+                <Link
+                  to="/register"
+                  className="px-4 py-2 rounded-[10px] text-[13px] font-semibold text-[var(--teal-dark)] border border-[var(--teal)]/30 hover:bg-[var(--teal)]/5 transition-colors"
+                >
+                  Crear cuenta
+                </Link>
+              </>
             )}
           </div>
 
@@ -194,22 +192,24 @@ export default function Navbar() {
                   )}
                 </>
               )}
-              <Link
-                to={isBooking ? "/" : "/booking"}
-                className={cn(
-                  "relative overflow-hidden px-5 py-3 rounded-[10px] text-[14px] font-semibold text-white text-center",
-                  "bg-[var(--teal-dark)] shadow-[var(--shadow-cta)]",
-                  "group"
-                )}
-                onClick={() => setMobileOpen(false)}
-              >
-                <span
-                  className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700
-                    bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-[-20deg]"
-                  aria-hidden="true"
-                />
-                {isBooking ? "Volver al inicio" : "Reservar consulta"}
-              </Link>
+              {!isAuthenticated && (
+                <div className="flex gap-2">
+                  <Link
+                    to="/login"
+                    className="flex-1 px-4 py-2.5 rounded-[10px] text-[14px] font-medium text-[var(--ink2)] text-center hover:bg-[var(--cream)] transition-colors border border-[var(--line)]"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    Ingresar
+                  </Link>
+                  <Link
+                    to="/register"
+                    className="flex-1 px-4 py-2.5 rounded-[10px] text-[14px] font-semibold text-[var(--teal-dark)] text-center border border-[var(--teal)]/30 hover:bg-[var(--teal)]/5 transition-colors"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    Crear cuenta
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         </div>
