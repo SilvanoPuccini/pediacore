@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Menu, X, MapPin, Clock, Phone, LogOut, User, CalendarDays } from "lucide-react";
+import { Menu, X, LogOut, User, CalendarDays } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth";
@@ -29,31 +29,6 @@ export default function Navbar() {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50">
-      {/* Top strip */}
-      <div className="bg-[var(--ink)] text-white text-[11px] py-2">
-        <div className="max-w-[1280px] mx-auto px-6 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-5">
-            <span className="flex items-center gap-1.5">
-              <MapPin size={11} className="opacity-70" />
-              Pucón &amp; Villarrica
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Clock size={11} className="opacity-70" />
-              Lun – Vie · 09:00 – 19:00
-            </span>
-          </div>
-          <div className="flex items-center gap-5">
-            <a
-              href="tel:+56958455537"
-              className="flex items-center gap-1.5 opacity-80 hover:opacity-100 transition-opacity"
-            >
-              <Phone size={11} />
-              +56 9 5845 5537
-            </a>
-          </div>
-        </div>
-      </div>
-
       {/* Main nav */}
       <nav
         className={cn(
