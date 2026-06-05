@@ -74,7 +74,7 @@ export default function ResetPasswordPage() {
             <img
               src="/images/logo.png"
               alt="Logo Dra. Estefi Pediatra"
-              className="w-full h-full object-cover scale-[1.6] -translate-y-[10%]"
+              className="w-full h-full object-cover scale-[1.5]"
             />
           </div>
           <div className="font-display text-[22px] font-semibold text-ink tracking-tight">
