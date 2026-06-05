@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Stethoscope,
   Baby,
@@ -29,7 +30,7 @@ const SERVICES: ServiceCard[] = [
     title: "Control de niño sano",
     description:
       "Seguimiento del crecimiento y desarrollo en cada etapa. Revisión de hitos, vacunas y nutrición adaptada a la edad.",
-    href: "#control-nino-sano",
+    href: "/servicios/control-nino-sano",
   },
   {
     icon: Stethoscope,
@@ -39,7 +40,7 @@ const SERVICES: ServiceCard[] = [
     title: "Control por enfermedad",
     description:
       "Atención de enfermedades agudas y crónicas, con diagnóstico detallado y acompañamiento familiar real.",
-    href: "#consulta-pediatrica",
+    href: "/servicios/control-enfermedad",
   },
   {
     icon: Video,
@@ -49,7 +50,7 @@ const SERVICES: ServiceCard[] = [
     title: "Telemedicina",
     description:
       "Consultas por videollamada para familias en otras regiones o que prefieren la comodidad de su hogar.",
-    href: "#telemedicina",
+    href: "/servicios/telemedicina",
   },
   {
     icon: Milk,
@@ -59,7 +60,7 @@ const SERVICES: ServiceCard[] = [
     title: "Asesoría de lactancia",
     description:
       "Acompañamiento individualizado en lactancia materna: acople, técnica, producción láctea y dudas frecuentes.",
-    href: "#lactancia",
+    href: "/servicios/asesoria-lactancia",
   },
   {
     icon: UtensilsCrossed,
@@ -69,7 +70,7 @@ const SERVICES: ServiceCard[] = [
     title: "Alimentación infantil",
     description:
       "Orientación para alimentación complementaria y hábitos saludables desde los primeros meses.",
-    href: "#alimentacion",
+    href: "/servicios/alimentacion-infantil",
   },
   {
     icon: Moon,
@@ -79,7 +80,7 @@ const SERVICES: ServiceCard[] = [
     title: "Sueño y desarrollo",
     description:
       "Abordaje de trastornos del sueño, cólicos y hitos del desarrollo neuromotor con enfoque integral.",
-    href: "#sueno",
+    href: "/servicios/sueno-desarrollo",
   },
 ];
 
@@ -130,8 +131,8 @@ function ServiceCardItem({ service }: { service: ServiceCard }) {
       </p>
 
       {/* Link */}
-      <a
-        href={service.href}
+      <Link
+        to={service.href}
         className={cn(
           "relative z-10 inline-flex items-center gap-1.5 text-[12.5px] font-semibold",
           "text-[var(--teal-dark)] hover:gap-2.5 transition-all duration-200"
@@ -139,7 +140,7 @@ function ServiceCardItem({ service }: { service: ServiceCard }) {
       >
         Más información
         <ArrowRight size={13} />
-      </a>
+      </Link>
     </div>
   );
 }

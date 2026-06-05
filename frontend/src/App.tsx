@@ -49,6 +49,12 @@ const BillingHistory = lazy(() => import("@/features/tutor/pages/BillingHistory"
 const PaymentReceipt = lazy(() => import("@/features/tutor/pages/PaymentReceipt"));
 const TokenAction = lazy(() => import("@/features/tutor/pages/TokenAction"));
 const RescheduleFromToken = lazy(() => import("@/features/tutor/pages/RescheduleFromToken"));
+const ControlNinoSanoPage = lazy(() => import("@/pages/services/ControlNinoSanoPage"));
+const ControlEnfermedadPage = lazy(() => import("@/pages/services/ControlEnfermedadPage"));
+const TelemedicinaPage = lazy(() => import("@/pages/services/TelemedicinaPage"));
+const AsesoriaLactanciaPage = lazy(() => import("@/pages/services/AsesoriaLactanciaPage"));
+const AlimentacionInfantilPage = lazy(() => import("@/pages/services/AlimentacionInfantilPage"));
+const SuenoDesarrolloPage = lazy(() => import("@/pages/services/SuenoDesarrolloPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -133,6 +139,54 @@ function AppRoutes() {
           element={
             <PublicLayout>
               <PrivacyPage />
+            </PublicLayout>
+          }
+        />
+        <Route
+          path="/servicios/control-nino-sano"
+          element={
+            <PublicLayout>
+              <ControlNinoSanoPage />
+            </PublicLayout>
+          }
+        />
+        <Route
+          path="/servicios/control-enfermedad"
+          element={
+            <PublicLayout>
+              <ControlEnfermedadPage />
+            </PublicLayout>
+          }
+        />
+        <Route
+          path="/servicios/telemedicina"
+          element={
+            <PublicLayout>
+              <TelemedicinaPage />
+            </PublicLayout>
+          }
+        />
+        <Route
+          path="/servicios/asesoria-lactancia"
+          element={
+            <PublicLayout>
+              <AsesoriaLactanciaPage />
+            </PublicLayout>
+          }
+        />
+        <Route
+          path="/servicios/alimentacion-infantil"
+          element={
+            <PublicLayout>
+              <AlimentacionInfantilPage />
+            </PublicLayout>
+          }
+        />
+        <Route
+          path="/servicios/sueno-desarrollo"
+          element={
+            <PublicLayout>
+              <SuenoDesarrolloPage />
             </PublicLayout>
           }
         />
