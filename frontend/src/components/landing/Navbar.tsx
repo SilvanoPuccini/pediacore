@@ -5,13 +5,13 @@ import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth";
 
 const NAV_LINKS = [
-  { label: "Servicios", href: "#servicios" },
-  { label: "Etapas", href: "#etapas" },
-  { label: "Cómo funciona", href: "#como-funciona" },
-  { label: "Dra. Estefi", href: "#dra-estefi" },
-  { label: "Testimonios", href: "#testimonios" },
-  { label: "Blog", href: "#blog" },
-  { label: "Sedes", href: "#sedes" },
+  { label: "Servicios", href: "/#servicios" },
+  { label: "Etapas", href: "/#etapas" },
+  { label: "Cómo funciona", href: "/#como-funciona" },
+  { label: "Dra. Estefi", href: "/#dra-estefi" },
+  { label: "Testimonios", href: "/#testimonios" },
+  { label: "Blog", href: "/#blog" },
+  { label: "Sedes", href: "/#sedes" },
 ];
 
 export default function Navbar() {

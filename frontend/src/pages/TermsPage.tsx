@@ -9,7 +9,7 @@ export default function TermsPage() {
         url="https://estefipediatra.com/terms"
       />
 
-      <div className="max-w-[720px] mx-auto px-4 py-12">
+      <div className="max-w-[720px] mx-auto px-4 pt-28 pb-12">
         <h1 className="font-display text-[32px] font-semibold text-ink mb-2">
           Términos y Condiciones
         </h1>
