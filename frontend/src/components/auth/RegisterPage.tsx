@@ -138,21 +138,21 @@ export default function RegisterPage() {
       />
       <div className="w-full max-w-[460px]">
         {/* Logo */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="h-16 w-16 rounded-full overflow-hidden bg-white mb-3">
+        <Link to="/" className="flex flex-col items-center mb-8 group">
+          <div className="h-16 w-16 rounded-full overflow-hidden bg-white mb-3 ring-2 ring-transparent group-hover:ring-teal/30 transition-all">
             <img
               src="/images/logo.png"
               alt="Logo Dra. Estefi Pediatra"
               className="w-full h-full object-cover scale-[1.6] -translate-y-[10%]"
             />
           </div>
-          <div className="font-display text-[22px] font-semibold text-ink tracking-tight">
+          <div className="font-display text-[22px] font-semibold text-ink tracking-tight group-hover:text-teal-dark transition-colors">
             Dra. Estefi
           </div>
           <div className="text-[11px] text-ink3 tracking-[0.12em] uppercase font-medium mt-0.5">
             Pediatra
           </div>
-        </div>
+        </Link>
 
         {/* Card */}
         <div className="bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)] px-8 py-8">

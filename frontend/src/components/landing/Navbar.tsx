@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Menu, X, LogOut, User, CalendarDays } from "lucide-react";
+import { Menu, X, LogOut, User, CalendarDays, LayoutDashboard } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth";
@@ -93,22 +93,13 @@ export default function Navbar() {
                     Mis Turnos
                   </Link>
                 )}
-                {!isBooking && (
+                {!isBooking && user?.role === "DOCTOR" && (
                   <Link
-                    to="/booking"
-                    className={cn(
-                      "relative overflow-hidden px-5 py-2.5 rounded-[10px] text-[13px] font-semibold text-white",
-                      "bg-[var(--teal-dark)] shadow-[var(--shadow-cta)]",
-                      "transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_40px_rgba(74,133,144,0.38)]",
-                      "group"
-                    )}
+                    to="/admin"
+                    className="flex items-center gap-1.5 text-[13px] text-[var(--ink2)] hover:text-[var(--ink)] transition-colors px-3 py-2 rounded-[10px] hover:bg-[var(--cream)]"
                   >
-                    <span
-                      className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700
-                        bg-gradient-to-l from-transparent via-white/20 to-transparent skew-x-[-20deg]"
-                      aria-hidden="true"
-                    />
-                    Reservar consulta
+                    <LayoutDashboard size={14} />
+                    Dashboard
                   </Link>
                 )}
                 <button
