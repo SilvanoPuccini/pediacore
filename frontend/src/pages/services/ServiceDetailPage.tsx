@@ -50,7 +50,7 @@ export default function ServiceDetailPage({
         url={`https://estefipediatra.com/servicios/${slug}`}
       />
 
-      <div className="max-w-[720px] mx-auto px-4 pt-10 pb-20">
+      <div className="max-w-[720px] mx-auto px-4 pt-28 pb-20">
         {/* Back link */}
         <Link
           to="/#servicios"
