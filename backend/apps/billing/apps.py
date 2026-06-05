@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 class BillingConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "apps.billing"
-    verbose_name = "Billing"
+    verbose_name = "Facturación"
 
     def ready(self) -> None:
         """Register django-q2 periodic tasks when the app is ready."""
