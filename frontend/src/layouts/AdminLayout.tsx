@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Menu, X, LogOut, LayoutDashboard } from "lucide-react";
+import { Menu, X, LogOut, LayoutDashboard, Settings } from "lucide-react";
 import { useAuthStore } from "@/stores/auth";
 import { cn } from "@/lib/utils";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -54,12 +54,20 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         {/* Nav items */}
         <nav className="flex-1 px-3 py-4 overflow-y-auto">
           <Link
-            to="/admin"
+            to="/dashboard"
             className="flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-[13px] font-medium text-ink hover:bg-cream transition-colors"
             onClick={() => setSidebarOpen(false)}
           >
             <LayoutDashboard size={16} className="text-teal-dark" />
             Dashboard
+          </Link>
+          <Link
+            to="/admin/"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-[13px] font-medium text-ink2 hover:text-ink hover:bg-cream transition-colors"
+            onClick={() => setSidebarOpen(false)}
+          >
+            <Settings size={16} className="text-ink3" />
+            Admin Django
           </Link>
         </nav>
 
