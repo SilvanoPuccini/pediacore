@@ -73,11 +73,13 @@ export default function Footer() {
           <div className="flex flex-col gap-5 lg:col-span-1">
             {/* Logo */}
             <div className="flex items-center gap-3">
-              <img
-                src="/images/logo.png"
-                alt="Dra. Estefi Pediatra"
-                className="w-14 h-14 rounded-full object-cover bg-white"
-              />
+              <div className="w-12 h-12 rounded-full overflow-hidden bg-white">
+                <img
+                  src="/images/logo.png"
+                  alt="Dra. Estefi Pediatra"
+                  className="w-full h-full object-cover scale-[1.4]"
+                />
+              </div>
               <div>
                 <p className="font-display text-[15px] font-semibold text-white leading-tight">
                   Dra. Estefi
