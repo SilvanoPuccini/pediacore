@@ -56,8 +56,7 @@ services:
     build:
       context: .
       dockerfile: infra/nginx/Dockerfile
-      args:
-        VITE_GOOGLE_MAPS_KEY: ${VITE_GOOGLE_MAPS_KEY:-}
+      args: {}
     restart: always
     ports:
       - "80:80"
