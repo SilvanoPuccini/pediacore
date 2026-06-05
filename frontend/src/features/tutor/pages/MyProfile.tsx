@@ -327,7 +327,6 @@ export default function MyProfile() {
           </div>
         </form>
       </div>
-    </div>
 
       {/* Change password section */}
       <ChangePasswordSection />
