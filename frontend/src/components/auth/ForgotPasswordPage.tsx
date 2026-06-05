@@ -40,7 +40,7 @@ export default function ForgotPasswordPage() {
             <img
               src="/images/logo.svg"
               alt="Logo Dra. Estefi Pediatra"
-              className="w-full h-full object-contain"
+              className="w-full h-full object-contain [object-position:center_22%]"
             />
           </div>
           <div className="font-display text-[22px] font-semibold text-ink tracking-tight">
