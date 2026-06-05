@@ -44,17 +44,11 @@ export default function Navbar() {
           </div>
           <div className="flex items-center gap-5">
             <a
-              href="tel:+56912345678"
+              href="tel:+56958455537"
               className="flex items-center gap-1.5 opacity-80 hover:opacity-100 transition-opacity"
             >
               <Phone size={11} />
-              +56 9 1234 5678
-            </a>
-            <a
-              href="/admin"
-              className="opacity-70 hover:opacity-100 transition-opacity"
-            >
-              Acceso doctora
+              +56 9 5845 5537
             </a>
           </div>
         </div>
