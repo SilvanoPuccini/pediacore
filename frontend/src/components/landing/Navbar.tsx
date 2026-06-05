@@ -47,7 +47,7 @@ export default function Navbar() {
               <img
                 src="/images/logo.svg"
                 alt="Logo Dra. Estefi Pediatra"
-                className="w-full h-full object-contain [object-position:center_22%]"
+                className="w-full h-full object-contain [object-position:center_70%]"
               />
             </div>
             <div className="leading-tight">

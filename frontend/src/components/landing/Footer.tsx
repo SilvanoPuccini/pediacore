@@ -77,7 +77,7 @@ export default function Footer() {
                 <img
                   src="/images/logo.svg"
                   alt="Dra. Estefi Pediatra"
-                  className="w-full h-full object-contain [object-position:center_22%]"
+                  className="w-full h-full object-contain [object-position:center_70%]"
                 />
               </div>
               <div>
