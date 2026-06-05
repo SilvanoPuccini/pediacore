@@ -1394,6 +1394,286 @@ def send_transfer_rejected(payment, reason: str) -> None:
         )
 
 
+def send_password_reset_email(user, reset_url: str) -> None:
+    """
+    Send a password reset link to the given user.
+
+    Args:
+        user: The User instance requesting a password reset.
+        reset_url: The full URL the user must visit to reset their password.
+    """
+    logo_url = _EMAIL_LOGO_URL()
+    first_name = user.first_name or "hola"
+
+    html_body = f"""<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recuper&aacute; tu contrase&ntilde;a</title>
+    <!--[if !mso]><!-->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&amp;family=Plus+Jakarta+Sans:wght@400;600&amp;display=swap');
+    </style>
+    <!--<![endif]-->
+</head>
+<body style="margin:0; padding:0; background-color:#FBF8F3;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#FBF8F3;">
+        <tr>
+            <td align="center" style="padding:32px 16px;">
+                <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background-color:#FFFFFF; border-radius:12px; overflow:hidden;">
+
+                    <!-- Header -->
+                    <tr>
+                        <td style="background-color:#4A8590; padding:32px 40px; text-align:center;">
+                            <div style="width:72px; height:72px; border-radius:50%; overflow:hidden; background-color:#ffffff; border:3px solid rgba(255,255,255,0.2); margin:0 auto;">
+                                <img src="{logo_url}" alt="Dra. Estefi Pediatra" width="108" height="108" style="width:108px; height:108px; display:block; margin:-22px -18px -14px -18px; object-fit:cover;">
+                            </div>
+                            <h1 style="font-family:'Fraunces',Georgia,'Times New Roman',serif; color:#FFFFFF; margin:14px 0 0; font-size:22px; font-weight:600;">Dra. Estefi</h1>
+                            <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:rgba(255,255,255,0.75); margin:4px 0 0; font-size:12px; letter-spacing:0.5px;">Pediatra &middot; Sur de Chile</p>
+                        </td>
+                    </tr>
+
+                    <!-- Body -->
+                    <tr>
+                        <td style="padding:36px 40px 0;">
+                            <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+
+                                <!-- Hero -->
+                                <tr>
+                                    <td style="text-align:center; padding:0 0 24px;">
+                                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4A8590" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:0 auto 12px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                        <h2 style="font-family:'Fraunces',Georgia,'Times New Roman',serif; color:#4A8590; font-size:24px; margin:0; font-weight:600;">Recuper&aacute; tu contrase&ntilde;a</h2>
+                                    </td>
+                                </tr>
+
+                                <!-- Greeting -->
+                                <tr>
+                                    <td style="padding:0 0 20px;">
+                                        <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:#2C2C2C; font-size:16px; line-height:1.6; margin:0 0 12px;">Hola <strong>{first_name}</strong>,</p>
+                                        <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:#2C2C2C; font-size:16px; line-height:1.6; margin:0 0 12px;">Recibimos una solicitud para restablecer la contrase&ntilde;a de tu cuenta.</p>
+                                        <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:#2C2C2C; font-size:16px; line-height:1.6; margin:0;">Hac&eacute; clic en el bot&oacute;n para crear una nueva contrase&ntilde;a:</p>
+                                    </td>
+                                </tr>
+
+                                <!-- CTA Button -->
+                                <tr>
+                                    <td style="padding:0 0 28px; text-align:center;">
+                                        <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;">
+                                            <tr>
+                                                <td style="background-color:#4A8590; border-radius:10px; text-align:center; padding:14px 32px;">
+                                                    <a href="{reset_url}" style="color:#FFFFFF; font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:15px; font-weight:600; text-decoration:none; display:inline-block; white-space:nowrap;">Restablecer contrase&ntilde;a</a>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+
+                                <!-- Security notice -->
+                                <tr>
+                                    <td style="padding:0 0 24px;">
+                                        <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color:#F7F0E5; border-radius:8px;">
+                                            <tr>
+                                                <td style="padding:14px 18px;">
+                                                    <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:#2C2C2C; font-size:14px; line-height:1.6; margin:0 0 6px;"><strong>Si no fuiste vos</strong>, podés ignorar este email. Tu contrase&ntilde;a actual no cambiar&aacute;.</p>
+                                                    <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:#666666; font-size:13px; line-height:1.6; margin:0;">El link es v&aacute;lido hasta que tu contrase&ntilde;a sea cambiada o hasta que se genere uno nuevo.</p>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+
+                                <!-- Disclaimer -->
+                                <tr>
+                                    <td style="text-align:center; padding:0 0 12px;">
+                                        <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:11px; color:#A0A0A0; margin:0;">Este es un correo autom&aacute;tico, por favor no respondas a este mensaje.</p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color:#2C2C2C; padding:28px 40px; text-align:center;">
+                            <div style="width:44px; height:44px; border-radius:50%; overflow:hidden; background-color:#ffffff; border:2px solid rgba(255,255,255,0.2); margin:0 auto 12px;">
+                                <img src="{logo_url}" alt="" width="66" height="66" style="width:66px; height:66px; display:block; margin:-14px -11px -8px -11px; object-fit:cover;">
+                            </div>
+                            <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.9); font-size:13px; margin:0 0 4px; font-weight:600;">Dra. Estefi</p>
+                            <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.6); font-size:12px; margin:0 0 20px;">Pediatr&iacute;a con tiempo, calidez y atenci&oacute;n personalizada</p>
+                            <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; font-size:12px; color:rgba(255,255,255,0.7); line-height:1.8; margin:0 0 16px;">
+                                Puc&oacute;n &amp; Villarrica &middot; La Araucan&iacute;a, Chile<br>
+                                <a href="tel:+56958455537" style="color:#7BB5BD; text-decoration:none;">+56 9 5845 5537</a>
+                                &nbsp;&middot;&nbsp;
+                                <a href="mailto:estefiortigosa.pediatra@gmail.com" style="color:#7BB5BD; text-decoration:none;">estefiortigosa.pediatra@gmail.com</a>
+                            </p>
+                            <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; font-size:12px; margin:0;">
+                                <a href="https://www.instagram.com/estefiortigosa.pediatra/" style="color:#7BB5BD; text-decoration:none; margin:0 8px;">Instagram</a>
+                                <a href="https://estefipediatra.com" style="color:#7BB5BD; text-decoration:none; margin:0 8px;">Web</a>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Bottom bar -->
+                    <tr>
+                        <td style="background-color:#1f1f1f; padding:14px 40px; text-align:center;">
+                            <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.5); font-size:11px; margin:0;">
+                                &copy; 2026 Dra. Estefi Pediatra &middot; estefipediatra.com
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>"""
+
+    send_email(
+        to=user.email,
+        subject="Recuper\u00e1 tu contrase\u00f1a \u2014 Dra. Estefi Pediatra",
+        html_body=html_body,
+    )
+
+
+def send_password_changed_email(user) -> None:
+    """
+    Notify the user that their password was changed successfully.
+
+    Args:
+        user: The User instance whose password was just changed.
+    """
+    logo_url = _EMAIL_LOGO_URL()
+    first_name = user.first_name or "hola"
+
+    html_body = f"""<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contrase&ntilde;a actualizada</title>
+    <!--[if !mso]><!-->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&amp;family=Plus+Jakarta+Sans:wght@400;600&amp;display=swap');
+    </style>
+    <!--<![endif]-->
+</head>
+<body style="margin:0; padding:0; background-color:#FBF8F3;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#FBF8F3;">
+        <tr>
+            <td align="center" style="padding:32px 16px;">
+                <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background-color:#FFFFFF; border-radius:12px; overflow:hidden;">
+
+                    <!-- Header -->
+                    <tr>
+                        <td style="background-color:#4A8590; padding:32px 40px; text-align:center;">
+                            <div style="width:72px; height:72px; border-radius:50%; overflow:hidden; background-color:#ffffff; border:3px solid rgba(255,255,255,0.2); margin:0 auto;">
+                                <img src="{logo_url}" alt="Dra. Estefi Pediatra" width="108" height="108" style="width:108px; height:108px; display:block; margin:-22px -18px -14px -18px; object-fit:cover;">
+                            </div>
+                            <h1 style="font-family:'Fraunces',Georgia,'Times New Roman',serif; color:#FFFFFF; margin:14px 0 0; font-size:22px; font-weight:600;">Dra. Estefi</h1>
+                            <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:rgba(255,255,255,0.75); margin:4px 0 0; font-size:12px; letter-spacing:0.5px;">Pediatra &middot; Sur de Chile</p>
+                        </td>
+                    </tr>
+
+                    <!-- Body -->
+                    <tr>
+                        <td style="padding:36px 40px 0;">
+                            <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+
+                                <!-- Hero -->
+                                <tr>
+                                    <td style="text-align:center; padding:0 0 24px;">
+                                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4A8590" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:0 auto 12px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                                        <h2 style="font-family:'Fraunces',Georgia,'Times New Roman',serif; color:#4A8590; font-size:24px; margin:0; font-weight:600;">Contrase&ntilde;a actualizada</h2>
+                                    </td>
+                                </tr>
+
+                                <!-- Greeting -->
+                                <tr>
+                                    <td style="padding:0 0 20px;">
+                                        <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:#2C2C2C; font-size:16px; line-height:1.6; margin:0 0 12px;">Hola <strong>{first_name}</strong>,</p>
+                                        <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:#2C2C2C; font-size:16px; line-height:1.6; margin:0;">Tu contrase&ntilde;a fue cambiada exitosamente. Ya pod&eacute;s iniciar sesi&oacute;n con tu nueva contrase&ntilde;a.</p>
+                                    </td>
+                                </tr>
+
+                                <!-- Security alert -->
+                                <tr>
+                                    <td style="padding:0 0 24px;">
+                                        <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color:#FEF2F2; border:1px solid #FECACA; border-radius:8px;">
+                                            <tr>
+                                                <td style="padding:14px 18px;">
+                                                    <table role="presentation" cellpadding="0" cellspacing="0">
+                                                        <tr>
+                                                            <td style="vertical-align:top; padding-right:10px;">
+                                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                                            </td>
+                                                            <td style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:#2C2C2C; font-size:14px; line-height:1.6;">
+                                                                <strong>Si no realizaste este cambio</strong>, contact&aacute;nos de inmediato:<br>
+                                                                <a href="mailto:estefiortigosa.pediatra@gmail.com" style="color:#4A8590; text-decoration:none;">estefiortigosa.pediatra@gmail.com</a>
+                                                                &nbsp;&middot;&nbsp;
+                                                                <a href="tel:+56958455537" style="color:#4A8590; text-decoration:none;">+56 9 5845 5537</a>
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+
+                                <!-- Disclaimer -->
+                                <tr>
+                                    <td style="text-align:center; padding:0 0 12px;">
+                                        <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:11px; color:#A0A0A0; margin:0;">Este es un correo autom&aacute;tico, por favor no respondas a este mensaje.</p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color:#2C2C2C; padding:28px 40px; text-align:center;">
+                            <div style="width:44px; height:44px; border-radius:50%; overflow:hidden; background-color:#ffffff; border:2px solid rgba(255,255,255,0.2); margin:0 auto 12px;">
+                                <img src="{logo_url}" alt="" width="66" height="66" style="width:66px; height:66px; display:block; margin:-14px -11px -8px -11px; object-fit:cover;">
+                            </div>
+                            <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.9); font-size:13px; margin:0 0 4px; font-weight:600;">Dra. Estefi</p>
+                            <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.6); font-size:12px; margin:0 0 20px;">Pediatr&iacute;a con tiempo, calidez y atenci&oacute;n personalizada</p>
+                            <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; font-size:12px; color:rgba(255,255,255,0.7); line-height:1.8; margin:0 0 16px;">
+                                Puc&oacute;n &amp; Villarrica &middot; La Araucan&iacute;a, Chile<br>
+                                <a href="tel:+56958455537" style="color:#7BB5BD; text-decoration:none;">+56 9 5845 5537</a>
+                                &nbsp;&middot;&nbsp;
+                                <a href="mailto:estefiortigosa.pediatra@gmail.com" style="color:#7BB5BD; text-decoration:none;">estefiortigosa.pediatra@gmail.com</a>
+                            </p>
+                            <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; font-size:12px; margin:0;">
+                                <a href="https://www.instagram.com/estefiortigosa.pediatra/" style="color:#7BB5BD; text-decoration:none; margin:0 8px;">Instagram</a>
+                                <a href="https://estefipediatra.com" style="color:#7BB5BD; text-decoration:none; margin:0 8px;">Web</a>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Bottom bar -->
+                    <tr>
+                        <td style="background-color:#1f1f1f; padding:14px 40px; text-align:center;">
+                            <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.5); font-size:11px; margin:0;">
+                                &copy; 2026 Dra. Estefi Pediatra &middot; estefipediatra.com
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>"""
+
+    send_email(
+        to=user.email,
+        subject="Tu contrase\u00f1a fue actualizada \u2014 Dra. Estefi Pediatra",
+        html_body=html_body,
+    )
+
+
 def send_transfer_expired(payment) -> None:
     """
     Notify the tutor that their appointment was cancelled due to missing transfer receipt.

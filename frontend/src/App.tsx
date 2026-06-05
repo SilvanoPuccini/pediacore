@@ -32,6 +32,8 @@ import { useAuthStore } from "@/stores/auth";
 
 const LoginPage = lazy(() => import("@/components/auth/LoginPage"));
 const RegisterPage = lazy(() => import("@/components/auth/RegisterPage"));
+const ForgotPasswordPage = lazy(() => import("@/components/auth/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("@/components/auth/ResetPasswordPage"));
 const BookingCalendar = lazy(() => import("@/components/booking/BookingCalendar"));
 const BookingConfirmed = lazy(() => import("@/features/booking/BookingConfirmed"));
 const TermsPage = lazy(() => import("@/pages/TermsPage"));
@@ -110,6 +112,8 @@ function AppRoutes() {
         />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password/:uid/:token" element={<ResetPasswordPage />} />
         <Route
           path="/booking"
           element={

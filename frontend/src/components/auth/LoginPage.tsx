@@ -112,6 +112,11 @@ export default function LoginPage() {
                   placeholder="••••••••"
                   className="w-full px-4 py-3 rounded-[12px] border border-line bg-bg text-ink text-[14px] focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal"
                 />
+                <div className="flex justify-end mt-1.5">
+                  <Link to="/forgot-password" className="text-[12px] text-teal-dark hover:underline">
+                    Olvidé mi contraseña
+                  </Link>
+                </div>
               </div>
 
               {error && (
