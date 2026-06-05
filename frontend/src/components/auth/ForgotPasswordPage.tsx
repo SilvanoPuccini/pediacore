@@ -38,7 +38,7 @@ export default function ForgotPasswordPage() {
         <div className="flex flex-col items-center mb-8">
           <div className="h-16 w-16 rounded-full overflow-hidden bg-white mb-3">
             <img
-              src="/images/logo.png"
+              src="/images/logo.svg"
               alt="Logo Dra. Estefi Pediatra"
               className="w-full h-full object-cover scale-[1.5]"
             />

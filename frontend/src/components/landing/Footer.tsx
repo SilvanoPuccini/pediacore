@@ -75,7 +75,7 @@ export default function Footer() {
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full overflow-hidden bg-white">
                 <img
-                  src="/images/logo.png"
+                  src="/images/logo.svg"
                   alt="Dra. Estefi Pediatra"
                   className="w-full h-full object-cover scale-[1.5]"
                 />
