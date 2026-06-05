@@ -92,10 +92,10 @@ export default function AboutSection() {
                 Registro Médico
               </p>
               <p className="text-[13.5px] text-ink font-semibold leading-snug">
-                REX Nº 355
+                Médica Cirujana
               </p>
               <p className="text-[11px] text-ink2 mt-0.5">
-                Min. Educación Chile
+                Homologación Chile · REX Nº 355
               </p>
               <span className="inline-block mt-2 bg-teal/15 text-teal-dark text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">
                 Verificado
