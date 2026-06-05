@@ -115,7 +115,7 @@ function CoordinationModal({
             WhatsApp
           </a>
           <a
-            href="mailto:estefiortigosa.peditra@gmail.com?subject=Coordinación de turno"
+            href="mailto:estefiortigosa.pediatra@gmail.com?subject=Coordinación de turno"
             className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-[12px] border border-line text-[13px] font-semibold text-ink2 hover:bg-cream transition-colors"
           >
             Enviar email

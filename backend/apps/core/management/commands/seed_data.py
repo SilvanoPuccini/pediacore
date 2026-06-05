@@ -107,8 +107,8 @@ class Command(BaseCommand):
             email="doctor@estefipediatra.com",
             defaults={
                 "first_name": "Estefanía",
-                "last_name": "Riquelme",
-                "phone": "+56 9 8765 4321",
+                "last_name": "Ortigosa",
+                "phone": "+56 9 5845 5537",
                 "role": User.DOCTOR,
                 "is_staff": True,
                 "is_active": True,
@@ -143,7 +143,7 @@ class Command(BaseCommand):
                     "de La Araucanía: Pucón y Villarrica."
                 ),
                 "email": "contacto@estefipediatra.com",
-                "phone": "+56 9 8765 4321",
+                "phone": "+56 9 5845 5537",
                 "website": "https://estefipediatra.com",
                 "is_active": True,
                 "owner": doctor,

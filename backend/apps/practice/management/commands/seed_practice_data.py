@@ -11,7 +11,7 @@ from django.core.management.base import BaseCommand
 
 from apps.practice.models import Location, Practice
 
-DEFAULT_OWNER_EMAIL = "estefiortigosa.peditra@gmail.com"
+DEFAULT_OWNER_EMAIL = "estefiortigosa.pediatra@gmail.com"
 DEFAULT_OWNER_PASSWORD = "admin123"  # nosec — dev seed only
 
 PRACTICE_DEFAULTS = {
@@ -33,7 +33,7 @@ LOCATIONS = [
         "city": "Pucón",
         "region": "Araucanía",
         "phone": "+56 9 5845 5537",
-        "email": "estefiortigosa.peditra@gmail.com",
+        "email": "estefiortigosa.pediatra@gmail.com",
         "display_hours": "Lun 10–16 · Mié 9:45–13:30 · Jue 14:45–18:30",
         "latitude": -39.2722,
         "longitude": -71.9750,
@@ -45,7 +45,7 @@ LOCATIONS = [
         "city": "Villarrica",
         "region": "Araucanía",
         "phone": "+56 9 5845 5537",
-        "email": "estefiortigosa.peditra@gmail.com",
+        "email": "estefiortigosa.pediatra@gmail.com",
         "display_hours": "Mar 10:15–15:45 · Vie 11–16",
         "latitude": -39.2857,
         "longitude": -72.2279,
