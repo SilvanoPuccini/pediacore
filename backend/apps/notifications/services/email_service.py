@@ -88,7 +88,7 @@ def send_email(
     """
     api_key = getattr(settings, "RESEND_API_KEY", "")
     from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@estefipediatra.com")
-    reply_to = getattr(settings, "DEFAULT_REPLY_TO_EMAIL", "estefiortigosa.peditra@gmail.com")
+    reply_to = getattr(settings, "DEFAULT_REPLY_TO_EMAIL", "estefiortigosa.pediatra@gmail.com")
     body_preview = html_body[:500]
 
     if not api_key:
@@ -355,7 +355,7 @@ def _build_payment_receipt_html(
                                 Puc&oacute;n &amp; Villarrica &middot; La Araucan&iacute;a, Chile<br>
                                 <a href="tel:+56958455537" style="color:#7BB5BD; text-decoration:none;">+56 9 5845 5537</a>
                                 &nbsp;&middot;&nbsp;
-                                <a href="mailto:estefiortigosa.peditra@gmail.com" style="color:#7BB5BD; text-decoration:none;">estefiortigosa.peditra@gmail.com</a>
+                                <a href="mailto:estefiortigosa.pediatra@gmail.com" style="color:#7BB5BD; text-decoration:none;">estefiortigosa.pediatra@gmail.com</a>
                             </p>
                             <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; font-size:12px; margin:0;">
                                 <a href="https://www.instagram.com/estefiortigosa.pediatra/" style="color:#7BB5BD; text-decoration:none; margin:0 8px;">Instagram</a>
@@ -742,7 +742,7 @@ def _build_appointment_html(
                                 Puc&oacute;n &amp; Villarrica &middot; La Araucan&iacute;a, Chile<br>
                                 <a href="tel:+56958455537" style="color:#7BB5BD; text-decoration:none;">+56 9 5845 5537</a>
                                 &nbsp;&middot;&nbsp;
-                                <a href="mailto:estefiortigosa.peditra@gmail.com" style="color:#7BB5BD; text-decoration:none;">estefiortigosa.peditra@gmail.com</a>
+                                <a href="mailto:estefiortigosa.pediatra@gmail.com" style="color:#7BB5BD; text-decoration:none;">estefiortigosa.pediatra@gmail.com</a>
                             </p>
 
                             <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; font-size:12px; margin:0;">

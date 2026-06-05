@@ -92,10 +92,10 @@ export default function AboutSection() {
                 Registro Médico
               </p>
               <p className="text-[13.5px] text-ink font-semibold leading-snug">
-                MN 12.847
+                REX Nº 355
               </p>
               <p className="text-[11px] text-ink2 mt-0.5">
-                Colegio Médico de Chile
+                Min. Educación Chile
               </p>
               <span className="inline-block mt-2 bg-teal/15 text-teal-dark text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">
                 Verificado
@@ -113,15 +113,11 @@ export default function AboutSection() {
               </h2>
               <div className="flex flex-col gap-4 text-[15px] text-ink2 leading-relaxed">
                 <p>
-                  Soy pediatra especializada en el sur de Chile, con consultorios
-                  en Pucón y Villarrica. Acompañar el crecimiento de cada niño y
-                  niña — desde los primeros días de vida hasta la adolescencia —
-                  es lo que me levanta cada mañana.
-                </p>
-                <p>
-                  Creo en la pediatría con tiempo: consultas donde las preguntas
-                  tienen espacio, donde los papás son parte del equipo y donde
-                  cada familia recibe una atención que realmente las ve.
+                  Médica Pediatra formada en Argentina, actualmente ejerciendo en
+                  práctica privada en el sur de Chile. Combino la medicina basada
+                  en evidencia con una visión integrativa centrada en el paciente
+                  y su entorno familiar, con enfoque en medicina funcional e
+                  integrativa.
                 </p>
               </div>
             </div>
@@ -131,17 +127,17 @@ export default function AboutSection() {
               <CredentialItem
                 icon={<GraduationCap size={18} />}
                 label="Formación"
-                value="Universidad de Chile, 2017"
+                value="U.N.C.P.B.A., Argentina, 2018"
               />
               <CredentialItem
                 icon={<Award size={18} />}
                 label="Especialización"
-                value="Lactancia · U. Católica, 2019"
+                value="Pediatría · Hosp. D. B. Villegas, 2022"
               />
               <CredentialItem
                 icon={<Users size={18} />}
                 label="Experiencia"
-                value="8+ años · 280+ familias"
+                value="8+ años de experiencia"
               />
               <CredentialItem
                 icon={<Languages size={18} />}

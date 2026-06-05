@@ -50,7 +50,7 @@ export default function TermsPage() {
             </a>
           </li>
           <li>
-            <strong className="text-ink">Teléfono:</strong> +56 9 1234 5678
+            <strong className="text-ink">Teléfono:</strong> +56 9 5845 5537
           </li>
           <li>
             <strong className="text-ink">Direcciones de atención:</strong> Pucón, Región de La
