@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 class NotificationsConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "apps.notifications"
-    verbose_name = "Notifications"
+    verbose_name = "Notificaciones"
 
     def ready(self) -> None:
         """Register django-q2 periodic tasks when the app is ready."""

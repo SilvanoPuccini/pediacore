@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 class SchedulingConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "apps.scheduling"
-    verbose_name = "Scheduling"
+    verbose_name = "Agenda"
 
     def ready(self) -> None:
         """Register django-q2 periodic tasks when the app is ready."""
