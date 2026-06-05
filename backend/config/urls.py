@@ -16,6 +16,9 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 
+# Point the "View site" link in Django admin to the React dashboard
+admin.site.site_url = "/dashboard/"
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     # JWT auth
