@@ -3,8 +3,8 @@ import {
   Stethoscope,
   Baby,
   Video,
-  Syringe,
-  Apple,
+  Milk,
+  UtensilsCrossed,
   Moon,
   ArrowRight,
 } from "lucide-react";
@@ -36,7 +36,7 @@ const SERVICES: ServiceCard[] = [
     iconBg: "bg-[var(--coral)]/15",
     iconColor: "text-[var(--coral)]",
     accentColor: "bg-[var(--coral)]/8",
-    title: "Consulta pediátrica",
+    title: "Control por enfermedad",
     description:
       "Atención de enfermedades agudas y crónicas, con diagnóstico detallado y acompañamiento familiar real.",
     href: "#consulta-pediatrica",
@@ -52,24 +52,24 @@ const SERVICES: ServiceCard[] = [
     href: "#telemedicina",
   },
   {
-    icon: Syringe,
+    icon: Milk,
     iconBg: "bg-[var(--sage)]/25",
     iconColor: "text-[var(--sage)]",
     accentColor: "bg-[var(--sage)]/10",
-    title: "Vacunatorio",
+    title: "Asesoría de lactancia",
     description:
-      "Esquema PAI completo y vacunas complementarias, con recordatorio automático y seguimiento digital.",
-    href: "#vacunatorio",
+      "Acompañamiento individualizado en lactancia materna: acople, técnica, producción láctea y dudas frecuentes.",
+    href: "#lactancia",
   },
   {
-    icon: Apple,
+    icon: UtensilsCrossed,
     iconBg: "bg-[var(--peach)]/30",
     iconColor: "text-[var(--coral)]",
     accentColor: "bg-[var(--peach)]/15",
-    title: "Nutrición infantil",
+    title: "Alimentación infantil",
     description:
-      "Orientación para alimentación complementaria, lactancia y hábitos saludables desde los primeros meses.",
-    href: "#nutricion",
+      "Orientación para alimentación complementaria y hábitos saludables desde los primeros meses.",
+    href: "#alimentacion",
   },
   {
     icon: Moon,
