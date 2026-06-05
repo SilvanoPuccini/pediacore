@@ -72,11 +72,13 @@ export default function Navbar() {
         <div className="max-w-[1280px] mx-auto px-6 h-16 flex items-center justify-between gap-6">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 shrink-0">
-            <img
-              src="/images/logo.png"
-              alt="Logo Dra. Estefi Pediatra"
-              className="h-14 w-14 rounded-full object-cover bg-white"
-            />
+            <div className="w-12 h-12 rounded-full overflow-hidden bg-white shrink-0">
+              <img
+                src="/images/logo.png"
+                alt="Logo Dra. Estefi Pediatra"
+                className="w-full h-full object-cover scale-[1.4]"
+              />
+            </div>
             <div className="leading-tight">
               <div className="font-display text-[15px] font-semibold text-[var(--ink)] tracking-tight">
                 Dra. Estefi

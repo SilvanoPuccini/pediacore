@@ -47,11 +47,13 @@ export default function LoginPage() {
       <div className="w-full max-w-[420px]">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <img
-            src="/images/logo.png"
-            alt="Logo Dra. Estefi Pediatra"
-            className="h-20 w-20 rounded-full object-cover bg-white mb-3"
-          />
+          <div className="h-16 w-16 rounded-full overflow-hidden bg-white mb-3">
+            <img
+              src="/images/logo.png"
+              alt="Logo Dra. Estefi Pediatra"
+              className="w-full h-full object-cover scale-[1.4]"
+            />
+          </div>
           <div className="font-display text-[22px] font-semibold text-ink tracking-tight">
             Dra. Estefi
           </div>
