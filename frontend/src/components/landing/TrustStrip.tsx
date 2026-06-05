@@ -1,4 +1,4 @@
-import { GraduationCap, Monitor, MapPin, Heart } from "lucide-react";
+import { GraduationCap, Leaf, MapPin, Users } from "lucide-react";
 
 interface TrustItem {
   icon: React.ElementType;
@@ -11,26 +11,26 @@ const TRUST_ITEMS: TrustItem[] = [
   {
     icon: GraduationCap,
     iconBg: "bg-[var(--teal)]/15 text-[var(--teal-dark)]",
-    title: "Pediatra titulada",
-    subtitle: "U.N.C.P.B.A. · Argentina",
+    title: "Médica Pediatra",
+    subtitle: "Formada en Argentina, validada en Chile",
   },
   {
-    icon: Monitor,
-    iconBg: "bg-[var(--coral)]/20 text-[var(--coral)]",
-    title: "Consulta online",
-    subtitle: "Para familias en regiones",
+    icon: Leaf,
+    iconBg: "bg-[var(--sage)]/25 text-[var(--sage)]",
+    title: "Enfoque integrativo",
+    subtitle: "Medicina funcional y basada en evidencia",
   },
   {
     icon: MapPin,
     iconBg: "bg-[var(--mustard)]/20 text-[var(--mustard)]",
-    title: "2 sedes",
-    subtitle: "Pucón & Villarrica",
+    title: "Presencial y online",
+    subtitle: "Pucón, Villarrica y videollamada",
   },
   {
-    icon: Heart,
-    iconBg: "bg-[var(--sage)]/25 text-[var(--sage)]",
-    title: "Trato cálido",
-    subtitle: "Cada familia es única",
+    icon: Users,
+    iconBg: "bg-[var(--coral)]/20 text-[var(--coral)]",
+    title: "+550 familias",
+    subtitle: "5+ años de experiencia",
   },
 ];
 
