@@ -147,11 +147,11 @@ export default function AboutSection() {
             </div>
 
             {/* Stats row */}
-            <div className="flex items-center justify-between bg-bg rounded-[20px] px-6 py-5 mt-2">
+            <div className="flex flex-col sm:flex-row items-center justify-between bg-bg rounded-[20px] px-6 py-5 mt-2 gap-4 sm:gap-0">
               <StatItem value="8+" label="años de experiencia" colorClass="text-teal-dark" />
-              <div className="w-px h-10 bg-line" />
+              <div className="w-full h-px sm:w-px sm:h-10 bg-line" />
               <StatItem value="280" label="familias atendidas" colorClass="text-coral" />
-              <div className="w-px h-10 bg-line" />
+              <div className="w-full h-px sm:w-px sm:h-10 bg-line" />
               <StatItem value="4.9 ★" label="valoración promedio" colorClass="text-mustard" />
             </div>
           </div>
