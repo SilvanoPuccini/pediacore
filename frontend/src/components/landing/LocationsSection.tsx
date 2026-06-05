@@ -6,14 +6,11 @@ import type { Location, PaginatedResponse } from "@/types/api";
 
 const PRACTICE_SLUG = "dra-estefi";
 
-// --- OpenStreetMap preview (iframe, clickable to Google Maps) ---
+// --- Google Maps embed preview (clickable to open full map) ---
 function MapPreview({ lat, lng, address }: { lat: number; lng: number; address: string }) {
   const googleUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
-  const safeLat = Number(lat);
-  const safeLng = Number(lng);
-  const osmUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${safeLng - 0.005},${safeLat - 0.003},${safeLng + 0.005},${safeLat + 0.003}&layer=mapnik&marker=${safeLat},${safeLng}`;
 
-  if (!safeLat || !safeLng) {
+  if (!lat || !lng) {
     return <div className="h-[200px] rounded-[16px] bg-ink/5 animate-pulse" />;
   }
 
@@ -24,15 +21,13 @@ function MapPreview({ lat, lng, address }: { lat: number; lng: number; address: 
       rel="noopener noreferrer"
       className="relative block h-[200px] rounded-[16px] overflow-hidden group cursor-pointer"
     >
-      <div className="w-full h-full overflow-hidden">
-        <iframe
-          src={osmUrl}
-          className="w-full h-full pointer-events-none"
-          style={{ border: 0, transform: 'scale(1.5)', transformOrigin: '50% 30%' }}
-          loading="lazy"
-          title="Mapa"
-        />
-      </div>
+      <iframe
+        src={`https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed`}
+        className="w-full h-full"
+        style={{ border: 0 }}
+        loading="lazy"
+        title="Mapa"
+      />
       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200 flex items-center justify-center">
         <span className="opacity-0 group-hover:opacity-100 bg-white/90 text-ink text-[12px] font-semibold px-3 py-1.5 rounded-full shadow-md transition-opacity duration-200">
           Abrir en Google Maps
