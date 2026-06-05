@@ -6,21 +6,14 @@ import type { Location, PaginatedResponse } from "@/types/api";
 
 const PRACTICE_SLUG = "dra-estefi";
 
-// --- Google Maps embed preview (clickable to open full map) ---
-function MapPreview({ lat, lng, address }: { lat: number; lng: number; address: string }) {
-  const googleUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
-
+// --- Google Maps embed preview (fully interactive) ---
+function MapPreview({ lat, lng }: { lat: number; lng: number; address: string }) {
   if (!lat || !lng) {
     return <div className="h-[200px] rounded-[16px] bg-ink/5 animate-pulse" />;
   }
 
   return (
-    <a
-      href={googleUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="relative block h-[200px] rounded-[16px] overflow-hidden group cursor-pointer"
-    >
+    <div className="h-[200px] rounded-[16px] overflow-hidden">
       <iframe
         src={`https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed`}
         className="w-full h-full"
@@ -28,12 +21,7 @@ function MapPreview({ lat, lng, address }: { lat: number; lng: number; address: 
         loading="lazy"
         title="Mapa"
       />
-      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200 flex items-center justify-center">
-        <span className="opacity-0 group-hover:opacity-100 bg-white/90 text-ink text-[12px] font-semibold px-3 py-1.5 rounded-full shadow-md transition-opacity duration-200">
-          Abrir en Google Maps
-        </span>
-      </div>
-    </a>
+    </div>
   );
 }
 
