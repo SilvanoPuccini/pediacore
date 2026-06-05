@@ -61,14 +61,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             <LayoutDashboard size={16} className="text-teal-dark" />
             Dashboard
           </Link>
-          <Link
-            to="/admin/"
+          <a
+            href="/admin/"
             className="flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-[13px] font-medium text-ink2 hover:text-ink hover:bg-cream transition-colors"
-            onClick={() => setSidebarOpen(false)}
           >
             <Settings size={16} className="text-ink3" />
             Admin Django
-          </Link>
+          </a>
         </nav>
 
         {/* User footer */}
