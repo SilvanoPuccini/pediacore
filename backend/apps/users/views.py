@@ -141,3 +141,52 @@ class PasswordResetConfirmView(APIView):
             {"detail": "Contraseña actualizada correctamente."},
             status=status.HTTP_200_OK,
         )
+
+
+class ChangePasswordView(APIView):
+    """
+    POST /api/v1/change-password/
+
+    Authenticated endpoint to change password from the profile page.
+    Requires current_password, new_password.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request: Request) -> Response:
+        from apps.notifications.services.email_service import send_password_changed_email
+
+        current_password = request.data.get("current_password", "")
+        new_password = request.data.get("new_password", "")
+
+        if not current_password or not new_password:
+            return Response(
+                {"detail": "Todos los campos son obligatorios."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if len(new_password) < 8:
+            return Response(
+                {"detail": "La nueva contraseña debe tener al menos 8 caracteres."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user = request.user
+        if not user.check_password(current_password):
+            return Response(
+                {"detail": "La contraseña actual es incorrecta."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user.set_password(new_password)
+        user.save(update_fields=["password"])
+
+        try:
+            send_password_changed_email(user)
+        except Exception:
+            pass
+
+        return Response(
+            {"detail": "Contraseña actualizada correctamente."},
+            status=status.HTTP_200_OK,
+        )
