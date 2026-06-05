@@ -3,6 +3,7 @@ import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { Menu, X, LogOut, CalendarDays, Baby, UserCircle, Home, LayoutDashboard, Receipt } from "lucide-react";
 import { useAuthStore } from "@/stores/auth";
 import { cn } from "@/lib/utils";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 const NAV_ITEMS = [
   { label: "Inicio", href: "/portal", icon: LayoutDashboard, exact: true },
@@ -14,12 +15,17 @@ const NAV_ITEMS = [
 
 export default function TutorLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [logoutOpen, setLogoutOpen] = useState(false);
+  const [logoutPending, setLogoutPending] = useState(false);
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
   async function handleLogout() {
+    setLogoutPending(true);
     await logout();
+    setLogoutPending(false);
+    setLogoutOpen(false);
     navigate("/");
   }
 
@@ -84,13 +90,25 @@ export default function TutorLayout() {
             Volver al inicio
           </Link>
           <button
-            onClick={handleLogout}
+            onClick={() => setLogoutOpen(true)}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-[13px] font-medium text-ink2 hover:text-ink hover:bg-cream transition-colors"
           >
             <LogOut size={15} />
             Cerrar sesión
           </button>
         </div>
+
+        <ConfirmDialog
+          open={logoutOpen}
+          title="Cerrar sesión"
+          message="¿Estás seguro de que querés salir? Vas a necesitar iniciar sesión de nuevo para acceder a tu portal."
+          confirmLabel="Cerrar sesión"
+          cancelLabel="Cancelar"
+          variant="danger"
+          onConfirm={handleLogout}
+          onCancel={() => setLogoutOpen(false)}
+          isPending={logoutPending}
+        />
       </aside>
 
       {/* Mobile overlay */}

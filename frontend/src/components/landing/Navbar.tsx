@@ -3,6 +3,7 @@ import { Menu, X, LogOut, User, CalendarDays } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 const NAV_LINKS = [
   { label: "Servicios", href: "/#servicios" },
@@ -20,6 +21,7 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, isAuthenticated, logout } = useAuthStore();
+  const [logoutOpen, setLogoutOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 10);
@@ -110,7 +112,7 @@ export default function Navbar() {
                   </Link>
                 )}
                 <button
-                  onClick={() => logout()}
+                  onClick={() => setLogoutOpen(true)}
                   className="flex items-center gap-1.5 text-[12px] text-[var(--ink3)] hover:text-[var(--ink)] transition-colors px-2 py-1.5 rounded-lg hover:bg-[var(--cream)]"
                 >
                   <LogOut size={13} />
@@ -173,7 +175,7 @@ export default function Navbar() {
                       {user.first_name}
                     </span>
                     <button
-                      onClick={() => { logout(); setMobileOpen(false); }}
+                      onClick={() => setLogoutOpen(true)}
                       className="flex items-center gap-1.5 text-[13px] text-[var(--ink3)] hover:text-[var(--ink)]"
                     >
                       <LogOut size={14} />
@@ -214,6 +216,19 @@ export default function Navbar() {
           </div>
         </div>
       </nav>
+      <ConfirmDialog
+        open={logoutOpen}
+        title="Cerrar sesión"
+        message="¿Estás seguro de que querés salir? Vas a necesitar iniciar sesión de nuevo para acceder a tu portal."
+        confirmLabel="Cerrar sesión"
+        cancelLabel="Cancelar"
+        variant="danger"
+        onConfirm={async () => {
+          await logout();
+          setLogoutOpen(false);
+        }}
+        onCancel={() => setLogoutOpen(false)}
+      />
     </header>
   );
 }
