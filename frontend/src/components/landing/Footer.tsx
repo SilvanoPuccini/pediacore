@@ -77,7 +77,7 @@ export default function Footer() {
                 <img
                   src="/images/logo.png"
                   alt="Dra. Estefi Pediatra"
-                  className="w-full h-full object-cover scale-[1.4]"
+                  className="w-full h-full object-cover scale-[1.6] -translate-y-[10%]"
                 />
               </div>
               <div>
