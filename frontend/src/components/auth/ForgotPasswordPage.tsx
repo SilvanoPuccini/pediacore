@@ -9,6 +9,9 @@ export default function ForgotPasswordPage() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
 
+  const trimmedEmail = email.trim();
+  const isEmailValid = trimmedEmail.length > 0 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail);
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
@@ -106,7 +109,7 @@ export default function ForgotPasswordPage() {
 
                 <button
                   type="submit"
-                  disabled={isLoading}
+                  disabled={isLoading || !isEmailValid}
                   className="w-full bg-teal-dark text-white rounded-[12px] px-6 py-3 font-semibold text-[14px] mt-1 transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-cta)] disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-y-0"
                 >
                   {isLoading ? "Enviando..." : "Enviar link de recuperación"}

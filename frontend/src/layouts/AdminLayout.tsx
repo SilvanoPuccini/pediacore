@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Menu, X, LogOut, LayoutDashboard } from "lucide-react";
 import { useAuthStore } from "@/stores/auth";
 import { cn } from "@/lib/utils";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -10,11 +11,16 @@ interface AdminLayoutProps {
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [logoutOpen, setLogoutOpen] = useState(false);
+  const [logoutPending, setLogoutPending] = useState(false);
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
 
   async function handleLogout() {
+    setLogoutPending(true);
     await logout();
+    setLogoutPending(false);
+    setLogoutOpen(false);
     navigate("/");
   }
 
@@ -66,13 +72,25 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             <div className="text-[11px] text-ink3">{user?.email}</div>
           </div>
           <button
-            onClick={handleLogout}
+            onClick={() => setLogoutOpen(true)}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-[13px] font-medium text-ink2 hover:text-ink hover:bg-cream transition-colors"
           >
             <LogOut size={15} />
             Cerrar sesión
           </button>
         </div>
+
+        <ConfirmDialog
+          open={logoutOpen}
+          title="Cerrar sesión"
+          message="¿Estás seguro de que querés salir? Vas a necesitar iniciar sesión de nuevo para acceder al panel."
+          confirmLabel="Cerrar sesión"
+          cancelLabel="Cancelar"
+          variant="danger"
+          onConfirm={handleLogout}
+          onCancel={() => setLogoutOpen(false)}
+          isPending={logoutPending}
+        />
       </aside>
 
       {/* Mobile overlay */}
