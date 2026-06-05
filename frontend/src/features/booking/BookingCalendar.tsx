@@ -129,7 +129,7 @@ export default function BookingCalendar() {
   }
 
   return (
-    <div className="max-w-[640px] mx-auto px-4 py-10">
+    <div className="max-w-[640px] mx-auto px-4 pt-24 pb-10">
       <SEOHead
         title="Reservar turno"
         description="Reservá tu hora pediátrica online en Pucón o Villarrica. Atención presencial y online."
