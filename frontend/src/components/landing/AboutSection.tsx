@@ -137,7 +137,7 @@ export default function AboutSection() {
               <CredentialItem
                 icon={<Users size={18} />}
                 label="Experiencia"
-                value="8+ años de experiencia"
+                value="5+ años de experiencia"
               />
               <CredentialItem
                 icon={<Languages size={18} />}
@@ -148,9 +148,9 @@ export default function AboutSection() {
 
             {/* Stats row */}
             <div className="flex flex-col sm:flex-row items-center justify-between bg-bg rounded-[20px] px-6 py-5 mt-2 gap-4 sm:gap-0">
-              <StatItem value="8+" label="años de experiencia" colorClass="text-teal-dark" />
+              <StatItem value="5+" label="años de experiencia" colorClass="text-teal-dark" />
               <div className="w-full h-px sm:w-px sm:h-10 bg-line" />
-              <StatItem value="280" label="familias atendidas" colorClass="text-coral" />
+              <StatItem value="+550" label="familias atendidas" colorClass="text-coral" />
               <div className="w-full h-px sm:w-px sm:h-10 bg-line" />
               <StatItem value="4.9 ★" label="valoración promedio" colorClass="text-mustard" />
             </div>
