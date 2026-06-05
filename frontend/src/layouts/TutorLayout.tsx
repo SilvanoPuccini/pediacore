@@ -45,7 +45,7 @@ export default function TutorLayout() {
             <img
               src="/images/logo.svg"
               alt="Logo"
-              className="w-full h-full object-cover scale-[1.5]"
+              className="w-full h-full object-contain"
             />
           </div>
           <div className="leading-tight">
