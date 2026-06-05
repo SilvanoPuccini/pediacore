@@ -49,7 +49,7 @@ export default function LoginPage() {
         <Link to="/" className="flex flex-col items-center mb-8 group">
           <div className="h-16 w-16 rounded-full overflow-hidden bg-white mb-3 ring-2 ring-transparent group-hover:ring-teal/30 transition-all">
             <img
-              src="/images/logo.png"
+              src="/images/logo.svg"
               alt="Logo Dra. Estefi Pediatra"
               className="w-full h-full object-cover scale-[1.5]"
             />
