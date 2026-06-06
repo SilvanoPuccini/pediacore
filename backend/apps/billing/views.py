@@ -338,8 +338,43 @@ class PaymentViewSet(viewsets.ModelViewSet):
                 exc,
             )
 
+        # ── Generate Zoom meeting if applicable ────────────────────────────
         try:
-            send_transfer_confirmed(payment)
+            if appointment and appointment.is_online and appointment.call_platform == "ZOOM":
+                from apps.scheduling.services.zoom_service import create_zoom_meeting
+
+                meeting_start = datetime.combine(
+                    appointment.scheduled_date, appointment.start_time
+                )
+                join_url = create_zoom_meeting(
+                    topic=f"Consulta — {appointment.patient.full_name}",
+                    start_time=meeting_start,
+                    duration_minutes=appointment.service.duration_minutes,
+                )
+                appointment.meeting_link = join_url
+                appointment.save(update_fields=["meeting_link", "updated_at"])
+        except Exception as exc:
+            logger.error(
+                "confirm_transfer: Zoom meeting creation failed for Appointment #%s: %s",
+                appointment.pk if appointment else "—",
+                exc,
+            )
+
+        # ── Create tokens + send confirmation emails with action buttons ────
+        token_urls = None
+        try:
+            if appointment:
+                tokens = create_tokens_for_appointment(appointment)
+                token_urls = _build_token_urls(tokens)
+        except Exception as exc:
+            logger.error(
+                "confirm_transfer: token creation failed for Appointment #%s: %s",
+                appointment.pk if appointment else "—",
+                exc,
+            )
+
+        try:
+            send_transfer_confirmed(payment, token_urls=token_urls)
         except Exception as exc:
             logger.error(
                 "confirm_transfer: send_transfer_confirmed failed for Payment #%s: %s",
@@ -349,7 +384,7 @@ class PaymentViewSet(viewsets.ModelViewSet):
 
         try:
             if appointment:
-                send_appointment_confirmation(appointment)
+                send_appointment_confirmation(appointment, token_urls=token_urls)
         except Exception as exc:
             logger.error(
                 "confirm_transfer: send_appointment_confirmation failed for Appointment #%s: %s",
