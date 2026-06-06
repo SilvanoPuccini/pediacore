@@ -7,10 +7,11 @@ import { useBookingStore } from "./store/bookingStore";
 import { useLocations, useServices, useMyPatients } from "./hooks/useBookingQueries";
 import { formatDisplayDate, formatTime } from "./utils";
 import type { Appointment } from "@/types/api";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export default function BookingConfirmed() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const {
     locationId,
@@ -70,6 +71,11 @@ export default function BookingConfirmed() {
   const displaySlot = selectedSlot ?? (appointmentData ? { start_time: appointmentData.start_time, end_time: appointmentData.end_time ?? "" } : null);
   const displayPatient = selectedPatient ?? (appointmentData ? { full_name: appointmentData.patient_name, first_name: appointmentData.patient_name?.split(" ")[0] ?? "" } : null);
   const displayLocation = selectedLocation ?? (appointmentData ? { name: appointmentData.location_name } : null);
+
+  // Invalidate appointments cache on mount so Dashboard / Mis Turnos show fresh data
+  useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ["appointments"] });
+  }, [queryClient]);
 
   // If no appointment AND not coming from MercadoPago, redirect to booking
   useEffect(() => {
@@ -225,7 +231,7 @@ export default function BookingConfirmed() {
       {/* Actions */}
       <div className="space-y-3">
         <button
-          onClick={() => { reset(); navigate("/portal/turnos"); }}
+          onClick={() => { queryClient.invalidateQueries({ queryKey: ["appointments"] }); reset(); navigate("/portal/turnos"); }}
           className="w-full bg-teal-dark text-white rounded-[12px] px-5 py-3 font-semibold text-[13px] transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-cta)]"
         >
           Ver mis turnos
