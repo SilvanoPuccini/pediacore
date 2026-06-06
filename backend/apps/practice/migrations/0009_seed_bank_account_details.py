@@ -16,7 +16,7 @@ def seed_bank_account(apps, schema_editor):
         practice.account_number = "111128625096"
         practice.account_holder = "ESTEFANIA ORTIGOSA"
         practice.account_rut = "28625096-3"
-        practice.account_email = ""
+        practice.account_email = "estefiortigosa.pediatra@gmail.com"
         practice.save(update_fields=[
             "bank_name",
             "account_type",
