@@ -11,8 +11,12 @@ class BillingConfig(AppConfig):
     verbose_name = "Facturación"
 
     def ready(self) -> None:
-        """Register django-q2 periodic tasks when the app is ready."""
-        self._register_transfer_expiry_schedule()
+        """Register django-q2 periodic tasks on startup."""
+        import warnings
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message="Accessing the database during app initialization")
+            self._register_transfer_expiry_schedule()
 
     def _register_transfer_expiry_schedule(self) -> None:
         """
