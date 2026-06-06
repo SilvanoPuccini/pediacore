@@ -18,7 +18,7 @@ import type { Appointment, PaginatedResponse } from "@/types/api";
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 5;
-const UPCOMING_STATUSES = "CONFIRMED,HOLD";
+const UPCOMING_STATUSES = "CONFIRMED,HOLD,PENDING";
 const PAST_STATUSES = "COMPLETED,NO_SHOW,CANCELLED,EXPIRED";
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
@@ -67,6 +67,10 @@ const STATUS_CONFIG: Record<string, { label: string; classes: string }> = {
   },
   HOLD: {
     label: "Reservado",
+    classes: "bg-amber-50 text-amber-700 border border-amber-200",
+  },
+  PENDING: {
+    label: "Pendiente",
     classes: "bg-amber-50 text-amber-700 border border-amber-200",
   },
   EXPIRED: {
