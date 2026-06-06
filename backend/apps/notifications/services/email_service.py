@@ -1124,7 +1124,7 @@ def _build_token_urls_for_appointment(appointment) -> dict | None:
     try:
         from apps.scheduling.models import AppointmentToken
 
-        site_url = getattr(settings, "SITE_URL", "").rstrip("/")
+        frontend_url = getattr(settings, "FRONTEND_URL", "https://estefipediatra.com").rstrip("/")
         tokens = AppointmentToken.objects.filter(
             appointment=appointment,
             used_at__isnull=True,
@@ -1135,9 +1135,9 @@ def _build_token_urls_for_appointment(appointment) -> dict | None:
             return None
 
         return {
-            "confirm": f"{site_url}/a/{token_map.get('CONFIRM', '')}/",
-            "cancel": f"{site_url}/a/{token_map.get('CANCEL', '')}/",
-            "reschedule": f"{site_url}/a/{token_map.get('RESCHEDULE', '')}/",
+            "confirm": f"{frontend_url}/a/{token_map.get('CONFIRM', '')}/",
+            "cancel": f"{frontend_url}/a/{token_map.get('CANCEL', '')}/",
+            "reschedule": f"{frontend_url}/a/{token_map.get('RESCHEDULE', '')}/reschedule",
         }
     except Exception:
         return None

@@ -60,6 +60,28 @@ User = get_user_model()
 logger = logging.getLogger(__name__)
 
 
+def _build_token_urls(tokens: list) -> dict:
+    """
+    Build a token_urls dict suitable for send_appointment_confirmation.
+
+    Maps each AppointmentToken's action to its frontend URL.
+    CONFIRM and CANCEL point to the same resolve page; RESCHEDULE goes to
+    the reschedule form.
+    """
+    frontend_url = getattr(settings, "FRONTEND_URL", "https://estefipediatra.com")
+    url_map: dict[str, str | None] = {"confirm": None, "cancel": None, "reschedule": None}
+
+    for token in tokens:
+        if token.action == "CONFIRM":
+            url_map["confirm"] = f"{frontend_url}/a/{token.token}/"
+        elif token.action == "CANCEL":
+            url_map["cancel"] = f"{frontend_url}/a/{token.token}/"
+        elif token.action == "RESCHEDULE":
+            url_map["reschedule"] = f"{frontend_url}/a/{token.token}/reschedule"
+
+    return url_map
+
+
 class PaymentViewSet(viewsets.ModelViewSet):
     """
     Payments CRUD + MercadoPago preference creation + webhook + XLSX export.
@@ -491,15 +513,11 @@ class PaymentViewSet(viewsets.ModelViewSet):
 
             try:
                 if appointment:
-                    send_appointment_confirmation(appointment)
+                    tokens = create_tokens_for_appointment(appointment)
+                    token_urls = _build_token_urls(tokens)
+                    send_appointment_confirmation(appointment, token_urls=token_urls)
             except Exception as exc:
                 logger.error("process_card: send_appointment_confirmation failed: %s", exc)
-
-            try:
-                if appointment:
-                    create_tokens_for_appointment(appointment)
-            except Exception as exc:
-                logger.error("process_card: create_tokens failed: %s", exc)
 
             return Response(
                 {"status": "approved", "appointment_id": appointment.pk if appointment else None},
@@ -820,26 +838,12 @@ class MercadoPagoWebhookView(APIView):
             token_urls = None
             try:
                 if appointment:
-                    create_tokens_for_appointment(appointment)
+                    tokens = create_tokens_for_appointment(appointment)
+                    token_urls = _build_token_urls(tokens)
                     logger.info(
                         "MercadoPago webhook: tokens created for Appointment #%s",
                         appointment.pk,
                     )
-                    # Build token_urls dict to pass into the confirmation email
-                    from apps.scheduling.models import AppointmentToken
-
-                    site_url = getattr(settings, "SITE_URL", "").rstrip("/")
-                    tokens = AppointmentToken.objects.filter(
-                        appointment=appointment,
-                        used_at__isnull=True,
-                    ).values("action", "token")
-                    token_map = {t["action"]: t["token"] for t in tokens}
-                    if token_map:
-                        token_urls = {
-                            "confirm": f"{site_url}/a/{token_map.get('CONFIRM', '')}/",
-                            "cancel": f"{site_url}/a/{token_map.get('CANCEL', '')}/",
-                            "reschedule": f"{site_url}/a/{token_map.get('RESCHEDULE', '')}/",
-                        }
             except Exception as exc:
                 logger.error(
                     "MercadoPago webhook: token creation failed for Appointment #%s: %s",
