@@ -256,8 +256,8 @@ def _build_payment_receipt_html(
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="color-scheme" content="light dark">
-    <meta name="supported-color-schemes" content="light dark">
+    <meta name="color-scheme" content="light only">
+    <meta name="supported-color-schemes" content="light only">
     <title>Comprobante de pago</title>
     <!--[if !mso]><!-->
     <style>
@@ -266,15 +266,17 @@ def _build_payment_receipt_html(
     <!--<![endif]-->
     <style>
         @media (prefers-color-scheme: dark) {{
-            body, .email-body, .email-body table {{ background-color:#FBF8F3 !important; }}
-            .email-card {{ background-color:#FFFFFF !important; }}
+            body, .email-body, .email-body table {{ background-color:#FBF8F3 !important; color:#2C2C2C !important; }}
+            .email-card {{ background-color:#FFFFFF !important; color:#2C2C2C !important; }}
             .email-header {{ background-color:#4A8590 !important; }}
             .email-footer {{ background-color:#2C2C2C !important; }}
+            h1, h2, p, td, span, a {{ color: inherit !important; }}
         }}
-        [data-ogsc] body, [data-ogsc] .email-body, [data-ogsc] .email-body table {{ background-color:#FBF8F3 !important; }}
-        [data-ogsc] .email-card {{ background-color:#FFFFFF !important; }}
+        [data-ogsc] body, [data-ogsc] .email-body, [data-ogsc] .email-body table {{ background-color:#FBF8F3 !important; color:#2C2C2C !important; }}
+        [data-ogsc] .email-card {{ background-color:#FFFFFF !important; color:#2C2C2C !important; }}
         [data-ogsc] .email-header {{ background-color:#4A8590 !important; }}
         [data-ogsc] .email-footer {{ background-color:#2C2C2C !important; }}
+        [data-ogsc] h1, [data-ogsc] h2, [data-ogsc] p, [data-ogsc] td {{ color: inherit !important; }}
     </style>
 </head>
 <body style="margin:0; padding:0; background-color:#FBF8F3;" bgcolor="#FBF8F3" class="email-body">
@@ -675,8 +677,8 @@ def _build_appointment_html(
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="color-scheme" content="light dark">
-    <meta name="supported-color-schemes" content="light dark">
+    <meta name="color-scheme" content="light only">
+    <meta name="supported-color-schemes" content="light only">
     <title>{title}</title>
     <!--[if !mso]><!-->
     <style>
@@ -685,15 +687,17 @@ def _build_appointment_html(
     <!--<![endif]-->
     <style>
         @media (prefers-color-scheme: dark) {{
-            body, .email-body, .email-body table {{ background-color:#FBF8F3 !important; }}
-            .email-card {{ background-color:#FFFFFF !important; }}
+            body, .email-body, .email-body table {{ background-color:#FBF8F3 !important; color:#2C2C2C !important; }}
+            .email-card {{ background-color:#FFFFFF !important; color:#2C2C2C !important; }}
             .email-header {{ background-color:#4A8590 !important; }}
             .email-footer {{ background-color:#2C2C2C !important; }}
+            h1, h2, p, td, span, a {{ color: inherit !important; }}
         }}
-        [data-ogsc] body, [data-ogsc] .email-body, [data-ogsc] .email-body table {{ background-color:#FBF8F3 !important; }}
-        [data-ogsc] .email-card {{ background-color:#FFFFFF !important; }}
+        [data-ogsc] body, [data-ogsc] .email-body, [data-ogsc] .email-body table {{ background-color:#FBF8F3 !important; color:#2C2C2C !important; }}
+        [data-ogsc] .email-card {{ background-color:#FFFFFF !important; color:#2C2C2C !important; }}
         [data-ogsc] .email-header {{ background-color:#4A8590 !important; }}
         [data-ogsc] .email-footer {{ background-color:#2C2C2C !important; }}
+        [data-ogsc] h1, [data-ogsc] h2, [data-ogsc] p, [data-ogsc] td {{ color: inherit !important; }}
     </style>
 </head>
 <body style="margin:0; padding:0; background-color:#FBF8F3;" bgcolor="#FBF8F3" class="email-body">
@@ -1437,8 +1441,8 @@ def send_password_reset_email(user, reset_url: str) -> None:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="color-scheme" content="light dark">
-    <meta name="supported-color-schemes" content="light dark">
+    <meta name="color-scheme" content="light only">
+    <meta name="supported-color-schemes" content="light only">
     <title>Recuper&aacute; tu contrase&ntilde;a</title>
     <!--[if !mso]><!-->
     <style>
@@ -1447,15 +1451,17 @@ def send_password_reset_email(user, reset_url: str) -> None:
     <!--<![endif]-->
     <style>
         @media (prefers-color-scheme: dark) {{
-            body, .email-body, .email-body table {{ background-color:#FBF8F3 !important; }}
-            .email-card {{ background-color:#FFFFFF !important; }}
+            body, .email-body, .email-body table {{ background-color:#FBF8F3 !important; color:#2C2C2C !important; }}
+            .email-card {{ background-color:#FFFFFF !important; color:#2C2C2C !important; }}
             .email-header {{ background-color:#4A8590 !important; }}
             .email-footer {{ background-color:#2C2C2C !important; }}
+            h1, h2, p, td, span, a {{ color: inherit !important; }}
         }}
-        [data-ogsc] body, [data-ogsc] .email-body, [data-ogsc] .email-body table {{ background-color:#FBF8F3 !important; }}
-        [data-ogsc] .email-card {{ background-color:#FFFFFF !important; }}
+        [data-ogsc] body, [data-ogsc] .email-body, [data-ogsc] .email-body table {{ background-color:#FBF8F3 !important; color:#2C2C2C !important; }}
+        [data-ogsc] .email-card {{ background-color:#FFFFFF !important; color:#2C2C2C !important; }}
         [data-ogsc] .email-header {{ background-color:#4A8590 !important; }}
         [data-ogsc] .email-footer {{ background-color:#2C2C2C !important; }}
+        [data-ogsc] h1, [data-ogsc] h2, [data-ogsc] p, [data-ogsc] td {{ color: inherit !important; }}
     </style>
 </head>
 <body style="margin:0; padding:0; background-color:#FBF8F3;" bgcolor="#FBF8F3" class="email-body">
@@ -1592,8 +1598,8 @@ def send_password_changed_email(user) -> None:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="color-scheme" content="light dark">
-    <meta name="supported-color-schemes" content="light dark">
+    <meta name="color-scheme" content="light only">
+    <meta name="supported-color-schemes" content="light only">
     <title>Contrase&ntilde;a actualizada</title>
     <!--[if !mso]><!-->
     <style>
@@ -1602,15 +1608,17 @@ def send_password_changed_email(user) -> None:
     <!--<![endif]-->
     <style>
         @media (prefers-color-scheme: dark) {{
-            body, .email-body, .email-body table {{ background-color:#FBF8F3 !important; }}
-            .email-card {{ background-color:#FFFFFF !important; }}
+            body, .email-body, .email-body table {{ background-color:#FBF8F3 !important; color:#2C2C2C !important; }}
+            .email-card {{ background-color:#FFFFFF !important; color:#2C2C2C !important; }}
             .email-header {{ background-color:#4A8590 !important; }}
             .email-footer {{ background-color:#2C2C2C !important; }}
+            h1, h2, p, td, span, a {{ color: inherit !important; }}
         }}
-        [data-ogsc] body, [data-ogsc] .email-body, [data-ogsc] .email-body table {{ background-color:#FBF8F3 !important; }}
-        [data-ogsc] .email-card {{ background-color:#FFFFFF !important; }}
+        [data-ogsc] body, [data-ogsc] .email-body, [data-ogsc] .email-body table {{ background-color:#FBF8F3 !important; color:#2C2C2C !important; }}
+        [data-ogsc] .email-card {{ background-color:#FFFFFF !important; color:#2C2C2C !important; }}
         [data-ogsc] .email-header {{ background-color:#4A8590 !important; }}
         [data-ogsc] .email-footer {{ background-color:#2C2C2C !important; }}
+        [data-ogsc] h1, [data-ogsc] h2, [data-ogsc] p, [data-ogsc] td {{ color: inherit !important; }}
     </style>
 </head>
 <body style="margin:0; padding:0; background-color:#FBF8F3;" bgcolor="#FBF8F3" class="email-body">
