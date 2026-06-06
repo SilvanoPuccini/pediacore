@@ -256,25 +256,39 @@ def _build_payment_receipt_html(
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+    <meta name="supported-color-schemes" content="light dark">
     <title>Comprobante de pago</title>
     <!--[if !mso]><!-->
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&amp;family=Plus+Jakarta+Sans:wght@400;600&amp;display=swap');
     </style>
     <!--<![endif]-->
+    <style>
+        @media (prefers-color-scheme: dark) {{
+            body, .email-body, .email-body table {{ background-color:#FBF8F3 !important; }}
+            .email-card {{ background-color:#FFFFFF !important; }}
+            .email-header {{ background-color:#4A8590 !important; }}
+            .email-footer {{ background-color:#2C2C2C !important; }}
+        }}
+        [data-ogsc] body, [data-ogsc] .email-body, [data-ogsc] .email-body table {{ background-color:#FBF8F3 !important; }}
+        [data-ogsc] .email-card {{ background-color:#FFFFFF !important; }}
+        [data-ogsc] .email-header {{ background-color:#4A8590 !important; }}
+        [data-ogsc] .email-footer {{ background-color:#2C2C2C !important; }}
+    </style>
 </head>
-<body style="margin:0; padding:0; background-color:#FBF8F3;">
+<body style="margin:0; padding:0; background-color:#FBF8F3;" class="email-body">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#FBF8F3;">
         <tr>
             <td align="center" style="padding:32px 16px;">
 
-                <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background-color:#FFFFFF; border-radius:12px; overflow:hidden;">
+                <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background-color:#FFFFFF; border-radius:12px; overflow:hidden;" class="email-card">
 
                     <!-- Header -->
                     <tr>
                         <td style="background-color:#4A8590; padding:32px 40px; text-align:center;">
                             <div style="width:120px; height:120px; border-radius:50%; overflow:hidden; margin:0 auto; background-color:#ffffff; border:3px solid rgba(255,255,255,0.2);">
-                                <img src="{logo_url}" alt="Dra. Estefi Pediatra" width="160" style="width:160px; height:auto; display:block; margin:-8px 0 0 -20px; object-fit:cover;">
+                                <img src="{logo_url}" alt="Dra. Estefi Pediatra" width="120" height="120" style="width:100%; height:100%; display:block; object-fit:cover; object-position:center;">
                             </div>
                             <h1 style="font-family:'Fraunces',Georgia,'Times New Roman',serif; color:#FFFFFF; margin:14px 0 0; font-size:22px; font-weight:600;">Dra. Estefi</h1>
                             <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:rgba(255,255,255,0.75); margin:4px 0 0; font-size:12px; letter-spacing:0.5px;">Pediatra &middot; Sur de Chile</p>
@@ -345,9 +359,9 @@ def _build_payment_receipt_html(
 
                     <!-- Footer -->
                     <tr>
-                        <td style="background-color:#2C2C2C; padding:28px 40px; text-align:center;">
+                        <td style="background-color:#2C2C2C; padding:28px 40px; text-align:center;" class="email-footer">
                             <div style="width:80px; height:80px; border-radius:50%; overflow:hidden; margin:0 auto 12px; background-color:#ffffff; border:2px solid rgba(255,255,255,0.2);">
-                                <img src="{logo_url}" alt="" width="108" style="width:108px; height:auto; display:block; margin:-7px 0 0 -14px; object-fit:cover;">
+                                <img src="{logo_url}" alt="" width="80" height="80" style="width:100%; height:100%; display:block; object-fit:cover; object-position:center;">
                             </div>
                             <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.9); font-size:13px; margin:0 0 4px; font-weight:600;">Dra. Estefi</p>
                             <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.6); font-size:12px; margin:0 0 20px;">Pediatr&iacute;a con tiempo, calidez y atenci&oacute;n personalizada</p>
@@ -662,25 +676,39 @@ def _build_appointment_html(
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+    <meta name="supported-color-schemes" content="light dark">
     <title>{title}</title>
     <!--[if !mso]><!-->
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&amp;family=Plus+Jakarta+Sans:wght@400;600&amp;display=swap');
     </style>
     <!--<![endif]-->
+    <style>
+        @media (prefers-color-scheme: dark) {{
+            body, .email-body, .email-body table {{ background-color:#FBF8F3 !important; }}
+            .email-card {{ background-color:#FFFFFF !important; }}
+            .email-header {{ background-color:#4A8590 !important; }}
+            .email-footer {{ background-color:#2C2C2C !important; }}
+        }}
+        [data-ogsc] body, [data-ogsc] .email-body, [data-ogsc] .email-body table {{ background-color:#FBF8F3 !important; }}
+        [data-ogsc] .email-card {{ background-color:#FFFFFF !important; }}
+        [data-ogsc] .email-header {{ background-color:#4A8590 !important; }}
+        [data-ogsc] .email-footer {{ background-color:#2C2C2C !important; }}
+    </style>
 </head>
-<body style="margin:0; padding:0; background-color:#FBF8F3;">
+<body style="margin:0; padding:0; background-color:#FBF8F3;" class="email-body">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#FBF8F3;">
         <tr>
             <td align="center" style="padding:32px 16px;">
 
-                <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background-color:#FFFFFF; border-radius:12px; overflow:hidden;">
+                <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background-color:#FFFFFF; border-radius:12px; overflow:hidden;" class="email-card">
 
                     <!-- Header: brand bar -->
                     <tr>
-                        <td style="background-color:#4A8590; padding:32px 40px; text-align:center;">
+                        <td style="background-color:#4A8590; padding:32px 40px; text-align:center;" class="email-header">
                             <div style="width:120px; height:120px; border-radius:50%; overflow:hidden; margin:0 auto; background-color:#ffffff; border:3px solid rgba(255,255,255,0.2);">
-                                <img src="{logo_url}" alt="Dra. Estefi Pediatra" width="160" style="width:160px; height:auto; display:block; margin:-8px 0 0 -20px; object-fit:cover;">
+                                <img src="{logo_url}" alt="Dra. Estefi Pediatra" width="120" height="120" style="width:100%; height:100%; display:block; object-fit:cover; object-position:center;">
                             </div>
                             <h1 style="font-family:'Fraunces',Georgia,'Times New Roman',serif; color:#FFFFFF; margin:14px 0 0; font-size:22px; font-weight:600;">Dra. Estefi</h1>
                             <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.75); margin:4px 0 0; font-size:12px; letter-spacing:0.5px;">Pediatra &middot; Sur de Chile</p>
@@ -731,9 +759,9 @@ def _build_appointment_html(
 
                     <!-- Footer: contact + social -->
                     <tr>
-                        <td style="background-color:#2C2C2C; padding:28px 40px; text-align:center;">
+                        <td style="background-color:#2C2C2C; padding:28px 40px; text-align:center;" class="email-footer">
                             <div style="width:80px; height:80px; border-radius:50%; overflow:hidden; margin:0 auto 12px; background-color:#ffffff; border:2px solid rgba(255,255,255,0.2);">
-                                <img src="{logo_url}" alt="" width="108" style="width:108px; height:auto; display:block; margin:-7px 0 0 -14px; object-fit:cover;">
+                                <img src="{logo_url}" alt="" width="80" height="80" style="width:100%; height:100%; display:block; object-fit:cover; object-position:center;">
                             </div>
                             <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.9); font-size:13px; margin:0 0 4px; font-weight:600;">Dra. Estefi</p>
                             <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.6); font-size:12px; margin:0 0 20px;">Pediatr&iacute;a con tiempo, calidez y atenci&oacute;n personalizada</p>
@@ -1410,24 +1438,38 @@ def send_password_reset_email(user, reset_url: str) -> None:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+    <meta name="supported-color-schemes" content="light dark">
     <title>Recuper&aacute; tu contrase&ntilde;a</title>
     <!--[if !mso]><!-->
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&amp;family=Plus+Jakarta+Sans:wght@400;600&amp;display=swap');
     </style>
     <!--<![endif]-->
+    <style>
+        @media (prefers-color-scheme: dark) {{
+            body, .email-body, .email-body table {{ background-color:#FBF8F3 !important; }}
+            .email-card {{ background-color:#FFFFFF !important; }}
+            .email-header {{ background-color:#4A8590 !important; }}
+            .email-footer {{ background-color:#2C2C2C !important; }}
+        }}
+        [data-ogsc] body, [data-ogsc] .email-body, [data-ogsc] .email-body table {{ background-color:#FBF8F3 !important; }}
+        [data-ogsc] .email-card {{ background-color:#FFFFFF !important; }}
+        [data-ogsc] .email-header {{ background-color:#4A8590 !important; }}
+        [data-ogsc] .email-footer {{ background-color:#2C2C2C !important; }}
+    </style>
 </head>
-<body style="margin:0; padding:0; background-color:#FBF8F3;">
+<body style="margin:0; padding:0; background-color:#FBF8F3;" class="email-body">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#FBF8F3;">
         <tr>
             <td align="center" style="padding:32px 16px;">
-                <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background-color:#FFFFFF; border-radius:12px; overflow:hidden;">
+                <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background-color:#FFFFFF; border-radius:12px; overflow:hidden;" class="email-card">
 
                     <!-- Header -->
                     <tr>
-                        <td style="background-color:#4A8590; padding:32px 40px; text-align:center;">
+                        <td style="background-color:#4A8590; padding:32px 40px; text-align:center;" class="email-header">
                             <div style="width:120px; height:120px; border-radius:50%; overflow:hidden; margin:0 auto; background-color:#ffffff; border:3px solid rgba(255,255,255,0.2);">
-                                <img src="{logo_url}" alt="Dra. Estefi Pediatra" width="160" style="width:160px; height:auto; display:block; margin:-8px 0 0 -20px; object-fit:cover;">
+                                <img src="{logo_url}" alt="Dra. Estefi Pediatra" width="120" height="120" style="width:100%; height:100%; display:block; object-fit:cover; object-position:center;">
                             </div>
                             <h1 style="font-family:'Fraunces',Georgia,'Times New Roman',serif; color:#FFFFFF; margin:14px 0 0; font-size:22px; font-weight:600;">Dra. Estefi</h1>
                             <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:rgba(255,255,255,0.75); margin:4px 0 0; font-size:12px; letter-spacing:0.5px;">Pediatra &middot; Sur de Chile</p>
@@ -1495,9 +1537,9 @@ def send_password_reset_email(user, reset_url: str) -> None:
 
                     <!-- Footer -->
                     <tr>
-                        <td style="background-color:#2C2C2C; padding:28px 40px; text-align:center;">
+                        <td style="background-color:#2C2C2C; padding:28px 40px; text-align:center;" class="email-footer">
                             <div style="width:80px; height:80px; border-radius:50%; overflow:hidden; margin:0 auto 12px; background-color:#ffffff; border:2px solid rgba(255,255,255,0.2);">
-                                <img src="{logo_url}" alt="" width="108" style="width:108px; height:auto; display:block; margin:-7px 0 0 -14px; object-fit:cover;">
+                                <img src="{logo_url}" alt="" width="80" height="80" style="width:100%; height:100%; display:block; object-fit:cover; object-position:center;">
                             </div>
                             <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.9); font-size:13px; margin:0 0 4px; font-weight:600;">Dra. Estefi</p>
                             <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.6); font-size:12px; margin:0 0 20px;">Pediatr&iacute;a con tiempo, calidez y atenci&oacute;n personalizada</p>
@@ -1551,24 +1593,38 @@ def send_password_changed_email(user) -> None:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+    <meta name="supported-color-schemes" content="light dark">
     <title>Contrase&ntilde;a actualizada</title>
     <!--[if !mso]><!-->
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&amp;family=Plus+Jakarta+Sans:wght@400;600&amp;display=swap');
     </style>
     <!--<![endif]-->
+    <style>
+        @media (prefers-color-scheme: dark) {{
+            body, .email-body, .email-body table {{ background-color:#FBF8F3 !important; }}
+            .email-card {{ background-color:#FFFFFF !important; }}
+            .email-header {{ background-color:#4A8590 !important; }}
+            .email-footer {{ background-color:#2C2C2C !important; }}
+        }}
+        [data-ogsc] body, [data-ogsc] .email-body, [data-ogsc] .email-body table {{ background-color:#FBF8F3 !important; }}
+        [data-ogsc] .email-card {{ background-color:#FFFFFF !important; }}
+        [data-ogsc] .email-header {{ background-color:#4A8590 !important; }}
+        [data-ogsc] .email-footer {{ background-color:#2C2C2C !important; }}
+    </style>
 </head>
-<body style="margin:0; padding:0; background-color:#FBF8F3;">
+<body style="margin:0; padding:0; background-color:#FBF8F3;" class="email-body">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#FBF8F3;">
         <tr>
             <td align="center" style="padding:32px 16px;">
-                <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background-color:#FFFFFF; border-radius:12px; overflow:hidden;">
+                <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background-color:#FFFFFF; border-radius:12px; overflow:hidden;" class="email-card">
 
                     <!-- Header -->
                     <tr>
-                        <td style="background-color:#4A8590; padding:32px 40px; text-align:center;">
+                        <td style="background-color:#4A8590; padding:32px 40px; text-align:center;" class="email-header">
                             <div style="width:120px; height:120px; border-radius:50%; overflow:hidden; margin:0 auto; background-color:#ffffff; border:3px solid rgba(255,255,255,0.2);">
-                                <img src="{logo_url}" alt="Dra. Estefi Pediatra" width="160" style="width:160px; height:auto; display:block; margin:-8px 0 0 -20px; object-fit:cover;">
+                                <img src="{logo_url}" alt="Dra. Estefi Pediatra" width="120" height="120" style="width:100%; height:100%; display:block; object-fit:cover; object-position:center;">
                             </div>
                             <h1 style="font-family:'Fraunces',Georgia,'Times New Roman',serif; color:#FFFFFF; margin:14px 0 0; font-size:22px; font-weight:600;">Dra. Estefi</h1>
                             <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:rgba(255,255,255,0.75); margin:4px 0 0; font-size:12px; letter-spacing:0.5px;">Pediatra &middot; Sur de Chile</p>
@@ -1633,9 +1689,9 @@ def send_password_changed_email(user) -> None:
 
                     <!-- Footer -->
                     <tr>
-                        <td style="background-color:#2C2C2C; padding:28px 40px; text-align:center;">
+                        <td style="background-color:#2C2C2C; padding:28px 40px; text-align:center;" class="email-footer">
                             <div style="width:80px; height:80px; border-radius:50%; overflow:hidden; margin:0 auto 12px; background-color:#ffffff; border:2px solid rgba(255,255,255,0.2);">
-                                <img src="{logo_url}" alt="" width="108" style="width:108px; height:auto; display:block; margin:-7px 0 0 -14px; object-fit:cover;">
+                                <img src="{logo_url}" alt="" width="80" height="80" style="width:100%; height:100%; display:block; object-fit:cover; object-position:center;">
                             </div>
                             <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.9); font-size:13px; margin:0 0 4px; font-weight:600;">Dra. Estefi</p>
                             <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.6); font-size:12px; margin:0 0 20px;">Pediatr&iacute;a con tiempo, calidez y atenci&oacute;n personalizada</p>
