@@ -11,8 +11,12 @@ class NotificationsConfig(AppConfig):
     verbose_name = "Notificaciones"
 
     def ready(self) -> None:
-        """Register django-q2 periodic tasks when the app is ready."""
-        self._register_reminder_schedules()
+        """Register django-q2 periodic tasks on startup."""
+        import warnings
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message="Accessing the database during app initialization")
+            self._register_reminder_schedules()
 
     def _register_reminder_schedules(self) -> None:
         """

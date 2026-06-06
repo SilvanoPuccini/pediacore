@@ -11,8 +11,12 @@ class SchedulingConfig(AppConfig):
     verbose_name = "Agenda"
 
     def ready(self) -> None:
-        """Register django-q2 periodic tasks when the app is ready."""
-        self._register_hold_expiry_schedule()
+        """Register django-q2 periodic tasks on startup."""
+        import warnings
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message="Accessing the database during app initialization")
+            self._register_hold_expiry_schedule()
 
     def _register_hold_expiry_schedule(self) -> None:
         """
