@@ -277,6 +277,11 @@ def _build_payment_receipt_html(
         [data-ogsc] .email-header {{ background-color:#4A8590 !important; }}
         [data-ogsc] .email-footer {{ background-color:#2C2C2C !important; }}
         [data-ogsc] h1, [data-ogsc] h2, [data-ogsc] p, [data-ogsc] td {{ color: inherit !important; }}
+        [data-ogscm] body, [data-ogscm] .email-body, [data-ogscm] .email-body table {{ background-color:#FBF8F3 !important; color:#2C2C2C !important; }}
+        [data-ogscm] .email-card {{ background-color:#FFFFFF !important; color:#2C2C2C !important; }}
+        [data-ogscm] .email-header {{ background-color:#4A8590 !important; }}
+        [data-ogscm] .email-footer {{ background-color:#2C2C2C !important; }}
+        [data-ogscm] h1, [data-ogscm] h2, [data-ogscm] p, [data-ogscm] td {{ color: inherit !important; }}
     </style>
 </head>
 <body style="margin:0; padding:0; background-color:#FBF8F3;" bgcolor="#FBF8F3" class="email-body">
@@ -286,9 +291,10 @@ def _build_payment_receipt_html(
 
                 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background-color:#FFFFFF; border-radius:12px; overflow:hidden;" bgcolor="#FFFFFF" class="email-card">
 
-                    <!-- Header -->
+                    <!-- Header: brand bar -->
                     <tr>
                         <td style="background-color:#4A8590; padding:32px 40px; text-align:center;" bgcolor="#4A8590" class="email-header">
+                            <div style="width:120px; height:120px; border-radius:50%; overflow:hidden; margin:0 auto; background-color:#ffffff; border:3px solid rgba(255,255,255,0.2);">
                                 <img src="{logo_url}" alt="Dra. Estefi Pediatra" width="120" style="display:block; width:120px; height:auto; margin:0 auto;">
                             </div>
                             <h1 style="font-family:'Fraunces',Georgia,'Times New Roman',serif; color:#FFFFFF; margin:14px 0 0; font-size:22px; font-weight:600;">Dra. Estefi</h1>
@@ -334,7 +340,7 @@ def _build_payment_receipt_html(
 
                                 <!-- Details header -->
                                 <tr>
-                                    <td style="padding:0 0 4px; border-bottom:1px solid #f0f0f0;">
+                                    <td style="padding:0 0 4px; border-bottom:1px solid #f0f0f0;" bgcolor="#FFFFFF">
                                         <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:12px; text-transform:uppercase; letter-spacing:2px; color:#6b7280; font-weight:700; margin:0;">Detalles del Servicio</p>
                                     </td>
                                 </tr>
@@ -343,7 +349,7 @@ def _build_payment_receipt_html(
                                 {rows_html}
 
                                 <!-- Spacer -->
-                                <tr><td style="padding:12px 0;"></td></tr>
+                                <tr><td style="padding:12px 0;" bgcolor="#FFFFFF"></td></tr>
 
                                 <!-- Warning -->
                                 {warning_html}
@@ -610,7 +616,7 @@ def _build_appointment_html(
         detail_section_html = f"""
                             <!-- Details header -->
                             <tr>
-                                <td style="padding:0 0 4px; border-bottom:1px solid #f0f0f0;">
+                                <td style="padding:0 0 4px; border-bottom:1px solid #f0f0f0;" bgcolor="#FFFFFF">
                                     <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:12px; text-transform:uppercase; letter-spacing:2px; color:#6b7280; font-weight:700; margin:0;">Detalles de la cita</p>
                                 </td>
                             </tr>
@@ -698,6 +704,11 @@ def _build_appointment_html(
         [data-ogsc] .email-header {{ background-color:#4A8590 !important; }}
         [data-ogsc] .email-footer {{ background-color:#2C2C2C !important; }}
         [data-ogsc] h1, [data-ogsc] h2, [data-ogsc] p, [data-ogsc] td {{ color: inherit !important; }}
+        [data-ogscm] body, [data-ogscm] .email-body, [data-ogscm] .email-body table {{ background-color:#FBF8F3 !important; color:#2C2C2C !important; }}
+        [data-ogscm] .email-card {{ background-color:#FFFFFF !important; color:#2C2C2C !important; }}
+        [data-ogscm] .email-header {{ background-color:#4A8590 !important; }}
+        [data-ogscm] .email-footer {{ background-color:#2C2C2C !important; }}
+        [data-ogscm] h1, [data-ogscm] h2, [data-ogscm] p, [data-ogscm] td {{ color: inherit !important; }}
     </style>
 </head>
 <body style="margin:0; padding:0; background-color:#FBF8F3;" bgcolor="#FBF8F3" class="email-body">
