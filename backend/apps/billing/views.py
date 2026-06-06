@@ -511,6 +511,34 @@ class PaymentViewSet(viewsets.ModelViewSet):
             except Exception as exc:
                 logger.error("process_card: send_payment_receipt failed for Payment #%s: %s", payment.pk, exc)
 
+            # ── Generate Zoom meeting if applicable ────────────────────────────────
+            try:
+                if appointment and appointment.is_online and appointment.call_platform == "ZOOM":
+                    from apps.scheduling.services.zoom_service import create_zoom_meeting
+
+                    meeting_start = datetime.combine(
+                        appointment.scheduled_date, appointment.start_time
+                    )
+                    join_url = create_zoom_meeting(
+                        topic=f"Consulta — {appointment.patient.full_name}",
+                        start_time=meeting_start,
+                        duration_minutes=appointment.service.duration_minutes,
+                    )
+                    appointment.meeting_link = join_url
+                    appointment.save(update_fields=["meeting_link", "updated_at"])
+                    logger.info(
+                        "process_card: Zoom meeting created for Appointment #%s: %s",
+                        appointment.pk,
+                        join_url,
+                    )
+            except Exception as exc:
+                logger.error(
+                    "process_card: Zoom meeting creation failed for Appointment #%s: %s",
+                    appointment.pk if appointment else "—",
+                    exc,
+                )
+
+            # ── Create tokens + send confirmation email with action buttons ────────
             try:
                 if appointment:
                     tokens = create_tokens_for_appointment(appointment)
