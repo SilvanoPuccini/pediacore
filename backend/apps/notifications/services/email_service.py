@@ -1345,7 +1345,7 @@ def send_transfer_receipt_uploaded(payment) -> None:
     )
 
 
-def send_transfer_confirmed(payment) -> None:
+def send_transfer_confirmed(payment, token_urls: dict | None = None) -> None:
     """
     Notify the tutor that their bank transfer was confirmed by the doctor.
 
@@ -1353,6 +1353,8 @@ def send_transfer_confirmed(payment) -> None:
 
     Args:
         payment: The Payment instance (status=COMPLETED).
+        token_urls: Optional dict with keys 'confirm', 'cancel', 'reschedule'.
+            When provided, the email includes clickable action buttons.
     """
     from apps.patients.models import TutorPatient
 
@@ -1371,16 +1373,24 @@ def send_transfer_confirmed(payment) -> None:
         tutor = link.tutor
 
         subject = f"Tu pago fue confirmado — consulta del {_fmt_date_short(appointment.scheduled_date) if appointment else '—'}"
+        body_lines = [
+            f"Hola {tutor.first_name},",
+            f"Tu transferencia de <strong>${amount_display} {payment.currency}</strong> "
+            f"fue recibida y confirmada por la doctora.",
+            f"Tu cita está confirmada para el {scheduled_date} a las {start_time}.",
+        ]
+        if appointment:
+            body_lines.append(f"Servicio: {appointment.service.name}")
+            body_lines.extend(_location_lines(appointment.location))
+            if appointment.is_online and appointment.meeting_link:
+                body_lines.append(
+                    f'Enlace de videollamada: <a href="{appointment.meeting_link}">'
+                    f"{appointment.meeting_link}</a>"
+                )
         html_body = _build_appointment_html(
             title="Pago confirmado",
-            body_lines=[
-                f"Hola {tutor.first_name},",
-                f"Tu transferencia de <strong>${amount_display} {payment.currency}</strong> "
-                f"fue recibida y confirmada por la doctora.",
-                f"Tu cita está confirmada para el {scheduled_date} a las {start_time}.",
-                f"Servicio: {appointment.service.name}" if appointment and appointment.service else "",
-                *(_location_lines(appointment.location) if appointment else []),
-            ],
+            body_lines=body_lines,
+            token_urls=token_urls,
         )
 
         send_email(
