@@ -65,6 +65,10 @@ const STATUS_CONFIG: Record<string, { label: string; classes: string }> = {
     label: "Reservado",
     classes: "bg-amber-50 text-amber-700 border border-amber-200",
   },
+  PENDING: {
+    label: "Pendiente",
+    classes: "bg-amber-50 text-amber-700 border border-amber-200",
+  },
   EXPIRED: {
     label: "Expirado",
     classes: "bg-gray-100 text-gray-400 border border-gray-200",
@@ -272,7 +276,7 @@ export default function AppointmentDetail() {
   }
 
   const isConfirmed = appointment.status === "CONFIRMED";
-  const canCancel = appointment.status === "CONFIRMED" || appointment.status === "HOLD";
+  const canCancel = appointment.status === "CONFIRMED" || appointment.status === "HOLD" || appointment.status === "PENDING";
   const isCancelled = appointment.status === "CANCELLED";
 
   return (
