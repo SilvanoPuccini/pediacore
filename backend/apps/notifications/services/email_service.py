@@ -211,7 +211,7 @@ def _build_payment_receipt_html(
     for label, value, icon_path in detail_rows:
         rows_html += f"""
                         <tr>
-                            <td style="padding:12px 0; border-bottom:1px dashed #f0f0f0;">
+                            <td style="padding:12px 0; border-bottom:1px dashed #f0f0f0;" bgcolor="#FFFFFF">
                                 <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
                                     <tr>
                                         <td style="font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:14px; color:#666666; vertical-align:middle; width:130px;">
@@ -231,7 +231,7 @@ def _build_payment_receipt_html(
     if boleta_warning:
         warning_html = """
                     <tr>
-                        <td style="padding:0 0 24px;">
+                        <td style="padding:0 0 24px;" bgcolor="#FFFFFF">
                             <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color:#FFFBEB; border:1px solid #F59E0B; border-radius:8px;">
                                 <tr>
                                     <td style="padding:14px 18px;">
@@ -282,7 +282,7 @@ def _build_payment_receipt_html(
 <body style="margin:0; padding:0; background-color:#FBF8F3;" bgcolor="#FBF8F3" class="email-body">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#FBF8F3;" bgcolor="#FBF8F3">
         <tr>
-            <td align="center" style="padding:32px 16px;">
+            <td align="center" style="padding:32px 16px;" bgcolor="#FBF8F3">
 
                 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background-color:#FFFFFF; border-radius:12px; overflow:hidden;" bgcolor="#FFFFFF" class="email-card">
 
@@ -298,12 +298,12 @@ def _build_payment_receipt_html(
 
                     <!-- Body -->
                     <tr>
-                        <td style="padding:36px 40px 0;">
+                        <td style="padding:36px 40px 0;" bgcolor="#FFFFFF">
                             <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
 
                                 <!-- Hero -->
                                 <tr>
-                                    <td style="text-align:center; padding:0 0 24px;">
+                                    <td style="text-align:center; padding:0 0 24px;" bgcolor="#FFFFFF">
                                         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4A8590" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:0 auto 12px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                                         <h2 style="font-family:'Fraunces',Georgia,'Times New Roman',serif; color:#4A8590; font-size:24px; margin:0 0 8px; font-weight:600;">Pago recibido</h2>
                                         <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:#2C2C2C; font-size:16px; line-height:1.6; margin:0;">Gracias por confiar en nosotros.</p>
@@ -312,7 +312,7 @@ def _build_payment_receipt_html(
 
                                 <!-- Greeting -->
                                 <tr>
-                                    <td style="padding:0 0 24px;">
+                                    <td style="padding:0 0 24px;" bgcolor="#FFFFFF">
                                         <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:#2C2C2C; font-size:16px; line-height:1.6; margin:0 0 8px;">Hola <strong>{tutor_name}</strong>,</p>
                                         <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:#2C2C2C; font-size:16px; line-height:1.6; margin:0;">Hemos recibido el pago de tu pr&oacute;xima cita. A continuaci&oacute;n encontrar&aacute;s los detalles de tu comprobante.</p>
                                     </td>
@@ -320,10 +320,10 @@ def _build_payment_receipt_html(
 
                                 <!-- Amount box -->
                                 <tr>
-                                    <td style="padding:0 0 24px;">
+                                    <td style="padding:0 0 24px;" bgcolor="#FFFFFF">
                                         <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border:1px solid #e5e7eb; border-radius:12px;">
                                             <tr>
-                                                <td style="padding:24px; text-align:center;">
+                                                <td style="padding:24px; text-align:center;" bgcolor="#FFFFFF">
                                                     <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:12px; text-transform:uppercase; letter-spacing:2px; color:#6b7280; font-weight:700; margin:0 0 8px;">Total Pagado</p>
                                                     <p style="font-family:'Fraunces',Georgia,'Times New Roman',serif; font-size:32px; color:#2C2C2C; font-weight:700; margin:0;">${amount_display} {currency}</p>
                                                 </td>
@@ -350,7 +350,7 @@ def _build_payment_receipt_html(
 
                                 <!-- Disclaimer -->
                                 <tr>
-                                    <td style="text-align:center; padding:0 0 12px;">
+                                    <td style="text-align:center; padding:0 0 12px;" bgcolor="#FFFFFF">
                                         <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:11px; color:#A0A0A0; margin:0;">Este es un correo autom&aacute;tico, por favor no respondas a este mensaje.</p>
                                     </td>
                                 </tr>
@@ -381,7 +381,7 @@ def _build_payment_receipt_html(
 
                     <!-- Bottom bar -->
                     <tr>
-                        <td style="background-color:#1f1f1f; padding:14px 40px; text-align:center;">
+                        <td style="background-color:#1f1f1f; padding:14px 40px; text-align:center;" bgcolor="#1f1f1f">
                             <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.5); font-size:11px; margin:0;">
                                 &copy; 2026 Dra. Estefi Pediatra &middot; estefipediatra.com
                             </p>
@@ -524,7 +524,7 @@ def _build_appointment_html(
         )
         return f"""
                         <tr>
-                            <td style="padding:12px 0; border-bottom:1px dashed #f0f0f0;">
+                            <td style="padding:12px 0; border-bottom:1px dashed #f0f0f0;" bgcolor="#FFFFFF">
                                 <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
                                     <tr>
                                         <td style="font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:14px; color:#666666; vertical-align:middle; width:150px;">
@@ -548,7 +548,7 @@ def _build_appointment_html(
         )
         return f"""
                         <tr>
-                            <td style="padding:12px 0; border-bottom:1px dashed #f0f0f0;">
+                            <td style="padding:12px 0; border-bottom:1px dashed #f0f0f0;" bgcolor="#FFFFFF">
                                 <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
                                     <tr>
                                         <td style="font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:14px; color:#666666; vertical-align:middle; width:150px;">
@@ -703,7 +703,7 @@ def _build_appointment_html(
 <body style="margin:0; padding:0; background-color:#FBF8F3;" bgcolor="#FBF8F3" class="email-body">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#FBF8F3;" bgcolor="#FBF8F3">
         <tr>
-            <td align="center" style="padding:32px 16px;">
+            <td align="center" style="padding:32px 16px;" bgcolor="#FBF8F3">
 
                 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background-color:#FFFFFF; border-radius:12px; overflow:hidden;" bgcolor="#FFFFFF" class="email-card">
 
@@ -720,12 +720,12 @@ def _build_appointment_html(
 
                     <!-- Body content -->
                     <tr>
-                        <td style="padding:36px 40px 0;">
+                        <td style="padding:36px 40px 0;" bgcolor="#FFFFFF">
                             <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
 
                                 <!-- Hero -->
                                 <tr>
-                                    <td style="text-align:center; padding:0 0 24px;">
+                                    <td style="text-align:center; padding:0 0 24px;" bgcolor="#FFFFFF">
                                         {hero_svg}
                                         <h2 style="font-family:'Fraunces',Georgia,'Times New Roman',serif; color:#4A8590; font-size:24px; margin:0; font-weight:600;">{title}</h2>
                                     </td>
@@ -733,7 +733,7 @@ def _build_appointment_html(
 
                                 <!-- Greeting -->
                                 <tr>
-                                    <td style="padding:0 0 20px;">
+                                    <td style="padding:0 0 20px;" bgcolor="#FFFFFF">
                                         {greeting_html}
                                     </td>
                                 </tr>
@@ -747,11 +747,11 @@ def _build_appointment_html(
                                 {f'<tr><td style="padding:0 0 8px;">{extra_html}</td></tr>' if extra_html else ''}
 
                                 <!-- Action buttons -->
-                                {f'<tr><td style="padding:0 0 24px;">{action_buttons_html}</td></tr>' if action_buttons_html else ''}
+                                {f'<tr><td style="padding:0 0 24px;" bgcolor="#FFFFFF">{action_buttons_html}</td></tr>' if action_buttons_html else ''}
 
                                 <!-- Disclaimer -->
                                 <tr>
-                                    <td style="text-align:center; padding:0 0 12px;">
+                                    <td style="text-align:center; padding:0 0 12px;" bgcolor="#FFFFFF">
                                         <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:11px; color:#A0A0A0; margin:0;">Este es un correo autom&aacute;tico, por favor no respondas a este mensaje.</p>
                                     </td>
                                 </tr>
@@ -785,7 +785,7 @@ def _build_appointment_html(
 
                     <!-- Bottom bar -->
                     <tr>
-                        <td style="background-color:#1f1f1f; padding:14px 40px; text-align:center;">
+                        <td style="background-color:#1f1f1f; padding:14px 40px; text-align:center;" bgcolor="#1f1f1f">
                             <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.5); font-size:11px; margin:0;">
                                 &copy; 2026 Dra. Estefi Pediatra &middot; estefipediatra.com
                             </p>
@@ -1467,7 +1467,7 @@ def send_password_reset_email(user, reset_url: str) -> None:
 <body style="margin:0; padding:0; background-color:#FBF8F3;" bgcolor="#FBF8F3" class="email-body">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#FBF8F3;" bgcolor="#FBF8F3">
         <tr>
-            <td align="center" style="padding:32px 16px;">
+            <td align="center" style="padding:32px 16px;" bgcolor="#FBF8F3">
                 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background-color:#FFFFFF; border-radius:12px; overflow:hidden;" bgcolor="#FFFFFF" class="email-card">
 
                     <!-- Header -->
@@ -1483,12 +1483,12 @@ def send_password_reset_email(user, reset_url: str) -> None:
 
                     <!-- Body -->
                     <tr>
-                        <td style="padding:36px 40px 0;">
+                        <td style="padding:36px 40px 0;" bgcolor="#FFFFFF">
                             <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
 
                                 <!-- Hero -->
                                 <tr>
-                                    <td style="text-align:center; padding:0 0 24px;">
+                                    <td style="text-align:center; padding:0 0 24px;" bgcolor="#FFFFFF">
                                         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4A8590" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:0 auto 12px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                                         <h2 style="font-family:'Fraunces',Georgia,'Times New Roman',serif; color:#4A8590; font-size:24px; margin:0; font-weight:600;">Recuper&aacute; tu contrase&ntilde;a</h2>
                                     </td>
@@ -1496,7 +1496,7 @@ def send_password_reset_email(user, reset_url: str) -> None:
 
                                 <!-- Greeting -->
                                 <tr>
-                                    <td style="padding:0 0 20px;">
+                                    <td style="padding:0 0 20px;" bgcolor="#FFFFFF">
                                         <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:#2C2C2C; font-size:16px; line-height:1.6; margin:0 0 12px;">Hola <strong>{first_name}</strong>,</p>
                                         <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:#2C2C2C; font-size:16px; line-height:1.6; margin:0 0 12px;">Recibimos una solicitud para restablecer la contrase&ntilde;a de tu cuenta.</p>
                                         <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:#2C2C2C; font-size:16px; line-height:1.6; margin:0;">Hac&eacute; clic en el bot&oacute;n para crear una nueva contrase&ntilde;a:</p>
@@ -1505,7 +1505,7 @@ def send_password_reset_email(user, reset_url: str) -> None:
 
                                 <!-- CTA Button -->
                                 <tr>
-                                    <td style="padding:0 0 28px; text-align:center;">
+                                    <td style="padding:0 0 28px; text-align:center;" bgcolor="#FFFFFF">
                                         <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;">
                                             <tr>
                                                 <td style="background-color:#4A8590; border-radius:10px; text-align:center; padding:14px 32px;">
@@ -1518,7 +1518,7 @@ def send_password_reset_email(user, reset_url: str) -> None:
 
                                 <!-- Security notice -->
                                 <tr>
-                                    <td style="padding:0 0 24px;">
+                                    <td style="padding:0 0 24px;" bgcolor="#FFFFFF">
                                         <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color:#F7F0E5; border-radius:8px;">
                                             <tr>
                                                 <td style="padding:14px 18px;">
@@ -1532,7 +1532,7 @@ def send_password_reset_email(user, reset_url: str) -> None:
 
                                 <!-- Disclaimer -->
                                 <tr>
-                                    <td style="text-align:center; padding:0 0 12px;">
+                                    <td style="text-align:center; padding:0 0 12px;" bgcolor="#FFFFFF">
                                         <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:11px; color:#A0A0A0; margin:0;">Este es un correo autom&aacute;tico, por favor no respondas a este mensaje.</p>
                                     </td>
                                 </tr>
@@ -1563,7 +1563,7 @@ def send_password_reset_email(user, reset_url: str) -> None:
 
                     <!-- Bottom bar -->
                     <tr>
-                        <td style="background-color:#1f1f1f; padding:14px 40px; text-align:center;">
+                        <td style="background-color:#1f1f1f; padding:14px 40px; text-align:center;" bgcolor="#1f1f1f">
                             <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.5); font-size:11px; margin:0;">
                                 &copy; 2026 Dra. Estefi Pediatra &middot; estefipediatra.com
                             </p>
@@ -1624,7 +1624,7 @@ def send_password_changed_email(user) -> None:
 <body style="margin:0; padding:0; background-color:#FBF8F3;" bgcolor="#FBF8F3" class="email-body">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#FBF8F3;" bgcolor="#FBF8F3">
         <tr>
-            <td align="center" style="padding:32px 16px;">
+            <td align="center" style="padding:32px 16px;" bgcolor="#FBF8F3">
                 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background-color:#FFFFFF; border-radius:12px; overflow:hidden;" bgcolor="#FFFFFF" class="email-card">
 
                     <!-- Header -->
@@ -1640,12 +1640,12 @@ def send_password_changed_email(user) -> None:
 
                     <!-- Body -->
                     <tr>
-                        <td style="padding:36px 40px 0;">
+                        <td style="padding:36px 40px 0;" bgcolor="#FFFFFF">
                             <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
 
                                 <!-- Hero -->
                                 <tr>
-                                    <td style="text-align:center; padding:0 0 24px;">
+                                    <td style="text-align:center; padding:0 0 24px;" bgcolor="#FFFFFF">
                                         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4A8590" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:0 auto 12px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                                         <h2 style="font-family:'Fraunces',Georgia,'Times New Roman',serif; color:#4A8590; font-size:24px; margin:0; font-weight:600;">Contrase&ntilde;a actualizada</h2>
                                     </td>
@@ -1653,7 +1653,7 @@ def send_password_changed_email(user) -> None:
 
                                 <!-- Greeting -->
                                 <tr>
-                                    <td style="padding:0 0 20px;">
+                                    <td style="padding:0 0 20px;" bgcolor="#FFFFFF">
                                         <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:#2C2C2C; font-size:16px; line-height:1.6; margin:0 0 12px;">Hola <strong>{first_name}</strong>,</p>
                                         <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; color:#2C2C2C; font-size:16px; line-height:1.6; margin:0;">Tu contrase&ntilde;a fue cambiada exitosamente. Ya pod&eacute;s iniciar sesi&oacute;n con tu nueva contrase&ntilde;a.</p>
                                     </td>
@@ -1661,7 +1661,7 @@ def send_password_changed_email(user) -> None:
 
                                 <!-- Security alert -->
                                 <tr>
-                                    <td style="padding:0 0 24px;">
+                                    <td style="padding:0 0 24px;" bgcolor="#FFFFFF">
                                         <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color:#FEF2F2; border:1px solid #FECACA; border-radius:8px;">
                                             <tr>
                                                 <td style="padding:14px 18px;">
@@ -1686,7 +1686,7 @@ def send_password_changed_email(user) -> None:
 
                                 <!-- Disclaimer -->
                                 <tr>
-                                    <td style="text-align:center; padding:0 0 12px;">
+                                    <td style="text-align:center; padding:0 0 12px;" bgcolor="#FFFFFF">
                                         <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:11px; color:#A0A0A0; margin:0;">Este es un correo autom&aacute;tico, por favor no respondas a este mensaje.</p>
                                     </td>
                                 </tr>
@@ -1717,7 +1717,7 @@ def send_password_changed_email(user) -> None:
 
                     <!-- Bottom bar -->
                     <tr>
-                        <td style="background-color:#1f1f1f; padding:14px 40px; text-align:center;">
+                        <td style="background-color:#1f1f1f; padding:14px 40px; text-align:center;" bgcolor="#1f1f1f">
                             <p style="font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:rgba(255,255,255,0.5); font-size:11px; margin:0;">
                                 &copy; 2026 Dra. Estefi Pediatra &middot; estefipediatra.com
                             </p>
