@@ -13,6 +13,9 @@ COPY frontend/ .
 ARG VITE_API_URL=/api/v1
 ENV VITE_API_URL=$VITE_API_URL
 
+ARG VITE_MP_PUBLIC_KEY
+ENV VITE_MP_PUBLIC_KEY=$VITE_MP_PUBLIC_KEY
+
 RUN pnpm build
 
 # Stage 2: nginx with frontend build + config

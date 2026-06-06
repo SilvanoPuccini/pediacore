@@ -56,7 +56,9 @@ services:
     build:
       context: .
       dockerfile: infra/nginx/Dockerfile
-      args: {}
+      args:
+        VITE_API_URL: /api/v1
+        VITE_MP_PUBLIC_KEY: ${VITE_MP_PUBLIC_KEY}
     restart: always
     ports:
       - "80:80"
