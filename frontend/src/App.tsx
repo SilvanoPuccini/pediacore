@@ -4,9 +4,7 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
-    // Small delay so lazy-loaded components render before scrolling
-    const id = setTimeout(() => window.scrollTo(0, 0), 50);
-    return () => clearTimeout(id);
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
   }, [pathname]);
   return null;
 }
