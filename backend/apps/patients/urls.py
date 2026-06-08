@@ -11,7 +11,12 @@ Produces:
 
 from django.urls import path
 
-from apps.patients.views import PatientFileViewSet, PatientViewSet, TutorPatientViewSet
+from apps.patients.views import (
+    GrowthHistoryView,
+    PatientFileViewSet,
+    PatientViewSet,
+    TutorPatientViewSet,
+)
 
 app_name = "patients"
 
@@ -33,4 +38,5 @@ urlpatterns = [
     path("patients/<int:patient_pk>/tutors/<int:pk>/", tutor_detail, name="patient-tutor-detail"),
     path("patients/<int:patient_pk>/files/", file_list, name="patient-file-list"),
     path("patients/<int:patient_pk>/files/<int:pk>/", file_detail, name="patient-file-detail"),
+    path("patients/<int:patient_pk>/growth-history/", GrowthHistoryView.as_view(), name="patient-growth-history"),
 ]
