@@ -186,6 +186,83 @@ class TestAppointmentListCreate:
         assert appt1.id in ids
         assert appt2.id not in ids
 
+    def test_filter_appointments_by_location_id(self, doctor_client):
+        client, _ = doctor_client
+        practice = PracticeFactory()
+        location_a = LocationFactory(practice=practice)
+        location_b = LocationFactory(practice=practice)
+        appt_a = AppointmentFactory(practice=practice, location=location_a)
+        appt_b = AppointmentFactory(practice=practice, location=location_b)
+        url = reverse("scheduling:appointment-list") + f"?location_id={location_a.id}"
+        response = client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        ids = [item["id"] for item in response.data["results"]]
+        assert appt_a.id in ids
+        assert appt_b.id not in ids
+
+    def test_filter_appointments_by_date_from(self, doctor_client):
+        client, _ = doctor_client
+        appt_early = AppointmentFactory(scheduled_date=datetime.date(2026, 6, 1))
+        appt_late = AppointmentFactory(scheduled_date=datetime.date(2026, 8, 1))
+        url = reverse("scheduling:appointment-list") + "?date_from=2026-07-01"
+        response = client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        ids = [item["id"] for item in response.data["results"]]
+        assert appt_late.id in ids
+        assert appt_early.id not in ids
+
+    def test_filter_appointments_by_date_to(self, doctor_client):
+        client, _ = doctor_client
+        appt_early = AppointmentFactory(scheduled_date=datetime.date(2026, 5, 1))
+        appt_late = AppointmentFactory(scheduled_date=datetime.date(2026, 9, 1))
+        url = reverse("scheduling:appointment-list") + "?date_to=2026-06-30"
+        response = client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        ids = [item["id"] for item in response.data["results"]]
+        assert appt_early.id in ids
+        assert appt_late.id not in ids
+
+    def test_filter_appointments_combined_date_range(self, doctor_client):
+        client, _ = doctor_client
+        appt_in = AppointmentFactory(scheduled_date=datetime.date(2026, 7, 15))
+        appt_before = AppointmentFactory(scheduled_date=datetime.date(2026, 6, 1))
+        appt_after = AppointmentFactory(scheduled_date=datetime.date(2026, 9, 1))
+        url = (
+            reverse("scheduling:appointment-list")
+            + "?date_from=2026-07-01&date_to=2026-07-31"
+        )
+        response = client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        ids = [item["id"] for item in response.data["results"]]
+        assert appt_in.id in ids
+        assert appt_before.id not in ids
+        assert appt_after.id not in ids
+
+    def test_filter_appointments_combined_date_and_location(self, doctor_client):
+        client, _ = doctor_client
+        practice = PracticeFactory()
+        location_a = LocationFactory(practice=practice)
+        location_b = LocationFactory(practice=practice)
+        appt_match = AppointmentFactory(
+            practice=practice,
+            location=location_a,
+            scheduled_date=datetime.date(2026, 7, 15),
+        )
+        appt_wrong_location = AppointmentFactory(
+            practice=practice,
+            location=location_b,
+            scheduled_date=datetime.date(2026, 7, 15),
+        )
+        url = (
+            reverse("scheduling:appointment-list")
+            + f"?date_from=2026-07-01&date_to=2026-07-31&location_id={location_a.id}"
+        )
+        response = client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        ids = [item["id"] for item in response.data["results"]]
+        assert appt_match.id in ids
+        assert appt_wrong_location.id not in ids
+
 
 @pytest.mark.django_db
 class TestAppointmentDetail:

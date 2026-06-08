@@ -119,6 +119,29 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         if patient_id_param:
             qs = qs.filter(patient_id=patient_id_param)
 
+        location_id_param = self.request.query_params.get("location_id")
+        if location_id_param:
+            try:
+                qs = qs.filter(location_id=int(location_id_param))
+            except (ValueError, TypeError):
+                pass
+
+        date_from_param = self.request.query_params.get("date_from")
+        if date_from_param:
+            try:
+                date_from = datetime.date.fromisoformat(date_from_param)
+                qs = qs.filter(scheduled_date__gte=date_from)
+            except ValueError:
+                pass
+
+        date_to_param = self.request.query_params.get("date_to")
+        if date_to_param:
+            try:
+                date_to = datetime.date.fromisoformat(date_to_param)
+                qs = qs.filter(scheduled_date__lte=date_to)
+            except ValueError:
+                pass
+
         return qs
 
     def perform_create(self, serializer) -> None:
