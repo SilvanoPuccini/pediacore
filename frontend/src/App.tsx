@@ -36,7 +36,7 @@ const BookingCalendar = lazy(() => import("@/components/booking/BookingCalendar"
 const BookingConfirmed = lazy(() => import("@/features/booking/BookingConfirmed"));
 const TermsPage = lazy(() => import("@/pages/TermsPage"));
 const PrivacyPage = lazy(() => import("@/pages/PrivacyPage"));
-const AdminDashboard = lazy(() => import("@/components/admin/AdminDashboard"));
+const DoctorDashboard = lazy(() => import("@/features/doctor/pages/Dashboard"));
 const DoctorLayout = lazy(() => import("@/layouts/DoctorLayout"));
 const DoctorPatients = lazy(() => import("@/features/doctor/pages/Patients"));
 const DoctorPatientFicha = lazy(() => import("@/features/doctor/pages/PatientFicha"));
@@ -224,7 +224,7 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<AdminDashboard />} />
+          <Route index element={<DoctorDashboard />} />
           <Route path="pacientes" element={<DoctorPatients />} />
           <Route path="pacientes/:id" element={<DoctorPatientFicha />} />
           <Route path="calendario" element={<DoctorCalendar />} />
