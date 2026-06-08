@@ -4,7 +4,9 @@ from django.db import migrations
 
 
 def register_schedules(apps, schema_editor):
-    Schedule = apps.get_model("django_q", "Schedule")
+    # Use the real model (not the historical snapshot) because django-q's
+    # Schedule has fields (name, minutes) not exposed in the migration state.
+    from django_q.models import Schedule
 
     Schedule.objects.get_or_create(
         func="apps.billing.services.transfer_expiry.expire_pending_transfers",
@@ -21,7 +23,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("billing", "0002_payment_transfer_fields"),
-        ("django_q", "0001_initial"),
+        ("django_q", "0019_alter_task_options_alter_ormq_key_alter_ormq_lock_and_more"),
     ]
 
     operations = [
