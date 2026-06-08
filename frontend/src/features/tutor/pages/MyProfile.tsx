@@ -3,6 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { UserCircle, CheckCircle2, AlertCircle, Lock } from "lucide-react";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/auth";
+import NotificationPreferencesSection from "@/features/tutor/components/NotificationPreferencesSection";
 import type { User, DocumentType } from "@/types/api";
 
 const DOCUMENT_TYPE_OPTIONS: { value: DocumentType; label: string }[] = [
@@ -330,6 +331,9 @@ export default function MyProfile() {
 
       {/* Change password section */}
       <ChangePasswordSection />
+
+      {/* Notification preferences section */}
+      <NotificationPreferencesSection />
     </div>
   );
 }

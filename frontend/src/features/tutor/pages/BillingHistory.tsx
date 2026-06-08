@@ -12,6 +12,10 @@ import { cn } from "@/lib/utils";
 import api from "@/lib/api";
 import type { PaymentListItem, PaginatedResponse } from "@/types/api";
 
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const PAGE_SIZE = 5;
+
 // ─── Status labels (Spanish) ─────────────────────────────────────────────────
 
 const PAYMENT_STATUS_LABELS: Record<string, string> = {
@@ -48,13 +52,6 @@ function formatDate(iso: string | null): string {
     month: "long",
     year: "numeric",
   });
-}
-
-// ─── API ─────────────────────────────────────────────────────────────────────
-
-async function fetchPayments(): Promise<PaymentListItem[]> {
-  const { data } = await api.get<PaginatedResponse<PaymentListItem>>("/payments/");
-  return data.results;
 }
 
 // ─── Payment card ────────────────────────────────────────────────────────────
@@ -104,21 +101,73 @@ function PaymentCard({ payment }: { payment: PaymentListItem }) {
   );
 }
 
-// ─── Page ────────────────────────────────────────────────────────────────────
+// ─── Pagination controls ──────────────────────────────────────────────────────
 
-const PAGE_SIZE = 5;
+function PaginationControls({
+  page,
+  totalPages,
+  onPrev,
+  onNext,
+}: {
+  page: number;
+  totalPages: number;
+  onPrev: () => void;
+  onNext: () => void;
+}) {
+  if (totalPages <= 1) return null;
+  return (
+    <div className="flex items-center justify-center gap-4 pt-2">
+      <button
+        onClick={onPrev}
+        disabled={page === 1}
+        aria-label="Página anterior"
+        className={cn(
+          "flex items-center justify-center w-9 h-9 rounded-[12px] border border-line bg-surface text-ink transition-opacity",
+          page === 1 ? "opacity-30 cursor-not-allowed" : "hover:opacity-70"
+        )}
+      >
+        <ChevronLeft className="w-4 h-4" />
+      </button>
+
+      <span className="text-[13px] font-semibold text-ink2">
+        Página {page} de {totalPages}
+      </span>
+
+      <button
+        onClick={onNext}
+        disabled={page === totalPages}
+        aria-label="Página siguiente"
+        className={cn(
+          "flex items-center justify-center w-9 h-9 rounded-[12px] border border-line bg-surface text-ink transition-opacity",
+          page === totalPages
+            ? "opacity-30 cursor-not-allowed"
+            : "hover:opacity-70"
+        )}
+      >
+        <ChevronRight className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
+
+// ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function BillingHistory() {
   const [page, setPage] = useState(1);
 
-  const {
-    data: payments,
-    isLoading,
-    isError,
-  } = useQuery({
-    queryKey: ["payments"],
-    queryFn: fetchPayments,
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["payments", page],
+    queryFn: async () => {
+      const { data } = await api.get<PaginatedResponse<PaymentListItem>>("/payments/", {
+        params: { page, page_size: PAGE_SIZE },
+      });
+      return data;
+    },
   });
+
+  const results = data?.results ?? [];
+  const totalCount = data?.count ?? 0;
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   if (isLoading) {
     return (
@@ -139,7 +188,7 @@ export default function BillingHistory() {
     );
   }
 
-  if (!payments || payments.length === 0) {
+  if (results.length === 0 && page === 1) {
     return (
       <div className="max-w-2xl mx-auto p-6">
         <h1 className="font-display text-[28px] text-ink mb-6">Historial de pagos</h1>
@@ -154,54 +203,22 @@ export default function BillingHistory() {
     );
   }
 
-  const totalPages = Math.ceil(payments.length / PAGE_SIZE);
-  const paginated = payments.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-
   return (
     <div className="max-w-2xl mx-auto p-6 space-y-6">
       <h1 className="font-display text-[28px] text-ink">Historial de pagos</h1>
 
       <div className="space-y-3">
-        {paginated.map((payment) => (
+        {results.map((payment) => (
           <PaymentCard key={payment.id} payment={payment} />
         ))}
       </div>
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-4 pt-2">
-          <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-            className={cn(
-              "flex items-center justify-center w-9 h-9 rounded-[12px] border border-line",
-              "bg-surface text-ink transition-opacity",
-              page === 1 ? "opacity-30 cursor-not-allowed" : "hover:opacity-70"
-            )}
-            aria-label="Página anterior"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-
-          <span className="text-[13px] font-semibold text-ink2">
-            Página {page} de {totalPages}
-          </span>
-
-          <button
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
-            className={cn(
-              "flex items-center justify-center w-9 h-9 rounded-[12px] border border-line",
-              "bg-surface text-ink transition-opacity",
-              page === totalPages
-                ? "opacity-30 cursor-not-allowed"
-                : "hover:opacity-70"
-            )}
-            aria-label="Página siguiente"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-      )}
+      <PaginationControls
+        page={page}
+        totalPages={totalPages}
+        onPrev={() => setPage((p) => Math.max(1, p - 1))}
+        onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
+      />
     </div>
   );
 }

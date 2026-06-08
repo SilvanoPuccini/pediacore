@@ -316,3 +316,34 @@ export interface InvoiceListItem {
   issued_at: string;
   has_pdf: boolean;
 }
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+export interface Notification {
+  id: number;
+  notification_type: string;
+  notification_type_display: string;
+  title: string;
+  message: string;
+  is_read: boolean;
+  read_at: string | null;
+  related_type: string;
+  related_id: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NotificationPreference {
+  id: number;
+  email_appointment_reminder: boolean;
+  email_appointment_confirmed: boolean;
+  email_appointment_cancelled: boolean;
+  email_waitlist_available: boolean;
+  email_payment_received: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UnreadCountResponse {
+  unread_count: number;
+}
