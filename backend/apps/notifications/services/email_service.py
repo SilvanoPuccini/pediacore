@@ -749,13 +749,13 @@ def _build_appointment_html(
                                     </td>
                                 </tr>
 
+                                <!-- Extra HTML (caller-supplied banners, callouts / amount box) -->
+                                {f'<tr><td style="padding:0 0 8px;">{extra_html}</td></tr>' if extra_html else ''}
+
                                 {detail_section_html}
 
                                 <!-- Narrative paragraphs (non-structured lines) -->
                                 {f'<tr><td style="padding:0 0 8px;">{paragraph_html}</td></tr>' if paragraph_html else ''}
-
-                                <!-- Extra HTML (caller-supplied banners, callouts) -->
-                                {f'<tr><td style="padding:0 0 8px;">{extra_html}</td></tr>' if extra_html else ''}
 
                                 <!-- Action buttons -->
                                 {f'<tr><td style="padding:0 0 24px;" bgcolor="#FFFFFF">{action_buttons_html}</td></tr>' if action_buttons_html else ''}
@@ -1367,6 +1367,21 @@ def send_transfer_confirmed(payment, token_urls: dict | None = None) -> None:
     scheduled_date = _fmt_date(appointment.scheduled_date) if appointment else "—"
     start_time = _fmt_time(appointment.start_time) if appointment else "—"
 
+    # ── Amount box (same design as MP payment receipt) ──────────────────
+    amount_box = f"""
+                            <tr>
+                                <td style="padding:0 0 24px;" bgcolor="#FFFFFF">
+                                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border:1px solid #e5e7eb; border-radius:12px;">
+                                        <tr>
+                                            <td style="padding:24px; text-align:center;" bgcolor="#FFFFFF">
+                                                <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:12px; text-transform:uppercase; letter-spacing:2px; color:#6b7280; font-weight:700; margin:0 0 8px;">Total Pagado</p>
+                                                <p style="font-family:'Fraunces',Georgia,'Times New Roman',serif; font-size:32px; color:#2C2C2C; font-weight:700; margin:0;">${amount_display} {payment.currency}</p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>"""
+
     tutors_qs = TutorPatient.objects.filter(patient=payment.patient).select_related("tutor")
 
     for link in tutors_qs:
@@ -1375,11 +1390,12 @@ def send_transfer_confirmed(payment, token_urls: dict | None = None) -> None:
         subject = f"Tu pago fue confirmado — consulta del {_fmt_date_short(appointment.scheduled_date) if appointment else '—'}"
         body_lines = [
             f"Hola {tutor.first_name},",
-            f"Tu transferencia de <strong>${amount_display} {payment.currency}</strong> "
-            f"fue recibida y confirmada por la doctora.",
-            f"Tu cita está confirmada para el {scheduled_date} a las {start_time}.",
+            "Tu transferencia bancaria fue recibida y confirmada por la doctora. "
+            "Tu cita está confirmada y los detalles son los siguientes:",
         ]
         if appointment:
+            body_lines.append(f"Fecha: {scheduled_date}")
+            body_lines.append(f"Hora: {start_time}")
             body_lines.append(f"Servicio: {appointment.service.name}")
             body_lines.extend(_location_lines(appointment.location))
             if appointment.is_online and appointment.meeting_link:
@@ -1387,10 +1403,12 @@ def send_transfer_confirmed(payment, token_urls: dict | None = None) -> None:
                     f'Enlace de videollamada: <a href="{appointment.meeting_link}">'
                     f"{appointment.meeting_link}</a>"
                 )
+
         html_body = _build_appointment_html(
             title="Pago confirmado",
             body_lines=body_lines,
             token_urls=token_urls,
+            extra_html=amount_box,
         )
 
         send_email(
