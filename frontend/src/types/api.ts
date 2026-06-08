@@ -172,10 +172,17 @@ export interface Patient {
   last_name: string;
   full_name: string;
   date_of_birth: string;
+  age: { years: number; months: number };
   sex_at_birth: "M" | "F" | "NO_ESPECIFICA";
   document_type: DocumentType;
   rut: string;
+  blood_type: string;
+  allergies: string;
+  chronic_conditions: string;
   insurance: string;
+  notes: string;
+  photo: string | null;
+  is_active: boolean;
   country: string;
   region: string;
   comuna: string;
@@ -183,6 +190,7 @@ export interface Patient {
   phone: string;
   phone_prefix: string;
   created_at: string;
+  updated_at: string;
   tutors: TutorPatientLink[];
   profile_completion?: {
     percentage: number;
@@ -368,4 +376,52 @@ export interface DashboardReminder {
   title: string;
   detail: string;
   patient_id: number;
+}
+
+// ─── Medical Records ─────────────────────────────────────────────────────────
+
+export interface Encounter {
+  id: number;
+  patient: number;
+  patient_name: string;
+  doctor: number;
+  doctor_name: string;
+  encounter_type: string;
+  encounter_type_display: string;
+  status: string;
+  status_display: string;
+  scheduled_at: string;
+  reason_for_visit: string;
+  created_at: string;
+}
+
+export interface GrowthPoint {
+  encounter_id: number;
+  encounter_date: string;
+  age_months: number | null;
+  weight_kg: string;
+  height_cm: string;
+  head_circumference_cm: string | null;
+  bmi: string | null;
+  weight_for_age_z: number | null;
+  height_for_age_z: number | null;
+  head_circumference_for_age_z: number | null;
+  bmi_for_age_z: number | null;
+  weight_for_age_percentile: number | null;
+  height_for_age_percentile: number | null;
+  head_circumference_for_age_percentile: number | null;
+  bmi_for_age_percentile: number | null;
+}
+
+export interface PatientFile {
+  id: number;
+  patient: number;
+  uploaded_by: number;
+  uploaded_by_email: string;
+  file: string;
+  original_filename: string;
+  file_type: "LAB_RESULT" | "IMAGE" | "PRESCRIPTION" | "CERTIFICATE" | "OTHER";
+  description: string;
+  file_size: number;
+  created_at: string;
 }

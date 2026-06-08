@@ -10,11 +10,14 @@ from __future__ import annotations
 
 from django.contrib.auth import get_user_model
 from django.db.models import QuerySet
+from rest_framework import serializers as drf_serializers
 from rest_framework import status
+from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 
 from apps.core.models import AuditLog
@@ -42,6 +45,11 @@ class PatientViewSet(ModelViewSet):
     - Doctor: sees all patients for the practice, can create/update/delete freely.
     - Tutor: sees only their linked patients, can create (auto-linked on creation).
     """
+
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ["first_name", "last_name", "rut"]
+    ordering_fields = ["first_name", "last_name", "date_of_birth", "created_at"]
+    ordering = ["last_name", "first_name"]
 
     def get_permissions(self) -> list:
         if self.action in ("list", "retrieve", "create"):
@@ -298,3 +306,70 @@ class PatientFileViewSet(ModelViewSet):
             practice=patient.practice,
             uploaded_by=self.request.user,
         )
+
+
+class GrowthPointSerializer(drf_serializers.Serializer):
+    """Flat representation of one anthropometry measurement with encounter date."""
+
+    encounter_id = drf_serializers.IntegerField(source="encounter.id")
+    encounter_date = drf_serializers.DateTimeField(source="encounter.scheduled_at")
+    age_months = drf_serializers.SerializerMethodField()
+    weight_kg = drf_serializers.DecimalField(max_digits=5, decimal_places=2)
+    height_cm = drf_serializers.DecimalField(max_digits=5, decimal_places=2)
+    head_circumference_cm = drf_serializers.DecimalField(
+        max_digits=5, decimal_places=2, allow_null=True
+    )
+    bmi = drf_serializers.DecimalField(
+        max_digits=5, decimal_places=2, allow_null=True
+    )
+    weight_for_age_z = drf_serializers.FloatField(allow_null=True)
+    height_for_age_z = drf_serializers.FloatField(allow_null=True)
+    head_circumference_for_age_z = drf_serializers.FloatField(allow_null=True)
+    bmi_for_age_z = drf_serializers.FloatField(allow_null=True)
+    weight_for_age_percentile = drf_serializers.FloatField(allow_null=True)
+    height_for_age_percentile = drf_serializers.FloatField(allow_null=True)
+    head_circumference_for_age_percentile = drf_serializers.FloatField(allow_null=True)
+    bmi_for_age_percentile = drf_serializers.FloatField(allow_null=True)
+
+    def get_age_months(self, obj) -> int | None:
+        patient = obj.patient
+        enc_date = obj.encounter.scheduled_at
+        if not patient.date_of_birth or not enc_date:
+            return None
+        delta = enc_date.date() - patient.date_of_birth
+        return int(delta.days / 30.44)
+
+
+class GrowthHistoryView(APIView):
+    """
+    GET /patients/<patient_pk>/growth-history/
+
+    Returns all anthropometry records for a patient, ordered chronologically.
+    Used by the growth chart in the patient ficha.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request: Request, patient_pk: int) -> Response:
+        from apps.medical_records.models import Anthropometry
+
+        patient = Patient.objects.filter(pk=patient_pk).first()
+        if not patient:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        # Tutor can only see their linked patients
+        user = request.user
+        if user.role == User.TUTOR:
+            linked = TutorPatient.objects.filter(
+                tutor=user, patient=patient, deleted_at__isnull=True
+            ).exists()
+            if not linked:
+                return Response(status=status.HTTP_403_FORBIDDEN)
+
+        records = (
+            Anthropometry.objects.filter(patient=patient)
+            .select_related("encounter", "patient")
+            .order_by("encounter__scheduled_at")
+        )
+        serializer = GrowthPointSerializer(records, many=True)
+        return Response(serializer.data)
