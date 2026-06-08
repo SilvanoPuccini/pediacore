@@ -374,7 +374,7 @@ class PaymentViewSet(viewsets.ModelViewSet):
             )
 
         try:
-            send_transfer_confirmed(payment, token_urls=token_urls)
+            send_transfer_confirmed(payment)
         except Exception as exc:
             logger.error(
                 "confirm_transfer: send_transfer_confirmed failed for Payment #%s: %s",
