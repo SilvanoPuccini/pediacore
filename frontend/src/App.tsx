@@ -36,8 +36,11 @@ const BookingCalendar = lazy(() => import("@/components/booking/BookingCalendar"
 const BookingConfirmed = lazy(() => import("@/features/booking/BookingConfirmed"));
 const TermsPage = lazy(() => import("@/pages/TermsPage"));
 const PrivacyPage = lazy(() => import("@/pages/PrivacyPage"));
-const AdminLayout = lazy(() => import("@/layouts/AdminLayout"));
 const AdminDashboard = lazy(() => import("@/components/admin/AdminDashboard"));
+const DoctorLayout = lazy(() => import("@/layouts/DoctorLayout"));
+const DoctorPatients = lazy(() => import("@/features/doctor/pages/Patients"));
+const DoctorPatientFicha = lazy(() => import("@/features/doctor/pages/PatientFicha"));
+const DoctorCalendar = lazy(() => import("@/features/doctor/pages/Calendar"));
 const TutorLayout = lazy(() => import("@/layouts/TutorLayout"));
 const TutorDashboard = lazy(() => import("@/features/tutor/pages/Dashboard"));
 const MyAppointments = lazy(() => import("@/features/tutor/pages/MyAppointments"));
@@ -217,12 +220,15 @@ function AppRoutes() {
           path="/dashboard"
           element={
             <ProtectedRoute role="DOCTOR">
-              <AdminLayout>
-                <AdminDashboard />
-              </AdminLayout>
+              <DoctorLayout />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route index element={<AdminDashboard />} />
+          <Route path="pacientes" element={<DoctorPatients />} />
+          <Route path="pacientes/:id" element={<DoctorPatientFicha />} />
+          <Route path="calendario" element={<DoctorCalendar />} />
+        </Route>
       </Routes>
     </Suspense>
   );

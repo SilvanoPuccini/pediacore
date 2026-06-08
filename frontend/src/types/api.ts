@@ -347,3 +347,25 @@ export interface NotificationPreference {
 export interface UnreadCountResponse {
   unread_count: number;
 }
+
+// ─── Dashboard Médico ────────────────────────────────────────────────────────
+
+export interface DashboardMetrics {
+  turnos_hoy: number;
+  turnos_semana: number;
+  ingresos_mes: string;
+  no_show_rate: string;
+  pendientes: number;
+}
+
+export interface RevenuePoint {
+  day: string;
+  ingreso: string;
+}
+
+export interface DashboardReminder {
+  type: "birthday";
+  title: string;
+  detail: string;
+  patient_id: number;
+}
