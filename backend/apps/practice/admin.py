@@ -3,11 +3,12 @@ Django admin configuration for the practice app.
 """
 
 from django.contrib import admin
+from unfold.admin import ModelAdmin, TabularInline
 
 from apps.practice.models import BlockedSlot, Location, Practice, Service, WorkingHours
 
 
-class LocationInline(admin.TabularInline):
+class LocationInline(TabularInline):
     model = Location
     extra = 1
     fields = ["name", "slug", "city", "address", "phone", "is_active"]
@@ -16,7 +17,7 @@ class LocationInline(admin.TabularInline):
 
 
 @admin.register(Practice)
-class PracticeAdmin(admin.ModelAdmin):
+class PracticeAdmin(ModelAdmin):
     list_display = ["name", "slug", "email", "phone", "is_active", "created_at"]
     list_filter = ["is_active"]
     search_fields = ["name", "email"]
@@ -36,11 +37,12 @@ class PracticeAdmin(admin.ModelAdmin):
 
 
 @admin.register(Location)
-class LocationAdmin(admin.ModelAdmin):
+class LocationAdmin(ModelAdmin):
     list_display = ["name", "practice", "city", "region", "is_active", "created_at"]
     list_filter = ["is_active", "practice", "city"]
     search_fields = ["name", "city", "address"]
     prepopulated_fields = {"slug": ("name",)}
+    list_select_related = ["practice"]
     readonly_fields = ["created_at", "updated_at", "deleted_at"]
     fieldsets = [
         (None, {"fields": ["practice", "name", "slug"]}),
@@ -53,7 +55,7 @@ class LocationAdmin(admin.ModelAdmin):
 
 
 @admin.register(Service)
-class ServiceAdmin(admin.ModelAdmin):
+class ServiceAdmin(ModelAdmin):
     list_display = ["name", "practice", "duration_minutes", "price_clp", "modality", "display_order", "is_active"]
     list_filter = ["is_active", "modality", "practice"]
     search_fields = ["name", "description"]
@@ -71,7 +73,7 @@ class ServiceAdmin(admin.ModelAdmin):
 
 
 @admin.register(WorkingHours)
-class WorkingHoursAdmin(admin.ModelAdmin):
+class WorkingHoursAdmin(ModelAdmin):
     list_display = [
         "location",
         "practice",
@@ -93,6 +95,7 @@ class WorkingHoursAdmin(admin.ModelAdmin):
         "max_appointments",
         "slot_duration_minutes",
     ]
+    list_select_related = ["location", "practice"]
     ordering = ["location", "day_of_week", "start_time"]
     readonly_fields = ["created_at", "updated_at"]
     fieldsets = [
@@ -121,8 +124,10 @@ class WorkingHoursAdmin(admin.ModelAdmin):
 
 
 @admin.register(BlockedSlot)
-class BlockedSlotAdmin(admin.ModelAdmin):
+class BlockedSlotAdmin(ModelAdmin):
     list_display = ["practice", "location", "start_datetime", "end_datetime", "reason"]
     list_filter = ["practice", "location"]
     search_fields = ["reason"]
+    date_hierarchy = "start_datetime"
+    ordering = ["-start_datetime"]
     readonly_fields = ["created_at", "updated_at"]

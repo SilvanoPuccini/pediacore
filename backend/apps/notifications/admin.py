@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from django.contrib import admin
+from unfold.admin import ModelAdmin
 
 from apps.notifications.models import EmailLog, Notification, NotificationPreference
 
 
 @admin.register(Notification)
-class NotificationAdmin(admin.ModelAdmin):
+class NotificationAdmin(ModelAdmin):
     list_display = [
         "recipient",
         "notification_type",
@@ -17,6 +18,7 @@ class NotificationAdmin(admin.ModelAdmin):
     ]
     list_filter = ["notification_type", "is_read", "practice"]
     search_fields = ["recipient__email", "title", "message"]
+    list_select_related = ["recipient"]
     readonly_fields = ["created_at", "updated_at", "deleted_at", "read_at"]
     fieldsets = [
         (None, {"fields": ["practice", "recipient", "notification_type", "title", "message"]}),
@@ -27,7 +29,7 @@ class NotificationAdmin(admin.ModelAdmin):
 
 
 @admin.register(EmailLog)
-class EmailLogAdmin(admin.ModelAdmin):
+class EmailLogAdmin(ModelAdmin):
     list_display = [
         "recipient_email",
         "subject",
@@ -41,9 +43,18 @@ class EmailLogAdmin(admin.ModelAdmin):
     readonly_fields = ["created_at", "updated_at", "sent_at", "external_id"]
     date_hierarchy = "created_at"
 
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
 
 @admin.register(NotificationPreference)
-class NotificationPreferenceAdmin(admin.ModelAdmin):
+class NotificationPreferenceAdmin(ModelAdmin):
     list_display = [
         "user",
         "practice",
@@ -51,6 +62,11 @@ class NotificationPreferenceAdmin(admin.ModelAdmin):
         "email_appointment_confirmed",
         "email_appointment_cancelled",
     ]
-    list_filter = ["practice", "email_appointment_reminder"]
+    list_filter = [
+        "practice",
+        "email_appointment_reminder",
+        "email_appointment_confirmed",
+        "email_appointment_cancelled",
+    ]
     search_fields = ["user__email"]
     readonly_fields = ["created_at", "updated_at", "deleted_at"]

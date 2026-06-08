@@ -1,12 +1,13 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.translation import gettext_lazy as _
+from unfold.admin import ModelAdmin
 
 from apps.users.models import User
 
 
 @admin.register(User)
-class UserAdmin(BaseUserAdmin):
+class UserAdmin(ModelAdmin, BaseUserAdmin):
     """Admin configuration for the custom User model."""
 
     list_display = ["email", "first_name", "last_name", "role", "is_active", "created_at"]
@@ -35,7 +36,7 @@ class UserAdmin(BaseUserAdmin):
         ),
         (_("Important dates"), {"fields": ("created_at", "updated_at", "deleted_at")}),
     )
-    readonly_fields = ["created_at", "updated_at"]
+    readonly_fields = ["created_at", "updated_at", "deleted_at", "email_verified_at"]
 
     # Fields shown when creating a new user via admin
     add_fieldsets = (

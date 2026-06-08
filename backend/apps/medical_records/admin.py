@@ -3,6 +3,7 @@ Django admin configuration for the medical_records app.
 """
 
 from django.contrib import admin
+from unfold.admin import ModelAdmin, StackedInline, TabularInline
 
 from apps.medical_records.models import (
     Anthropometry,
@@ -19,18 +20,20 @@ from apps.medical_records.models import (
 # ---------------------------------------------------------------------------
 
 
-class SOAPNoteInline(admin.StackedInline):
+class SOAPNoteInline(StackedInline):
     model = SOAPNote
     extra = 0
     can_delete = False
+    show_change_link = True
     fields = ("subjective", "objective", "assessment", "plan")
     verbose_name = "SOAP Note"
 
 
-class PhysicalExamInline(admin.StackedInline):
+class PhysicalExamInline(StackedInline):
     model = PhysicalExam
     extra = 0
     can_delete = False
+    show_change_link = True
     fields = (
         "general_appearance",
         "skin",
@@ -49,10 +52,11 @@ class PhysicalExamInline(admin.StackedInline):
     verbose_name = "Physical Exam"
 
 
-class VitalSignsInline(admin.TabularInline):
+class VitalSignsInline(TabularInline):
     model = VitalSigns
     extra = 0
     can_delete = False
+    show_change_link = True
     fields = (
         "temperature",
         "heart_rate",
@@ -64,10 +68,11 @@ class VitalSignsInline(admin.TabularInline):
     verbose_name = "Vital Signs"
 
 
-class AnthropometryInline(admin.TabularInline):
+class AnthropometryInline(TabularInline):
     model = Anthropometry
     extra = 0
     can_delete = False
+    show_change_link = True
     fields = (
         "weight_kg",
         "height_cm",
@@ -100,7 +105,7 @@ class AnthropometryInline(admin.TabularInline):
 
 
 @admin.register(Encounter)
-class EncounterAdmin(admin.ModelAdmin):
+class EncounterAdmin(ModelAdmin):
     list_display = (
         "patient",
         "encounter_type",
@@ -112,7 +117,8 @@ class EncounterAdmin(admin.ModelAdmin):
     )
     list_filter = ("encounter_type", "status", "practice", "location")
     search_fields = ("patient__first_name", "patient__last_name", "reason_for_visit")
-    raw_id_fields = ("patient", "doctor", "practice", "location")
+    autocomplete_fields = ["patient", "doctor", "practice", "location"]
+    list_select_related = ["patient", "doctor", "location"]
     readonly_fields = ("created_at", "updated_at")
     ordering = ("-created_at",)
     inlines = [SOAPNoteInline, PhysicalExamInline, VitalSignsInline, AnthropometryInline]
@@ -159,10 +165,11 @@ class EncounterAdmin(admin.ModelAdmin):
 
 
 @admin.register(Diagnosis)
-class DiagnosisAdmin(admin.ModelAdmin):
+class DiagnosisAdmin(ModelAdmin):
     list_display = ("description", "code", "is_primary", "encounter", "created_at")
     list_filter = ("is_primary", "practice")
     search_fields = ("description", "code", "encounter__patient__first_name", "encounter__patient__last_name")
-    raw_id_fields = ("encounter", "practice")
+    autocomplete_fields = ["encounter", "practice"]
+    list_select_related = ["encounter", "practice"]
     readonly_fields = ("created_at", "updated_at")
     ordering = ("-created_at",)
