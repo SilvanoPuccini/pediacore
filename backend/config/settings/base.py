@@ -17,6 +17,8 @@ ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=Csv(
 
 # Application definition
 DJANGO_APPS = [
+    "unfold",
+    "unfold.contrib.filters",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -261,6 +263,193 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
 
 # Gemini AI (OCR for transfer receipts)
 GEMINI_API_KEY = config("GEMINI_API_KEY", default="")
+
+# ─── Django Unfold (Admin theme) ─────────────────────────────────────────────
+UNFOLD = {
+    "SITE_TITLE": "PEDIACORE",
+    "SITE_HEADER": "PEDIACORE",
+    "SITE_SUBHEADER": "Panel de administración — Dra. Estefanía Ortigosa",
+    "SITE_URL": "/",
+    "SHOW_HISTORY": True,
+    "SHOW_VIEW_ON_SITE": False,
+    "COLORS": {
+        "primary": {
+            "50": "#D6F1EA",
+            "100": "#B8E6DB",
+            "200": "#93D9C8",
+            "300": "#7DD3C0",
+            "400": "#5CB8A4",
+            "500": "#3E8E7C",
+            "600": "#2E6B5E",
+            "700": "#1F4D43",
+            "800": "#143530",
+            "900": "#0A1D1A",
+            "950": "#050F0D",
+        },
+    },
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": False,
+        "navigation": [
+            {
+                "title": "Consultorio",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Dashboard",
+                        "icon": "dashboard",
+                        "link": "/admin/",
+                    },
+                    {
+                        "title": "Turnos",
+                        "icon": "calendar_month",
+                        "link": "/admin/scheduling/appointment/",
+                    },
+                    {
+                        "title": "Lista de espera",
+                        "icon": "hourglass_top",
+                        "link": "/admin/scheduling/waitlistentry/",
+                    },
+                ],
+            },
+            {
+                "title": "Pacientes",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Pacientes",
+                        "icon": "child_care",
+                        "link": "/admin/patients/patient/",
+                    },
+                    {
+                        "title": "Encuentros clínicos",
+                        "icon": "stethoscope",
+                        "link": "/admin/medical_records/encounter/",
+                    },
+                    {
+                        "title": "Diagnósticos",
+                        "icon": "diagnosis",
+                        "link": "/admin/medical_records/diagnosis/",
+                    },
+                ],
+            },
+            {
+                "title": "Facturación",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Pagos",
+                        "icon": "payments",
+                        "link": "/admin/billing/payment/",
+                    },
+                    {
+                        "title": "Comprobantes",
+                        "icon": "receipt_long",
+                        "link": "/admin/billing/invoice/",
+                    },
+                    {
+                        "title": "Proveedores de pago",
+                        "icon": "account_balance",
+                        "link": "/admin/billing/paymentprovider/",
+                    },
+                ],
+            },
+            {
+                "title": "Contenido",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Blog",
+                        "icon": "article",
+                        "link": "/admin/content/blogpost/",
+                    },
+                    {
+                        "title": "Páginas",
+                        "icon": "web",
+                        "link": "/admin/content/page/",
+                    },
+                    {
+                        "title": "FAQs",
+                        "icon": "quiz",
+                        "link": "/admin/content/faq/",
+                    },
+                ],
+            },
+            {
+                "title": "Configuración",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Usuarios",
+                        "icon": "group",
+                        "link": "/admin/users/user/",
+                    },
+                    {
+                        "title": "Consultorios",
+                        "icon": "local_hospital",
+                        "link": "/admin/practice/practice/",
+                    },
+                    {
+                        "title": "Sedes",
+                        "icon": "location_on",
+                        "link": "/admin/practice/location/",
+                    },
+                    {
+                        "title": "Servicios",
+                        "icon": "medical_services",
+                        "link": "/admin/practice/service/",
+                    },
+                    {
+                        "title": "Horarios",
+                        "icon": "schedule",
+                        "link": "/admin/practice/workinghours/",
+                    },
+                    {
+                        "title": "Bloqueos",
+                        "icon": "block",
+                        "link": "/admin/practice/blockedslot/",
+                    },
+                    {
+                        "title": "Auto-respondedor",
+                        "icon": "smart_toy",
+                        "link": "/admin/scheduling/autoresponderconfig/",
+                    },
+                    {
+                        "title": "Pol. cancelación",
+                        "icon": "gavel",
+                        "link": "/admin/scheduling/cancellationpolicy/",
+                    },
+                ],
+            },
+            {
+                "title": "Sistema",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Notificaciones",
+                        "icon": "notifications",
+                        "link": "/admin/notifications/notification/",
+                    },
+                    {
+                        "title": "Emails enviados",
+                        "icon": "mail",
+                        "link": "/admin/notifications/emaillog/",
+                    },
+                    {
+                        "title": "Auditoría",
+                        "icon": "shield",
+                        "link": "/admin/core/auditlog/",
+                    },
+                    {
+                        "title": "Tokens de turno",
+                        "icon": "key",
+                        "link": "/admin/scheduling/appointmenttoken/",
+                    },
+                ],
+            },
+        ],
+    },
+}
 
 # Logging
 LOGGING = {

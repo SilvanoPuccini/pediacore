@@ -5,16 +5,18 @@ Django admin configuration for the content app.
 from __future__ import annotations
 
 from django.contrib import admin
+from unfold.admin import ModelAdmin
 
 from apps.content.models import FAQ, BlogPost, Page
 
 
 @admin.register(BlogPost)
-class BlogPostAdmin(admin.ModelAdmin):
+class BlogPostAdmin(ModelAdmin):
     list_display = ["title", "author", "practice", "is_published", "published_at", "created_at"]
     list_filter = ["is_published", "practice"]
     search_fields = ["title", "excerpt", "tags"]
     prepopulated_fields = {"slug": ("title",)}
+    list_select_related = ["author", "practice"]
     readonly_fields = ["created_at", "updated_at", "deleted_at", "published_at"]
     date_hierarchy = "published_at"
     fieldsets = [
@@ -38,11 +40,12 @@ class BlogPostAdmin(admin.ModelAdmin):
 
 
 @admin.register(Page)
-class PageAdmin(admin.ModelAdmin):
+class PageAdmin(ModelAdmin):
     list_display = ["title", "slug", "practice", "order", "is_published", "created_at"]
     list_filter = ["is_published", "practice"]
     search_fields = ["title", "slug"]
     prepopulated_fields = {"slug": ("title",)}
+    list_editable = ["order"]
     readonly_fields = ["created_at", "updated_at", "deleted_at"]
     fieldsets = [
         (None, {"fields": ["practice", "title", "slug", "order"]}),
@@ -53,10 +56,11 @@ class PageAdmin(admin.ModelAdmin):
 
 
 @admin.register(FAQ)
-class FAQAdmin(admin.ModelAdmin):
+class FAQAdmin(ModelAdmin):
     list_display = ["question", "practice", "order", "is_published", "created_at"]
     list_filter = ["is_published", "practice"]
     search_fields = ["question", "answer"]
+    list_editable = ["order"]
     readonly_fields = ["created_at", "updated_at", "deleted_at"]
     fieldsets = [
         (None, {"fields": ["practice", "question", "answer", "order"]}),

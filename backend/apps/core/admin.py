@@ -1,10 +1,11 @@
 from django.contrib import admin
+from unfold.admin import ModelAdmin
 
 from apps.core.models import AuditLog
 
 
 @admin.register(AuditLog)
-class AuditLogAdmin(admin.ModelAdmin):
+class AuditLogAdmin(ModelAdmin):
     """
     Read-only admin view for the audit log.
 
@@ -14,7 +15,8 @@ class AuditLogAdmin(admin.ModelAdmin):
 
     list_display = ("user", "action", "resource_type", "resource_id", "timestamp")
     list_filter = ("action", "resource_type")
-    search_fields = ("user__email", "resource_type")
+    search_fields = ("user__email", "resource_type", "resource_id")
+    list_select_related = ["user"]
     readonly_fields = (
         "user",
         "action",

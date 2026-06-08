@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from django.contrib import admin
+from unfold.admin import ModelAdmin
 
 from apps.billing.models import Invoice, Payment, PaymentProvider
 
 
 @admin.register(Payment)
-class PaymentAdmin(admin.ModelAdmin):
+class PaymentAdmin(ModelAdmin):
     list_display = [
         "id",
         "patient",
@@ -19,6 +20,7 @@ class PaymentAdmin(admin.ModelAdmin):
     ]
     list_filter = ["status", "payment_method", "currency"]
     search_fields = ["patient__first_name", "patient__last_name", "external_id", "notes"]
+    list_select_related = ["patient"]
     readonly_fields = [
         "external_id",
         "external_status",
@@ -50,7 +52,7 @@ class PaymentAdmin(admin.ModelAdmin):
 
 
 @admin.register(Invoice)
-class InvoiceAdmin(admin.ModelAdmin):
+class InvoiceAdmin(ModelAdmin):
     list_display = [
         "invoice_number",
         "patient_name",
@@ -60,6 +62,7 @@ class InvoiceAdmin(admin.ModelAdmin):
     ]
     list_filter = ["practice"]
     search_fields = ["invoice_number", "patient_name", "patient_rut"]
+    list_select_related = ["practice"]
     readonly_fields = [
         "invoice_number",
         "issued_at",
@@ -67,6 +70,7 @@ class InvoiceAdmin(admin.ModelAdmin):
         "updated_at",
         "deleted_at",
     ]
+    date_hierarchy = "issued_at"
     fieldsets = [
         (None, {"fields": ["practice", "payment", "invoice_number"]}),
         ("Patient", {"fields": ["patient_name", "patient_rut"]}),
@@ -84,7 +88,7 @@ class InvoiceAdmin(admin.ModelAdmin):
 
 
 @admin.register(PaymentProvider)
-class PaymentProviderAdmin(admin.ModelAdmin):
+class PaymentProviderAdmin(ModelAdmin):
     list_display = ["practice", "provider_type", "is_active", "created_at"]
     list_filter = ["provider_type", "is_active"]
     readonly_fields = ["created_at", "updated_at", "deleted_at"]
