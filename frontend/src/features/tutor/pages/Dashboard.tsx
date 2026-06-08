@@ -1,16 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, Clock, MapPin, Stethoscope, User, Wifi, Baby, ArrowRight } from "lucide-react";
+import { Bell, CalendarDays } from "lucide-react";
 import { Link } from "react-router-dom";
 import api from "@/lib/api";
-import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth";
+import { useNotifications } from "@/features/tutor/hooks/useNotifications";
+import HeroAppointmentCard from "@/features/tutor/components/HeroAppointmentCard";
+import ChildStatCard from "@/features/tutor/components/ChildStatCard";
 import type { Appointment, Patient, PaginatedResponse } from "@/types/api";
 
-// ─── Date helpers ─────────────────────────────────────────────────────────────
-
-function formatTime(timeStr: string): string {
-  return timeStr.slice(0, 5);
-}
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function todayDateString(): string {
   const now = new Date();
@@ -20,83 +18,21 @@ function todayDateString(): string {
   return `${y}-${m}-${d}`;
 }
 
-// ─── Compact appointment card ─────────────────────────────────────────────────
+function formatRelativeTime(iso: string): string {
+  const date = new Date(iso);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60_000);
 
-function UpcomingCard({ appointment }: { appointment: Appointment }) {
-  return (
-    <Link
-      to={`/portal/turnos/${appointment.id}`}
-      className={cn(
-        "bg-surface rounded-[16px] border border-line shadow-[var(--shadow-soft)]",
-        "p-4 flex items-start gap-4 hover:border-teal/40 transition-colors group"
-      )}
-    >
-      {/* Date block */}
-      <div className="shrink-0 flex flex-col items-center justify-center bg-cream rounded-[12px] h-14 w-14 text-center">
-        <span className="text-[18px] font-bold text-ink leading-none">
-          {new Date(
-            ...appointment.scheduled_date.split("-").map(Number) as [number, number, number]
-          ).getDate()}
-        </span>
-        <span className="text-[10px] font-semibold text-ink3 uppercase tracking-wide mt-0.5">
-          {new Intl.DateTimeFormat("es-CL", { month: "short", timeZone: "America/Santiago" }).format(
-            new Date(
-              ...appointment.scheduled_date.split("-").map(Number) as [number, number, number]
-            )
-          )}
-        </span>
-      </div>
-
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5 mb-1">
-          <Clock size={11} className="text-ink3 shrink-0" />
-          <span className="text-[12px] text-ink3">
-            {formatTime(appointment.start_time)}
-            {appointment.end_time ? ` — ${formatTime(appointment.end_time)}` : ""}
-          </span>
-        </div>
-        <p className="text-[13px] font-semibold text-ink truncate flex items-center gap-1.5">
-          <Stethoscope size={12} className="text-teal-dark shrink-0" />
-          {appointment.service_name}
-        </p>
-        <div className="flex items-center gap-3 mt-1">
-          <span className="flex items-center gap-1 text-[12px] text-ink3">
-            <User size={11} className="shrink-0" />
-            {appointment.patient_name}
-          </span>
-          <span className="flex items-center gap-1 text-[12px] text-ink3">
-            {appointment.is_online ? (
-              <>
-                <Wifi size={11} className="text-teal-dark shrink-0" />
-                <span className="text-teal-dark font-medium">Online</span>
-              </>
-            ) : (
-              <>
-                <MapPin size={11} className="shrink-0" />
-                {appointment.location_name}
-              </>
-            )}
-          </span>
-        </div>
-      </div>
-
-      <ArrowRight size={15} className="text-ink3 shrink-0 mt-0.5 group-hover:text-teal-dark transition-colors" />
-    </Link>
-  );
+  if (diffMins < 1) return "hace un momento";
+  if (diffMins < 60) return `hace ${diffMins} min`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `hace ${diffHours} h`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `hace ${diffDays} día${diffDays !== 1 ? "s" : ""}`;
 }
 
-// ─── Loading spinner ──────────────────────────────────────────────────────────
-
-function Spinner() {
-  return (
-    <div className="flex justify-center py-8">
-      <div className="h-6 w-6 rounded-full border-2 border-line border-t-teal animate-spin" />
-    </div>
-  );
-}
-
-// ─── Section wrapper ──────────────────────────────────────────────────────────
+// ─── Section header ───────────────────────────────────────────────────────────
 
 function SectionHeader({
   title,
@@ -104,48 +40,37 @@ function SectionHeader({
   linkLabel,
 }: {
   title: string;
-  linkTo: string;
-  linkLabel: string;
+  linkTo?: string;
+  linkLabel?: string;
 }) {
   return (
     <div className="flex items-center justify-between mb-3">
       <h2 className="text-[15px] font-semibold text-ink">{title}</h2>
-      <Link
-        to={linkTo}
-        className="text-[12px] font-semibold text-teal-dark hover:underline underline-offset-2 transition-colors"
-      >
-        {linkLabel}
-      </Link>
+      {linkTo && linkLabel && (
+        <Link
+          to={linkTo}
+          className="text-[12px] font-semibold text-teal-dark hover:underline underline-offset-2 transition-colors"
+        >
+          {linkLabel}
+        </Link>
+      )}
     </div>
   );
 }
 
-// ─── Quick action button ──────────────────────────────────────────────────────
+// ─── Loading skeleton ─────────────────────────────────────────────────────────
 
-function QuickAction({
-  to,
-  icon: Icon,
-  label,
-  variant = "primary",
-}: {
-  to: string;
-  icon: React.ElementType;
-  label: string;
-  variant?: "primary" | "secondary";
-}) {
+function SkeletonCard() {
   return (
-    <Link
-      to={to}
-      className={cn(
-        "inline-flex items-center gap-2 px-4 py-2.5 rounded-[12px] text-[13px] font-semibold transition-colors",
-        variant === "primary"
-          ? "bg-teal-dark text-white hover:opacity-90"
-          : "bg-surface border border-line text-ink hover:bg-cream shadow-[var(--shadow-soft)]"
-      )}
-    >
-      <Icon size={15} />
-      {label}
-    </Link>
+    <div className="bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)] p-5 animate-pulse">
+      <div className="flex items-center gap-3">
+        <div className="h-11 w-11 rounded-full bg-cream shrink-0" />
+        <div className="flex-1 space-y-2">
+          <div className="h-3.5 w-1/2 bg-cream rounded-full" />
+          <div className="h-3 w-1/3 bg-cream rounded-full" />
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -155,111 +80,137 @@ export default function Dashboard() {
   const user = useAuthStore((s) => s.user);
   const today = todayDateString();
 
+  // Appointments
   const { data: appointmentsData, isLoading: loadingAppts } = useQuery({
-    queryKey: ["appointments", "confirmed-upcoming"],
+    queryKey: ["appointments", "dashboard-upcoming"],
     queryFn: () =>
       api
         .get<PaginatedResponse<Appointment>>("/appointments/", {
-          params: { status: "CONFIRMED,HOLD" },
+          params: { status: "CONFIRMED,HOLD,PENDING", ordering: "scheduled_date,start_time", page_size: 10 },
         })
         .then((r) => r.data),
   });
 
+  // Patients
   const { data: patientsData, isLoading: loadingPatients } = useQuery({
     queryKey: ["my-patients"],
     queryFn: () =>
       api.get<PaginatedResponse<Patient>>("/patients/").then((r) => r.data),
   });
 
-  const upcomingThree = (appointmentsData?.results ?? [])
+  // Notifications (last 5 unread)
+  const { data: notificationsData } = useNotifications(1);
+
+  // Next upcoming appointment
+  const nextAppointment = (appointmentsData?.results ?? [])
     .filter((a) => a.scheduled_date >= today)
     .sort((a, b) => {
       const dc = a.scheduled_date.localeCompare(b.scheduled_date);
       return dc !== 0 ? dc : a.start_time.localeCompare(b.start_time);
-    })
-    .slice(0, 3);
+    })[0] ?? null;
 
-  const patientCount = patientsData?.count ?? 0;
+  // Upcoming count (for greeting subtitle)
+  const upcomingCount = (appointmentsData?.results ?? []).filter(
+    (a) => a.scheduled_date >= today
+  ).length;
+
+  const patients = patientsData?.results ?? [];
+
+  // Recent unread notifications (up to 5)
+  const recentNotifications = (notificationsData?.results ?? [])
+    .filter((n) => !n.is_read)
+    .slice(0, 5);
 
   return (
     <div className="max-w-2xl space-y-8">
-      {/* Welcome */}
+      {/* Greeting */}
       <div>
         <h1 className="font-display text-[28px] font-semibold text-ink mb-1">
           Hola, {user?.first_name ?? "bienvenida"}
         </h1>
         <p className="text-[14px] text-ink3">
-          Desde acá podés gestionar los turnos y los perfiles de tus hijos.
+          {loadingAppts
+            ? "Cargando tus próximos turnos..."
+            : upcomingCount === 0
+              ? "No tenés turnos próximos."
+              : upcomingCount === 1
+                ? "Tenés 1 turno próximo."
+                : `Tenés ${upcomingCount} turnos próximos.`}
         </p>
       </div>
 
-      {/* Quick actions */}
-      <div className="flex flex-wrap gap-3">
-        <QuickAction to="/booking" icon={CalendarDays} label="Reservar turno" variant="primary" />
-        <QuickAction to="/portal/turnos" icon={CalendarDays} label="Ver todos los turnos" variant="secondary" />
-      </div>
-
-      {/* Upcoming appointments */}
+      {/* Hero appointment */}
       <section>
-        <SectionHeader
-          title="Próximos turnos"
-          linkTo="/portal/turnos"
-          linkLabel="Ver todos"
-        />
-
-        {loadingAppts ? (
-          <Spinner />
-        ) : upcomingThree.length === 0 ? (
-          <div className="bg-surface border border-line rounded-[16px] p-6 text-center shadow-[var(--shadow-soft)]">
-            <p className="text-[13px] text-ink3">No tenés turnos próximos</p>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {upcomingThree.map((appointment) => (
-              <UpcomingCard key={appointment.id} appointment={appointment} />
-            ))}
-          </div>
-        )}
+        <SectionHeader title="Próximo turno" linkTo="/portal/turnos" linkLabel="Ver todos" />
+        <HeroAppointmentCard appointment={nextAppointment} loading={loadingAppts} />
       </section>
 
-      {/* My children summary */}
+      {/* Children */}
       <section>
         <SectionHeader
           title="Mis hijos"
           linkTo="/portal/hijos"
           linkLabel="Administrar"
         />
-
-        <div className="bg-surface rounded-[16px] border border-line shadow-[var(--shadow-soft)] p-4 flex items-center gap-4">
-          <div className="h-12 w-12 rounded-full bg-cream flex items-center justify-center shrink-0">
-            <Baby size={22} className="text-teal-dark" />
+        {loadingPatients ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <SkeletonCard />
+            <SkeletonCard />
           </div>
-          {loadingPatients ? (
-            <div className="h-4 w-32 bg-cream rounded-full animate-pulse" />
-          ) : (
-            <div>
-              <p className="text-[15px] font-semibold text-ink">
-                {patientCount === 0
-                  ? "Sin perfiles registrados"
-                  : patientCount === 1
-                    ? "1 hijo vinculado"
-                    : `${patientCount} hijos vinculados`}
-              </p>
-              <p className="text-[12px] text-ink3 mt-0.5">
-                {patientCount === 0
-                  ? "Al reservar un turno se crea el perfil automáticamente."
-                  : "Podés ver y completar sus perfiles en la sección Mis hijos."}
-              </p>
-            </div>
-          )}
-          <Link
-            to="/portal/hijos"
-            className="ml-auto shrink-0 text-ink3 hover:text-teal-dark transition-colors"
-            aria-label="Ir a Mis hijos"
-          >
-            <ArrowRight size={16} />
-          </Link>
-        </div>
+        ) : patients.length === 0 ? (
+          <div className="bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)] p-6 text-center">
+            <p className="text-[13px] text-ink3">
+              Al reservar un turno se crea el perfil del paciente automáticamente.
+            </p>
+            <Link
+              to="/booking"
+              className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-[10px] bg-teal-dark text-white text-[12px] font-semibold hover:opacity-90 transition-opacity"
+            >
+              <CalendarDays size={13} />
+              Reservar primer turno
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {patients.map((patient, idx) => (
+              <ChildStatCard key={patient.id} patient={patient} index={idx} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Recent notifications */}
+      <section>
+        <SectionHeader
+          title="Notificaciones recientes"
+          linkTo="/portal/notificaciones"
+          linkLabel="Ver todas"
+        />
+        {recentNotifications.length === 0 ? (
+          <div className="bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)] p-5 text-center">
+            <p className="text-[13px] text-ink3">No tenés notificaciones sin leer.</p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {recentNotifications.map((notification) => (
+              <div
+                key={notification.id}
+                className="bg-surface rounded-[16px] border border-line shadow-[var(--shadow-soft)] px-4 py-3 flex items-start gap-3"
+              >
+                <div className="h-7 w-7 rounded-full bg-teal/10 flex items-center justify-center shrink-0 mt-0.5">
+                  <Bell size={12} className="text-teal-dark" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-semibold text-ink truncate">{notification.title}</p>
+                  <p className="text-[12px] text-ink3 mt-0.5 line-clamp-1">{notification.message}</p>
+                </div>
+                <span className="text-[11px] text-ink3 shrink-0 mt-0.5">
+                  {formatRelativeTime(notification.created_at)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );

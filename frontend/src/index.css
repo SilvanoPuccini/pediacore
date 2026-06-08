@@ -42,6 +42,20 @@
   --cream: #F7F0E5;
   --surface: #FFFFFF;
 
+  /* Child color palettes (cycle: teal / coral / mustard / sage) */
+  --child-0-bg: #EEF7F8;
+  --child-0-text: #4A8590;
+  --child-0-border: #7BB5BD;
+  --child-1-bg: #FDF0EF;
+  --child-1-text: #C0524A;
+  --child-1-border: #F3A8A1;
+  --child-2-bg: #FDF7E8;
+  --child-2-text: #9A7510;
+  --child-2-border: #E5B847;
+  --child-3-bg: #EEF5EE;
+  --child-3-text: #4A7A4A;
+  --child-3-border: #A8C9A8;
+
   --chart-1: #7BB5BD;
   --chart-2: #F3A8A1;
   --chart-3: #E5B847;
@@ -77,6 +91,20 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  /* Child palette aliases */
+  --color-child-0-bg: var(--child-0-bg);
+  --color-child-0-text: var(--child-0-text);
+  --color-child-0-border: var(--child-0-border);
+  --color-child-1-bg: var(--child-1-bg);
+  --color-child-1-text: var(--child-1-text);
+  --color-child-1-border: var(--child-1-border);
+  --color-child-2-bg: var(--child-2-bg);
+  --color-child-2-text: var(--child-2-text);
+  --color-child-2-border: var(--child-2-border);
+  --color-child-3-bg: var(--child-3-bg);
+  --color-child-3-text: var(--child-3-text);
+  --color-child-3-border: var(--child-3-border);
+
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);

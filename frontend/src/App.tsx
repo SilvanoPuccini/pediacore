@@ -49,6 +49,7 @@ const BillingHistory = lazy(() => import("@/features/tutor/pages/BillingHistory"
 const PaymentReceipt = lazy(() => import("@/features/tutor/pages/PaymentReceipt"));
 const TokenAction = lazy(() => import("@/features/tutor/pages/TokenAction"));
 const RescheduleFromToken = lazy(() => import("@/features/tutor/pages/RescheduleFromToken"));
+const NotificationsPage = lazy(() => import("@/features/tutor/pages/Notifications"));
 const ControlNinoSanoPage = lazy(() => import("@/pages/services/ControlNinoSanoPage"));
 const ControlEnfermedadPage = lazy(() => import("@/pages/services/ControlEnfermedadPage"));
 const TelemedicinaPage = lazy(() => import("@/pages/services/TelemedicinaPage"));
@@ -208,6 +209,7 @@ function AppRoutes() {
           <Route path="perfil" element={<MyProfile />} />
           <Route path="pagos" element={<BillingHistory />} />
           <Route path="pagos/:id" element={<PaymentReceipt />} />
+          <Route path="notificaciones" element={<NotificationsPage />} />
         </Route>
         <Route path="/a/:token" element={<TokenAction />} />
         <Route path="/a/:token/reschedule" element={<RescheduleFromToken />} />
