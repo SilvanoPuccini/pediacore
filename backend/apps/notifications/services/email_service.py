@@ -749,13 +749,13 @@ def _build_appointment_html(
                                     </td>
                                 </tr>
 
-                                <!-- Extra HTML (caller-supplied banners, callouts / amount box) -->
-                                {f'<tr><td style="padding:0 0 8px;">{extra_html}</td></tr>' if extra_html else ''}
-
                                 {detail_section_html}
 
                                 <!-- Narrative paragraphs (non-structured lines) -->
                                 {f'<tr><td style="padding:0 0 8px;">{paragraph_html}</td></tr>' if paragraph_html else ''}
+
+                                <!-- Extra HTML (caller-supplied banners, callouts) -->
+                                {f'<tr><td style="padding:0 0 8px;">{extra_html}</td></tr>' if extra_html else ''}
 
                                 <!-- Action buttons -->
                                 {f'<tr><td style="padding:0 0 24px;" bgcolor="#FFFFFF">{action_buttons_html}</td></tr>' if action_buttons_html else ''}
@@ -1345,16 +1345,15 @@ def send_transfer_receipt_uploaded(payment) -> None:
     )
 
 
-def send_transfer_confirmed(payment, token_urls: dict | None = None) -> None:
+def send_transfer_confirmed(payment) -> None:
     """
     Notify the tutor that their bank transfer was confirmed by the doctor.
 
     Sent to: all tutors linked to payment.patient.
+    Uses the same payment receipt template as MercadoPago.
 
     Args:
         payment: The Payment instance (status=COMPLETED).
-        token_urls: Optional dict with keys 'confirm', 'cancel', 'reschedule'.
-            When provided, the email includes clickable action buttons.
     """
     from apps.patients.models import TutorPatient
 
@@ -1363,52 +1362,36 @@ def send_transfer_confirmed(payment, token_urls: dict | None = None) -> None:
     except Exception:
         appointment = None
 
-    amount_display = _fmt_clp(payment.amount)
-    scheduled_date = _fmt_date(appointment.scheduled_date) if appointment else "—"
-    start_time = _fmt_time(appointment.start_time) if appointment else "—"
+    if not appointment:
+        logger.warning("send_transfer_confirmed: no appointment for Payment #%s", payment.pk)
+        return
 
-    # ── Amount box (same design as MP payment receipt) ──────────────────
-    amount_box = f"""
-                            <tr>
-                                <td style="padding:0 0 24px;" bgcolor="#FFFFFF">
-                                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border:1px solid #e5e7eb; border-radius:12px;">
-                                        <tr>
-                                            <td style="padding:24px; text-align:center;" bgcolor="#FFFFFF">
-                                                <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif; font-size:12px; text-transform:uppercase; letter-spacing:2px; color:#6b7280; font-weight:700; margin:0 0 8px;">Total Pagado</p>
-                                                <p style="font-family:'Fraunces',Georgia,'Times New Roman',serif; font-size:32px; color:#2C2C2C; font-weight:700; margin:0;">${amount_display} {payment.currency}</p>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </td>
-                            </tr>"""
+    amount_display = _fmt_clp(payment.amount)
+    scheduled_date = _fmt_date(appointment.scheduled_date)
+    start_time = _fmt_time(appointment.start_time)
 
     tutors_qs = TutorPatient.objects.filter(patient=payment.patient).select_related("tutor")
 
     for link in tutors_qs:
         tutor = link.tutor
 
-        subject = f"Tu pago fue confirmado — consulta del {_fmt_date_short(appointment.scheduled_date) if appointment else '—'}"
-        body_lines = [
-            f"Hola {tutor.first_name},",
-            "Tu transferencia bancaria fue recibida y confirmada por la doctora. "
-            "Tu cita está confirmada y los detalles son los siguientes:",
-        ]
-        if appointment:
-            body_lines.append(f"Fecha: {scheduled_date}")
-            body_lines.append(f"Hora: {start_time}")
-            body_lines.append(f"Servicio: {appointment.service.name}")
-            body_lines.extend(_location_lines(appointment.location))
-            if appointment.is_online and appointment.meeting_link:
-                body_lines.append(
-                    f'Enlace de videollamada: <a href="{appointment.meeting_link}">'
-                    f"{appointment.meeting_link}</a>"
-                )
+        subject = f"Pago recibido — {_fmt_date_short(appointment.scheduled_date)}"
+        html_body = _build_payment_receipt_html(
+            tutor_name=tutor.first_name or tutor.email,
+            amount_display=amount_display,
+            currency=payment.currency,
+            patient_name=str(appointment.patient),
+            service_name=appointment.service.name,
+            scheduled_date=scheduled_date,
+            start_time=start_time,
+            location_name=appointment.location.name if appointment.location else "Consulta Online",
+        )
 
-        html_body = _build_appointment_html(
-            title="Pago confirmado",
-            body_lines=body_lines,
-            token_urls=token_urls,
-            extra_html=amount_box,
+        send_email(
+            to=tutor.email,
+            subject=subject,
+            html_body=html_body,
+            practice=payment.practice,
         )
 
         send_email(
