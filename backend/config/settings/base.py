@@ -291,7 +291,7 @@ UNFOLD = {
         },
     },
     "SIDEBAR": {
-        "show_search": True,
+        "show_search": False,
         "show_all_applications": False,
         "navigation": [
             {
@@ -302,6 +302,16 @@ UNFOLD = {
                         "title": "Dashboard",
                         "icon": "dashboard",
                         "link": "/admin/",
+                    },
+                    {
+                        "title": "Ir al Dashboard médico",
+                        "icon": "open_in_new",
+                        "link": "/dashboard",
+                    },
+                    {
+                        "title": "Ver sitio público",
+                        "icon": "language",
+                        "link": "/",
                     },
                     {
                         "title": "Turnos",
