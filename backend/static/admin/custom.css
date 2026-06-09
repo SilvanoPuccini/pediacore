@@ -1,0 +1,216 @@
+/*
+ * PEDIACORE — Custom admin styles
+ * Aligns django-unfold admin with the React dashboard design system.
+ *
+ * Design tokens from the React frontend:
+ *   --bg:       #FBF8F3 (warm cream background)
+ *   --surface:  #FFFFFF
+ *   --ink:      #2C2C2C
+ *   --ink2:     #6B6B6B
+ *   --ink3:     #A0A0A0
+ *   --line:     #E8E6E1
+ *   --cream:    #F7F0E5
+ *   --teal:     #7BB5BD
+ *   --teal-dark:#4A8590
+ *   Font:       Plus Jakarta Sans
+ */
+
+/* ── Import matching font ─────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+
+/* ── Override Unfold CSS variables ────────────────────────────────────── */
+:root {
+  --font-family-primary: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+}
+
+/* ── Global font override ─────────────────────────────────────────────── */
+body,
+#content,
+.font-sans,
+[class*="font-"] {
+  font-family: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Warm cream background (matches React --bg: #FBF8F3) ─────────────── */
+body {
+  background-color: #FBF8F3 !important;
+}
+
+/* Main content area */
+#content,
+main {
+  background-color: #FBF8F3 !important;
+}
+
+/* ── Sidebar styling ──────────────────────────────────────────────────── */
+aside[class*="sidebar"],
+nav[class*="sidebar"],
+.sidebar {
+  background-color: #FFFFFF !important;
+  border-right: 1px solid #E8E6E1 !important;
+}
+
+/* Sidebar active item */
+aside a[class*="active"],
+nav a[class*="active"],
+.sidebar a.active {
+  background-color: #EEF7F8 !important;
+  color: #4A8590 !important;
+}
+
+/* ── Card / Module styling ────────────────────────────────────────────── */
+.module,
+fieldset,
+#content .card,
+[class*="rounded-lg"][class*="border"] {
+  border-color: #E8E6E1 !important;
+  border-radius: 14px !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03), 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+}
+
+/* ── Buttons — teal-dark like React CTA ───────────────────────────────── */
+.submit-row input[type="submit"],
+input[type="submit"].default,
+button[type="submit"].default,
+a.button.default {
+  background-color: #4A8590 !important;
+  border-color: #4A8590 !important;
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  transition: all 0.15s ease !important;
+}
+
+.submit-row input[type="submit"]:hover,
+input[type="submit"].default:hover,
+button[type="submit"].default:hover {
+  background-color: #3E7580 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 10px 30px rgba(74, 133, 144, 0.28) !important;
+}
+
+/* ── Table styling ────────────────────────────────────────────────────── */
+#result_list table,
+table {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
+
+#result_list table th {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  color: #A0A0A0 !important;
+}
+
+#result_list table td {
+  font-size: 13px !important;
+  color: #2C2C2C !important;
+}
+
+#result_list table tr:hover td {
+  background-color: #FBF8F3 !important;
+}
+
+/* ── Status chips — match React badge style ───────────────────────────── */
+.badge,
+.tag,
+span[class*="badge"] {
+  border-radius: 9999px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  padding: 2px 10px !important;
+}
+
+/* ── Input fields ─────────────────────────────────────────────────────── */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="url"],
+input[type="number"],
+input[type="date"],
+textarea,
+select {
+  border-color: #E8E6E1 !important;
+  border-radius: 10px !important;
+  font-size: 13px !important;
+  color: #2C2C2C !important;
+  transition: border-color 0.15s, box-shadow 0.15s !important;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+textarea:focus,
+select:focus {
+  border-color: #7BB5BD !important;
+  box-shadow: 0 0 0 3px rgba(123, 181, 189, 0.2) !important;
+  outline: none !important;
+}
+
+/* ── Dashboard KPI cards — match React MetricCard ─────────────────────── */
+#content .grid > div {
+  border-radius: 14px !important;
+}
+
+/* ── Breadcrumb / page header ─────────────────────────────────────────── */
+#content h1,
+.breadcrumbs + h1 {
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  color: #2C2C2C !important;
+  letter-spacing: -0.01em !important;
+}
+
+/* ── Links — teal accent ──────────────────────────────────────────────── */
+a:not([class*="button"]):not([class*="btn"]) {
+  color: #4A8590;
+}
+
+a:not([class*="button"]):not([class*="btn"]):hover {
+  color: #3E7580;
+}
+
+/* ── Unfold top header bar ────────────────────────────────────────────── */
+header[class*="border-b"],
+.top-bar {
+  background-color: #FFFFFF !important;
+  border-bottom-color: #E8E6E1 !important;
+}
+
+/* ── Help text ────────────────────────────────────────────────────────── */
+.help,
+.helptext,
+p.help {
+  color: #A0A0A0 !important;
+  font-size: 11px !important;
+}
+
+/* ── Pagination ───────────────────────────────────────────────────────── */
+.paginator a,
+.paginator span {
+  border-radius: 8px !important;
+}
+
+/* ── Django messages (match React feedback banners) ───────────────────── */
+.messagelist .success {
+  background-color: rgba(123, 181, 189, 0.1) !important;
+  border: 1px solid rgba(123, 181, 189, 0.3) !important;
+  color: #4A8590 !important;
+  border-radius: 10px !important;
+}
+
+.messagelist .error {
+  background-color: rgba(243, 168, 161, 0.1) !important;
+  border: 1px solid rgba(243, 168, 161, 0.3) !important;
+  color: #C0524A !important;
+  border-radius: 10px !important;
+}
+
+.messagelist .warning {
+  background-color: rgba(229, 184, 71, 0.1) !important;
+  border: 1px solid rgba(229, 184, 71, 0.3) !important;
+  color: #9A7510 !important;
+  border-radius: 10px !important;
+}
