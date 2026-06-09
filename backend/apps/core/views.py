@@ -41,6 +41,14 @@ class DashboardMetricsView(APIView):
         month_revenue: sum of COMPLETED payments this calendar month
         no_show_rate: fraction of NO_SHOW appointments in the last 30 days (0-1)
         pending_count: appointments with status PENDING or HOLD
+        avg_per_appointment: average payment amount for COMPLETED payments this month
+        collection_rate: fraction of this month's appointments that have a COMPLETED payment
+        top_services: top 3 services by revenue this month [{name, revenue, count}]
+        by_payment_method: breakdown by method [{method, total, count}]
+        patients_this_week: unique patients with COMPLETED encounters this week
+        occupancy_rate: used slots / total available this week (proxy: week_count / 40)
+        by_encounter_type: encounter breakdown this month [{type, count}]
+        alerts: smart alerts [{type, message, count, severity}]
     """
 
     permission_classes = [IsDoctor]
@@ -56,6 +64,9 @@ class DashboardMetricsView(APIView):
         month_start = today.replace(day=1)
         # 30-day window for no_show_rate
         thirty_days_ago = today - datetime.timedelta(days=30)
+        # 48h threshold for pending payment alerts
+        now = timezone.now()
+        forty_eight_hours_ago = now - datetime.timedelta(hours=48)
 
         # Base queryset filter
         location_filter: dict = {}
@@ -110,12 +121,231 @@ class DashboardMetricsView(APIView):
         no_show_count = recent_qs.filter(status=Appointment.NO_SHOW).count()
         no_show_rate = (no_show_count / total_recent) if total_recent > 0 else 0.0
 
+        # ── Financial metrics ─────────────────────────────────────────────────
+
+        # avg_per_appointment: average completed payment this month
+        completed_count_month = payment_qs.count()
+        avg_per_appointment = (
+            (month_revenue / completed_count_month)
+            if completed_count_month > 0
+            else Decimal("0.00")
+        )
+
+        # collection_rate: appointments this month that have a completed payment
+        appointments_month_qs = qs.filter(
+            scheduled_date__range=(month_start, today),
+        ).exclude(
+            status__in=[Appointment.CANCELLED, Appointment.EXPIRED, Appointment.RESCHEDULED]
+        )
+        appointments_month_count = appointments_month_qs.count()
+        collection_rate = (
+            (completed_count_month / appointments_month_count)
+            if appointments_month_count > 0
+            else 0.0
+        )
+
+        # top_services: top 3 services by revenue this month
+        top_services_raw = (
+            payment_qs.filter(appointment__isnull=False)
+            .values("appointment__service__name")
+            .annotate(revenue=Sum("amount"), count=Count("id"))
+            .order_by("-revenue")[:3]
+        )
+        top_services = [
+            {
+                "name": row["appointment__service__name"] or "Sin servicio",
+                "revenue": row["revenue"],
+                "count": row["count"],
+            }
+            for row in top_services_raw
+        ]
+
+        # by_payment_method: breakdown by method this month
+        method_raw = (
+            payment_qs.values("payment_method")
+            .annotate(total=Sum("amount"), count=Count("id"))
+            .order_by("-total")
+        )
+        by_payment_method = [
+            {
+                "method": row["payment_method"],
+                "total": row["total"],
+                "count": row["count"],
+            }
+            for row in method_raw
+        ]
+
+        # ── Clinical metrics ──────────────────────────────────────────────────
+
+        patients_this_week = 0
+        occupancy_rate = 0.0
+        by_encounter_type: list[dict] = []
+
+        try:
+            from apps.medical_records.models import Encounter
+
+            # patients_this_week: unique patients with completed encounters this week
+            patients_this_week = (
+                Encounter.objects.filter(
+                    status=Encounter.COMPLETED,
+                    completed_at__date__gte=week_start,
+                    completed_at__date__lte=week_end,
+                )
+                .values("patient_id")
+                .distinct()
+                .count()
+            )
+
+            # by_encounter_type: breakdown this month
+            enc_type_raw = (
+                Encounter.objects.filter(
+                    created_at__date__gte=month_start,
+                    created_at__date__lte=today,
+                )
+                .values("encounter_type")
+                .annotate(count=Count("id"))
+                .order_by("-count")
+            )
+            by_encounter_type = [
+                {"type": row["encounter_type"], "count": row["count"]}
+                for row in enc_type_raw
+            ]
+        except Exception:
+            pass
+
+        # occupancy_rate: simple proxy — week active appointments / 40 slots
+        # (5 days × 8 avg slots per day)
+        WEEKLY_SLOT_CAPACITY = 40
+        occupancy_rate = min(1.0, week_count / WEEKLY_SLOT_CAPACITY)
+
+        # ── Smart alerts ──────────────────────────────────────────────────────
+
+        alerts: list[dict] = []
+
+        # 1. Pending payments older than 48h
+        pending_payments_old = Payment.objects.filter(
+            status=Payment.PENDING,
+            created_at__lte=forty_eight_hours_ago,
+        )
+        if location_id:
+            try:
+                pending_payments_old = pending_payments_old.filter(
+                    appointment__location_id=int(location_id)
+                )
+            except (ValueError, TypeError):
+                pass
+        pending_payment_count = pending_payments_old.count()
+        if pending_payment_count > 0:
+            alerts.append(
+                {
+                    "type": "pending_payments",
+                    "message": "Pagos pendientes sin confirmar por más de 48 horas",
+                    "count": pending_payment_count,
+                    "severity": "warning",
+                }
+            )
+
+        # 2. Overdue controls: patients without recent encounter
+        try:
+            from apps.medical_records.models import Encounter as Enc
+
+            active_patients = Patient.objects.filter(is_active=True)
+            if location_id:
+                try:
+                    loc_id_int = int(location_id)
+                    patient_ids_at_loc = Appointment.objects.filter(
+                        location_id=loc_id_int
+                    ).values_list("patient_id", flat=True).distinct()
+                    active_patients = active_patients.filter(id__in=patient_ids_at_loc)
+                except (ValueError, TypeError):
+                    pass
+
+            overdue_count = 0
+            cutoff_young = today - datetime.timedelta(days=180)   # 6 months
+            cutoff_older = today - datetime.timedelta(days=365)   # 12 months
+
+            for patient in active_patients.only("id", "date_of_birth"):
+                dob = patient.date_of_birth
+                age_years = (today - dob).days / 365.25
+                cutoff = cutoff_young if age_years < 2 else cutoff_older
+
+                last_enc = (
+                    Enc.objects.filter(patient=patient, status=Enc.COMPLETED)
+                    .order_by("-completed_at")
+                    .values("completed_at")
+                    .first()
+                )
+                if last_enc is None:
+                    overdue_count += 1
+                elif last_enc["completed_at"] and last_enc["completed_at"].date() < cutoff:
+                    overdue_count += 1
+
+            if overdue_count > 0:
+                alerts.append(
+                    {
+                        "type": "overdue_controls",
+                        "message": "Pacientes con control médico vencido",
+                        "count": overdue_count,
+                        "severity": "info",
+                    }
+                )
+        except Exception:
+            pass
+
+        # 3. Delayed vaccines
+        try:
+            from apps.medical_records.models import VaccineSchedule, Vaccination
+
+            delayed_count = 0
+            for patient in Patient.objects.filter(is_active=True).only(
+                "id", "date_of_birth"
+            ):
+                dob = patient.date_of_birth
+                age_months = (today - dob).days / 30.44
+
+                due_schedules = VaccineSchedule.objects.filter(
+                    age_months__lte=age_months
+                )
+                administered_schedule_ids = Vaccination.objects.filter(
+                    patient=patient,
+                    schedule__isnull=False,
+                ).values_list("schedule_id", flat=True)
+
+                missing = due_schedules.exclude(
+                    id__in=administered_schedule_ids
+                ).count()
+                if missing > 0:
+                    delayed_count += 1
+
+            if delayed_count > 0:
+                alerts.append(
+                    {
+                        "type": "delayed_vaccines",
+                        "message": "Pacientes con vacunas atrasadas según calendario PNI",
+                        "count": delayed_count,
+                        "severity": "info",
+                    }
+                )
+        except Exception:
+            pass
+
         data = {
             "today_count": today_count,
             "week_count": week_count,
             "month_revenue": month_revenue,
             "no_show_rate": no_show_rate,
             "pending_count": pending_count,
+            # Financial
+            "avg_per_appointment": avg_per_appointment,
+            "collection_rate": collection_rate,
+            "top_services": top_services,
+            "by_payment_method": by_payment_method,
+            # Clinical
+            "patients_this_week": patients_this_week,
+            "occupancy_rate": occupancy_rate,
+            "by_encounter_type": by_encounter_type,
+            # Alerts
+            "alerts": alerts,
         }
         serializer = DashboardMetricsSerializer(data)
         return Response(serializer.data)

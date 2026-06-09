@@ -372,12 +372,48 @@ export interface UnreadCountResponse {
 
 // ─── Dashboard Médico ────────────────────────────────────────────────────────
 
+export interface DashboardTopService {
+  name: string;
+  revenue: string;
+  count: number;
+}
+
+export interface DashboardPaymentMethodBreakdown {
+  method: string;
+  total: string;
+  count: number;
+}
+
+export interface DashboardEncounterTypeBreakdown {
+  type: string;
+  count: number;
+}
+
+export interface DashboardAlert {
+  type: string;
+  message: string;
+  count: number;
+  severity: "warning" | "info";
+}
+
 export interface DashboardMetrics {
-  turnos_hoy: number;
-  turnos_semana: number;
-  ingresos_mes: string;
+  // Core metrics
+  today_count: number;
+  week_count: number;
+  month_revenue: string;
   no_show_rate: string;
-  pendientes: number;
+  pending_count: number;
+  // Financial metrics
+  avg_per_appointment: string;
+  collection_rate: number;
+  top_services: DashboardTopService[];
+  by_payment_method: DashboardPaymentMethodBreakdown[];
+  // Clinical metrics
+  patients_this_week: number;
+  occupancy_rate: number;
+  by_encounter_type: DashboardEncounterTypeBreakdown[];
+  // Smart alerts
+  alerts: DashboardAlert[];
 }
 
 export interface RevenuePoint {
