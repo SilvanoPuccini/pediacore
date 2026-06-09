@@ -1,5 +1,26 @@
 import { useState, useMemo } from "react";
-import { Calculator, Receipt, TrendingUp, Info, ArrowRight } from "lucide-react";
+import {
+  Calculator,
+  Receipt,
+  TrendingUp,
+  Info,
+  ArrowRight,
+  Plus,
+  Trash2,
+  DollarSign,
+  BarChart2,
+} from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
+import api from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 // ─── Chilean 2025 tax constants ───────────────────────────────────────────────
@@ -18,6 +39,73 @@ const TAX_BRACKETS: [number | null, number][] = [
   [310.0, 0.35],
   [null,  0.40],
 ];
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface MonthlyExpense {
+  id: number;
+  practice: number;
+  name: string;
+  category: string;
+  category_display: string;
+  amount: number;
+  is_active: boolean;
+  notes: string;
+}
+
+interface CashFlowMonth {
+  month: string;
+  income: number;
+  expenses: number;
+  net: number;
+}
+
+interface ExpenseBreakdownItem {
+  name: string;
+  category: string;
+  amount: number;
+}
+
+interface CashFlowData {
+  months: CashFlowMonth[];
+  current_month: {
+    income: number;
+    total_expenses: number;
+    net: number;
+    expenses_breakdown: ExpenseBreakdownItem[];
+  };
+}
+
+interface CreateExpensePayload {
+  name: string;
+  category: string;
+  amount: number;
+  notes?: string;
+}
+
+// ─── Category config ──────────────────────────────────────────────────────────
+
+const CATEGORIES = [
+  { value: "RENT",      label: "Arriendo" },
+  { value: "SUPPLIES",  label: "Insumos médicos" },
+  { value: "SALARY",    label: "Sueldos/Honorarios" },
+  { value: "PLATFORM",  label: "Plataformas digitales" },
+  { value: "INSURANCE", label: "Seguros" },
+  { value: "UTILITIES", label: "Servicios básicos" },
+  { value: "TAXES",     label: "Impuestos/Patentes" },
+  { value: "OTHER",     label: "Otros" },
+];
+
+const CATEGORY_COLORS: Record<string, string> = {
+  RENT:      "bg-blue-100 text-blue-700",
+  SUPPLIES:  "bg-emerald-100 text-emerald-700",
+  SALARY:    "bg-purple-100 text-purple-700",
+  PLATFORM:  "bg-amber-100 text-amber-700",
+  INSURANCE: "bg-sky-100 text-sky-700",
+  UTILITIES: "bg-orange-100 text-orange-700",
+  TAXES:     "bg-red-100 text-red-700",
+  OTHER:     "bg-gray-100 text-gray-600",
+};
 
 // ─── Pure calculation helpers ─────────────────────────────────────────────────
 
@@ -106,7 +194,6 @@ function fmtCLP(n: number): string {
 }
 
 function parseCLPInput(raw: string): number {
-  // Strip everything except digits
   const digits = raw.replace(/\D/g, "");
   return digits === "" ? 0 : parseInt(digits, 10);
 }
@@ -114,6 +201,12 @@ function parseCLPInput(raw: string): number {
 function formatInputDisplay(n: number): string {
   if (n === 0) return "";
   return n.toLocaleString("es-CL");
+}
+
+function fmtMonth(key: string): string {
+  const [year, month] = key.split("-");
+  const d = new Date(Number(year), Number(month) - 1, 1);
+  return d.toLocaleString("es-CL", { month: "short", year: "2-digit" });
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -155,22 +248,397 @@ function DataRow({
 }) {
   return (
     <div className="flex items-center justify-between py-2.5 border-b border-line last:border-0">
-      <span
-        className={cn(
-          "text-[13px]",
-          muted ? "text-ink3" : "text-ink2"
-        )}
-      >
+      <span className={cn("text-[13px]", muted ? "text-ink3" : "text-ink2")}>
         {label}
       </span>
       <span
         className={cn(
           "text-[13px] font-medium",
-          highlight ? "text-teal-dark font-bold" : bold ? "text-ink font-semibold" : "text-ink"
+          highlight
+            ? "text-teal-dark font-bold"
+            : bold
+            ? "text-ink font-semibold"
+            : "text-ink"
         )}
       >
         {value}
       </span>
+    </div>
+  );
+}
+
+// ─── Recharts custom tooltip ──────────────────────────────────────────────────
+
+function CashFlowTooltip({ active, payload, label }: {
+  active?: boolean;
+  payload?: { name: string; value: number; fill: string }[];
+  label?: string;
+}) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-surface border border-line rounded-[10px] px-3.5 py-2.5 shadow-sm text-[12.5px]">
+      <p className="font-semibold text-ink mb-1.5">{label}</p>
+      {payload.map((p) => (
+        <p key={p.name} style={{ color: p.fill }} className="font-medium">
+          {p.name}: {fmtCLP(p.value)}
+        </p>
+      ))}
+    </div>
+  );
+}
+
+// ─── Gastos Fijos section ─────────────────────────────────────────────────────
+
+function GastosFijosSection() {
+  const queryClient = useQueryClient();
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ name: "", category: "RENT", amount: "" });
+
+  const { data: expenses = [], isLoading } = useQuery<MonthlyExpense[]>({
+    queryKey: ["monthly-expenses"],
+    queryFn: async () => {
+      const res = await api.get("/billing/monthly-expenses/");
+      return res.data.results ?? res.data;
+    },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (payload: CreateExpensePayload) => {
+      const res = await api.post("/billing/monthly-expenses/", payload);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["monthly-expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["cash-flow"] });
+      setForm({ name: "", category: "RENT", amount: "" });
+      setShowForm(false);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await api.delete(`/billing/monthly-expenses/${id}/`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["monthly-expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["cash-flow"] });
+    },
+  });
+
+  const total = expenses.reduce((sum, e) => sum + e.amount, 0);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const amountNum = parseCLPInput(form.amount);
+    if (!form.name.trim() || amountNum <= 0) return;
+    createMutation.mutate({
+      name: form.name.trim(),
+      category: form.category,
+      amount: amountNum,
+    });
+  }
+
+  return (
+    <div className="bg-surface border border-line rounded-[14px] shadow-[var(--shadow-card)] p-6">
+      <div className="flex items-start justify-between mb-5">
+        <SectionHeader
+          icon={DollarSign}
+          title="Gastos Fijos Mensuales"
+          subtitle="Costos recurrentes de tu práctica"
+        />
+        <button
+          onClick={() => setShowForm((v) => !v)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-teal/10 text-teal-dark text-[12.5px] font-semibold hover:bg-teal/20 transition shrink-0 mt-0.5"
+        >
+          <Plus size={13} strokeWidth={2.5} />
+          Agregar
+        </button>
+      </div>
+
+      {/* Inline add form */}
+      {showForm && (
+        <form
+          onSubmit={handleSubmit}
+          className="bg-bg border border-line rounded-[12px] p-4 mb-4 space-y-3"
+        >
+          <p className="text-[12px] font-bold text-ink uppercase tracking-wide">
+            Nuevo gasto fijo
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <input
+              type="text"
+              placeholder="Nombre"
+              value={form.name}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              className="border border-line rounded-[8px] px-3 py-2 text-[13px] text-ink bg-surface placeholder:text-ink3 focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal/60 transition"
+              required
+            />
+            <select
+              value={form.category}
+              onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+              className="border border-line rounded-[8px] px-3 py-2 text-[13px] text-ink bg-surface focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal/60 transition"
+            >
+              {CATEGORIES.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-ink3 font-medium">
+                $
+              </span>
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder="250.000"
+                value={form.amount}
+                onChange={(e) => {
+                  const n = parseCLPInput(e.target.value);
+                  setForm((f) => ({ ...f, amount: n > 0 ? formatInputDisplay(n) : "" }));
+                }}
+                className="w-full border border-line rounded-[8px] pl-7 pr-3 py-2 text-[13px] text-ink bg-surface placeholder:text-ink3 focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal/60 transition"
+                required
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-2 pt-1">
+            <button
+              type="submit"
+              disabled={createMutation.isPending}
+              className="px-4 py-1.5 rounded-[8px] bg-teal text-white text-[12.5px] font-semibold hover:bg-teal-dark transition disabled:opacity-50"
+            >
+              {createMutation.isPending ? "Guardando…" : "Guardar"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              className="px-4 py-1.5 rounded-[8px] border border-line text-ink2 text-[12.5px] font-medium hover:bg-line/30 transition"
+            >
+              Cancelar
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* Expense list */}
+      {isLoading ? (
+        <div className="py-8 text-center text-[13px] text-ink3">Cargando…</div>
+      ) : expenses.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-10 text-center">
+          <div className="w-12 h-12 rounded-full bg-bg border border-line flex items-center justify-center mb-3">
+            <DollarSign size={22} className="text-ink3" strokeWidth={1.5} />
+          </div>
+          <p className="text-[13.5px] font-medium text-ink2">Sin gastos registrados</p>
+          <p className="text-[12px] text-ink3 mt-1">
+            Agregá tus gastos fijos mensuales para calcular el flujo de caja.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-0">
+          {expenses.map((expense) => (
+            <div
+              key={expense.id}
+              className="flex items-center justify-between py-2.5 border-b border-line last:border-0"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span
+                  className={cn(
+                    "text-[11px] font-semibold px-2 py-0.5 rounded-full shrink-0",
+                    CATEGORY_COLORS[expense.category] ?? "bg-gray-100 text-gray-600"
+                  )}
+                >
+                  {expense.category_display}
+                </span>
+                <span className="text-[13px] text-ink truncate">{expense.name}</span>
+              </div>
+              <div className="flex items-center gap-3 shrink-0 ml-3">
+                <span className="text-[13px] font-semibold text-ink">
+                  {fmtCLP(expense.amount)}
+                </span>
+                <button
+                  onClick={() => deleteMutation.mutate(expense.id)}
+                  disabled={deleteMutation.isPending}
+                  className="text-ink3 hover:text-red-500 transition disabled:opacity-40"
+                  aria-label="Eliminar gasto"
+                >
+                  <Trash2 size={14} strokeWidth={1.75} />
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {/* Total row */}
+          <div className="flex items-center justify-between pt-3 mt-1">
+            <span className="text-[12.5px] font-bold text-ink uppercase tracking-wide">
+              Total mensual
+            </span>
+            <span className="text-[15px] font-bold text-ink">{fmtCLP(total)}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Flujo de Caja section ────────────────────────────────────────────────────
+
+function FlujoDeCajaSection() {
+  const { data, isLoading } = useQuery<CashFlowData>({
+    queryKey: ["cash-flow"],
+    queryFn: async () => {
+      const res = await api.get("/billing/cash-flow/");
+      return res.data;
+    },
+  });
+
+  const chartData = useMemo(
+    () =>
+      (data?.months ?? []).map((m) => ({
+        month: fmtMonth(m.month),
+        Ingresos: m.income,
+        Gastos: m.expenses,
+      })),
+    [data]
+  );
+
+  const current = data?.current_month;
+  const net = current?.net ?? 0;
+  const isPositive = net >= 0;
+
+  return (
+    <div className="bg-surface border border-line rounded-[14px] shadow-[var(--shadow-card)] p-6">
+      <SectionHeader
+        icon={BarChart2}
+        title="Flujo de Caja Mensual"
+        subtitle="Ingresos por consulta vs. gastos operativos — últimos 6 meses"
+      />
+
+      {isLoading ? (
+        <div className="py-10 text-center text-[13px] text-ink3">Cargando…</div>
+      ) : (
+        <div className="space-y-5">
+
+          {/* ── Summary cards ── */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* Income */}
+            <div className="bg-bg rounded-[12px] border border-line p-4">
+              <p className="text-[11.5px] text-ink3 mb-1">Ingresos del mes</p>
+              <p className="text-[20px] font-bold text-ink leading-tight">
+                {fmtCLP(current?.income ?? 0)}
+              </p>
+              <p className="text-[11px] text-ink3 mt-0.5">pagos completados</p>
+            </div>
+
+            {/* Expenses */}
+            <div className="bg-bg rounded-[12px] border border-line p-4">
+              <p className="text-[11.5px] text-ink3 mb-1">Gastos del mes</p>
+              <p className="text-[20px] font-bold text-ink leading-tight">
+                {fmtCLP(current?.total_expenses ?? 0)}
+              </p>
+              <p className="text-[11px] text-ink3 mt-0.5">gastos fijos activos</p>
+            </div>
+
+            {/* Net */}
+            <div
+              className={cn(
+                "rounded-[12px] border p-4",
+                isPositive
+                  ? "bg-emerald-50 border-emerald-200/70"
+                  : "bg-red-50 border-red-200/70"
+              )}
+            >
+              <p className={cn("text-[11.5px] mb-1", isPositive ? "text-emerald-600" : "text-red-500")}>
+                Resultado neto
+              </p>
+              <p
+                className={cn(
+                  "text-[20px] font-bold leading-tight",
+                  isPositive ? "text-emerald-700" : "text-red-600"
+                )}
+              >
+                {isPositive ? "+" : ""}
+                {fmtCLP(net)}
+              </p>
+              <p className={cn("text-[11px] mt-0.5", isPositive ? "text-emerald-500" : "text-red-400")}>
+                {isPositive ? "superávit" : "déficit"}
+              </p>
+            </div>
+          </div>
+
+          {/* ── Bar chart ── */}
+          <div className="bg-bg rounded-[12px] border border-line p-4">
+            <p className="text-[11px] font-bold text-ink uppercase tracking-wide mb-4">
+              Últimos 6 meses
+            </p>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={chartData} barCategoryGap="30%" barGap={4}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-line, #e5e7eb)" vertical={false} />
+                <XAxis
+                  dataKey="month"
+                  tick={{ fontSize: 11, fill: "var(--color-ink3, #9ca3af)" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 11, fill: "var(--color-ink3, #9ca3af)" }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(v: number) =>
+                    v === 0 ? "0" : `${(v / 1_000_000).toFixed(1)}M`
+                  }
+                  width={38}
+                />
+                <Tooltip content={<CashFlowTooltip />} cursor={{ fill: "var(--color-line, #e5e7eb)", opacity: 0.5 }} />
+                <Bar dataKey="Ingresos" fill="#14b8a6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Gastos" fill="#f87171" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+
+            {/* Legend */}
+            <div className="flex items-center gap-4 mt-3 justify-center">
+              <span className="flex items-center gap-1.5 text-[11.5px] text-ink3">
+                <span className="w-3 h-3 rounded-sm bg-teal inline-block" />
+                Ingresos
+              </span>
+              <span className="flex items-center gap-1.5 text-[11.5px] text-ink3">
+                <span className="w-3 h-3 rounded-sm bg-red-400 inline-block" />
+                Gastos
+              </span>
+            </div>
+          </div>
+
+          {/* ── Expenses breakdown ── */}
+          {(current?.expenses_breakdown?.length ?? 0) > 0 && (
+            <div className="bg-bg rounded-[12px] border border-line p-4">
+              <p className="text-[11px] font-bold text-ink uppercase tracking-wide mb-3">
+                Detalle de gastos — este mes
+              </p>
+              {current!.expenses_breakdown.map((item, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center justify-between py-2 border-b border-line last:border-0"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span
+                      className={cn(
+                        "text-[11px] font-semibold px-2 py-0.5 rounded-full shrink-0",
+                        CATEGORY_COLORS[item.category] ?? "bg-gray-100 text-gray-600"
+                      )}
+                    >
+                      {CATEGORIES.find((c) => c.value === item.category)?.label ?? item.category}
+                    </span>
+                    <span className="text-[13px] text-ink2 truncate">{item.name}</span>
+                  </div>
+                  <span className="text-[13px] font-medium text-ink shrink-0 ml-3">
+                    {fmtCLP(item.amount)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -200,7 +668,9 @@ export default function Finanzas() {
       {/* ── Page header ── */}
       <div>
         <h1 className="text-[20px] font-bold text-ink">Finanzas</h1>
-        <p className="text-[13px] text-ink3 mt-0.5">Herramientas tributarias y financieras para tu práctica</p>
+        <p className="text-[13px] text-ink3 mt-0.5">
+          Herramientas tributarias y financieras para tu práctica
+        </p>
       </div>
 
       {/* ── Calculator card ── */}
@@ -219,7 +689,9 @@ export default function Finanzas() {
               Monto bruto (CLP)
             </label>
             <div className="relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[13px] text-ink3 font-medium">$</span>
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[13px] text-ink3 font-medium">
+                $
+              </span>
               <input
                 type="text"
                 inputMode="numeric"
@@ -375,7 +847,9 @@ export default function Finanzas() {
                 <p className="text-[12.5px] text-ink">
                   La{" "}
                   <span className="font-semibold text-teal-dark">
-                    {result.comparison.recommendation === "factura" ? "factura exenta" : "boleta de honorarios"}
+                    {result.comparison.recommendation === "factura"
+                      ? "factura exenta"
+                      : "boleta de honorarios"}
                   </span>{" "}
                   te dejaría{" "}
                   <span className="font-semibold text-ink">
@@ -390,8 +864,8 @@ export default function Finanzas() {
             <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200/70 rounded-[10px] px-3.5 py-2.5">
               <Info size={14} className="text-amber-500 shrink-0 mt-0.5" />
               <p className="text-[12px] text-amber-700 leading-relaxed">
-                Estimación orientativa. Valores basados en UTM 2025 ≈ $67.000 y tramos impuesto global complementario
-                vigentes. No reemplaza asesoría de un contador.
+                Estimación orientativa. Valores basados en UTM 2025 ≈ $67.000 y tramos
+                impuesto global complementario vigentes. No reemplaza asesoría de un contador.
               </p>
             </div>
           </div>
@@ -411,23 +885,11 @@ export default function Finanzas() {
         )}
       </div>
 
-      {/* ── Flujo de caja placeholder ── */}
-      <div className="bg-surface border border-line rounded-[14px] shadow-[var(--shadow-card)] p-6">
-        <SectionHeader
-          icon={TrendingUp}
-          title="Flujo de Caja Mensual"
-          subtitle="Seguimiento de ingresos y egresos de tu práctica"
-        />
-        <div className="flex flex-col items-center justify-center py-10 text-center">
-          <div className="w-12 h-12 rounded-full bg-bg border border-line flex items-center justify-center mb-3">
-            <TrendingUp size={22} className="text-ink3" strokeWidth={1.5} />
-          </div>
-          <p className="text-[13.5px] font-medium text-ink2">Próximamente: Flujo de caja mensual</p>
-          <p className="text-[12px] text-ink3 mt-1 max-w-xs">
-            Visualizá tus ingresos por consulta, gastos operativos y proyecciones mensuales.
-          </p>
-        </div>
-      </div>
+      {/* ── Gastos Fijos Mensuales ── */}
+      <GastosFijosSection />
+
+      {/* ── Flujo de Caja ── */}
+      <FlujoDeCajaSection />
 
     </div>
   );

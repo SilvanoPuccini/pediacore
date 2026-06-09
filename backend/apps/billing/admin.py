@@ -3,7 +3,7 @@ from __future__ import annotations
 from django.contrib import admin
 from unfold.admin import ModelAdmin
 
-from apps.billing.models import Invoice, Payment, PaymentProvider
+from apps.billing.models import Invoice, MonthlyExpense, Payment, PaymentProvider
 from apps.core.admin_actions import export_to_xlsx, generate_monthly_report
 
 
@@ -79,6 +79,26 @@ class InvoiceAdmin(ModelAdmin):
         ("Service", {"fields": ["service_description"]}),
         ("Amounts", {"fields": ["subtotal", "tax_amount", "total"]}),
         ("File", {"fields": ["pdf_file", "issued_at"]}),
+        (
+            "Timestamps",
+            {
+                "fields": ["created_at", "updated_at", "deleted_at"],
+                "classes": ["collapse"],
+            },
+        ),
+    ]
+
+
+@admin.register(MonthlyExpense)
+class MonthlyExpenseAdmin(ModelAdmin):
+    list_display = ["name", "category", "amount", "is_active", "practice", "created_at"]
+    list_filter = ["category", "is_active", "practice"]
+    search_fields = ["name", "notes"]
+    list_select_related = ["practice"]
+    readonly_fields = ["created_at", "updated_at", "deleted_at"]
+    fieldsets = [
+        (None, {"fields": ["practice", "name", "category", "amount", "is_active"]}),
+        ("Notes", {"fields": ["notes"]}),
         (
             "Timestamps",
             {

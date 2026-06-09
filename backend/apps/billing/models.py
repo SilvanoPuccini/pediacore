@@ -232,6 +232,40 @@ class Invoice(BaseModel):
         return f"Invoice {self.invoice_number} — {self.patient_name} — {self.total} {self.payment.currency}"
 
 
+class MonthlyExpense(BaseModel):
+    """Recurring monthly expenses for the practice."""
+
+    CATEGORY_CHOICES = [
+        ("RENT", "Arriendo"),
+        ("SUPPLIES", "Insumos médicos"),
+        ("SALARY", "Sueldos/Honorarios"),
+        ("PLATFORM", "Plataformas digitales"),
+        ("INSURANCE", "Seguros"),
+        ("UTILITIES", "Servicios básicos"),
+        ("TAXES", "Impuestos/Patentes"),
+        ("OTHER", "Otros"),
+    ]
+
+    practice = models.ForeignKey(
+        "practice.Practice",
+        on_delete=models.CASCADE,
+        related_name="monthly_expenses",
+    )
+    name = models.CharField(max_length=200)
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES)
+    amount = models.PositiveIntegerField(help_text="Monthly amount in CLP")
+    is_active = models.BooleanField(default=True)
+    notes = models.TextField(blank=True, default="")
+
+    class Meta:
+        ordering = ["-amount"]
+        verbose_name = "Monthly expense"
+        verbose_name_plural = "Monthly expenses"
+
+    def __str__(self) -> str:
+        return f"{self.name} — ${self.amount:,}"
+
+
 class PaymentProvider(BaseModel):
     """
     Payment provider configuration for the Strategy pattern.

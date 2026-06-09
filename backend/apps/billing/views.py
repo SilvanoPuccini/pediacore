@@ -11,12 +11,15 @@ Endpoints:
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, date
+from decimal import Decimal
 
 import mercadopago
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.db.models import Sum
+from django.db.models.functions import TruncMonth
 from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import status, viewsets
@@ -27,10 +30,11 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.billing.models import Invoice, Payment, PaymentProvider
+from apps.billing.models import Invoice, MonthlyExpense, Payment, PaymentProvider
 from apps.billing.serializers import (
     InvoiceDetailSerializer,
     InvoiceListSerializer,
+    MonthlyExpenseSerializer,
     PaymentCreateSerializer,
     PaymentDetailSerializer,
     PaymentListSerializer,
@@ -1106,3 +1110,140 @@ class PaymentProviderViewSet(viewsets.ModelViewSet):
             return PaymentProvider.objects.filter(practice=practice)
         except Practice.DoesNotExist:
             return PaymentProvider.objects.none()
+
+
+class MonthlyExpenseViewSet(viewsets.ModelViewSet):
+    """
+    CRUD for recurring monthly expenses (doctor only).
+
+    The practice is resolved automatically from the authenticated doctor —
+    it does not need to be sent in the request body.
+    Supports filtering by is_active and category via query params.
+    """
+
+    serializer_class = MonthlyExpenseSerializer
+    permission_classes = [IsDoctor]
+    pagination_class = StandardPagination
+    http_method_names = ["get", "post", "put", "patch", "delete", "head", "options"]
+
+    def _get_practice(self):
+        from apps.practice.models import Practice
+
+        return Practice.objects.get(owner=self.request.user)
+
+    def get_queryset(self):
+        try:
+            practice = self._get_practice()
+        except Exception:
+            return MonthlyExpense.objects.none()
+
+        qs = MonthlyExpense.objects.filter(practice=practice)
+
+        is_active_param = self.request.query_params.get("is_active")
+        if is_active_param is not None:
+            qs = qs.filter(is_active=is_active_param.lower() == "true")
+
+        category_param = self.request.query_params.get("category")
+        if category_param:
+            qs = qs.filter(category=category_param)
+
+        return qs
+
+    def perform_create(self, serializer):
+        practice = self._get_practice()
+        serializer.save(practice=practice)
+
+
+class CashFlowView(APIView):
+    """
+    GET /api/v1/billing/cash-flow/
+
+    Returns income (completed payments) vs expenses (active monthly expenses)
+    for the last 6 months, plus a breakdown for the current month.
+    """
+
+    permission_classes = [IsDoctor]
+
+    def get(self, request: Request) -> Response:
+        from apps.practice.models import Practice
+
+        try:
+            practice = Practice.objects.get(owner=request.user)
+        except Practice.DoesNotExist:
+            return Response(
+                {"detail": "No practice found for this user."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        today = date.today()
+
+        # Build the last 6 months as (year, month) tuples, chronological
+        months: list[tuple[int, int]] = []
+        year, month = today.year, today.month
+        for _ in range(6):
+            months.insert(0, (year, month))
+            month -= 1
+            if month == 0:
+                month = 12
+                year -= 1
+
+        # ── Income: aggregate completed payments per month ────────────────────
+        from django.db.models import Q
+
+        income_qs = (
+            Payment.objects.filter(
+                practice=practice,
+                status=Payment.COMPLETED,
+                paid_at__isnull=False,
+            )
+            .annotate(month=TruncMonth("paid_at"))
+            .values("month")
+            .annotate(total=Sum("amount"))
+            .order_by("month")
+        )
+
+        income_by_month: dict[str, int] = {}
+        for row in income_qs:
+            key = row["month"].strftime("%Y-%m")
+            income_by_month[key] = int(row["total"])
+
+        # ── Expenses: active MonthlyExpense is a fixed monthly cost ───────────
+        active_expenses = list(
+            MonthlyExpense.objects.filter(practice=practice, is_active=True)
+        )
+        total_expenses = sum(e.amount for e in active_expenses)
+
+        # ── Build per-month series ─────────────────────────────────────────────
+        month_series = []
+        for y, m in months:
+            key = f"{y:04d}-{m:02d}"
+            income = income_by_month.get(key, 0)
+            month_series.append(
+                {
+                    "month": key,
+                    "income": income,
+                    "expenses": total_expenses,
+                    "net": income - total_expenses,
+                }
+            )
+
+        # ── Current month detail ───────────────────────────────────────────────
+        current_key = f"{today.year:04d}-{today.month:02d}"
+        current_income = income_by_month.get(current_key, 0)
+        expenses_breakdown = [
+            {"name": e.name, "category": e.category, "amount": e.amount}
+            for e in sorted(active_expenses, key=lambda x: -x.amount)
+        ]
+
+        return Response(
+            {
+                "months": month_series,
+                "current_month": {
+                    "income": current_income,
+                    "total_expenses": total_expenses,
+                    "net": current_income - total_expenses,
+                    "expenses_breakdown": expenses_breakdown,
+                },
+            },
+            status=status.HTTP_200_OK,
+        )
