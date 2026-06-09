@@ -482,3 +482,246 @@ class GrowthHistoryView(APIView):
         )
         serializer = GrowthPointSerializer(records, many=True)
         return Response(serializer.data)
+
+
+class PatientClinicalSummaryView(APIView):
+    """
+    GET /patients/<pk>/clinical-summary/
+
+    Returns a quick overview card for a patient — last diagnoses, allergies,
+    latest anthropometry, vaccination status, next appointment, and suggested
+    next control date.
+
+    - Doctor: can access any patient in the practice.
+    - Tutor: restricted to their own linked patients.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _patient_age_months(patient) -> int:
+        """Return total age in complete months from date_of_birth to today."""
+        from datetime import date
+
+        today = date.today()
+        dob = patient.date_of_birth
+        if not dob:
+            return 0
+        months = (today.year - dob.year) * 12 + (today.month - dob.month)
+        if today.day < dob.day:
+            months -= 1
+        return max(0, months)
+
+    @staticmethod
+    def _suggested_next_control(last_visit_date, age_months: int):
+        """
+        Return suggested next control date based on patient age.
+
+        Age ranges:
+          0-12 months  → +1 month
+          12-24 months → +2 months
+          24-60 months → +3 months
+          60+ months   → +6 months
+
+        Returns None when last_visit_date is None.
+        """
+        if last_visit_date is None:
+            return None
+
+        from dateutil.relativedelta import relativedelta
+
+        if age_months < 12:
+            delta = relativedelta(months=1)
+        elif age_months < 24:
+            delta = relativedelta(months=2)
+        elif age_months < 60:
+            delta = relativedelta(months=3)
+        else:
+            delta = relativedelta(months=6)
+
+        suggested = last_visit_date + delta
+        return suggested.isoformat()
+
+    # ------------------------------------------------------------------
+    # GET
+    # ------------------------------------------------------------------
+
+    def get(self, request: Request, pk: int) -> Response:  # noqa: WPS213
+        from datetime import date
+
+        from apps.medical_records.models import Anthropometry, Diagnosis, Encounter
+        from apps.scheduling.models import Appointment
+
+        # ── Fetch patient ────────────────────────────────────────────────
+        patient = Patient.objects.filter(pk=pk).first()
+        if not patient:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        # ── Authorization ────────────────────────────────────────────────
+        user = request.user
+        if user.role == User.TUTOR:
+            linked = TutorPatient.objects.filter(
+                tutor=user, patient=patient, deleted_at__isnull=True
+            ).exists()
+            if not linked:
+                return Response(status=status.HTTP_403_FORBIDDEN)
+
+        age_months = self._patient_age_months(patient)
+
+        # ── Last 3 diagnoses ─────────────────────────────────────────────
+        recent_diagnoses = (
+            Diagnosis.objects.filter(encounter__patient=patient)
+            .select_related("encounter")
+            .order_by("-encounter__scheduled_at", "-created_at")[:3]
+        )
+        last_diagnoses = [
+            {
+                "code": d.code or None,
+                "name": d.description,
+                "date": (
+                    d.encounter.scheduled_at.date().isoformat()
+                    if d.encounter.scheduled_at
+                    else None
+                ),
+            }
+            for d in recent_diagnoses
+        ]
+
+        # ── Latest anthropometry ─────────────────────────────────────────
+        latest_anthro = (
+            Anthropometry.objects.filter(patient=patient)
+            .select_related("encounter")
+            .order_by("-encounter__scheduled_at", "-created_at")
+            .first()
+        )
+        if latest_anthro:
+            anthro_date = (
+                latest_anthro.encounter.scheduled_at.date()
+                if latest_anthro.encounter.scheduled_at
+                else None
+            )
+            last_anthropometry = {
+                "date": anthro_date.isoformat() if anthro_date else None,
+                "weight_kg": str(latest_anthro.weight_kg) if latest_anthro.weight_kg is not None else None,
+                "height_cm": str(latest_anthro.height_cm) if latest_anthro.height_cm is not None else None,
+                "head_circumference_cm": (
+                    str(latest_anthro.head_circumference_cm)
+                    if latest_anthro.head_circumference_cm is not None
+                    else None
+                ),
+                "bmi": str(latest_anthro.bmi) if latest_anthro.bmi is not None else None,
+                "weight_percentile": (
+                    float(latest_anthro.weight_for_age_percentile)
+                    if latest_anthro.weight_for_age_percentile is not None
+                    else None
+                ),
+                "height_percentile": (
+                    float(latest_anthro.height_for_age_percentile)
+                    if latest_anthro.height_for_age_percentile is not None
+                    else None
+                ),
+                "bmi_percentile": (
+                    float(latest_anthro.bmi_for_age_percentile)
+                    if latest_anthro.bmi_for_age_percentile is not None
+                    else None
+                ),
+            }
+        else:
+            last_anthropometry = None
+
+        # ── Vaccination status ───────────────────────────────────────────
+        vaccination_status = None
+        try:
+            from apps.medical_records.models import VaccineSchedule, Vaccination  # type: ignore[attr-defined]
+
+            total_scheduled = VaccineSchedule.objects.filter(
+                age_months__lte=age_months
+            ).count()
+            total_applied = Vaccination.objects.filter(patient=patient).count()
+            pending_count = max(0, total_scheduled - total_applied)
+
+            next_pending_obj = (
+                VaccineSchedule.objects.filter(age_months__lte=age_months)
+                .exclude(
+                    pk__in=Vaccination.objects.filter(patient=patient).values_list(
+                        "vaccine_schedule_id", flat=True
+                    )
+                )
+                .order_by("age_months")
+                .first()
+            )
+            next_pending = next_pending_obj.display_name if next_pending_obj else None
+
+            vaccination_status = {
+                "total_scheduled": total_scheduled,
+                "total_applied": total_applied,
+                "pending_count": pending_count,
+                "next_pending": next_pending,
+            }
+        except (ImportError, Exception):
+            # VaccineSchedule / Vaccination models not yet migrated — skip gracefully
+            vaccination_status = None
+
+        # ── Next appointment ─────────────────────────────────────────────
+        today = date.today()
+        next_apt = (
+            Appointment.objects.filter(
+                patient=patient,
+                scheduled_date__gte=today,
+                status__in=[Appointment.CONFIRMED, Appointment.PENDING],
+            )
+            .select_related("service", "location")
+            .order_by("scheduled_date", "start_time")
+            .first()
+        )
+        if next_apt:
+            next_appointment = {
+                "date": next_apt.scheduled_date.isoformat(),
+                "service": next_apt.service.name if next_apt.service else None,
+                "location": next_apt.location.name if next_apt.location else None,
+            }
+        else:
+            next_appointment = None
+
+        # ── Last visit date ──────────────────────────────────────────────
+        last_encounter = (
+            Encounter.objects.filter(patient=patient)
+            .exclude(status=Encounter.CANCELLED)
+            .order_by("-scheduled_at", "-created_at")
+            .first()
+        )
+        if last_encounter:
+            last_visit_date = (
+                last_encounter.completed_at.date()
+                if last_encounter.completed_at
+                else (
+                    last_encounter.scheduled_at.date()
+                    if last_encounter.scheduled_at
+                    else None
+                )
+            )
+        else:
+            last_visit_date = None
+
+        # ── Suggested next control ───────────────────────────────────────
+        suggested_next_control = self._suggested_next_control(last_visit_date, age_months)
+
+        return Response(
+            {
+                "patient_id": patient.pk,
+                "patient_name": patient.full_name,
+                "age": patient.age,
+                "last_diagnoses": last_diagnoses,
+                "allergies": patient.allergies or None,
+                "chronic_conditions": patient.chronic_conditions or None,
+                "last_anthropometry": last_anthropometry,
+                "vaccination_status": vaccination_status,
+                "next_appointment": next_appointment,
+                "last_visit_date": last_visit_date.isoformat() if last_visit_date else None,
+                "suggested_next_control": suggested_next_control,
+            }
+        )

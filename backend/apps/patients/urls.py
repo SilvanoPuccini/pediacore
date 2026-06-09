@@ -14,6 +14,7 @@ from django.urls import path
 from apps.patients.views import (
     CoResponsibleViewSet,
     GrowthHistoryView,
+    PatientClinicalSummaryView,
     PatientFileViewSet,
     PatientStatsView,
     PatientViewSet,
@@ -48,5 +49,6 @@ urlpatterns = [
     path("patients/<int:patient_pk>/files/", file_list, name="patient-file-list"),
     path("patients/<int:patient_pk>/files/<int:pk>/", file_detail, name="patient-file-detail"),
     path("patients/<int:patient_pk>/growth-history/", GrowthHistoryView.as_view(), name="patient-growth-history"),
+    path("patients/<int:pk>/clinical-summary/", PatientClinicalSummaryView.as_view(), name="patient-clinical-summary"),
     path("patients/stats/", PatientStatsView.as_view(), name="patient-stats"),
 ]
