@@ -1,0 +1,57 @@
+{% extends "unfold/layouts/base_simple.html" %}
+{% load i18n %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    {% for kpi in kpis %}
+    <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5">
+        <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined text-primary-500">{{ kpi.icon }}</span>
+            <div>
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ kpi.value }}</div>
+                <div class="text-sm text-gray-500 dark:text-gray-400">{{ kpi.title }}</div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if todays_appointments %}
+<div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5 mb-8">
+    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Agenda de hoy</h3>
+    <div class="divide-y divide-gray-100 dark:divide-gray-700">
+        {% for apt in todays_appointments %}
+        <div class="py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <span class="text-sm font-mono text-primary-600 dark:text-primary-400 w-12">{{ apt.start_time|time:"H:i" }}</span>
+                <div>
+                    <div class="text-sm font-semibold text-gray-900 dark:text-white">{{ apt.patient }}</div>
+                    <div class="text-xs text-gray-500">{{ apt.service }}{% if apt.location %} · {{ apt.location }}{% endif %}</div>
+                </div>
+            </div>
+            <span class="text-xs px-2 py-1 rounded-full
+                {% if apt.status == 'CONFIRMED' %}bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300
+                {% elif apt.status == 'PENDING' %}bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300
+                {% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400{% endif %}">
+                {{ apt.get_status_display }}
+            </span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if recent_patients %}
+<div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5">
+    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Pacientes recientes</h3>
+    <div class="divide-y divide-gray-100 dark:divide-gray-700">
+        {% for p in recent_patients %}
+        <div class="py-2.5 flex items-center justify-between">
+            <div class="text-sm text-gray-900 dark:text-white">{{ p.full_name }}</div>
+            <div class="text-xs text-gray-500">{{ p.created_at|date:"d M Y" }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

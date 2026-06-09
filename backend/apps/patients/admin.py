@@ -5,7 +5,8 @@ Django admin configuration for the patients app.
 from django.contrib import admin
 from unfold.admin import ModelAdmin, TabularInline
 
-from apps.patients.models import Patient, PatientFile, TutorPatient
+from apps.core.admin_actions import export_to_xlsx
+from apps.patients.models import CoResponsible, Patient, PatientFile, TutorPatient
 
 
 class TutorPatientInline(TabularInline):
@@ -19,7 +20,7 @@ class TutorPatientInline(TabularInline):
 
 class PatientFileInline(TabularInline):
     model = PatientFile
-    extra = 0
+    extra = 3  # Show 3 empty upload slots by default
     fields = ("file_type", "original_filename", "file_size", "description", "uploaded_by")
     readonly_fields = ("original_filename", "file_size", "uploaded_by")
     verbose_name = "File"
@@ -34,6 +35,7 @@ class PatientAdmin(ModelAdmin):
     list_select_related = ["practice"]
     date_hierarchy = "date_of_birth"
     readonly_fields = ("created_at", "updated_at", "deleted_at")
+    actions = [export_to_xlsx]
     inlines = [TutorPatientInline, PatientFileInline]
     fieldsets = (
         (
@@ -74,6 +76,14 @@ class TutorPatientAdmin(ModelAdmin):
     list_filter = ("relationship", "is_primary")
     search_fields = ("tutor__email", "patient__first_name", "patient__last_name")
     raw_id_fields = ("tutor", "patient")
+
+
+@admin.register(CoResponsible)
+class CoResponsibleAdmin(ModelAdmin):
+    list_display = ["name", "tutor", "relationship", "phone", "can_book"]
+    list_filter = ["relationship", "can_book"]
+    search_fields = ["name", "rut", "tutor__email"]
+    list_select_related = ["tutor"]
 
 
 @admin.register(PatientFile)

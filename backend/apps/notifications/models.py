@@ -151,6 +151,61 @@ class EmailLog(TimeStampedModel):
         return f"{self.recipient_email} — {self.subject} ({self.status})"
 
 
+class NotificationTemplate(BaseModel):
+    """
+    Reusable templates for common notification messages.
+
+    Supports variable substitution via {{paciente}}, {{tutor}}, {{fecha}} placeholders.
+    """
+
+    REMINDER = "REMINDER"
+    RESULT = "RESULT"
+    BIRTHDAY = "BIRTHDAY"
+    VACCINATION = "VACCINATION"
+    FOLLOW_UP = "FOLLOW_UP"
+    PAYMENT = "PAYMENT"
+    CUSTOM = "CUSTOM"
+
+    EVENT_TYPE_CHOICES = [
+        (REMINDER, _("Recordatorio")),
+        (RESULT, _("Resultado disponible")),
+        (BIRTHDAY, _("Cumpleaños")),
+        (VACCINATION, _("Vacuna pendiente")),
+        (FOLLOW_UP, _("Seguimiento")),
+        (PAYMENT, _("Pago")),
+        (CUSTOM, _("Personalizado")),
+    ]
+
+    practice = models.ForeignKey(
+        "practice.Practice",
+        on_delete=models.CASCADE,
+        related_name="notification_templates",
+        verbose_name=_("practice"),
+    )
+    name = models.CharField(_("name"), max_length=200)
+    subject = models.CharField(_("subject"), max_length=300)
+    body = models.TextField(
+        _("body"),
+        help_text=_("Use {{paciente}}, {{tutor}}, {{fecha}} as variables."),
+    )
+    event_type = models.CharField(
+        _("event type"),
+        max_length=20,
+        choices=EVENT_TYPE_CHOICES,
+        default=CUSTOM,
+    )
+    is_active = models.BooleanField(_("active"), default=True)
+
+    class Meta:
+        db_table = "notification_templates"
+        ordering = ["event_type", "name"]
+        verbose_name = _("notification template")
+        verbose_name_plural = _("notification templates")
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.get_event_type_display()})"
+
+
 class NotificationPreference(BaseModel):
     """
     Per-user email notification preferences.

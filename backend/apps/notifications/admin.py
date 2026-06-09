@@ -3,7 +3,12 @@ from __future__ import annotations
 from django.contrib import admin
 from unfold.admin import ModelAdmin
 
-from apps.notifications.models import EmailLog, Notification, NotificationPreference
+from apps.notifications.models import (
+    EmailLog,
+    Notification,
+    NotificationPreference,
+    NotificationTemplate,
+)
 
 
 @admin.register(Notification)
@@ -51,6 +56,25 @@ class EmailLogAdmin(ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+@admin.register(NotificationTemplate)
+class NotificationTemplateAdmin(ModelAdmin):
+    list_display = ["name", "event_type", "subject", "is_active", "updated_at"]
+    list_filter = ["event_type", "is_active", "practice"]
+    search_fields = ["name", "subject", "body"]
+    readonly_fields = ["created_at", "updated_at", "deleted_at"]
+    fieldsets = [
+        (None, {"fields": ["practice", "name", "event_type", "is_active"]}),
+        ("Content", {"fields": ["subject", "body"]}),
+        (
+            "Timestamps",
+            {
+                "fields": ["created_at", "updated_at", "deleted_at"],
+                "classes": ["collapse"],
+            },
+        ),
+    ]
 
 
 @admin.register(NotificationPreference)
