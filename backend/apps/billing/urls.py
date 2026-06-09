@@ -11,6 +11,8 @@ from apps.billing.views import (
     PaymentProviderViewSet,
     PaymentViewSet,
     TaxCalculatorView,
+    TaxSummaryExportView,
+    TaxSummaryView,
 )
 
 app_name = "billing"
@@ -26,4 +28,6 @@ urlpatterns = [
     path("webhooks/mercadopago/", MercadoPagoWebhookView.as_view(), name="mp-webhook"),
     path("tax-calculator/", TaxCalculatorView.as_view(), name="tax-calculator"),
     path("cash-flow/", CashFlowView.as_view(), name="cash-flow"),
+    path("tax-summary/", TaxSummaryView.as_view(), name="tax-summary"),
+    path("tax-summary/export/", TaxSummaryExportView.as_view(), name="tax-summary-export"),
 ]
