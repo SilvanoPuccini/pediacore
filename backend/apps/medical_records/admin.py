@@ -8,6 +8,7 @@ from unfold.admin import ModelAdmin, StackedInline, TabularInline
 from apps.medical_records.models import (
     Anthropometry,
     Diagnosis,
+    DiagnosisCatalog,
     Encounter,
     PhysicalExam,
     SOAPNote,
@@ -157,6 +158,19 @@ class EncounterAdmin(ModelAdmin):
             },
         ),
     )
+
+
+# ---------------------------------------------------------------------------
+# DiagnosisCatalogAdmin
+# ---------------------------------------------------------------------------
+
+
+@admin.register(DiagnosisCatalog)
+class DiagnosisCatalogAdmin(ModelAdmin):
+    list_display = ("code", "name_es", "category", "is_common")
+    list_filter = ("category", "is_common")
+    search_fields = ("code", "name", "name_es")
+    ordering = ("code",)
 
 
 # ---------------------------------------------------------------------------
