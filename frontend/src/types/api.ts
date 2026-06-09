@@ -413,6 +413,19 @@ export interface GrowthPoint {
   bmi_for_age_percentile: number | null;
 }
 
+export interface CoResponsible {
+  id: number;
+  name: string;
+  relationship: string;
+  relationship_display: string;
+  rut: string;
+  phone: string;
+  email: string;
+  can_book: boolean;
+  can_pickup: boolean;
+  created_at: string;
+}
+
 export interface PatientFile {
   id: number;
   patient: number;

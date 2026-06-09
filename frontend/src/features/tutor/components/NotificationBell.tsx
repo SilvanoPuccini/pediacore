@@ -1,32 +1,19 @@
-import { useRef, useState, useEffect } from "react";
+import { useState } from "react";
 import { Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUnreadCount } from "../hooks/useNotifications";
-import NotificationDropdown from "./NotificationDropdown";
+import NotificationDrawer from "./NotificationDrawer";
 
 export default function NotificationBell() {
   const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
   const { data: unreadCount = 0 } = useUnreadCount();
 
   const badgeLabel = unreadCount > 99 ? "99+" : String(unreadCount);
 
-  // Close on click outside
-  useEffect(() => {
-    if (!open) return;
-    function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [open]);
-
   return (
-    <div ref={containerRef} className="relative">
+    <>
       <button
-        onClick={() => setOpen((prev) => !prev)}
+        onClick={() => setOpen(true)}
         aria-label={
           unreadCount > 0
             ? `${unreadCount} notificaciones sin leer`
@@ -45,7 +32,7 @@ export default function NotificationBell() {
         )}
       </button>
 
-      {open && <NotificationDropdown onClose={() => setOpen(false)} />}
-    </div>
+      <NotificationDrawer open={open} onClose={() => setOpen(false)} />
+    </>
   );
 }

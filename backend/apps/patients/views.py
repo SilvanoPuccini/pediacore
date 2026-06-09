@@ -22,8 +22,9 @@ from rest_framework.viewsets import ModelViewSet
 
 from apps.core.models import AuditLog
 from apps.core.permissions import IsDoctor, IsTutor
-from apps.patients.models import Patient, PatientFile, TutorPatient
+from apps.patients.models import CoResponsible, Patient, PatientFile, TutorPatient
 from apps.patients.serializers import (
+    CoResponsibleSerializer,
     PatientCreateSerializer,
     PatientFileSerializer,
     PatientFileUploadSerializer,
@@ -306,6 +307,24 @@ class PatientFileViewSet(ModelViewSet):
             practice=patient.practice,
             uploaded_by=self.request.user,
         )
+
+
+class CoResponsibleViewSet(ModelViewSet):
+    """CRUD for co-responsible adults linked to the authenticated tutor."""
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = CoResponsibleSerializer
+
+    def get_queryset(self) -> QuerySet[CoResponsible]:
+        return CoResponsible.objects.filter(tutor=self.request.user)
+
+    def perform_create(self, serializer: CoResponsibleSerializer) -> None:
+        # Resolve practice from the tutor's linked patients
+        tp = TutorPatient.objects.filter(
+            tutor=self.request.user, deleted_at__isnull=True
+        ).first()
+        practice = tp.practice if tp else None
+        serializer.save(tutor=self.request.user, practice=practice)
 
 
 class GrowthPointSerializer(drf_serializers.Serializer):
