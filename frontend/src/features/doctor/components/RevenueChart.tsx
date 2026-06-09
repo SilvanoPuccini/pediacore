@@ -66,7 +66,7 @@ export default function RevenueChart({ data, loading }: RevenueChartProps) {
             padding: "8px 12px",
           }}
           labelStyle={{ color: "#6B6B6B", fontWeight: 500, marginBottom: 2 }}
-          formatter={(v: number) => [formatCLP(v), "Ingreso"]}
+          formatter={(v) => [formatCLP(Number(v ?? 0)), "Ingreso"]}
         />
         <Area
           type="monotone"

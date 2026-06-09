@@ -198,7 +198,7 @@ export default function Dashboard() {
           <p className="mt-1 text-[13.5px] text-ink2">
             Hoy tenes <span className="font-semibold text-ink">{metrics?.turnos_hoy ?? "..."} turnos</span>
             {(metrics?.pendientes ?? 0) > 0 && (
-              <> y <span className="font-semibold text-ink">{metrics.pendientes} pendientes</span> por confirmar</>
+              <> y <span className="font-semibold text-ink">{metrics?.pendientes} pendientes</span> por confirmar</>
             )}
             .
           </p>

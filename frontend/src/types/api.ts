@@ -197,6 +197,15 @@ export interface Patient {
   tutors: TutorPatientLink[];
   last_encounter_date?: string | null;
   next_appointment_date?: string | null;
+  school_name?: string;
+  grade?: string;
+  birth_weight_grams?: number;
+  birth_length_cm?: number;
+  gestational_weeks?: number;
+  birth_type?: string;
+  apgar_1min?: number;
+  apgar_5min?: number;
+  feeding_type?: string;
   profile_completion?: {
     percentage: number;
     missing: string[];
