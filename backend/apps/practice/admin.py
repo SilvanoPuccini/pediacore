@@ -74,6 +74,42 @@ class ServiceAdmin(ModelAdmin):
 
 @admin.register(WorkingHours)
 class WorkingHoursAdmin(ModelAdmin):
+    actions = ["bulk_duplicate_weekdays"]
+
+    @admin.action(description="Duplicar horario a todos los días de semana")
+    def bulk_duplicate_weekdays(self, request, queryset):
+        """Duplicate selected working hours to all weekdays (Mon-Fri)."""
+        created = 0
+        for wh in queryset:
+            for day in range(0, 5):  # Monday=0 to Friday=4
+                if day == wh.day_of_week:
+                    continue
+                exists = WorkingHours.objects.filter(
+                    practice=wh.practice,
+                    location=wh.location,
+                    day_of_week=day,
+                    start_time=wh.start_time,
+                    end_time=wh.end_time,
+                    service=wh.service,
+                ).exists()
+                if not exists:
+                    WorkingHours.objects.create(
+                        practice=wh.practice,
+                        location=wh.location,
+                        day_of_week=day,
+                        start_time=wh.start_time,
+                        end_time=wh.end_time,
+                        break_start=wh.break_start,
+                        break_end=wh.break_end,
+                        max_appointments=wh.max_appointments,
+                        slot_duration_minutes=wh.slot_duration_minutes,
+                        is_online=wh.is_online,
+                        service=wh.service,
+                        is_active=wh.is_active,
+                    )
+                    created += 1
+        self.message_user(request, f"{created} horario(s) creado(s) en los días de semana.")
+
     list_display = [
         "location",
         "practice",

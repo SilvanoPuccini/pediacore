@@ -1,0 +1,80 @@
+{% extends "unfold/layouts/base_simple.html" %}
+{% load i18n %}
+
+{% block title %}Curva de crecimiento — {{ patient.full_name }}{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{% url 'admin:patients_patient_change' patient.pk %}" class="text-primary-500 hover:underline text-sm">
+        &larr; Volver a {{ patient.full_name }}
+    </a>
+</div>
+
+<div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 mb-6">
+    <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-2">
+        <span class="material-symbols-outlined align-middle mr-1">monitoring</span>
+        Curva de crecimiento — {{ patient.full_name }}
+    </h2>
+    <p class="text-sm text-gray-500 mb-6">{{ patient.date_of_birth|date:"d/m/Y" }} · {{ patient.get_sex_at_birth_display }}</p>
+
+    {% if measurements %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="border-b border-gray-200 dark:border-gray-700">
+                    <th class="text-left py-3 px-3 text-gray-500 font-medium">Fecha</th>
+                    <th class="text-left py-3 px-3 text-gray-500 font-medium">Edad (meses)</th>
+                    <th class="text-right py-3 px-3 text-gray-500 font-medium">Peso (kg)</th>
+                    <th class="text-right py-3 px-3 text-gray-500 font-medium">Talla (cm)</th>
+                    <th class="text-right py-3 px-3 text-gray-500 font-medium">PC (cm)</th>
+                    <th class="text-right py-3 px-3 text-gray-500 font-medium">IMC</th>
+                    <th class="text-right py-3 px-3 text-gray-500 font-medium">P. Peso/Edad</th>
+                    <th class="text-right py-3 px-3 text-gray-500 font-medium">P. Talla/Edad</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                {% for m in measurements %}
+                <tr>
+                    <td class="py-2.5 px-3 text-gray-900 dark:text-white">{{ m.encounter.scheduled_at|date:"d/m/Y" }}</td>
+                    <td class="py-2.5 px-3 text-gray-600 dark:text-gray-400">{{ m.age_months|default:"—" }}</td>
+                    <td class="py-2.5 px-3 text-right font-medium text-gray-900 dark:text-white">{{ m.weight_kg|default:"—" }}</td>
+                    <td class="py-2.5 px-3 text-right text-gray-900 dark:text-white">{{ m.height_cm|default:"—" }}</td>
+                    <td class="py-2.5 px-3 text-right text-gray-900 dark:text-white">{{ m.head_circumference_cm|default:"—" }}</td>
+                    <td class="py-2.5 px-3 text-right text-gray-600 dark:text-gray-400">{{ m.bmi|floatformat:1|default:"—" }}</td>
+                    <td class="py-2.5 px-3 text-right">
+                        {% if m.weight_for_age_percentile != None %}
+                        <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium
+                            {% if m.weight_for_age_percentile < 3 %}bg-red-100 text-red-700
+                            {% elif m.weight_for_age_percentile > 97 %}bg-red-100 text-red-700
+                            {% elif m.weight_for_age_percentile < 15 %}bg-yellow-100 text-yellow-700
+                            {% elif m.weight_for_age_percentile > 85 %}bg-yellow-100 text-yellow-700
+                            {% else %}bg-green-100 text-green-700{% endif %}">
+                            P{{ m.weight_for_age_percentile|floatformat:0 }}
+                        </span>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td class="py-2.5 px-3 text-right">
+                        {% if m.height_for_age_percentile != None %}
+                        <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium
+                            {% if m.height_for_age_percentile < 3 %}bg-red-100 text-red-700
+                            {% elif m.height_for_age_percentile > 97 %}bg-red-100 text-red-700
+                            {% elif m.height_for_age_percentile < 15 %}bg-yellow-100 text-yellow-700
+                            {% elif m.height_for_age_percentile > 85 %}bg-yellow-100 text-yellow-700
+                            {% else %}bg-green-100 text-green-700{% endif %}">
+                            P{{ m.height_for_age_percentile|floatformat:0 }}
+                        </span>
+                        {% else %}—{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-10 text-gray-400">
+        <span class="material-symbols-outlined text-4xl mb-2">monitoring</span>
+        <p>Sin registros de antropometría</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

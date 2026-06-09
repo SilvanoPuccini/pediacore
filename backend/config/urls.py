@@ -16,7 +16,10 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 
+from apps.core.admin_views import patient_growth_chart
+
 urlpatterns = [
+    path("admin/patients/<int:patient_id>/growth-chart/", patient_growth_chart, name="admin-patient-growth-chart"),
     path("admin/", admin.site.urls),
     # JWT auth
     path("api/v1/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
