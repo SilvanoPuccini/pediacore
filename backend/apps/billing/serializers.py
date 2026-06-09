@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
-from apps.billing.models import Invoice, Payment, PaymentProvider
+from apps.billing.models import Invoice, MonthlyExpense, Payment, PaymentProvider
 
 
 # ---------------------------------------------------------------------------
@@ -319,6 +319,38 @@ class TransferRejectSerializer(serializers.Serializer):
     """Required reason when rejecting a bank transfer."""
 
     reason = serializers.CharField(required=True, allow_blank=False)
+
+
+# ---------------------------------------------------------------------------
+# MonthlyExpense serializers
+# ---------------------------------------------------------------------------
+
+
+class MonthlyExpenseSerializer(serializers.ModelSerializer):
+    """Serializer for MonthlyExpense CRUD (doctor only).
+
+    `practice` is read-only — the viewset injects it via perform_create.
+    """
+
+    category_display = serializers.CharField(
+        source="get_category_display", read_only=True
+    )
+
+    class Meta:
+        model = MonthlyExpense
+        fields = [
+            "id",
+            "practice",
+            "name",
+            "category",
+            "category_display",
+            "amount",
+            "is_active",
+            "notes",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "practice", "category_display", "created_at", "updated_at"]
 
 
 # ---------------------------------------------------------------------------
