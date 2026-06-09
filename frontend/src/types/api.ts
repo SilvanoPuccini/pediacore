@@ -14,6 +14,7 @@ export interface User {
   full_name: string;
   is_email_verified: boolean;
   created_at: string;
+  last_login: string | null;
   profile_completion?: {
     percentage: number;
     missing: string[];
@@ -55,10 +56,12 @@ export interface BlogPost {
   excerpt: string;
   content: string;
   cover_image: string | null;
+  featured_image: string | null;
   author_name: string;
   published_at: string;
   tags: string;
   meta_description: string;
+  status: "DRAFT" | "PUBLISHED";
   created_at: string;
   updated_at: string;
 }
@@ -425,6 +428,33 @@ export interface CoResponsible {
   can_pickup: boolean;
   created_at: string;
 }
+
+// ─── Waitlist ─────────────────────────────────────────────────────────────────
+
+export interface WaitlistEntry {
+  id: number;
+  patient_name: string;
+  service_name: string;
+  location_name: string;
+  priority: "HIGH" | "NORMAL" | "LOW";
+  status: "WAITING" | "NOTIFIED" | "BOOKED" | "CANCELLED";
+  created_at: string;
+  notes: string;
+}
+
+// ─── Working Hours ────────────────────────────────────────────────────────────
+
+export interface WorkingHours {
+  id: number;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  location: number;
+  location_name?: string;
+  is_active: boolean;
+}
+
+// ─── PatientFile ──────────────────────────────────────────────────────────────
 
 export interface PatientFile {
   id: number;

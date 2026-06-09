@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   Menu,
@@ -15,6 +15,8 @@ import {
   MapPin,
   ChevronUp,
   Check,
+  Search,
+  CalendarPlus,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/auth";
@@ -23,6 +25,7 @@ import { cn } from "@/lib/utils";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import NotificationBell from "@/features/tutor/components/NotificationBell";
 import api from "@/lib/api";
+import type { ElementType, KeyboardEvent as ReactKeyboardEvent } from "react";
 import type { Location } from "@/types/api";
 
 // ─── Nav items ─────────────────────────────────────────────────────────────────
@@ -59,6 +62,207 @@ function usePageTitle(pathname: string): string {
   return "Dashboard";
 }
 
+// ─── Debounce hook ──────────────────────────────────────────────────────────────
+
+function useDebounce<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(t);
+  }, [value, delay]);
+  return debounced;
+}
+
+// ─── Quick actions ──────────────────────────────────────────────────────────────
+
+type QuickAction = { id: string; label: string; href: string; icon: ElementType };
+
+const QUICK_ACTIONS: QuickAction[] = [
+  { id: "new-appt",    label: "Nuevo turno",     href: "/booking",               icon: CalendarPlus },
+  { id: "calendar",   label: "Ver calendario",   href: "/dashboard/calendario",  icon: Calendar },
+  { id: "patients",   label: "Ver pacientes",    href: "/dashboard/pacientes",   icon: Users },
+];
+
+// ─── Patient search result type ─────────────────────────────────────────────────
+
+type PatientResult = {
+  id: number;
+  full_name: string;
+  rut: string;
+  age_display?: string;
+};
+
+type PatientPage = {
+  results: PatientResult[];
+};
+
+// ─── Command palette ────────────────────────────────────────────────────────────
+
+type CommandPaletteProps = {
+  onClose: () => void;
+};
+
+function CommandPalette({ onClose }: CommandPaletteProps) {
+  const navigate = useNavigate();
+  const [query, setQuery] = useState("");
+  const [activeIdx, setActiveIdx] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const debouncedQuery = useDebounce(query, 300);
+
+  // Autofocus on mount
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  // Close on Escape
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const { data: patientPage, isFetching } = useQuery<PatientPage>({
+    queryKey: ["cmd-search", debouncedQuery],
+    queryFn: () =>
+      api
+        .get<PatientPage>(`/patients/?search=${encodeURIComponent(debouncedQuery)}&page_size=5`)
+        .then((r) => r.data),
+    enabled: debouncedQuery.length >= 2,
+    staleTime: 1000 * 30,
+  });
+
+  const patientResults = patientPage?.results ?? [];
+  const showQuickActions = query.length < 2;
+
+  // Unified list for keyboard nav
+  const totalItems = showQuickActions ? QUICK_ACTIONS.length : patientResults.length;
+
+  // Reset index when results change
+  useEffect(() => {
+    setActiveIdx(0);
+  }, [debouncedQuery]);
+
+  function handleSelect(href: string) {
+    navigate(href);
+    onClose();
+  }
+
+  function handleKeyDown(e: ReactKeyboardEvent) {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIdx((i) => Math.min(i + 1, totalItems - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIdx((i) => Math.max(i - 1, 0));
+    } else if (e.key === "Enter" && totalItems > 0) {
+      e.preventDefault();
+      if (showQuickActions) {
+        handleSelect(QUICK_ACTIONS[activeIdx].href);
+      } else {
+        handleSelect(`/dashboard/pacientes/${patientResults[activeIdx].id}`);
+      }
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-ink/30 flex justify-center"
+      onClick={onClose}
+    >
+      <div
+        className="max-w-lg w-full mx-4 mt-[15vh] h-fit"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Search box */}
+        <div className="bg-surface rounded-[14px] shadow-[var(--shadow-pop)] overflow-hidden border border-line">
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-line">
+            <Search size={16} className="text-ink3 shrink-0" />
+            <input
+              ref={inputRef}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Buscar pacientes, turnos..."
+              className="flex-1 bg-transparent text-[14px] text-ink placeholder:text-ink3 outline-none"
+            />
+            {isFetching && (
+              <div className="h-4 w-4 rounded-full border-2 border-line border-t-teal animate-spin shrink-0" />
+            )}
+            <kbd className="text-[10.5px] text-ink3 bg-bg border border-line rounded-[5px] px-1.5 py-0.5 shrink-0">
+              Esc
+            </kbd>
+          </div>
+
+          {/* Results */}
+          <div className="py-1.5 max-h-72 overflow-y-auto">
+            {showQuickActions && (
+              <>
+                <p className="text-[10px] uppercase tracking-[0.14em] text-ink3 font-semibold px-4 py-1.5 pt-2">
+                  Acciones rápidas
+                </p>
+                {QUICK_ACTIONS.map((action, i) => {
+                  const Icon = action.icon;
+                  return (
+                    <button
+                      key={action.id}
+                      onClick={() => handleSelect(action.href)}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors",
+                        i === activeIdx ? "bg-bg" : "hover:bg-bg"
+                      )}
+                    >
+                      <Icon size={15} className="text-ink3 shrink-0" />
+                      <span className="text-[13px] text-ink">{action.label}</span>
+                    </button>
+                  );
+                })}
+              </>
+            )}
+
+            {!showQuickActions && patientResults.length === 0 && !isFetching && (
+              <p className="text-[13px] text-ink3 px-4 py-4 text-center">
+                Sin resultados para "{query}"
+              </p>
+            )}
+
+            {!showQuickActions && patientResults.length > 0 && (
+              <>
+                <p className="text-[10px] uppercase tracking-[0.14em] text-ink3 font-semibold px-4 py-1.5 pt-2">
+                  Pacientes
+                </p>
+                {patientResults.map((p, i) => (
+                  <button
+                    key={p.id}
+                    onClick={() => handleSelect(`/dashboard/pacientes/${p.id}`)}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors",
+                      i === activeIdx ? "bg-bg" : "hover:bg-bg"
+                    )}
+                  >
+                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#D6F1EA] to-[#EDE4FF] flex items-center justify-center shrink-0">
+                      <span className="text-[10px] font-bold text-teal-dark">
+                        {p.full_name.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[13px] font-medium text-ink truncate">{p.full_name}</p>
+                      <p className="text-[11.5px] text-ink3">
+                        {p.rut}{p.age_display ? ` · ${p.age_display}` : ""}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── DoctorLayout ──────────────────────────────────────────────────────────────
 
 export default function DoctorLayout() {
@@ -66,6 +270,7 @@ export default function DoctorLayout() {
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [logoutPending, setLogoutPending] = useState(false);
   const [sedeOpen, setSedeOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const sedeRef = useRef<HTMLDivElement>(null);
   const { user, logout } = useAuthStore();
   const { sedeId, sedeName, setSede } = useSedeStore();
@@ -88,6 +293,19 @@ export default function DoctorLayout() {
     document.addEventListener("mousedown", close);
     return () => document.removeEventListener("mousedown", close);
   }, []);
+
+  // Cmd+K / Ctrl+K shortcut
+  const openSearch = useCallback(() => setSearchOpen(true), []);
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        openSearch();
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [openSearch]);
 
   const initials = getInitials(user?.first_name, user?.last_name, user?.email);
 
@@ -263,7 +481,18 @@ export default function DoctorLayout() {
             {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
 
-          <span className="flex-1 text-[14px] font-semibold text-ink">{pageTitle}</span>
+          <span className="text-[14px] font-semibold text-ink">{pageTitle}</span>
+
+          <button
+            onClick={() => setSearchOpen(true)}
+            className="flex-1 max-w-[220px] flex items-center gap-2 px-3 py-1.5 rounded-[9px] border border-line bg-bg hover:bg-line/60 transition-colors text-left"
+          >
+            <Search size={14} className="text-ink3 shrink-0" />
+            <span className="flex-1 text-[12.5px] text-ink3">Buscar...</span>
+            <kbd className="text-[10.5px] text-ink3 bg-surface border border-line rounded-[5px] px-1.5 py-0.5 shrink-0">
+              ⌘K
+            </kbd>
+          </button>
 
           <div className="flex items-center gap-2">
             <NotificationBell />
@@ -277,6 +506,9 @@ export default function DoctorLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* ── Command palette ── */}
+      {searchOpen && <CommandPalette onClose={() => setSearchOpen(false)} />}
     </div>
   );
 }
