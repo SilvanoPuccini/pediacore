@@ -523,6 +523,78 @@ class EncounterTemplate(models.Model):
 
 
 # ---------------------------------------------------------------------------
+# VaccineSchedule
+# ---------------------------------------------------------------------------
+
+
+class VaccineSchedule(models.Model):
+    """PNI Chile vaccination schedule — reference data."""
+
+    name = models.CharField(max_length=100)  # e.g. "BCG"
+    disease = models.CharField(max_length=200)  # e.g. "Tuberculosis"
+    dose_label = models.CharField(max_length=50)  # e.g. "Única", "1ra dosis", "2da dosis"
+    age_months = models.PositiveSmallIntegerField()  # recommended age in months
+    age_label = models.CharField(max_length=50)  # e.g. "Recién nacido", "2 meses"
+    route = models.CharField(max_length=50, blank=True, default="")  # IM, SC, oral
+    display_order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["age_months", "display_order"]
+        verbose_name = "Vaccine schedule entry"
+        verbose_name_plural = "Vaccine schedule"
+
+    def __str__(self) -> str:
+        return f"{self.name} — {self.dose_label} ({self.age_label})"
+
+
+# ---------------------------------------------------------------------------
+# Vaccination
+# ---------------------------------------------------------------------------
+
+
+class Vaccination(BaseModel):
+    """Record of a vaccine administered to a patient."""
+
+    practice = models.ForeignKey(
+        "practice.Practice",
+        on_delete=models.CASCADE,
+        related_name="vaccinations",
+    )
+    patient = models.ForeignKey(
+        "patients.Patient",
+        on_delete=models.CASCADE,
+        related_name="vaccinations",
+    )
+    vaccine_schedule = models.ForeignKey(
+        VaccineSchedule,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="records",
+    )
+    vaccine_name = models.CharField(max_length=100)  # denormalized for custom vaccines
+    dose_label = models.CharField(max_length=50)
+    lot_number = models.CharField(max_length=50, blank=True, default="")
+    administered_at = models.DateField()
+    administered_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="vaccinations_given",
+    )
+    site = models.CharField(max_length=50, blank=True, default="")  # e.g. "Muslo izquierdo"
+    notes = models.TextField(blank=True, default="")
+
+    class Meta:
+        ordering = ["-administered_at"]
+        verbose_name = "Vaccination"
+        verbose_name_plural = "Vaccinations"
+
+    def __str__(self) -> str:
+        return f"{self.vaccine_name} — {self.patient} ({self.administered_at})"
+
+
+# ---------------------------------------------------------------------------
 # DiagnosisCatalog
 # ---------------------------------------------------------------------------
 
