@@ -9,6 +9,7 @@ import {
   Trash2,
   DollarSign,
   BarChart2,
+  Home,
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -643,6 +644,194 @@ function FlujoDeCajaSection() {
   );
 }
 
+// ─── Simulador de Arriendo section ────────────────────────────────────────────
+
+function SimuladorArriendoSection() {
+  const [rent, setRent] = useState("");
+  const [commonExpenses, setCommonExpenses] = useState("");
+  const [internet, setInternet] = useState("");
+  const [electricity, setElectricity] = useState("");
+  const [professionalUse, setProfessionalUse] = useState(50);
+
+  const results = useMemo(() => {
+    const rentVal = parseCLPInput(rent);
+    const commonVal = parseCLPInput(commonExpenses);
+    const internetVal = parseCLPInput(internet);
+    const electricityVal = parseCLPInput(electricity);
+
+    const totalMonthly = rentVal + commonVal + internetVal + electricityVal;
+    const deductibleMonthly = Math.round(totalMonthly * (professionalUse / 100));
+    const deductibleAnnual = deductibleMonthly * 12;
+    const taxSavings = Math.round(deductibleAnnual * RETENTION_RATE);
+
+    return { totalMonthly, deductibleMonthly, deductibleAnnual, taxSavings };
+  }, [rent, commonExpenses, internet, electricity, professionalUse]);
+
+  const hasInput = results.totalMonthly > 0;
+
+  function makeCLPHandler(setter: React.Dispatch<React.SetStateAction<string>>) {
+    return (e: React.ChangeEvent<HTMLInputElement>) => {
+      const n = parseCLPInput(e.target.value);
+      setter(n > 0 ? formatInputDisplay(n) : "");
+    };
+  }
+
+  return (
+    <div className="bg-surface border border-line rounded-[14px] shadow-[var(--shadow-card)] p-6">
+      <SectionHeader
+        icon={Home}
+        title="Simulador de Arriendo como Gasto"
+        subtitle="Estimá el gasto deducible y el ahorro tributario por uso profesional del espacio"
+      />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+        {/* ── Inputs ── */}
+        <div className="space-y-4">
+          <div>
+            <label className="block text-[12px] font-semibold text-ink2 uppercase tracking-wide mb-1.5">
+              Arriendo mensual (CLP)
+            </label>
+            <div className="relative">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[13px] text-ink3 font-medium">$</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={rent}
+                onChange={makeCLPHandler(setRent)}
+                placeholder="500.000"
+                className="w-full border border-line rounded-[10px] pl-7 pr-4 py-2.5 text-[14px] text-ink bg-bg placeholder:text-ink3 focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal/60 transition"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[12px] font-semibold text-ink2 uppercase tracking-wide mb-1.5">
+              Gastos comunes (CLP)
+            </label>
+            <div className="relative">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[13px] text-ink3 font-medium">$</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={commonExpenses}
+                onChange={makeCLPHandler(setCommonExpenses)}
+                placeholder="40.000"
+                className="w-full border border-line rounded-[10px] pl-7 pr-4 py-2.5 text-[14px] text-ink bg-bg placeholder:text-ink3 focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal/60 transition"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[12px] font-semibold text-ink2 uppercase tracking-wide mb-1.5">
+              Internet (CLP)
+            </label>
+            <div className="relative">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[13px] text-ink3 font-medium">$</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={internet}
+                onChange={makeCLPHandler(setInternet)}
+                placeholder="25.000"
+                className="w-full border border-line rounded-[10px] pl-7 pr-4 py-2.5 text-[14px] text-ink bg-bg placeholder:text-ink3 focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal/60 transition"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[12px] font-semibold text-ink2 uppercase tracking-wide mb-1.5">
+              Electricidad (CLP)
+            </label>
+            <div className="relative">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[13px] text-ink3 font-medium">$</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={electricity}
+                onChange={makeCLPHandler(setElectricity)}
+                placeholder="20.000"
+                className="w-full border border-line rounded-[10px] pl-7 pr-4 py-2.5 text-[14px] text-ink bg-bg placeholder:text-ink3 focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal/60 transition"
+              />
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-[12px] font-semibold text-ink2 uppercase tracking-wide">
+                % uso profesional
+              </label>
+              <span className="text-[13px] font-bold text-teal-dark">{professionalUse}%</span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              value={professionalUse}
+              onChange={(e) => setProfessionalUse(Number(e.target.value))}
+              className="w-full accent-teal h-2 cursor-pointer"
+            />
+            <div className="flex justify-between mt-1">
+              <span className="text-[11px] text-ink3">0%</span>
+              <span className="text-[11px] text-ink3">50%</span>
+              <span className="text-[11px] text-ink3">100%</span>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Results card ── */}
+        <div className="flex flex-col">
+          {hasInput ? (
+            <div className="bg-bg rounded-[12px] border border-line p-5 h-full space-y-0">
+              <p className="text-[11px] font-bold text-ink uppercase tracking-wide mb-3">
+                Resultados del simulador
+              </p>
+              <DataRow
+                label="Total gastos mensuales"
+                value={fmtCLP(results.totalMonthly)}
+                bold
+              />
+              <DataRow
+                label={`Gasto deducible mensual (${professionalUse}%)`}
+                value={fmtCLP(results.deductibleMonthly)}
+              />
+              <DataRow
+                label="Gasto deducible anual"
+                value={fmtCLP(results.deductibleAnnual)}
+                bold
+              />
+              <DataRow
+                label={`Ahorro tributario estimado (ret. ${(RETENTION_RATE * 100).toFixed(2)}%)`}
+                value={fmtCLP(results.taxSavings)}
+                highlight
+              />
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-10 text-center bg-bg rounded-[12px] border border-line h-full">
+              <div className="w-12 h-12 rounded-full bg-surface border border-line flex items-center justify-center mb-3">
+                <Home size={22} className="text-ink3" strokeWidth={1.5} />
+              </div>
+              <p className="text-[13.5px] font-medium text-ink2">Ingresá los gastos para simular</p>
+              <p className="text-[12px] text-ink3 mt-1">
+                Completá al menos un campo para ver los resultados
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Disclaimer */}
+      <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200/70 rounded-[10px] px-3.5 py-2.5 mt-5">
+        <Info size={14} className="text-amber-500 shrink-0 mt-0.5" />
+        <p className="text-[12px] text-amber-700 leading-relaxed">
+          Estimación basada en el uso profesional declarado. Consulte con su contador para la deducción exacta.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 type DocType = "boleta" | "factura_exenta";
@@ -890,6 +1079,9 @@ export default function Finanzas() {
 
       {/* ── Flujo de Caja ── */}
       <FlujoDeCajaSection />
+
+      {/* ── Simulador de Arriendo ── */}
+      <SimuladorArriendoSection />
 
     </div>
   );
