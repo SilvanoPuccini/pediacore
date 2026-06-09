@@ -1154,6 +1154,401 @@ class MonthlyExpenseViewSet(viewsets.ModelViewSet):
         serializer.save(practice=practice)
 
 
+class TaxSummaryView(APIView):
+    """
+    GET /api/v1/billing/tax-summary/
+
+    Returns a tax/financial summary for the given period. Designed to give
+    the accountant a quick snapshot of gross income, retention estimate, and
+    breakdowns by payment method, service, and insurance.
+
+    Query params:
+      ?period=monthly&year=2025&month=6   (default: current month)
+      ?period=quarterly&year=2025&quarter=2
+      ?period=annual&year=2025
+
+    Permission: IsDoctor
+    """
+
+    permission_classes = [IsDoctor]
+
+    RETENTION_RATE = Decimal("0.1375")  # boleta de honorarios 13.75%
+
+    # Spanish month names for labels
+    _MONTH_NAMES = [
+        "", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+        "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+    ]
+
+    def _parse_period(self, params: dict, today: date) -> tuple[date, date, dict]:
+        """
+        Parse period query params and return (start_date, end_date, period_meta).
+
+        Raises ValueError with a human-readable message on invalid input.
+        """
+        from calendar import monthrange
+
+        period_type = params.get("period", "monthly")
+
+        try:
+            year = int(params.get("year", today.year))
+        except (TypeError, ValueError):
+            raise ValueError("year must be an integer.")
+
+        if period_type == "monthly":
+            try:
+                month = int(params.get("month", today.month))
+            except (TypeError, ValueError):
+                raise ValueError("month must be an integer.")
+            if not 1 <= month <= 12:
+                raise ValueError("month must be between 1 and 12.")
+            _, last_day = monthrange(year, month)
+            start = date(year, month, 1)
+            end = date(year, month, last_day)
+            label = f"{self._MONTH_NAMES[month]} {year}"
+            meta = {"type": "monthly", "year": year, "month": month, "label": label}
+
+        elif period_type == "quarterly":
+            try:
+                quarter = int(params.get("quarter", 1))
+            except (TypeError, ValueError):
+                raise ValueError("quarter must be an integer.")
+            if not 1 <= quarter <= 4:
+                raise ValueError("quarter must be between 1 and 4.")
+            first_month = (quarter - 1) * 3 + 1
+            last_month = first_month + 2
+            _, last_day = monthrange(year, last_month)
+            start = date(year, first_month, 1)
+            end = date(year, last_month, last_day)
+            label = f"T{quarter} {year}"
+            meta = {"type": "quarterly", "year": year, "quarter": quarter, "label": label}
+
+        elif period_type == "annual":
+            start = date(year, 1, 1)
+            end = date(year, 12, 31)
+            label = str(year)
+            meta = {"type": "annual", "year": year, "label": label}
+
+        else:
+            raise ValueError("period must be 'monthly', 'quarterly', or 'annual'.")
+
+        return start, end, meta
+
+    def _build_monthly_trend(self, practice, today: date) -> list[dict]:
+        """Return last 12 months of completed payment totals (inclusive of current month)."""
+        from django.db.models import Count
+
+        months: list[tuple[int, int]] = []
+        year, month = today.year, today.month
+        for _ in range(12):
+            months.insert(0, (year, month))
+            month -= 1
+            if month == 0:
+                month = 12
+                year -= 1
+
+        trend_qs = (
+            Payment.objects.filter(
+                practice=practice,
+                status=Payment.COMPLETED,
+                paid_at__isnull=False,
+            )
+            .annotate(month=TruncMonth("paid_at"))
+            .values("month")
+            .annotate(income=Sum("amount"), count=Count("id"))
+            .order_by("month")
+        )
+
+        trend_by_month: dict[str, dict] = {}
+        for row in trend_qs:
+            key = row["month"].strftime("%Y-%m")
+            trend_by_month[key] = {"income": int(row["income"]), "count": row["count"]}
+
+        result = []
+        for y, m in months:
+            key = f"{y:04d}-{m:02d}"
+            entry = trend_by_month.get(key, {"income": 0, "count": 0})
+            result.append({"month": key, "income": entry["income"], "count": entry["count"]})
+        return result
+
+    def get(self, request: Request) -> Response:
+        """Return tax summary for the requested period."""
+        from calendar import monthrange
+        from django.db.models import Count, Q
+
+        from apps.practice.models import Practice
+
+        try:
+            practice = Practice.objects.get(owner=request.user)
+        except Practice.DoesNotExist:
+            return Response(
+                {"detail": "No practice found for this user."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        today = date.today()
+
+        try:
+            start, end, period_meta = self._parse_period(request.query_params, today)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        # ── Base queryset: completed payments in period ────────────────────────
+        base_qs = Payment.objects.filter(
+            practice=practice,
+            status=Payment.COMPLETED,
+            paid_at__date__gte=start,
+            paid_at__date__lte=end,
+        )
+
+        # ── Summary ───────────────────────────────────────────────────────────
+        agg = base_qs.aggregate(gross=Sum("amount"), count=Count("id"))
+        gross_income = int(agg["gross"] or 0)
+        completed_count = agg["count"] or 0
+        avg_per_appointment = round(gross_income / completed_count) if completed_count else 0
+        retention_estimate = int(Decimal(gross_income) * self.RETENTION_RATE)
+        net_after_retention = gross_income - retention_estimate
+
+        # ── By payment method ─────────────────────────────────────────────────
+        method_rows = (
+            base_qs
+            .values("payment_method")
+            .annotate(count=Count("id"), total=Sum("amount"))
+            .order_by("-total")
+        )
+        by_payment_method = [
+            {
+                "method": row["payment_method"],
+                "count": row["count"],
+                "total": int(row["total"]),
+                "percentage": round(int(row["total"]) / gross_income * 100, 1) if gross_income else 0.0,
+            }
+            for row in method_rows
+        ]
+
+        # ── By service ────────────────────────────────────────────────────────
+        service_rows = (
+            base_qs
+            .filter(appointment__service__isnull=False)
+            .values("appointment__service__name")
+            .annotate(count=Count("id"), total=Sum("amount"))
+            .order_by("-total")
+        )
+        by_service = [
+            {
+                "service_name": row["appointment__service__name"],
+                "count": row["count"],
+                "total": int(row["total"]),
+                "percentage": round(int(row["total"]) / gross_income * 100, 1) if gross_income else 0.0,
+            }
+            for row in service_rows
+        ]
+
+        # ── By insurance ──────────────────────────────────────────────────────
+        insurance_rows = (
+            base_qs
+            .values("patient__insurance")
+            .annotate(count=Count("id"), total=Sum("amount"))
+            .order_by("-total")
+        )
+        by_insurance = [
+            {
+                "insurance": row["patient__insurance"] or "",
+                "count": row["count"],
+                "total": int(row["total"]),
+                "percentage": round(int(row["total"]) / gross_income * 100, 1) if gross_income else 0.0,
+            }
+            for row in insurance_rows
+        ]
+
+        # ── Monthly trend (last 12 months, always) ────────────────────────────
+        monthly_trend = self._build_monthly_trend(practice, today)
+
+        return Response(
+            {
+                "period": period_meta,
+                "summary": {
+                    "gross_income": gross_income,
+                    "completed_payments": completed_count,
+                    "avg_per_appointment": avg_per_appointment,
+                    "retention_estimate": retention_estimate,
+                    "net_after_retention": net_after_retention,
+                },
+                "by_payment_method": by_payment_method,
+                "by_service": by_service,
+                "by_insurance": by_insurance,
+                "monthly_trend": monthly_trend,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class TaxSummaryExportView(APIView):
+    """
+    GET /api/v1/billing/tax-summary/export/
+
+    Exports the tax summary for the given period as an XLSX file with 4 sheets.
+    Accepts the same period query params as TaxSummaryView.
+
+    Sheets (Spanish headers):
+      - Resumen: period, gross, retention, net, count, avg
+      - Por Método de Pago: method, count, total, %
+      - Por Servicio: service, count, total, %
+      - Por Previsión: insurance, count, total, %
+
+    Permission: IsDoctor
+    """
+
+    permission_classes = [IsDoctor]
+
+    def get(self, request: Request) -> HttpResponse:
+        """Generate and return the XLSX summary file."""
+        from apps.practice.models import Practice
+
+        try:
+            practice = Practice.objects.get(owner=request.user)
+        except Practice.DoesNotExist:
+            return Response(
+                {"detail": "No practice found for this user."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Reuse TaxSummaryView parsing logic by instantiating it
+        summary_view = TaxSummaryView()
+        today = date.today()
+        try:
+            start, end, period_meta = summary_view._parse_period(request.query_params, today)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        base_qs = Payment.objects.filter(
+            practice=practice,
+            status=Payment.COMPLETED,
+            paid_at__date__gte=start,
+            paid_at__date__lte=end,
+        )
+
+        from django.db.models import Count
+
+        agg = base_qs.aggregate(gross=Sum("amount"), count=Count("id"))
+        gross_income = int(agg["gross"] or 0)
+        completed_count = agg["count"] or 0
+        avg_per_appointment = round(gross_income / completed_count) if completed_count else 0
+        retention_estimate = int(Decimal(gross_income) * TaxSummaryView.RETENTION_RATE)
+        net_after_retention = gross_income - retention_estimate
+
+        method_rows = list(
+            base_qs
+            .values("payment_method")
+            .annotate(count=Count("id"), total=Sum("amount"))
+            .order_by("-total")
+        )
+        service_rows = list(
+            base_qs
+            .filter(appointment__service__isnull=False)
+            .values("appointment__service__name")
+            .annotate(count=Count("id"), total=Sum("amount"))
+            .order_by("-total")
+        )
+        insurance_rows = list(
+            base_qs
+            .values("patient__insurance")
+            .annotate(count=Count("id"), total=Sum("amount"))
+            .order_by("-total")
+        )
+
+        try:
+            import openpyxl
+            from openpyxl.styles import Alignment, Font, PatternFill
+            from openpyxl.utils import get_column_letter
+        except ImportError:
+            return Response(
+                {"detail": "openpyxl is not installed. Cannot export XLSX."},
+                status=status.HTTP_501_NOT_IMPLEMENTED,
+            )
+
+        # ── Styles ────────────────────────────────────────────────────────────
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="2563EB", end_color="2563EB", fill_type="solid")
+        label_font = Font(bold=True)
+
+        def apply_header(ws, headers: list[str]) -> None:
+            for col_idx, h in enumerate(headers, start=1):
+                cell = ws.cell(row=1, column=col_idx, value=h)
+                cell.font = header_font
+                cell.fill = header_fill
+            for col_idx in range(1, len(headers) + 1):
+                ws.column_dimensions[get_column_letter(col_idx)].width = 22
+
+        def pct(total: int, gross: int) -> float:
+            return round(total / gross * 100, 1) if gross else 0.0
+
+        wb = openpyxl.Workbook()
+
+        # ── Sheet 1: Resumen ──────────────────────────────────────────────────
+        ws_resumen = wb.active
+        ws_resumen.title = "Resumen"
+
+        summary_rows = [
+            ("Período", period_meta["label"]),
+            ("Tipo de período", period_meta["type"].capitalize()),
+            ("Ingresos brutos (CLP)", gross_income),
+            ("Pagos completados", completed_count),
+            ("Promedio por consulta (CLP)", avg_per_appointment),
+            ("Retención estimada 13.75% (CLP)", retention_estimate),
+            ("Neto tras retención (CLP)", net_after_retention),
+        ]
+        ws_resumen.column_dimensions["A"].width = 34
+        ws_resumen.column_dimensions["B"].width = 22
+        for row_idx, (label, value) in enumerate(summary_rows, start=1):
+            cell_label = ws_resumen.cell(row=row_idx, column=1, value=label)
+            cell_label.font = label_font
+            ws_resumen.cell(row=row_idx, column=2, value=value)
+
+        # ── Sheet 2: Por Método de Pago ───────────────────────────────────────
+        ws_method = wb.create_sheet("Por Método de Pago")
+        apply_header(ws_method, ["Método de Pago", "Cantidad", "Total (CLP)", "Porcentaje (%)"])
+        for row_idx, row in enumerate(method_rows, start=2):
+            ws_method.cell(row=row_idx, column=1, value=row["payment_method"])
+            ws_method.cell(row=row_idx, column=2, value=row["count"])
+            ws_method.cell(row=row_idx, column=3, value=int(row["total"]))
+            ws_method.cell(row=row_idx, column=4, value=pct(int(row["total"]), gross_income))
+
+        # ── Sheet 3: Por Servicio ─────────────────────────────────────────────
+        ws_service = wb.create_sheet("Por Servicio")
+        apply_header(ws_service, ["Servicio", "Cantidad", "Total (CLP)", "Porcentaje (%)"])
+        for row_idx, row in enumerate(service_rows, start=2):
+            ws_service.cell(row=row_idx, column=1, value=row["appointment__service__name"])
+            ws_service.cell(row=row_idx, column=2, value=row["count"])
+            ws_service.cell(row=row_idx, column=3, value=int(row["total"]))
+            ws_service.cell(row=row_idx, column=4, value=pct(int(row["total"]), gross_income))
+
+        # ── Sheet 4: Por Previsión ────────────────────────────────────────────
+        ws_insurance = wb.create_sheet("Por Previsión")
+        apply_header(ws_insurance, ["Previsión", "Cantidad", "Total (CLP)", "Porcentaje (%)"])
+        for row_idx, row in enumerate(insurance_rows, start=2):
+            ws_insurance.cell(row=row_idx, column=1, value=row["patient__insurance"] or "Sin especificar")
+            ws_insurance.cell(row=row_idx, column=2, value=row["count"])
+            ws_insurance.cell(row=row_idx, column=3, value=int(row["total"]))
+            ws_insurance.cell(row=row_idx, column=4, value=pct(int(row["total"]), gross_income))
+
+        # ── Serialize ─────────────────────────────────────────────────────────
+        import io as _io
+        buffer = _io.BytesIO()
+        wb.save(buffer)
+        buffer.seek(0)
+
+        period_label = period_meta["label"].replace(" ", "_")
+        filename = f"resumen_tributario_{period_label}.xlsx"
+
+        response = HttpResponse(
+            content=buffer.getvalue(),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
+
+
 class CashFlowView(APIView):
     """
     GET /api/v1/billing/cash-flow/
