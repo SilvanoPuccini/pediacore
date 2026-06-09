@@ -274,12 +274,20 @@ export default function Patients() {
 
                     {/* Last visit */}
                     <td className="px-4 py-3.5 hidden lg:table-cell">
-                      <span className="text-[13px] text-ink3">—</span>
+                      <span className="text-[13px] text-ink3">
+                        {p.last_encounter_date
+                          ? new Date(p.last_encounter_date).toLocaleDateString("es-CL", { day: "numeric", month: "short", year: "numeric" })
+                          : "—"}
+                      </span>
                     </td>
 
                     {/* Next visit */}
                     <td className="px-4 py-3.5 hidden lg:table-cell">
-                      <span className="text-[13px] text-ink3">—</span>
+                      <span className="text-[13px] text-ink3">
+                        {p.next_appointment_date
+                          ? new Date(p.next_appointment_date + "T00:00:00").toLocaleDateString("es-CL", { day: "numeric", month: "short", year: "numeric" })
+                          : "—"}
+                      </span>
                     </td>
 
                     {/* Arrow */}
