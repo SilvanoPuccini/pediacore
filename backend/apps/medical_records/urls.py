@@ -13,6 +13,7 @@ from apps.medical_records.views import (
     AnthropometryViewSet,
     DiagnosisCatalogViewSet,
     DiagnosisViewSet,
+    EncounterTemplateViewSet,
     EncounterViewSet,
     PhysicalExamViewSet,
     SOAPNoteViewSet,
@@ -24,6 +25,7 @@ app_name = "medical_records"
 router = DefaultRouter()
 router.register(r"encounters", EncounterViewSet, basename="encounter")
 router.register(r"diagnosis-catalog", DiagnosisCatalogViewSet, basename="diagnosis-catalog")
+router.register(r"encounter-templates", EncounterTemplateViewSet, basename="encounter-template")
 
 # Nested routers under encounter
 nested_soap_router = DefaultRouter()
