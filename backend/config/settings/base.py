@@ -132,7 +132,7 @@ USE_TZ = True
 # Static files
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-# STATICFILES_DIRS = [BASE_DIR / "static"]  # Uncomment if you add custom static files
+STATICFILES_DIRS = [BASE_DIR / "static"]
 
 # Media files
 MEDIA_URL = "/media/"
@@ -275,6 +275,9 @@ UNFOLD = {
     "SITE_URL": "/",
     "SHOW_HISTORY": True,
     "SHOW_VIEW_ON_SITE": False,
+    "STYLES": [
+        lambda request: "admin/custom.css",
+    ],
     "COLORS": {
         "primary": {
             "50": "#D6F1EA",
