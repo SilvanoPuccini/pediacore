@@ -17,6 +17,8 @@ from apps.medical_records.views import (
     EncounterViewSet,
     PhysicalExamViewSet,
     SOAPNoteViewSet,
+    VaccinationViewSet,
+    VaccineScheduleViewSet,
     VitalSignsViewSet,
 )
 
@@ -26,6 +28,8 @@ router = DefaultRouter()
 router.register(r"encounters", EncounterViewSet, basename="encounter")
 router.register(r"diagnosis-catalog", DiagnosisCatalogViewSet, basename="diagnosis-catalog")
 router.register(r"encounter-templates", EncounterTemplateViewSet, basename="encounter-template")
+router.register(r"vaccine-schedule", VaccineScheduleViewSet, basename="vaccine-schedule")
+router.register(r"vaccinations", VaccinationViewSet, basename="vaccination")
 
 # Nested routers under encounter
 nested_soap_router = DefaultRouter()

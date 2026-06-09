@@ -30,6 +30,8 @@ from apps.medical_records.models import (
     EncounterTemplate,
     PhysicalExam,
     SOAPNote,
+    Vaccination,
+    VaccineSchedule,
     VitalSigns,
 )
 from apps.medical_records.serializers import (
@@ -43,6 +45,9 @@ from apps.medical_records.serializers import (
     EncounterTemplateSerializer,
     PhysicalExamSerializer,
     SOAPNoteSerializer,
+    VaccinationCreateSerializer,
+    VaccinationSerializer,
+    VaccineScheduleSerializer,
     VitalSignsSerializer,
 )
 
@@ -438,3 +443,167 @@ class DiagnosisViewSet(ModelViewSet):
         encounter_pk = self.kwargs.get("encounter_pk")
         encounter = Encounter.objects.get(pk=encounter_pk)
         serializer.save(encounter=encounter, practice=encounter.practice)
+
+
+# ---------------------------------------------------------------------------
+# VaccineScheduleViewSet
+# ---------------------------------------------------------------------------
+
+
+class VaccineScheduleViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
+    """
+    Read-only viewset for the PNI Chile vaccination schedule reference data.
+
+    Supports:
+    - Free-text search on name and disease (?search=)
+    - Ordering by age_months and display_order (default)
+    """
+
+    serializer_class = VaccineScheduleSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ["name", "disease"]
+    ordering_fields = ["age_months", "display_order", "name"]
+    ordering = ["age_months", "display_order"]
+    queryset = VaccineSchedule.objects.all()
+
+
+# ---------------------------------------------------------------------------
+# VaccinationViewSet
+# ---------------------------------------------------------------------------
+
+
+class VaccinationViewSet(ModelViewSet):
+    """
+    Full CRUD for vaccination records.
+
+    - Doctor: full write access (create, update, delete).
+    - Authenticated users: read access.
+    - Filter by ?patient_id= to get a specific patient's vaccines.
+
+    Custom action:
+    - GET /vaccinations/patient-status/?patient_id=<id>
+      Returns applied, pending, and upcoming vaccines for a patient
+      based on their age and the PNI schedule.
+    """
+
+    def get_permissions(self) -> list:
+        if self.action in ("list", "retrieve", "patient_status"):
+            return [IsAuthenticated()]
+        return [IsDoctor()]
+
+    def get_serializer_class(self):
+        if self.action in ("create", "update", "partial_update"):
+            return VaccinationCreateSerializer
+        return VaccinationSerializer
+
+    def get_queryset(self) -> QuerySet[Vaccination]:
+        qs = Vaccination.objects.select_related(
+            "patient", "vaccine_schedule", "administered_by", "practice"
+        )
+        patient_id = self.request.query_params.get("patient_id")
+        if patient_id:
+            qs = qs.filter(patient_id=patient_id)
+        return qs
+
+    def perform_create(self, serializer: VaccinationCreateSerializer) -> None:
+        """Inject practice from the authenticated doctor's practice."""
+        from apps.practice.models import Practice
+
+        practice = Practice.objects.filter(
+            users=self.request.user
+        ).first()
+        serializer.save(
+            practice=practice,
+            administered_by=self.request.user,
+        )
+
+    @action(detail=False, methods=["get"], url_path="patient-status")
+    def patient_status(self, request: Request) -> Response:
+        """
+        Return the vaccination status for a specific patient.
+
+        Query params:
+        - patient_id (required): PK of the Patient.
+
+        Response shape:
+        {
+            "patient_id": int,
+            "patient_name": str,
+            "age_months": int,
+            "applied": [...],        # vaccines already given
+            "pending": [...],        # schedule entries due but not yet given
+            "upcoming": [...]        # next schedule entries after patient's current age
+        }
+        """
+        from apps.patients.models import Patient
+
+        patient_id = request.query_params.get("patient_id")
+        if not patient_id:
+            return Response(
+                {"detail": "patient_id query parameter is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            patient = Patient.objects.get(pk=patient_id)
+        except Patient.DoesNotExist:
+            return Response(
+                {"detail": "Patient not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Calculate patient age in months
+        from datetime import date
+
+        today = date.today()
+        dob = patient.date_of_birth
+        years = today.year - dob.year
+        age_months = years * 12 + (today.month - dob.month)
+        if today.day < dob.day:
+            age_months -= 1
+        age_months = max(0, age_months)
+
+        # Get all schedule entries up to and including patient's current age
+        due_schedule = VaccineSchedule.objects.filter(age_months__lte=age_months)
+
+        # Get upcoming entries (beyond patient's age)
+        upcoming_schedule = VaccineSchedule.objects.filter(age_months__gt=age_months).order_by(
+            "age_months", "display_order"
+        )[:10]
+
+        # Get all vaccinations administered to this patient
+        administered = Vaccination.objects.filter(patient=patient).select_related("vaccine_schedule")
+
+        # Determine which schedule entries have been covered
+        administered_schedule_ids = {
+            v.vaccine_schedule_id for v in administered if v.vaccine_schedule_id
+        }
+        administered_names_doses = {
+            (v.vaccine_name, v.dose_label) for v in administered
+        }
+
+        applied = []
+        pending = []
+
+        for entry in due_schedule:
+            # Match by FK first, then fall back to name+dose
+            covered = entry.pk in administered_schedule_ids or (
+                entry.name, entry.dose_label
+            ) in administered_names_doses
+            serialized = VaccineScheduleSerializer(entry).data
+            if covered:
+                applied.append(serialized)
+            else:
+                pending.append(serialized)
+
+        return Response(
+            {
+                "patient_id": patient.pk,
+                "patient_name": patient.full_name,
+                "age_months": age_months,
+                "applied": applied,
+                "pending": pending,
+                "upcoming": VaccineScheduleSerializer(upcoming_schedule, many=True).data,
+            }
+        )

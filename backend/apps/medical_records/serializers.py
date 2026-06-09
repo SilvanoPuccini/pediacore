@@ -14,6 +14,8 @@ from apps.medical_records.models import (
     EncounterTemplate,
     PhysicalExam,
     SOAPNote,
+    Vaccination,
+    VaccineSchedule,
     VitalSigns,
 )
 
@@ -175,6 +177,78 @@ class AnthropometryCreateSerializer(serializers.ModelSerializer):
             "head_circumference_cm",
         ]
         read_only_fields = ["id", "practice", "encounter", "patient"]
+
+
+# ---------------------------------------------------------------------------
+# VaccineSchedule
+# ---------------------------------------------------------------------------
+
+
+class VaccineScheduleSerializer(serializers.ModelSerializer):
+    """Read-only serializer for PNI Chile vaccination schedule entries."""
+
+    class Meta:
+        model = VaccineSchedule
+        fields = [
+            "id",
+            "name",
+            "disease",
+            "dose_label",
+            "age_months",
+            "age_label",
+            "route",
+            "display_order",
+        ]
+
+
+# ---------------------------------------------------------------------------
+# Vaccination
+# ---------------------------------------------------------------------------
+
+
+class VaccinationSerializer(serializers.ModelSerializer):
+    """Full read serializer for vaccination records."""
+
+    patient_name = serializers.CharField(source="patient.full_name", read_only=True)
+
+    class Meta:
+        model = Vaccination
+        fields = [
+            "id",
+            "practice",
+            "patient",
+            "patient_name",
+            "vaccine_schedule",
+            "vaccine_name",
+            "dose_label",
+            "lot_number",
+            "administered_at",
+            "administered_by",
+            "site",
+            "notes",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "practice", "patient_name", "created_at", "updated_at"]
+
+
+class VaccinationCreateSerializer(serializers.ModelSerializer):
+    """Write serializer for creating vaccination records. Practice injected in perform_create."""
+
+    class Meta:
+        model = Vaccination
+        fields = [
+            "id",
+            "patient",
+            "vaccine_schedule",
+            "vaccine_name",
+            "dose_label",
+            "lot_number",
+            "administered_at",
+            "site",
+            "notes",
+        ]
+        read_only_fields = ["id"]
 
 
 # ---------------------------------------------------------------------------

@@ -13,6 +13,8 @@ from apps.medical_records.models import (
     EncounterTemplate,
     PhysicalExam,
     SOAPNote,
+    Vaccination,
+    VaccineSchedule,
     VitalSigns,
 )
 
@@ -208,6 +210,83 @@ class DiagnosisCatalogAdmin(ModelAdmin):
     list_filter = ("category", "is_common")
     search_fields = ("code", "name", "name_es")
     ordering = ("code",)
+
+
+# ---------------------------------------------------------------------------
+# VaccineScheduleAdmin
+# ---------------------------------------------------------------------------
+
+
+@admin.register(VaccineSchedule)
+class VaccineScheduleAdmin(ModelAdmin):
+    list_display = ("name", "dose_label", "age_label", "route", "display_order")
+    list_filter = ("route",)
+    search_fields = ("name", "disease", "age_label")
+    ordering = ("age_months", "display_order")
+    list_editable = ("display_order",)
+
+    fieldsets = (
+        (
+            "Vaccine",
+            {
+                "fields": ("name", "disease", "dose_label"),
+            },
+        ),
+        (
+            "Age & Route",
+            {
+                "fields": ("age_months", "age_label", "route", "display_order"),
+            },
+        ),
+    )
+
+
+# ---------------------------------------------------------------------------
+# VaccinationAdmin
+# ---------------------------------------------------------------------------
+
+
+@admin.register(Vaccination)
+class VaccinationAdmin(ModelAdmin):
+    list_display = ("patient", "vaccine_name", "dose_label", "administered_at", "lot_number")
+    list_filter = ("vaccine_name", "administered_at")
+    search_fields = (
+        "patient__first_name",
+        "patient__last_name",
+        "vaccine_name",
+    )
+    autocomplete_fields = ["patient", "practice"]
+    list_select_related = ["patient", "practice"]
+    readonly_fields = ("created_at", "updated_at")
+    ordering = ("-administered_at",)
+
+    fieldsets = (
+        (
+            "Patient",
+            {
+                "fields": ("practice", "patient"),
+            },
+        ),
+        (
+            "Vaccine",
+            {
+                "fields": ("vaccine_schedule", "vaccine_name", "dose_label", "lot_number"),
+            },
+        ),
+        (
+            "Administration",
+            {
+                "fields": ("administered_at", "administered_by", "site", "notes"),
+            },
+        ),
+        (
+            "Metadata",
+            {
+                "fields": ("created_at", "updated_at"),
+                "classes": ("collapse",),
+            },
+        ),
+    )
 
 
 # ---------------------------------------------------------------------------
