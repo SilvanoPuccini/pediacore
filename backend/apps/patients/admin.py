@@ -3,10 +3,34 @@ Django admin configuration for the patients app.
 """
 
 from django.contrib import admin
+from django.contrib.admin import SimpleListFilter
+from django.utils.html import format_html
 from unfold.admin import ModelAdmin, TabularInline
 
 from apps.core.admin_actions import export_to_xlsx
 from apps.patients.models import CoResponsible, Patient, PatientFile, TutorPatient
+
+
+class LocationFilter(SimpleListFilter):
+    title = "Sede"
+    parameter_name = "location"
+
+    def lookups(self, request, model_admin):
+        from apps.practice.models import Location
+        return [(loc.pk, loc.name) for loc in Location.objects.filter(is_active=True)]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            patient_ids = (
+                Patient.objects.filter(
+                    tutor_patients__deleted_at__isnull=True,
+                )
+                .filter(appointments__location_id=self.value())
+                .values_list("pk", flat=True)
+                .distinct()
+            )
+            return queryset.filter(pk__in=patient_ids)
+        return queryset
 
 
 class TutorPatientInline(TabularInline):
@@ -29,14 +53,21 @@ class PatientFileInline(TabularInline):
 
 @admin.register(Patient)
 class PatientAdmin(ModelAdmin):
-    list_display = ("full_name", "date_of_birth", "sex_at_birth", "is_active", "practice")
-    list_filter = ("sex_at_birth", "is_active", "practice")
+    list_display = ("full_name", "date_of_birth", "sex_at_birth", "is_active", "practice", "growth_chart_link")
+    list_filter = ("sex_at_birth", "is_active", "practice", LocationFilter)
     search_fields = ("first_name", "last_name", "rut")
     list_select_related = ["practice"]
     date_hierarchy = "date_of_birth"
     readonly_fields = ("created_at", "updated_at", "deleted_at")
     actions = [export_to_xlsx]
     inlines = [TutorPatientInline, PatientFileInline]
+
+    def growth_chart_link(self, obj):
+        return format_html(
+            '<a href="/admin/patients/{}/growth-chart/" class="text-primary-500 hover:underline">Ver curva</a>',
+            obj.pk,
+        )
+    growth_chart_link.short_description = "Crecimiento"
     fieldsets = (
         (
             "Identity",

@@ -16,6 +16,39 @@
     {% endfor %}
 </div>
 
+{% if monthly_goals %}
+<div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5 mb-8">
+    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <span class="material-symbols-outlined align-middle mr-1">flag</span>
+        Objetivos del mes
+    </h3>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {% for goal in monthly_goals %}
+        <div class="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+            <div class="flex items-center gap-2 mb-2">
+                <span class="material-symbols-outlined text-primary-500 text-lg">{{ goal.icon }}</span>
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ goal.title }}</span>
+            </div>
+            <div class="flex items-end justify-between mb-2">
+                <span class="text-2xl font-bold text-gray-900 dark:text-white">{{ goal.current }}</span>
+                <span class="text-xs text-gray-400">meta: {{ goal.target }}</span>
+            </div>
+            <div class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div class="h-full rounded-full transition-all duration-500
+                    {% if goal.percentage >= 100 %}bg-green-500
+                    {% elif goal.percentage >= 60 %}bg-primary-500
+                    {% elif goal.percentage >= 30 %}bg-yellow-500
+                    {% else %}bg-red-400{% endif %}"
+                    style="width: {{ goal.percentage }}%">
+                </div>
+            </div>
+            <div class="mt-1 text-right text-xs text-gray-400">{{ goal.percentage }}%</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
 {% if todays_appointments %}
 <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5 mb-8">
     <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Agenda de hoy</h3>
@@ -35,6 +68,37 @@
                 {% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400{% endif %}">
                 {{ apt.get_status_display }}
             </span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if calendar_hours %}
+<div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5 mb-8">
+    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <span class="material-symbols-outlined align-middle mr-1">calendar_month</span>
+        Calendario visual
+    </h3>
+    <div class="space-y-1">
+        {% for slot in calendar_hours %}
+        <div class="flex items-stretch gap-3 min-h-[36px]">
+            <div class="w-14 text-xs font-mono text-gray-400 dark:text-gray-500 pt-2 text-right shrink-0">
+                {{ slot.hour }}
+            </div>
+            <div class="flex-1 border-t border-gray-100 dark:border-gray-700 pt-1 pb-1">
+                {% if slot.has_appointments %}
+                    {% for apt in slot.appointments %}
+                    <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium mr-2 mb-1
+                        {% if apt.status == 'CONFIRMED' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                        {% elif apt.status == 'PENDING' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                        {% else %}bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                        {{ apt.start_time|time:"H:i" }} {{ apt.patient }} — {{ apt.service }}
+                        {% if apt.location %}· {{ apt.location }}{% endif %}
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
         </div>
         {% endfor %}
     </div>

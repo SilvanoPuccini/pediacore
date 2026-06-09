@@ -19,7 +19,7 @@ class PaymentAdmin(ModelAdmin):
         "paid_at",
         "created_at",
     ]
-    list_filter = ["status", "payment_method", "currency"]
+    list_filter = ["status", "payment_method", "currency", "appointment__location"]
     search_fields = ["patient__first_name", "patient__last_name", "external_id", "notes"]
     list_select_related = ["patient"]
     actions = [export_to_xlsx, generate_monthly_report]
