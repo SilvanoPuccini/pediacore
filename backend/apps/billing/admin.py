@@ -4,6 +4,7 @@ from django.contrib import admin
 from unfold.admin import ModelAdmin
 
 from apps.billing.models import Invoice, Payment, PaymentProvider
+from apps.core.admin_actions import export_to_xlsx, generate_monthly_report
 
 
 @admin.register(Payment)
@@ -21,6 +22,7 @@ class PaymentAdmin(ModelAdmin):
     list_filter = ["status", "payment_method", "currency"]
     search_fields = ["patient__first_name", "patient__last_name", "external_id", "notes"]
     list_select_related = ["patient"]
+    actions = [export_to_xlsx, generate_monthly_report]
     readonly_fields = [
         "external_id",
         "external_status",

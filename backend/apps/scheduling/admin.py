@@ -4,6 +4,7 @@ from django.contrib import admin
 from django.utils import timezone
 from unfold.admin import ModelAdmin, TabularInline
 
+from apps.core.admin_actions import export_to_xlsx, send_reminder_email
 from apps.scheduling.models import (
     Appointment,
     AppointmentToken,
@@ -38,7 +39,7 @@ class AppointmentAdmin(ModelAdmin):
     list_select_related = ["patient", "service", "location"]
     readonly_fields = ["end_time", "created_at", "updated_at", "deleted_at", "cancelled_at", "confirmed_at"]
     date_hierarchy = "scheduled_date"
-    actions = ["confirm_appointments", "cancel_appointments"]
+    actions = [export_to_xlsx, send_reminder_email, "confirm_appointments", "cancel_appointments"]
     fieldsets = [
         (None, {"fields": ["practice", "patient", "service", "location", "doctor", "booked_by"]}),
         ("Schedule", {"fields": ["scheduled_date", "start_time", "end_time", "is_online"]}),

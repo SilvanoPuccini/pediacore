@@ -266,6 +266,7 @@ GEMINI_API_KEY = config("GEMINI_API_KEY", default="")
 
 # ─── Django Unfold (Admin theme) ─────────────────────────────────────────────
 UNFOLD = {
+    "DASHBOARD_CALLBACK": "apps.core.dashboard.dashboard_callback",
     "SITE_TITLE": "PEDIACORE",
     "SITE_HEADER": "PEDIACORE",
     "SITE_SUBHEADER": "Panel de administración — Dra. Estefanía Ortigosa",
@@ -434,6 +435,11 @@ UNFOLD = {
                         "title": "Emails enviados",
                         "icon": "mail",
                         "link": "/admin/notifications/emaillog/",
+                    },
+                    {
+                        "title": "Plantillas email",
+                        "icon": "description",
+                        "link": "/admin/notifications/notificationtemplate/",
                     },
                     {
                         "title": "Auditoría",
