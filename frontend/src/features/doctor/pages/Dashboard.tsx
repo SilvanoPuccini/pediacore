@@ -4,6 +4,8 @@ import {
   CalendarRange,
   TrendingUp,
   AlertCircle,
+  AlertTriangle,
+  Info,
   Sun,
   CheckCircle,
   MapPin,
@@ -21,7 +23,7 @@ import RevenueChart from "../components/RevenueChart";
 import PendingTransfersSection from "../components/PendingTransfersSection";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
-import type { Appointment, PaginatedResponse } from "@/types/api";
+import type { Appointment, PaginatedResponse, DashboardAlert } from "@/types/api";
 
 // ─── helpers ────────────────────────────────────────────────────────────────────
 
@@ -177,7 +179,7 @@ export default function Dashboard() {
   const firstName = user?.first_name ?? "Doctora";
 
   const totalRevenue = metrics
-    ? formatCurrency(metrics.ingresos_mes)
+    ? formatCurrency(metrics.month_revenue)
     : "...";
 
   return (
@@ -196,9 +198,9 @@ export default function Dashboard() {
             {greetingText()}, {firstName}
           </h1>
           <p className="mt-1 text-[13.5px] text-ink2">
-            Hoy tenes <span className="font-semibold text-ink">{metrics?.turnos_hoy ?? "..."} turnos</span>
-            {(metrics?.pendientes ?? 0) > 0 && (
-              <> y <span className="font-semibold text-ink">{metrics?.pendientes} pendientes</span> por confirmar</>
+            Hoy tenes <span className="font-semibold text-ink">{metrics?.today_count ?? "..."} turnos</span>
+            {(metrics?.pending_count ?? 0) > 0 && (
+              <> y <span className="font-semibold text-ink">{metrics?.pending_count} pendientes</span> por confirmar</>
             )}
             .
           </p>
@@ -207,8 +209,8 @@ export default function Dashboard() {
 
       {/* Metric cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <MetricCard icon={Calendar} iconBg="rgba(125, 211, 192, 0.20)" iconColor="#3E8E7C" value={metrics?.turnos_hoy ?? 0} label="Turnos hoy" loading={loading} />
-        <MetricCard icon={CalendarRange} iconBg="rgba(199, 184, 232, 0.28)" iconColor="#6B569E" value={metrics?.turnos_semana ?? 0} label="Esta semana" loading={loading} />
+        <MetricCard icon={Calendar} iconBg="rgba(125, 211, 192, 0.20)" iconColor="#3E8E7C" value={metrics?.today_count ?? 0} label="Turnos hoy" loading={loading} />
+        <MetricCard icon={CalendarRange} iconBg="rgba(199, 184, 232, 0.28)" iconColor="#6B569E" value={metrics?.week_count ?? 0} label="Esta semana" loading={loading} />
         <MetricCard icon={TrendingUp} iconBg="rgba(244, 168, 154, 0.25)" iconColor="#B5604F" value={loading ? "..." : totalRevenue} label="Ingresos del mes" loading={loading} />
         <MetricCard icon={AlertCircle} iconBg="rgba(245, 212, 160, 0.40)" iconColor="#9C7423" value={loading ? "..." : `${(parseFloat(metrics?.no_show_rate ?? "0") * 100).toFixed(1)}%`} label="Tasa de no-show" loading={loading} />
       </div>
@@ -300,6 +302,113 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Desglose rápido */}
+      {!loading && metrics && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          {/* Top servicios */}
+          <div className="bg-surface border border-line rounded-[14px] shadow-[var(--shadow-card)] p-5">
+            <h3 className="text-[14px] font-bold text-ink mb-3">Top servicios del mes</h3>
+            {metrics.top_services.length === 0 ? (
+              <p className="text-[12px] text-ink3">Sin datos este mes</p>
+            ) : (
+              <table className="w-full text-[12px]">
+                <thead>
+                  <tr className="text-ink3 text-left border-b border-line">
+                    <th className="pb-2 font-medium">Servicio</th>
+                    <th className="pb-2 font-medium text-right">Turnos</th>
+                    <th className="pb-2 font-medium text-right">Ingresos</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {metrics.top_services.map((s, i) => (
+                    <tr key={i} className="border-b border-line/50 last:border-0">
+                      <td className="py-2 text-ink font-medium truncate max-w-[140px]">{s.name}</td>
+                      <td className="py-2 text-ink2 text-right">{s.count}</td>
+                      <td className="py-2 text-ink font-semibold text-right">
+                        {formatCurrency(s.revenue)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {/* Método de pago */}
+          <div className="bg-surface border border-line rounded-[14px] shadow-[var(--shadow-card)] p-5">
+            <h3 className="text-[14px] font-bold text-ink mb-3">Método de pago</h3>
+            {metrics.by_payment_method.length === 0 ? (
+              <p className="text-[12px] text-ink3">Sin datos este mes</p>
+            ) : (
+              <ul className="space-y-3">
+                {(() => {
+                  const grandTotal = metrics.by_payment_method.reduce(
+                    (sum, m) => sum + parseFloat(m.total),
+                    0
+                  );
+                  return metrics.by_payment_method.map((m, i) => {
+                    const pct = grandTotal > 0
+                      ? Math.round((parseFloat(m.total) / grandTotal) * 100)
+                      : 0;
+                    return (
+                      <li key={i}>
+                        <div className="flex items-center justify-between text-[12px] mb-1">
+                          <span className="text-ink font-medium">{m.method}</span>
+                          <span className="text-ink2">{pct}% · {m.count} pago{m.count !== 1 ? "s" : ""}</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-line rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-teal rounded-full transition-all"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </li>
+                    );
+                  });
+                })()}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Alertas */}
+      {!loading && metrics && metrics.alerts.length > 0 && (
+        <div className="bg-surface border border-line rounded-[14px] shadow-[var(--shadow-card)] p-5">
+          <h3 className="text-[14px] font-bold text-ink mb-3">Alertas</h3>
+          <ul className="space-y-2">
+            {metrics.alerts.map((alert: DashboardAlert, i: number) => (
+              <li
+                key={i}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-[12.5px]",
+                  alert.severity === "warning"
+                    ? "bg-[rgba(245,212,160,0.25)] text-[#9C7423]"
+                    : "bg-[rgba(168,210,255,0.20)] text-[#2E6EA6]"
+                )}
+              >
+                {alert.severity === "warning" ? (
+                  <AlertTriangle size={15} className="shrink-0" />
+                ) : (
+                  <Info size={15} className="shrink-0" />
+                )}
+                <span className="flex-1 font-medium">{alert.message}</span>
+                <span
+                  className={cn(
+                    "shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-full",
+                    alert.severity === "warning"
+                      ? "bg-[rgba(245,212,160,0.50)] text-[#9C7423]"
+                      : "bg-[rgba(168,210,255,0.40)] text-[#2E6EA6]"
+                  )}
+                >
+                  {alert.count}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
