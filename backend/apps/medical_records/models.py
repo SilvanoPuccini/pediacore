@@ -474,3 +474,26 @@ class Diagnosis(BaseModel):
         primary_label = " [PRIMARY]" if self.is_primary else ""
         code_label = f" ({self.code})" if self.code else ""
         return f"{self.description}{code_label}{primary_label}"
+
+
+# ---------------------------------------------------------------------------
+# DiagnosisCatalog
+# ---------------------------------------------------------------------------
+
+
+class DiagnosisCatalog(models.Model):
+    """Pre-loaded ICD-10 codes commonly used in pediatrics."""
+
+    code = models.CharField(max_length=10, unique=True, db_index=True)
+    name = models.CharField(max_length=200)
+    name_es = models.CharField(max_length=200)  # Spanish name
+    category = models.CharField(max_length=50)  # e.g. "respiratory", "gastrointestinal"
+    is_common = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["code"]
+        verbose_name = "Diagnosis catalog entry"
+        verbose_name_plural = "Diagnosis catalog"
+
+    def __str__(self) -> str:
+        return f"{self.code} — {self.name_es}"

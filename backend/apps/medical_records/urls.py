@@ -11,6 +11,7 @@ from rest_framework.routers import DefaultRouter
 
 from apps.medical_records.views import (
     AnthropometryViewSet,
+    DiagnosisCatalogViewSet,
     DiagnosisViewSet,
     EncounterViewSet,
     PhysicalExamViewSet,
@@ -22,6 +23,7 @@ app_name = "medical_records"
 
 router = DefaultRouter()
 router.register(r"encounters", EncounterViewSet, basename="encounter")
+router.register(r"diagnosis-catalog", DiagnosisCatalogViewSet, basename="diagnosis-catalog")
 
 # Nested routers under encounter
 nested_soap_router = DefaultRouter()

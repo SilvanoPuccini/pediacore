@@ -9,6 +9,7 @@ from rest_framework import serializers
 from apps.medical_records.models import (
     Anthropometry,
     Diagnosis,
+    DiagnosisCatalog,
     Encounter,
     PhysicalExam,
     SOAPNote,
@@ -173,6 +174,19 @@ class AnthropometryCreateSerializer(serializers.ModelSerializer):
             "head_circumference_cm",
         ]
         read_only_fields = ["id", "practice", "encounter", "patient"]
+
+
+# ---------------------------------------------------------------------------
+# DiagnosisCatalog
+# ---------------------------------------------------------------------------
+
+
+class DiagnosisCatalogSerializer(serializers.ModelSerializer):
+    """Read-only serializer for ICD-10 catalog entries."""
+
+    class Meta:
+        model = DiagnosisCatalog
+        fields = ["id", "code", "name", "name_es", "category", "is_common"]
 
 
 # ---------------------------------------------------------------------------

@@ -9,18 +9,22 @@ Role-based access:
 from __future__ import annotations
 
 from django.contrib.auth import get_user_model
-from django.db.models import QuerySet
+from django.db.models import Count, QuerySet
 from rest_framework import status
+from rest_framework.decorators import action
+from rest_framework.filters import OrderingFilter, SearchFilter
+from rest_framework.mixins import ListModelMixin, RetrieveModelMixin
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.viewsets import ModelViewSet
+from rest_framework.viewsets import GenericViewSet, ModelViewSet
 
 from apps.core.models import AuditLog
 from apps.core.permissions import IsDoctor
 from apps.medical_records.models import (
     Anthropometry,
     Diagnosis,
+    DiagnosisCatalog,
     Encounter,
     PhysicalExam,
     SOAPNote,
@@ -29,6 +33,7 @@ from apps.medical_records.models import (
 from apps.medical_records.serializers import (
     AnthropometryCreateSerializer,
     AnthropometrySerializer,
+    DiagnosisCatalogSerializer,
     DiagnosisSerializer,
     EncounterCreateSerializer,
     EncounterDetailSerializer,
@@ -299,6 +304,67 @@ class AnthropometryViewSet(ModelViewSet):
             status=status.HTTP_201_CREATED,
             headers=headers,
         )
+
+
+# ---------------------------------------------------------------------------
+# DiagnosisCatalogViewSet
+# ---------------------------------------------------------------------------
+
+
+class DiagnosisCatalogViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
+    """
+    Read-only viewset for the ICD-10 pediatric diagnosis catalog.
+
+    Supports:
+    - Free-text search on code, name and name_es (?search=)
+    - Filter by category (?category=respiratory)
+    - Ordering by code (default)
+    - /frequent/ action: top-10 diagnoses used by the doctor
+    """
+
+    serializer_class = DiagnosisCatalogSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ["code", "name", "name_es"]
+    ordering_fields = ["code", "name_es", "category"]
+    ordering = ["code"]
+
+    def get_queryset(self) -> QuerySet[DiagnosisCatalog]:
+        qs = DiagnosisCatalog.objects.all()
+        category = self.request.query_params.get("category")
+        if category:
+            qs = qs.filter(category=category)
+        return qs
+
+    @action(detail=False, methods=["get"], url_path="frequent")
+    def frequent(self, request: Request) -> Response:
+        """
+        Return the top-10 ICD-10 codes most used by the authenticated doctor,
+        enriched with catalog metadata when available.
+        """
+        top_codes = (
+            Diagnosis.objects.filter(encounter__doctor=request.user, code__gt="")
+            .values("code")
+            .annotate(usage_count=Count("id"))
+            .order_by("-usage_count")[:10]
+        )
+
+        result = []
+        for item in top_codes:
+            entry = {"code": item["code"], "usage_count": item["usage_count"]}
+            catalog = DiagnosisCatalog.objects.filter(code=item["code"]).first()
+            if catalog:
+                entry.update(
+                    {
+                        "name": catalog.name,
+                        "name_es": catalog.name_es,
+                        "category": catalog.category,
+                        "is_common": catalog.is_common,
+                    }
+                )
+            result.append(entry)
+
+        return Response(result)
 
 
 # ---------------------------------------------------------------------------
