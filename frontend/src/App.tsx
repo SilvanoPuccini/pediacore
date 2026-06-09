@@ -46,6 +46,7 @@ const DoctorHorarios = lazy(() => import("@/features/doctor/pages/Horarios"));
 const DoctorBlog = lazy(() => import("@/features/doctor/pages/Blog"));
 const DoctorPagos = lazy(() => import("@/features/doctor/pages/Pagos"));
 const DoctorConfig = lazy(() => import("@/features/doctor/pages/Config"));
+const DoctorFinanzas = lazy(() => import("@/features/doctor/pages/Finanzas"));
 const TutorLayout = lazy(() => import("@/layouts/TutorLayout"));
 const TutorDashboard = lazy(() => import("@/features/tutor/pages/Dashboard"));
 const MyAppointments = lazy(() => import("@/features/tutor/pages/MyAppointments"));
@@ -237,6 +238,7 @@ function AppRoutes() {
           <Route path="horarios" element={<DoctorHorarios />} />
           <Route path="blog" element={<DoctorBlog />} />
           <Route path="pagos" element={<DoctorPagos />} />
+          <Route path="finanzas" element={<DoctorFinanzas />} />
           <Route path="config" element={<DoctorConfig />} />
         </Route>
       </Routes>

@@ -13,6 +13,7 @@ import {
   CalendarClock,
   FileText,
   CreditCard,
+  Calculator,
   Settings,
   MapPin,
   ChevronUp,
@@ -40,6 +41,7 @@ const NAV_ITEMS = [
   { label: "Horarios", href: "/dashboard/horarios", icon: CalendarClock },
   { label: "Blog", href: "/dashboard/blog", icon: FileText },
   { label: "Pagos", href: "/dashboard/pagos", icon: CreditCard },
+  { label: "Finanzas", href: "/dashboard/finanzas", icon: Calculator },
   { label: "Configuración", href: "/dashboard/config", icon: Settings },
 ];
 
@@ -60,6 +62,7 @@ function usePageTitle(pathname: string): string {
   if (pathname.startsWith("/dashboard/horarios")) return "Horarios";
   if (pathname.startsWith("/dashboard/blog")) return "Blog";
   if (pathname.startsWith("/dashboard/pagos")) return "Pagos";
+  if (pathname.startsWith("/dashboard/finanzas")) return "Finanzas";
   if (pathname.startsWith("/dashboard/config")) return "Configuración";
   return "Dashboard";
 }

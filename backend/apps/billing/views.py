@@ -944,6 +944,147 @@ class MercadoPagoWebhookView(APIView):
         return Response({"detail": "OK"}, status=status.HTTP_200_OK)
 
 
+class TaxCalculatorView(APIView):
+    """
+    Chilean honorary tax calculator for 2025.
+
+    POST /api/v1/billing/tax-calculator/
+    Permission: IsDoctor
+
+    Accepts: {"gross_amount": 500000, "document_type": "boleta"}
+    document_type: "boleta" | "factura_exenta"
+
+    Always returns BOTH calculations (boleta + factura) for side-by-side comparison.
+
+    Chilean 2025 tax parameters:
+      - Boleta de Honorarios: 13.75% retention at source (PPM provisional)
+      - Factura Exenta: no withholding; doctor pays annual impuesto global complementario
+      - PPM provisional estimate: 10% of gross (applies to both)
+      - UTM 2025 ≈ 67,000 CLP
+
+    Progressive tax brackets (monthly, UTM-based):
+      0–13.5 UTM: 0% | 13.5–30 UTM: 4% | 30–50 UTM: 8% | 50–70 UTM: 13.5%
+      70–90 UTM: 23% | 90–120 UTM: 30.4% | 120–310 UTM: 35% | >310 UTM: 40%
+    """
+
+    permission_classes = [IsDoctor]
+
+    # 2025 constants
+    RETENTION_RATE = 0.1375  # boleta de honorarios withholding
+    PPM_RATE = 0.10           # provisional monthly payment estimate
+    UTM_2025 = 67_000         # CLP per UTM, approximate
+
+    # (upper_utm_limit, marginal_rate) — last entry has no upper limit (None)
+    TAX_BRACKETS = [
+        (13.5,  0.00),
+        (30.0,  0.04),
+        (50.0,  0.08),
+        (70.0,  0.135),
+        (90.0,  0.23),
+        (120.0, 0.304),
+        (310.0, 0.35),
+        (None,  0.40),
+    ]
+
+    def _effective_annual_tax(self, gross_monthly: float) -> float:
+        """
+        Estimate annual income tax for a factura_exenta issuer.
+
+        Applies the Chilean progressive brackets to the monthly gross,
+        multiplies by 12 for the annual figure.
+        Monthly gross is converted to UTM for bracket comparison.
+        """
+        monthly_utm = gross_monthly / self.UTM_2025
+        prev_limit = 0.0
+        monthly_tax = 0.0
+
+        for upper, rate in self.TAX_BRACKETS:
+            if rate == 0.0:
+                prev_limit = upper if upper is not None else monthly_utm
+                continue
+            upper_utm = upper if upper is not None else float("inf")
+            taxable_utm = max(0.0, min(monthly_utm, upper_utm) - prev_limit)
+            monthly_tax += taxable_utm * self.UTM_2025 * rate
+            if monthly_utm <= upper_utm:
+                break
+            prev_limit = upper_utm
+
+        return monthly_tax * 12
+
+    def post(self, request: Request) -> Response:
+        """Calculate and compare boleta vs factura_exenta tax scenarios."""
+        gross_amount = request.data.get("gross_amount")
+        document_type = request.data.get("document_type", "boleta")
+
+        if gross_amount is None:
+            return Response(
+                {"detail": "gross_amount is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            gross = float(gross_amount)
+        except (TypeError, ValueError):
+            return Response(
+                {"detail": "gross_amount must be a number."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if gross <= 0:
+            return Response(
+                {"detail": "gross_amount must be greater than zero."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if document_type not in ("boleta", "factura_exenta"):
+            return Response(
+                {"detail": "document_type must be 'boleta' or 'factura_exenta'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # ── Boleta de Honorarios ───────────────────────────────────────────────
+        boleta_retention = round(gross * self.RETENTION_RATE)
+        boleta_net = round(gross - boleta_retention)
+        boleta_ppm = round(gross * self.PPM_RATE)
+
+        # ── Factura Exenta ─────────────────────────────────────────────────────
+        factura_annual_tax = round(self._effective_annual_tax(gross))
+        factura_ppm = round(gross * self.PPM_RATE)
+
+        # ── Annual projections (12 months) ─────────────────────────────────────
+        boleta_annual_net = boleta_net * 12
+        # For factura: net after annual tax obligation (divided evenly per month * 12)
+        factura_annual_net = round(gross * 12 - factura_annual_tax)
+        difference = abs(factura_annual_net - boleta_annual_net)
+        recommendation = "factura" if factura_annual_net >= boleta_annual_net else "boleta"
+
+        return Response(
+            {
+                "gross_amount": gross,
+                "document_type": document_type,
+                "boleta": {
+                    "retention_rate": self.RETENTION_RATE,
+                    "retention": boleta_retention,
+                    "net_amount": boleta_net,
+                    "monthly_ppm": boleta_ppm,
+                },
+                "factura": {
+                    "retention": 0,
+                    "net_amount": round(gross),
+                    "monthly_ppm": factura_ppm,
+                    "annual_tax_estimate": factura_annual_tax,
+                },
+                "comparison": {
+                    "boleta_annual_net": boleta_annual_net,
+                    "factura_annual_net": factura_annual_net,
+                    "difference": difference,
+                    "recommendation": recommendation,
+                },
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
 class PaymentProviderViewSet(viewsets.ModelViewSet):
     """
     CRUD for PaymentProvider configuration (doctor admin only).
