@@ -86,6 +86,8 @@ class EncounterViewSet(ModelViewSet):
             return EncounterCreateSerializer
         if self.action == "retrieve":
             return EncounterDetailSerializer
+        if self.action == "list" and self.request.query_params.get("expand") == "true":
+            return EncounterDetailSerializer
         return EncounterListSerializer
 
     def get_queryset(self) -> QuerySet[Encounter]:

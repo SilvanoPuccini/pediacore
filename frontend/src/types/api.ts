@@ -195,6 +195,8 @@ export interface Patient {
   created_at: string;
   updated_at: string;
   tutors: TutorPatientLink[];
+  last_encounter_date?: string | null;
+  next_appointment_date?: string | null;
   profile_completion?: {
     percentage: number;
     missing: string[];
@@ -383,6 +385,21 @@ export interface DashboardReminder {
 
 // ─── Medical Records ─────────────────────────────────────────────────────────
 
+export interface SOAPNote {
+  id: number;
+  subjective: string;
+  objective: string;
+  assessment: string;
+  plan: string;
+}
+
+export interface Diagnosis {
+  id: number;
+  code: string;
+  name: string;
+  type: string;
+}
+
 export interface Encounter {
   id: number;
   patient: number;
@@ -396,6 +413,8 @@ export interface Encounter {
   scheduled_at: string;
   reason_for_visit: string;
   created_at: string;
+  soap_note?: SOAPNote | null;
+  diagnoses?: Diagnosis[];
 }
 
 export interface GrowthPoint {

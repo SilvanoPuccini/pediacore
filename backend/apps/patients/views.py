@@ -9,7 +9,9 @@ Role-based access:
 from __future__ import annotations
 
 from django.contrib.auth import get_user_model
-from django.db.models import QuerySet
+from django.db import models
+from django.db.models import Max, QuerySet, Subquery
+from django.utils import timezone
 from rest_framework import serializers as drf_serializers
 from rest_framework import status
 from rest_framework.filters import OrderingFilter, SearchFilter
@@ -120,9 +122,26 @@ class PatientViewSet(ModelViewSet):
 
     def get_queryset(self) -> QuerySet[Patient]:
         user = self.request.user
-        qs = Patient.objects.select_related("practice").prefetch_related(
-            "tutor_patients__tutor",
-            "files",
+        from apps.scheduling.models import Appointment
+
+        today = timezone.localdate()
+        next_apt = (
+            Appointment.objects.filter(
+                patient_id=models.OuterRef("pk"),
+                scheduled_date__gte=today,
+                status__in=["CONFIRMED", "PENDING"],
+            )
+            .order_by("scheduled_date")
+            .values("scheduled_date")[:1]
+        )
+
+        qs = (
+            Patient.objects.select_related("practice")
+            .prefetch_related("tutor_patients__tutor", "files")
+            .annotate(
+                last_encounter_date=Max("encounters__scheduled_at"),
+                next_appointment_date=Subquery(next_apt),
+            )
         )
         if user.role == User.DOCTOR:
             return qs

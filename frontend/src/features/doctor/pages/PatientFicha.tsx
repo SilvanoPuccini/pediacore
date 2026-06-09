@@ -198,9 +198,9 @@ const TYPE_LABEL: Record<string, string> = {
 
 function EncounterCard({ encounter }: { encounter: Encounter }) {
   const [open, setOpen] = useState(false);
-  const soap = encounter.soap_notes?.[0];
+  const soap = encounter.soap_note;
   const hasSoap = !!soap && (soap.subjective || soap.objective || soap.assessment || soap.plan);
-  const hasDx = encounter.diagnoses?.length > 0;
+  const hasDx = (encounter.diagnoses?.length ?? 0) > 0;
 
   const dateStr = new Date(encounter.scheduled_at).toLocaleDateString("es-CL", {
     day: "2-digit", month: "short", year: "numeric",
@@ -286,16 +286,18 @@ function EncounterCard({ encounter }: { encounter: Encounter }) {
 // ─── File card ────────────────────────────────────────────────────────────────
 
 const CATEGORY_CHIP: Record<string, string> = {
-  EXAM_RESULT:  "bg-teal/10 text-teal-dark",
+  LAB_RESULT:   "bg-teal/10 text-teal-dark",
   PRESCRIPTION: "bg-amber-50 text-amber-700",
   IMAGE:        "bg-coral/10 text-coral",
+  CERTIFICATE:  "bg-purple-50 text-purple-700",
   OTHER:        "bg-bg text-ink3 border border-line",
 };
 
 const CATEGORY_LABEL: Record<string, string> = {
-  EXAM_RESULT:  "Examen",
+  LAB_RESULT:   "Examen",
   PRESCRIPTION: "Receta",
   IMAGE:        "Imagen",
+  CERTIFICATE:  "Certificado",
   OTHER:        "Otro",
 };
 
@@ -306,7 +308,7 @@ function formatFileSize(bytes: number): string {
 }
 
 function FileCard({ file }: { file: PatientFile }) {
-  const uploadDate = new Date(file.uploaded_at).toLocaleDateString("es-CL", {
+  const uploadDate = new Date(file.created_at).toLocaleDateString("es-CL", {
     day: "2-digit", month: "short", year: "numeric",
   });
 
@@ -314,7 +316,7 @@ function FileCard({ file }: { file: PatientFile }) {
     <div className="bg-surface border border-line rounded-[14px] shadow-[var(--shadow-card)] p-4 flex flex-col gap-3">
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-semibold text-ink truncate">{file.file_name}</p>
+          <p className="text-[13px] font-semibold text-ink truncate">{file.original_filename}</p>
           <p className="text-[11px] text-ink3 mt-0.5">{formatFileSize(file.file_size)} · {uploadDate}</p>
         </div>
         <a
@@ -329,10 +331,10 @@ function FileCard({ file }: { file: PatientFile }) {
       </div>
 
       <div className="flex items-center justify-between">
-        <span className={cn("px-2.5 py-1 rounded-full text-[10.5px] font-medium", CATEGORY_CHIP[file.category] ?? CATEGORY_CHIP.OTHER)}>
-          {CATEGORY_LABEL[file.category] ?? file.category}
+        <span className={cn("px-2.5 py-1 rounded-full text-[10.5px] font-medium", CATEGORY_CHIP[file.file_type] ?? CATEGORY_CHIP.OTHER)}>
+          {CATEGORY_LABEL[file.file_type] ?? file.file_type}
         </span>
-        <p className="text-[11px] text-ink3">{file.uploaded_by_name}</p>
+        <p className="text-[11px] text-ink3">{file.uploaded_by_email}</p>
       </div>
 
       {file.description && (
@@ -598,7 +600,7 @@ export default function PatientFicha() {
     queryKey: ["encounters", id],
     queryFn: async () => {
       const { data } = await api.get<PaginatedResponse<Encounter>>(
-        `/encounters/?patient_id=${id}&page_size=500`
+        `/encounters/?patient_id=${id}&page_size=500&expand=true`
       );
       return data;
     },
