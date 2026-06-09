@@ -299,6 +299,61 @@ class TutorPatient(BaseModel):
         return f"{self.tutor.email} → {self.patient.full_name} ({self.relationship})"
 
 
+class CoResponsible(models.Model):
+    """Co-responsible adult linked to a tutor (e.g., father, grandmother)."""
+
+    FATHER = "FATHER"
+    MOTHER = "MOTHER"
+    GRANDMOTHER = "GRANDMOTHER"
+    GRANDFATHER = "GRANDFATHER"
+    UNCLE = "UNCLE"
+    SIBLING = "SIBLING"
+    OTHER = "OTHER"
+
+    RELATIONSHIPS = [
+        (FATHER, _("Padre")),
+        (MOTHER, _("Madre")),
+        (GRANDMOTHER, _("Abuela")),
+        (GRANDFATHER, _("Abuelo")),
+        (UNCLE, _("Tío/a")),
+        (SIBLING, _("Hermano/a")),
+        (OTHER, _("Otro")),
+    ]
+
+    practice = models.ForeignKey(
+        "practice.Practice",
+        on_delete=models.CASCADE,
+        related_name="co_responsibles",
+    )
+    tutor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="co_responsibles",
+    )
+    name = models.CharField(max_length=255, verbose_name=_("Nombre completo"))
+    relationship = models.CharField(
+        max_length=20,
+        choices=RELATIONSHIPS,
+        default=OTHER,
+        verbose_name=_("Relación"),
+    )
+    rut = models.CharField(max_length=20, blank=True, verbose_name=_("RUT"))
+    phone = models.CharField(max_length=20, blank=True, verbose_name=_("Teléfono"))
+    email = models.EmailField(blank=True, verbose_name=_("Email"))
+    can_book = models.BooleanField(default=True, verbose_name=_("Puede agendar"))
+    can_pickup = models.BooleanField(default=True, verbose_name=_("Puede retirar"))
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _("Co-responsable")
+        verbose_name_plural = _("Co-responsables")
+        ordering = ["name"]
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.get_relationship_display()})"
+
+
 class PatientFile(BaseModel):
     """
     A categorized file attached to a patient record.

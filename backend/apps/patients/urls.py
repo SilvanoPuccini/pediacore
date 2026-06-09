@@ -12,6 +12,7 @@ Produces:
 from django.urls import path
 
 from apps.patients.views import (
+    CoResponsibleViewSet,
     GrowthHistoryView,
     PatientFileViewSet,
     PatientViewSet,
@@ -31,7 +32,14 @@ tutor_detail = TutorPatientViewSet.as_view({"get": "retrieve", "patch": "partial
 file_list = PatientFileViewSet.as_view({"get": "list", "post": "create"})
 file_detail = PatientFileViewSet.as_view({"get": "retrieve", "delete": "destroy"})
 
+co_responsible_list = CoResponsibleViewSet.as_view({"get": "list", "post": "create"})
+co_responsible_detail = CoResponsibleViewSet.as_view(
+    {"get": "retrieve", "put": "update", "patch": "partial_update", "delete": "destroy"}
+)
+
 urlpatterns = [
+    path("co-responsibles/", co_responsible_list, name="co-responsible-list"),
+    path("co-responsibles/<int:pk>/", co_responsible_detail, name="co-responsible-detail"),
     path("patients/", patient_list, name="patient-list"),
     path("patients/<int:pk>/", patient_detail, name="patient-detail"),
     path("patients/<int:patient_pk>/tutors/", tutor_list, name="patient-tutor-list"),

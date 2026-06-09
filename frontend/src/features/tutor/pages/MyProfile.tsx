@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { UserCircle, CheckCircle2, AlertCircle, Lock } from "lucide-react";
+import { UserCircle, CheckCircle2, AlertCircle } from "lucide-react";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/auth";
 import NotificationPreferencesSection from "@/features/tutor/components/NotificationPreferencesSection";
+import CoResponsiblesSection from "@/features/tutor/components/CoResponsiblesSection";
+import SecuritySection from "@/features/tutor/components/SecuritySection";
 import type { User, DocumentType } from "@/types/api";
 
 const DOCUMENT_TYPE_OPTIONS: { value: DocumentType; label: string }[] = [
@@ -329,8 +331,11 @@ export default function MyProfile() {
         </form>
       </div>
 
-      {/* Change password section */}
-      <ChangePasswordSection />
+      {/* Security section (last login + change password) */}
+      <SecuritySection />
+
+      {/* Co-responsibles section */}
+      <CoResponsiblesSection />
 
       {/* Notification preferences section */}
       <NotificationPreferencesSection />
@@ -338,141 +343,3 @@ export default function MyProfile() {
   );
 }
 
-// ─── Change Password Section ──────────────────────────────────────────────────
-
-function ChangePasswordSection() {
-  const [current, setCurrent] = useState("");
-  const [newPwd, setNewPwd] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-
-  const mutation = useMutation({
-    mutationFn: (data: { current_password: string; new_password: string }) =>
-      api.post("/change-password/", data),
-    onSuccess: () => {
-      setSuccess("Contraseña actualizada correctamente.");
-      setCurrent("");
-      setNewPwd("");
-      setConfirm("");
-      setError(null);
-      setTimeout(() => setSuccess(null), 4000);
-    },
-    onError: (err: unknown) => {
-      const axiosErr = err as { response?: { data?: { detail?: string } } };
-      setError(axiosErr?.response?.data?.detail ?? "No se pudo cambiar la contraseña.");
-    },
-  });
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setSuccess(null);
-
-    if (!current || !newPwd || !confirm) {
-      setError("Todos los campos son obligatorios.");
-      return;
-    }
-    if (newPwd.length < 8) {
-      setError("La nueva contraseña debe tener al menos 8 caracteres.");
-      return;
-    }
-    if (newPwd !== confirm) {
-      setError("Las contraseñas no coinciden.");
-      return;
-    }
-
-    mutation.mutate({ current_password: current, new_password: newPwd });
-  }
-
-  return (
-    <div className="bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)] p-8 mt-8">
-      <div className="flex items-center gap-3 mb-6 pb-6 border-b border-line">
-        <div className="h-10 w-10 rounded-full bg-cream flex items-center justify-center shrink-0">
-          <Lock size={20} className="text-teal-dark" />
-        </div>
-        <div>
-          <p className="text-[16px] font-semibold text-ink leading-tight">
-            Cambiar contraseña
-          </p>
-          <p className="text-[13px] text-ink3 mt-0.5">
-            Mínimo 8 caracteres. Usá letras, números y símbolos.
-          </p>
-        </div>
-      </div>
-
-      {success && (
-        <div className="flex items-center gap-2.5 bg-teal/10 border border-teal/30 text-teal-dark rounded-[12px] px-4 py-3 mb-6 text-[13px] font-medium">
-          <CheckCircle2 size={16} className="shrink-0" />
-          {success}
-        </div>
-      )}
-
-      {error && (
-        <div className="flex items-center gap-2.5 bg-coral/10 border border-coral/30 text-coral rounded-[12px] px-4 py-3 mb-6 text-[13px] font-medium">
-          <AlertCircle size={16} className="shrink-0" />
-          {error}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} noValidate>
-        <div className="flex flex-col gap-4 max-w-sm">
-          <div>
-            <label htmlFor="current_password" className="text-[13px] font-semibold text-ink mb-1.5 block">
-              Contraseña actual
-            </label>
-            <input
-              id="current_password"
-              type="password"
-              autoComplete="current-password"
-              value={current}
-              onChange={(e) => setCurrent(e.target.value)}
-              className="w-full px-4 py-3 rounded-[12px] border border-line bg-surface text-[14px] text-ink focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal transition-colors"
-              placeholder="••••••••"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="new_password" className="text-[13px] font-semibold text-ink mb-1.5 block">
-              Nueva contraseña
-            </label>
-            <input
-              id="new_password"
-              type="password"
-              autoComplete="new-password"
-              value={newPwd}
-              onChange={(e) => setNewPwd(e.target.value)}
-              className="w-full px-4 py-3 rounded-[12px] border border-line bg-surface text-[14px] text-ink focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal transition-colors"
-              placeholder="Mínimo 8 caracteres"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="confirm_password" className="text-[13px] font-semibold text-ink mb-1.5 block">
-              Confirmar nueva contraseña
-            </label>
-            <input
-              id="confirm_password"
-              type="password"
-              autoComplete="new-password"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              className="w-full px-4 py-3 rounded-[12px] border border-line bg-surface text-[14px] text-ink focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal transition-colors"
-              placeholder="Repetí la nueva contraseña"
-            />
-          </div>
-        </div>
-
-        <div className="flex justify-end mt-6 pt-6 border-t border-line">
-          <button
-            type="submit"
-            disabled={mutation.isPending}
-            className="bg-teal-dark text-white text-[13px] font-semibold px-6 py-3 rounded-[12px] hover:-translate-y-0.5 hover:shadow-[var(--shadow-cta)] transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none"
-          >
-            {mutation.isPending ? "Cambiando..." : "Cambiar contraseña"}
-          </button>
-        </div>
-      </form>
-    </div>
-  );
-}

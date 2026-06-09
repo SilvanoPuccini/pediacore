@@ -7,7 +7,7 @@ from __future__ import annotations
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from apps.patients.models import Patient, PatientFile, TutorPatient
+from apps.patients.models import CoResponsible, Patient, PatientFile, TutorPatient
 
 User = get_user_model()
 
@@ -271,6 +271,30 @@ class TutorPatientUpdateSerializer(serializers.ModelSerializer):
             "phone",
             "phone_prefix",
         ]
+
+
+class CoResponsibleSerializer(serializers.ModelSerializer):
+    """CRUD serializer for co-responsible adults linked to a tutor."""
+
+    relationship_display = serializers.CharField(
+        source="get_relationship_display", read_only=True
+    )
+
+    class Meta:
+        model = CoResponsible
+        fields = [
+            "id",
+            "name",
+            "relationship",
+            "relationship_display",
+            "rut",
+            "phone",
+            "email",
+            "can_book",
+            "can_pickup",
+            "created_at",
+        ]
+        read_only_fields = ["id", "created_at"]
 
 
 class PatientUpdateSerializer(serializers.ModelSerializer):
