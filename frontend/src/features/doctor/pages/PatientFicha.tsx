@@ -161,17 +161,6 @@ function getPalette(name: string): [string, string] {
 
 type TabKey = "datos" | "antecedentes" | "consultas" | "crecimiento" | "archivos" | "vacunas";
 
-// ─── Placeholder card ─────────────────────────────────────────────────────────
-
-function PlaceholderCard({ label }: { label: string }) {
-  return (
-    <div className="bg-surface border border-line rounded-[14px] shadow-[var(--shadow-card)] p-10 flex flex-col items-center justify-center gap-3 text-ink3 min-h-[240px]">
-      <ClipboardList size={32} className="opacity-30" />
-      <p className="text-[14px]">{label}</p>
-    </div>
-  );
-}
-
 // ─── Encounter card ───────────────────────────────────────────────────────────
 
 const STATUS_CHIP: Record<string, string> = {
@@ -269,7 +258,7 @@ function EncounterCard({ encounter }: { encounter: Encounter }) {
             <div>
               <p className="text-[10.5px] font-semibold text-ink3 uppercase tracking-wide mb-1.5">Diagnósticos</p>
               <div className="flex flex-wrap gap-1.5">
-                {encounter.diagnoses.map((dx) => (
+                {encounter.diagnoses?.map((dx) => (
                   <span key={dx.id} className="px-2.5 py-1 rounded-full bg-bg border border-line text-[11px] text-ink2">
                     <span className="font-semibold text-ink">{dx.code}</span> {dx.name}
                   </span>
@@ -476,12 +465,12 @@ function GrowthChart({
               />
               <Tooltip
                 contentStyle={{ fontSize: 11.5, border: "1px solid #E8E6E1", borderRadius: 8, color: "#2C2C2C" }}
-                formatter={(value: number, name: string) => {
+                formatter={(value, name) => {
                   const labels: Record<string, string> = {
                     p3: "P3", p15: "P15", p50: "P50", p85: "P85", p97: "P97",
                     patient: "Paciente",
                   };
-                  return [`${value} ${cfg.unit}`, labels[name] ?? name];
+                  return [`${value} ${cfg.unit}`, labels[String(name)] ?? name];
                 }}
                 labelFormatter={(v) => `${v} meses`}
               />
