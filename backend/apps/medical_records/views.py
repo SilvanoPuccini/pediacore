@@ -9,6 +9,7 @@ Role-based access:
 from __future__ import annotations
 
 from django.contrib.auth import get_user_model
+from django.db import models
 from django.db.models import Count, QuerySet
 from rest_framework import status
 from rest_framework.decorators import action
@@ -26,6 +27,7 @@ from apps.medical_records.models import (
     Diagnosis,
     DiagnosisCatalog,
     Encounter,
+    EncounterTemplate,
     PhysicalExam,
     SOAPNote,
     VitalSigns,
@@ -38,6 +40,7 @@ from apps.medical_records.serializers import (
     EncounterCreateSerializer,
     EncounterDetailSerializer,
     EncounterListSerializer,
+    EncounterTemplateSerializer,
     PhysicalExamSerializer,
     SOAPNoteSerializer,
     VitalSignsSerializer,
@@ -304,6 +307,50 @@ class AnthropometryViewSet(ModelViewSet):
             status=status.HTTP_201_CREATED,
             headers=headers,
         )
+
+
+# ---------------------------------------------------------------------------
+# EncounterTemplateViewSet
+# ---------------------------------------------------------------------------
+
+
+class EncounterTemplateViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
+    """
+    Read-only viewset for encounter templates.
+
+    Supports:
+    - Filter by template_type (?template_type=WELL_CHILD)
+    - Age filtering (?age_months=6 — returns templates where age_min_months <= 6 <= age_max_months)
+    - Free-text search on name (?search=)
+    - Ordering by display_order (default)
+    """
+
+    serializer_class = EncounterTemplateSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ["name"]
+    ordering_fields = ["template_type", "display_order", "name"]
+    ordering = ["template_type", "display_order"]
+
+    def get_queryset(self) -> QuerySet[EncounterTemplate]:
+        qs = EncounterTemplate.objects.filter(is_active=True)
+
+        template_type = self.request.query_params.get("template_type")
+        if template_type:
+            qs = qs.filter(template_type=template_type)
+
+        age_months = self.request.query_params.get("age_months")
+        if age_months is not None:
+            try:
+                age = int(age_months)
+                qs = qs.filter(
+                    models.Q(age_min_months__isnull=True) | models.Q(age_min_months__lte=age),
+                    models.Q(age_max_months__isnull=True) | models.Q(age_max_months__gte=age),
+                )
+            except ValueError:
+                pass
+
+        return qs
 
 
 # ---------------------------------------------------------------------------

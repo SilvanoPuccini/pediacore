@@ -11,6 +11,7 @@ from apps.medical_records.models import (
     Diagnosis,
     DiagnosisCatalog,
     Encounter,
+    EncounterTemplate,
     PhysicalExam,
     SOAPNote,
     VitalSigns,
@@ -211,6 +212,39 @@ class DiagnosisSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
         read_only_fields = ["id", "practice", "encounter", "created_at", "updated_at"]
+
+
+# ---------------------------------------------------------------------------
+# EncounterTemplate
+# ---------------------------------------------------------------------------
+
+
+class EncounterTemplateSerializer(serializers.ModelSerializer):
+    """Read-only serializer for encounter templates."""
+
+    template_type_display = serializers.CharField(
+        source="get_template_type_display", read_only=True
+    )
+
+    class Meta:
+        model = EncounterTemplate
+        fields = [
+            "id",
+            "name",
+            "template_type",
+            "template_type_display",
+            "age_range_label",
+            "age_min_months",
+            "age_max_months",
+            "subjective_template",
+            "objective_template",
+            "assessment_template",
+            "plan_template",
+            "physical_exam_template",
+            "development_checklist",
+            "display_order",
+            "is_active",
+        ]
 
 
 # ---------------------------------------------------------------------------

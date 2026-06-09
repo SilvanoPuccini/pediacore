@@ -10,6 +10,7 @@ from apps.medical_records.models import (
     Diagnosis,
     DiagnosisCatalog,
     Encounter,
+    EncounterTemplate,
     PhysicalExam,
     SOAPNote,
     VitalSigns,
@@ -154,6 +155,42 @@ class EncounterAdmin(ModelAdmin):
             "Metadata",
             {
                 "fields": ("created_at", "updated_at"),
+                "classes": ("collapse",),
+            },
+        ),
+    )
+
+
+# ---------------------------------------------------------------------------
+# EncounterTemplateAdmin
+# ---------------------------------------------------------------------------
+
+
+@admin.register(EncounterTemplate)
+class EncounterTemplateAdmin(ModelAdmin):
+    list_display = ("name", "template_type", "age_range_label", "display_order", "is_active")
+    list_filter = ("template_type", "is_active")
+    search_fields = ("name", "age_range_label")
+    ordering = ("template_type", "display_order")
+    list_editable = ("display_order", "is_active")
+
+    fieldsets = (
+        (
+            "Identity",
+            {
+                "fields": ("name", "template_type", "age_range_label", "age_min_months", "age_max_months", "display_order", "is_active"),
+            },
+        ),
+        (
+            "SOAP Templates",
+            {
+                "fields": ("subjective_template", "objective_template", "assessment_template", "plan_template"),
+            },
+        ),
+        (
+            "Exam & Development",
+            {
+                "fields": ("physical_exam_template", "development_checklist"),
                 "classes": ("collapse",),
             },
         ),

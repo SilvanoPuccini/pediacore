@@ -477,6 +477,52 @@ class Diagnosis(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# EncounterTemplate
+# ---------------------------------------------------------------------------
+
+
+class EncounterTemplate(models.Model):
+    """Pre-defined templates for common encounter types."""
+
+    WELL_CHILD = "WELL_CHILD"
+    MORBIDITY = "MORBIDITY"
+    FOLLOW_UP = "FOLLOW_UP"
+    VACCINATION = "VACCINATION"
+
+    TEMPLATE_TYPE_CHOICES = [
+        (WELL_CHILD, "Control niño sano"),
+        (MORBIDITY, "Consulta morbilidad"),
+        (FOLLOW_UP, "Control seguimiento"),
+        (VACCINATION, "Vacunación"),
+    ]
+
+    name = models.CharField(max_length=200)
+    template_type = models.CharField(max_length=20, choices=TEMPLATE_TYPE_CHOICES)
+    age_range_label = models.CharField(max_length=50, blank=True, default="")  # e.g. "1 mes", "6 meses", "2-3 años"
+    age_min_months = models.PositiveSmallIntegerField(null=True, blank=True)
+    age_max_months = models.PositiveSmallIntegerField(null=True, blank=True)
+    # SOAP defaults
+    subjective_template = models.TextField(blank=True, default="")
+    objective_template = models.TextField(blank=True, default="")
+    assessment_template = models.TextField(blank=True, default="")
+    plan_template = models.TextField(blank=True, default="")
+    # Physical exam defaults (normal findings)
+    physical_exam_template = models.JSONField(default=dict, blank=True)
+    # Development milestones to check at this age
+    development_checklist = models.JSONField(default=list, blank=True)
+    display_order = models.PositiveSmallIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["template_type", "display_order"]
+        verbose_name = "Encounter template"
+        verbose_name_plural = "Encounter templates"
+
+    def __str__(self) -> str:
+        return self.name
+
+
+# ---------------------------------------------------------------------------
 # DiagnosisCatalog
 # ---------------------------------------------------------------------------
 
