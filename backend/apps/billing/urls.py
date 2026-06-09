@@ -8,6 +8,7 @@ from apps.billing.views import (
     MercadoPagoWebhookView,
     PaymentProviderViewSet,
     PaymentViewSet,
+    TaxCalculatorView,
 )
 
 app_name = "billing"
@@ -20,4 +21,5 @@ router.register(r"admin/payment-providers", PaymentProviderViewSet, basename="ad
 urlpatterns = [
     path("", include(router.urls)),
     path("webhooks/mercadopago/", MercadoPagoWebhookView.as_view(), name="mp-webhook"),
+    path("tax-calculator/", TaxCalculatorView.as_view(), name="tax-calculator"),
 ]
