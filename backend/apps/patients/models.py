@@ -98,6 +98,34 @@ class Patient(BaseModel):
         (OTRO, _("Otro")),
     ]
 
+    # ── Birth type ───────────────────────────────────────────────────────────────
+    VAGINAL = "VAGINAL"
+    CESAREAN = "CESAREAN"
+    FORCEPS = "FORCEPS"
+    VACUUM = "VACUUM"
+
+    BIRTH_TYPE_CHOICES = [
+        (VAGINAL, _("Vaginal")),
+        (CESAREAN, _("Cesárea")),
+        (FORCEPS, _("Fórceps")),
+        (VACUUM, _("Vacuum")),
+    ]
+
+    # ── Feeding type ─────────────────────────────────────────────────────────────
+    EXCLUSIVE_BREASTFEEDING = "EXCLUSIVE_BREASTFEEDING"
+    MIXED = "MIXED"
+    FORMULA = "FORMULA"
+    COMPLEMENTARY = "COMPLEMENTARY"
+    SOLID = "SOLID"
+
+    FEEDING_TYPE_CHOICES = [
+        (EXCLUSIVE_BREASTFEEDING, _("Lactancia materna exclusiva")),
+        (MIXED, _("Mixta")),
+        (FORMULA, _("Fórmula")),
+        (COMPLEMENTARY, _("Alimentación complementaria")),
+        (SOLID, _("Sólidos")),
+    ]
+
     A_POS = "A+"
     A_NEG = "A-"
     B_POS = "B+"
@@ -188,6 +216,47 @@ class Patient(BaseModel):
     photo = models.ImageField(
         _("photo"), upload_to="patients/photos/", null=True, blank=True
     )
+
+    # ── Perinatal history ────────────────────────────────────────────────────────
+    birth_weight_grams = models.PositiveIntegerField(
+        _("birth weight (grams)"), null=True, blank=True,
+        help_text=_("Weight at birth in grams.")
+    )
+    birth_length_cm = models.DecimalField(
+        _("birth length (cm)"), max_digits=4, decimal_places=1, null=True, blank=True,
+        help_text=_("Length at birth in centimeters.")
+    )
+    gestational_weeks = models.PositiveSmallIntegerField(
+        _("gestational weeks"), null=True, blank=True,
+        help_text=_("Gestational age at birth in weeks.")
+    )
+    birth_type = models.CharField(
+        _("birth type"), max_length=20, choices=BIRTH_TYPE_CHOICES,
+        null=True, blank=True,
+    )
+    apgar_1min = models.PositiveSmallIntegerField(
+        _("Apgar 1 min"), null=True, blank=True,
+        help_text=_("Apgar score at 1 minute (0–10).")
+    )
+    apgar_5min = models.PositiveSmallIntegerField(
+        _("Apgar 5 min"), null=True, blank=True,
+        help_text=_("Apgar score at 5 minutes (0–10).")
+    )
+    feeding_type = models.CharField(
+        _("feeding type"), max_length=30, choices=FEEDING_TYPE_CHOICES,
+        null=True, blank=True,
+    )
+
+    # ── School ───────────────────────────────────────────────────────────────────
+    school_name = models.CharField(
+        _("school name"), max_length=200, blank=True, default="",
+        help_text=_("Name of the school the patient attends.")
+    )
+    grade = models.CharField(
+        _("grade"), max_length=50, blank=True, default="",
+        help_text=_("Current school grade or level.")
+    )
+
     is_active = models.BooleanField(_("active"), default=True)
 
     class Meta:
