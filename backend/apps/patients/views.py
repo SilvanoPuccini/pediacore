@@ -327,6 +327,77 @@ class CoResponsibleViewSet(ModelViewSet):
         serializer.save(tutor=self.request.user, practice=practice)
 
 
+class PatientStatsView(APIView):
+    """
+    GET /patients/stats/?location_id=<int>
+
+    Returns patient statistics by age group and sede.
+    Only accessible by doctors.
+    """
+
+    permission_classes = [IsDoctor]
+
+    def get(self, request: Request) -> Response:
+        from datetime import date
+
+        from dateutil.relativedelta import relativedelta
+
+        from apps.practice.models import Location
+
+        qs = Patient.objects.filter(is_active=True)
+
+        location_id = request.query_params.get("location_id")
+        location_name = None
+        if location_id:
+            try:
+                loc = Location.objects.get(pk=location_id)
+                location_name = loc.name
+                patient_ids = (
+                    TutorPatient.objects.filter(
+                        patient__is_active=True,
+                        deleted_at__isnull=True,
+                    )
+                    .filter(
+                        patient__appointments__location_id=location_id,
+                    )
+                    .values_list("patient_id", flat=True)
+                    .distinct()
+                )
+                qs = qs.filter(pk__in=patient_ids)
+            except Location.DoesNotExist:
+                pass
+
+        today = date.today()
+        total = qs.count()
+        buckets = {
+            "lactantes": {"label": "Lactantes (0-2)", "min": 0, "max": 2, "count": 0},
+            "preescolar": {"label": "Preescolar (2-6)", "min": 2, "max": 6, "count": 0},
+            "escolar": {"label": "Escolar (6-12)", "min": 6, "max": 12, "count": 0},
+            "adolescente": {"label": "Adolescente (12-18)", "min": 12, "max": 18, "count": 0},
+        }
+
+        for p in qs.only("date_of_birth"):
+            if not p.date_of_birth:
+                continue
+            age = relativedelta(today, p.date_of_birth).years
+            for key, b in buckets.items():
+                if b["min"] <= age < b["max"]:
+                    b["count"] += 1
+                    break
+
+        sex_m = qs.filter(sex="M").count()
+        sex_f = qs.filter(sex="F").count()
+
+        return Response(
+            {
+                "total": total,
+                "location": location_name,
+                "by_age_group": {k: v["count"] for k, v in buckets.items()},
+                "by_sex": {"M": sex_m, "F": sex_f},
+            }
+        )
+
+
 class GrowthPointSerializer(drf_serializers.Serializer):
     """Flat representation of one anthropometry measurement with encounter date."""
 

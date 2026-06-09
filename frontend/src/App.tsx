@@ -41,6 +41,11 @@ const DoctorLayout = lazy(() => import("@/layouts/DoctorLayout"));
 const DoctorPatients = lazy(() => import("@/features/doctor/pages/Patients"));
 const DoctorPatientFicha = lazy(() => import("@/features/doctor/pages/PatientFicha"));
 const DoctorCalendar = lazy(() => import("@/features/doctor/pages/Calendar"));
+const DoctorWaitlist = lazy(() => import("@/features/doctor/pages/Waitlist"));
+const DoctorHorarios = lazy(() => import("@/features/doctor/pages/Horarios"));
+const DoctorBlog = lazy(() => import("@/features/doctor/pages/Blog"));
+const DoctorPagos = lazy(() => import("@/features/doctor/pages/Pagos"));
+const DoctorConfig = lazy(() => import("@/features/doctor/pages/Config"));
 const TutorLayout = lazy(() => import("@/layouts/TutorLayout"));
 const TutorDashboard = lazy(() => import("@/features/tutor/pages/Dashboard"));
 const MyAppointments = lazy(() => import("@/features/tutor/pages/MyAppointments"));
@@ -228,6 +233,11 @@ function AppRoutes() {
           <Route path="pacientes" element={<DoctorPatients />} />
           <Route path="pacientes/:id" element={<DoctorPatientFicha />} />
           <Route path="calendario" element={<DoctorCalendar />} />
+          <Route path="espera" element={<DoctorWaitlist />} />
+          <Route path="horarios" element={<DoctorHorarios />} />
+          <Route path="blog" element={<DoctorBlog />} />
+          <Route path="pagos" element={<DoctorPagos />} />
+          <Route path="config" element={<DoctorConfig />} />
         </Route>
       </Routes>
     </Suspense>

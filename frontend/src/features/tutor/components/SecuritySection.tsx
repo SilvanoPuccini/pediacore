@@ -8,13 +8,7 @@ import { useAuthStore } from "@/stores/auth";
 
 function LastLoginInfo() {
   const user = useAuthStore((s) => s.user);
-
-  // The User type does not currently expose last_login from the backend.
-  // When available it will be at user.last_login (string | null).
-  const lastLogin = (user as Record<string, unknown>)?.last_login as
-    | string
-    | null
-    | undefined;
+  const lastLogin = user?.last_login;
 
   return (
     <div className="flex items-center gap-2.5 bg-cream rounded-[10px] px-4 py-3 mb-6">

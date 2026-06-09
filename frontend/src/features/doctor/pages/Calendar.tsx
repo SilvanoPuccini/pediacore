@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, Plus, CalendarDays } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { ChevronLeft, ChevronRight, Plus, CalendarDays, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useSedeStore } from "../stores/useSedeStore";
@@ -62,9 +63,14 @@ function getWeekNumber(date: Date): number {
 }
 
 const DAY_ABBREVS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+const DAY_FULL = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 const MONTH_NAMES = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
   "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+];
+const MONTH_NAMES_LOWER = [
+  "enero", "febrero", "marzo", "abril", "mayo", "junio",
+  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
 ];
 
 // ─── Appointment block ────────────────────────────────────────────────────────
@@ -74,7 +80,7 @@ function timeToMinutes(t: string): number {
   return h * 60 + m;
 }
 
-function AppointmentBlock({ appt }: { appt: Appointment }) {
+function AppointmentBlock({ appt, onSelect }: { appt: Appointment; onSelect: (a: Appointment) => void }) {
   const startMin = timeToMinutes(appt.start_time) - CAL_START_HOUR * 60;
   const endMin = timeToMinutes(appt.end_time) - CAL_START_HOUR * 60;
   const top = (startMin / 60) * SLOT_HEIGHT;
@@ -92,7 +98,7 @@ function AppointmentBlock({ appt }: { appt: Appointment }) {
         background: color.bg,
         border: `1.5px solid ${color.border}`,
       }}
-      onClick={() => console.log("appointment", appt.id)}
+      onClick={() => onSelect(appt)}
     >
       <p
         className="text-[10.5px] font-semibold leading-tight truncate"
@@ -105,6 +111,165 @@ function AppointmentBlock({ appt }: { appt: Appointment }) {
           {appt.service_name}
         </p>
       )}
+    </div>
+  );
+}
+
+// ─── Status chip helper ───────────────────────────────────────────────────────
+
+type StatusChipProps = { status: string };
+
+const STATUS_LABELS: Record<string, string> = {
+  CONFIRMED: "Confirmado",
+  PENDING: "Pendiente",
+  HOLD: "Reservado",
+  COMPLETED: "Completado",
+  CANCELLED: "Cancelado",
+  NO_SHOW: "No asistió",
+  EXPIRED: "Expirado",
+};
+
+const STATUS_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  CONFIRMED:  { bg: "#D6F1EA", text: "#3E8E7C", border: "#7DD3C0" },
+  PENDING:    { bg: "#FFF3CD", text: "#856404", border: "#FFD85E" },
+  HOLD:       { bg: "#EDE4FF", text: "#6B569E", border: "#C7B8E8" },
+  COMPLETED:  { bg: "#E0F2FE", text: "#0369A1", border: "#7DD3F4" },
+  CANCELLED:  { bg: "#FFE4E1", text: "#B5604F", border: "#F4A89A" },
+  NO_SHOW:    { bg: "#F3F4F6", text: "#6B7280", border: "#D1D5DB" },
+  EXPIRED:    { bg: "#F3F4F6", text: "#6B7280", border: "#D1D5DB" },
+};
+
+function StatusChip({ status }: StatusChipProps) {
+  const colors = STATUS_COLORS[status] ?? STATUS_COLORS["EXPIRED"];
+  return (
+    <span
+      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11.5px] font-semibold border"
+      style={{ background: colors.bg, color: colors.text, borderColor: colors.border }}
+    >
+      {STATUS_LABELS[status] ?? status}
+    </span>
+  );
+}
+
+// ─── Appointment detail modal ─────────────────────────────────────────────────
+
+function formatSpanishDate(dateStr: string): string {
+  // dateStr: "2026-06-15"
+  const [year, month, day] = dateStr.split("-").map(Number);
+  // Use local date to avoid UTC offset issues
+  const d = new Date(year, month - 1, day);
+  return `${DAY_FULL[d.getDay()]} ${day} de ${MONTH_NAMES_LOWER[month - 1]}, ${year}`;
+}
+
+type AppointmentDetailModalProps = {
+  appt: Appointment;
+  onClose: () => void;
+};
+
+function AppointmentDetailModal({ appt, onClose }: AppointmentDetailModalProps) {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const confirmMutation = useMutation({
+    mutationFn: () => api.post(`/appointments/${appt.id}/confirm/`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      onClose();
+    },
+  });
+
+  // Close on Escape key
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const canConfirm = appt.status === "PENDING" || appt.status === "HOLD";
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-ink/30 flex items-center justify-center"
+      onClick={onClose}
+    >
+      <div
+        className="bg-surface rounded-[14px] shadow-[var(--shadow-pop)] max-w-md w-full mx-4 p-5"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div>
+            <h2 className="text-[15px] font-bold text-ink leading-tight">{appt.patient_name}</h2>
+            <p className="text-[12.5px] text-ink3 mt-0.5">{appt.service_name}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-7 h-7 flex items-center justify-center rounded-[8px] hover:bg-bg text-ink3 hover:text-ink transition-colors shrink-0"
+          >
+            <X size={15} />
+          </button>
+        </div>
+
+        {/* Details */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between text-[13px]">
+            <span className="text-ink2">Hora</span>
+            <span className="font-medium text-ink">
+              {appt.start_time.slice(0, 5)} – {appt.end_time.slice(0, 5)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-[13px]">
+            <span className="text-ink2">Fecha</span>
+            <span className="font-medium text-ink capitalize">
+              {formatSpanishDate(appt.scheduled_date)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-[13px]">
+            <span className="text-ink2">Sede</span>
+            <span className="font-medium text-ink">
+              {appt.location_name ?? (appt.is_online ? "Online" : "—")}
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-[13px]">
+            <span className="text-ink2">Estado</span>
+            <StatusChip status={appt.status} />
+          </div>
+        </div>
+
+        {/* Confirm button */}
+        {canConfirm && (
+          <div className="mt-5">
+            <button
+              onClick={() => confirmMutation.mutate()}
+              disabled={confirmMutation.isPending}
+              className="w-full py-2.5 rounded-[10px] bg-teal-dark text-white text-[13px] font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              {confirmMutation.isPending ? "Confirmando..." : "Confirmar turno"}
+            </button>
+          </div>
+        )}
+
+        {/* Footer */}
+        <div className="flex items-center gap-2 mt-4">
+          <button
+            onClick={() => {
+              navigate(`/dashboard/pacientes/${appt.patient}`);
+              onClose();
+            }}
+            className="flex-1 py-2.5 rounded-[10px] border border-line text-[13px] font-medium text-ink2 hover:bg-bg transition-colors"
+          >
+            Ver ficha
+          </button>
+          <button
+            onClick={onClose}
+            className="flex-1 py-2.5 rounded-[10px] border border-line text-[13px] font-medium text-ink2 hover:bg-bg transition-colors"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -145,6 +310,7 @@ export default function Calendar() {
   const sedeId = useSedeStore((s) => s.sedeId);
   const [monday, setMonday] = useState<Date>(() => getMondayOfWeek(new Date()));
   const [activeSede, setActiveSede] = useState<number | null>(sedeId);
+  const [selectedApt, setSelectedApt] = useState<Appointment | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Scroll to business hours on mount
@@ -392,7 +558,7 @@ export default function Calendar() {
 
                     {/* Appointment blocks */}
                     {dayAppts.map((appt) => (
-                      <AppointmentBlock key={appt.id} appt={appt} />
+                      <AppointmentBlock key={appt.id} appt={appt} onSelect={setSelectedApt} />
                     ))}
                   </div>
                 );
@@ -418,6 +584,14 @@ export default function Calendar() {
           </div>
         ))}
       </div>
+
+      {/* ── Appointment detail modal ── */}
+      {selectedApt && (
+        <AppointmentDetailModal
+          appt={selectedApt}
+          onClose={() => setSelectedApt(null)}
+        />
+      )}
     </div>
   );
 }

@@ -27,9 +27,10 @@ class UserSerializer(serializers.ModelSerializer):
             "full_name",
             "is_email_verified",
             "created_at",
+            "last_login",
             "profile_completion",
         ]
-        read_only_fields = ["id", "email", "role", "is_email_verified", "created_at", "profile_completion"]
+        read_only_fields = ["id", "email", "role", "is_email_verified", "created_at", "last_login", "profile_completion"]
 
     def get_profile_completion(self, obj: User) -> dict:
         from apps.users.services.profile_completion import compute_tutor_completion

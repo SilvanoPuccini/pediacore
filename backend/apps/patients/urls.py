@@ -15,6 +15,7 @@ from apps.patients.views import (
     CoResponsibleViewSet,
     GrowthHistoryView,
     PatientFileViewSet,
+    PatientStatsView,
     PatientViewSet,
     TutorPatientViewSet,
 )
@@ -47,4 +48,5 @@ urlpatterns = [
     path("patients/<int:patient_pk>/files/", file_list, name="patient-file-list"),
     path("patients/<int:patient_pk>/files/<int:pk>/", file_detail, name="patient-file-detail"),
     path("patients/<int:patient_pk>/growth-history/", GrowthHistoryView.as_view(), name="patient-growth-history"),
+    path("patients/stats/", PatientStatsView.as_view(), name="patient-stats"),
 ]
