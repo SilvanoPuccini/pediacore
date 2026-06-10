@@ -740,9 +740,7 @@ export default function BlogPage() {
                     boxShadow: "var(--shadow-card)",
                   }}
                 >
-                  <div className="w-20 h-20 rounded-full mx-auto bg-teal/20 flex items-center justify-center overflow-hidden">
-                    <span className="font-display text-[32px] text-teal-dark">E</span>
-                  </div>
+                  <img src="/images/estefi-cutout.png" alt="Dra. Estefanía Ortigosa" className="w-20 h-20 object-cover object-top rounded-full mx-auto bg-teal/20" />
                   <h3 className="mt-3 font-display text-[17px] text-ink">
                     Dra. Estefanía Ortigosa
                   </h3>
@@ -793,7 +791,7 @@ export default function BlogPage() {
                       <div className="absolute inset-0" style={{ background: gradient }} />
                       <div className="absolute inset-0 flex items-center justify-center">
                         <span
-                          className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center transition-transform duration-240 group-hover:scale-110"
+                          className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center transition-transform duration-240 group-hover:scale-[1.12]"
                           style={{ boxShadow: "var(--shadow-pop)" }}
                         >
                           <svg width="20" height="20" viewBox="0 0 24 24" fill="#4A8590">
