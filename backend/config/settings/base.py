@@ -40,6 +40,8 @@ THIRD_PARTY_APPS = [
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
+    "allauth.mfa",
+    "axes",
     "django_q",
 ]
 
@@ -69,6 +71,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
     "apps.core.middleware.ContentSecurityPolicyMiddleware",
+    "axes.middleware.AxesMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -122,6 +125,24 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Custom user model
 AUTH_USER_MODEL = "users.User"
+
+# Authentication backends — axes must come first
+AUTHENTICATION_BACKENDS = [
+    "axes.backends.AxesStandaloneBackend",
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
+]
+
+# ── django-axes: brute-force protection ──
+AXES_FAILURE_LIMIT = 5
+AXES_COOLOFF_TIME = timedelta(minutes=15)
+AXES_RESET_ON_SUCCESS = True
+AXES_LOCKOUT_PARAMETERS = ["ip_address", "username"]
+
+# ── allauth MFA (TOTP) ──
+MFA_ADAPTER = "allauth.mfa.adapter.DefaultMFAAdapter"
+MFA_SUPPORTED_TYPES = ["totp"]
+MFA_TOTP_ISSUER = "PEDIACORE"
 
 # Internationalization
 LANGUAGE_CODE = "es-cl"
@@ -304,7 +325,7 @@ UNFOLD = {
                     {
                         "title": "Dashboard",
                         "icon": "dashboard",
-                        "link": "/admin/",
+                        "link": "/gestion-9f3a/",
                     },
                     {
                         "title": "Ir al Dashboard médico",
@@ -319,12 +340,12 @@ UNFOLD = {
                     {
                         "title": "Turnos",
                         "icon": "calendar_month",
-                        "link": "/admin/scheduling/appointment/",
+                        "link": "/gestion-9f3a/scheduling/appointment/",
                     },
                     {
                         "title": "Lista de espera",
                         "icon": "hourglass_top",
-                        "link": "/admin/scheduling/waitlistentry/",
+                        "link": "/gestion-9f3a/scheduling/waitlistentry/",
                     },
                 ],
             },
@@ -335,17 +356,17 @@ UNFOLD = {
                     {
                         "title": "Pacientes",
                         "icon": "child_care",
-                        "link": "/admin/patients/patient/",
+                        "link": "/gestion-9f3a/patients/patient/",
                     },
                     {
                         "title": "Encuentros clínicos",
                         "icon": "stethoscope",
-                        "link": "/admin/medical_records/encounter/",
+                        "link": "/gestion-9f3a/medical_records/encounter/",
                     },
                     {
                         "title": "Diagnósticos",
                         "icon": "diagnosis",
-                        "link": "/admin/medical_records/diagnosis/",
+                        "link": "/gestion-9f3a/medical_records/diagnosis/",
                     },
                 ],
             },
@@ -356,17 +377,17 @@ UNFOLD = {
                     {
                         "title": "Pagos",
                         "icon": "payments",
-                        "link": "/admin/billing/payment/",
+                        "link": "/gestion-9f3a/billing/payment/",
                     },
                     {
                         "title": "Comprobantes",
                         "icon": "receipt_long",
-                        "link": "/admin/billing/invoice/",
+                        "link": "/gestion-9f3a/billing/invoice/",
                     },
                     {
                         "title": "Proveedores de pago",
                         "icon": "account_balance",
-                        "link": "/admin/billing/paymentprovider/",
+                        "link": "/gestion-9f3a/billing/paymentprovider/",
                     },
                 ],
             },
@@ -377,17 +398,17 @@ UNFOLD = {
                     {
                         "title": "Blog",
                         "icon": "article",
-                        "link": "/admin/content/blogpost/",
+                        "link": "/gestion-9f3a/content/blogpost/",
                     },
                     {
                         "title": "Páginas",
                         "icon": "web",
-                        "link": "/admin/content/page/",
+                        "link": "/gestion-9f3a/content/page/",
                     },
                     {
                         "title": "FAQs",
                         "icon": "quiz",
-                        "link": "/admin/content/faq/",
+                        "link": "/gestion-9f3a/content/faq/",
                     },
                 ],
             },
@@ -398,42 +419,42 @@ UNFOLD = {
                     {
                         "title": "Usuarios",
                         "icon": "group",
-                        "link": "/admin/users/user/",
+                        "link": "/gestion-9f3a/users/user/",
                     },
                     {
                         "title": "Consultorios",
                         "icon": "local_hospital",
-                        "link": "/admin/practice/practice/",
+                        "link": "/gestion-9f3a/practice/practice/",
                     },
                     {
                         "title": "Sedes",
                         "icon": "location_on",
-                        "link": "/admin/practice/location/",
+                        "link": "/gestion-9f3a/practice/location/",
                     },
                     {
                         "title": "Servicios",
                         "icon": "medical_services",
-                        "link": "/admin/practice/service/",
+                        "link": "/gestion-9f3a/practice/service/",
                     },
                     {
                         "title": "Horarios",
                         "icon": "schedule",
-                        "link": "/admin/practice/workinghours/",
+                        "link": "/gestion-9f3a/practice/workinghours/",
                     },
                     {
                         "title": "Bloqueos",
                         "icon": "block",
-                        "link": "/admin/practice/blockedslot/",
+                        "link": "/gestion-9f3a/practice/blockedslot/",
                     },
                     {
                         "title": "Auto-respondedor",
                         "icon": "smart_toy",
-                        "link": "/admin/scheduling/autoresponderconfig/",
+                        "link": "/gestion-9f3a/scheduling/autoresponderconfig/",
                     },
                     {
                         "title": "Pol. cancelación",
                         "icon": "gavel",
-                        "link": "/admin/scheduling/cancellationpolicy/",
+                        "link": "/gestion-9f3a/scheduling/cancellationpolicy/",
                     },
                 ],
             },
@@ -444,27 +465,27 @@ UNFOLD = {
                     {
                         "title": "Notificaciones",
                         "icon": "notifications",
-                        "link": "/admin/notifications/notification/",
+                        "link": "/gestion-9f3a/notifications/notification/",
                     },
                     {
                         "title": "Emails enviados",
                         "icon": "mail",
-                        "link": "/admin/notifications/emaillog/",
+                        "link": "/gestion-9f3a/notifications/emaillog/",
                     },
                     {
                         "title": "Plantillas email",
                         "icon": "description",
-                        "link": "/admin/notifications/notificationtemplate/",
+                        "link": "/gestion-9f3a/notifications/notificationtemplate/",
                     },
                     {
                         "title": "Auditoría",
                         "icon": "shield",
-                        "link": "/admin/core/auditlog/",
+                        "link": "/gestion-9f3a/core/auditlog/",
                     },
                     {
                         "title": "Tokens de turno",
                         "icon": "key",
-                        "link": "/admin/scheduling/appointmenttoken/",
+                        "link": "/gestion-9f3a/scheduling/appointmenttoken/",
                     },
                 ],
             },

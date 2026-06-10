@@ -88,7 +88,7 @@ class CancellationTierAdmin(ModelAdmin):
 
 @admin.register(AppointmentToken)
 class AppointmentTokenAdmin(ModelAdmin):
-    list_display = ["appointment", "token", "action", "expires_at", "used_at", "created_at"]
+    list_display = ["appointment", "action", "expires_at", "used_at", "created_at"]
     list_filter = ["action"]
     search_fields = ["token", "appointment__patient__first_name", "appointment__patient__last_name"]
     readonly_fields = ["token", "created_at", "updated_at", "used_at"]

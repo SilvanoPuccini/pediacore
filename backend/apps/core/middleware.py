@@ -9,7 +9,7 @@ class ContentSecurityPolicyMiddleware:
     """
     Middleware that adds a Content-Security-Policy header to all responses.
 
-    Uses a relaxed policy for /admin/ (Alpine.js requires unsafe-eval)
+    Uses a relaxed policy for /gestion-9f3a/ (Alpine.js requires unsafe-eval)
     and a strict policy for everything else.
     """
 
@@ -43,7 +43,7 @@ class ContentSecurityPolicyMiddleware:
 
     def __call__(self, request):
         response = self.get_response(request)
-        if request.path.startswith("/admin/"):
+        if request.path.startswith("/gestion-9f3a/"):
             response["Content-Security-Policy"] = self._admin_csp_value
         else:
             response["Content-Security-Policy"] = self._csp_value

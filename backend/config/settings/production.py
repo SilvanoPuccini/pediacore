@@ -31,6 +31,10 @@ CSRF_COOKIE_HTTPONLY = True
 # Security headers
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
+SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
 
 # CSP is handled by nginx (not django-csp) to cover both API and frontend responses.
 

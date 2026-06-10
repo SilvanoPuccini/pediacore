@@ -113,7 +113,7 @@ class MonthlyExpenseAdmin(ModelAdmin):
 class PaymentProviderAdmin(ModelAdmin):
     list_display = ["practice", "provider_type", "is_active", "created_at"]
     list_filter = ["provider_type", "is_active"]
-    readonly_fields = ["created_at", "updated_at", "deleted_at"]
+    readonly_fields = ["config", "created_at", "updated_at", "deleted_at"]
     fieldsets = [
         (None, {"fields": ["practice", "provider_type", "is_active"]}),
         (
