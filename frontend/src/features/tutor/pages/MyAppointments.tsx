@@ -1,12 +1,10 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  CalendarDays,
-  MapPin,
-  Wifi,
-  Clock,
-  User,
   Stethoscope,
+  MapPin,
+  Video,
+  X,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -14,6 +12,13 @@ import { Link } from "react-router-dom";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { Appointment, PaginatedResponse } from "@/types/api";
+import {
+  Card,
+  Btn,
+  EmptyState,
+  StatusBadge,
+  Avatar,
+} from "@/features/tutor/components/portal-ui";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -21,194 +26,229 @@ const PAGE_SIZE = 5;
 const UPCOMING_STATUSES = "CONFIRMED,HOLD,PENDING";
 const PAST_STATUSES = "COMPLETED,NO_SHOW,CANCELLED,EXPIRED";
 
+// ─── Status mapping ───────────────────────────────────────────────────────────
+
+/**
+ * Maps API appointment status strings to the portal-ui StatusBadge format.
+ * StatusBadge accepts: confirmado | asistencia | pendiente | cancelado | realizado
+ */
+function mapStatus(
+  status: string,
+  attendanceConfirmed?: boolean
+): string {
+  if (status === "CONFIRMED" && attendanceConfirmed) return "asistencia";
+  switch (status) {
+    case "CONFIRMED":
+      return "confirmado";
+    case "HOLD":
+    case "PENDING":
+      return "pendiente";
+    case "CANCELLED":
+    case "NO_SHOW":
+    case "EXPIRED":
+      return "cancelado";
+    case "COMPLETED":
+    case "RESCHEDULED":
+    default:
+      return "realizado";
+  }
+}
+
 // ─── Date helpers ─────────────────────────────────────────────────────────────
 
-const DATE_FORMATTER = new Intl.DateTimeFormat("es-CL", {
-  weekday: "long",
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-  timeZone: "America/Santiago",
-});
-
-function formatDate(dateStr: string): string {
+function parseDateParts(dateStr: string): { year: number; month: number; day: number } {
   const [year, month, day] = dateStr.split("-").map(Number);
-  const date = new Date(year, month - 1, day, 12, 0, 0);
-  const formatted = DATE_FORMATTER.format(date);
-  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+  return { year, month, day };
+}
+
+function getLocalDate(dateStr: string): Date {
+  const { year, month, day } = parseDateParts(dateStr);
+  // Use noon to avoid DST boundary issues
+  return new Date(year, month - 1, day, 12, 0, 0);
+}
+
+function formatDayOfWeek(dateStr: string): string {
+  const date = getLocalDate(dateStr);
+  return date
+    .toLocaleDateString("es-CL", { weekday: "short" })
+    .replace(".", "")
+    .toUpperCase();
+}
+
+function formatDayNumber(dateStr: string): string {
+  const { day } = parseDateParts(dateStr);
+  return String(day);
+}
+
+function formatMonth(dateStr: string): string {
+  const date = getLocalDate(dateStr);
+  return date
+    .toLocaleDateString("es-CL", { month: "short" })
+    .replace(".", "")
+    .toUpperCase();
 }
 
 function formatTime(timeStr: string): string {
   return timeStr.slice(0, 5);
 }
 
-// ─── Status badge ─────────────────────────────────────────────────────────────
+function calcDurationMinutes(startTime: string, endTime: string): number | null {
+  if (!endTime) return null;
+  const [sh, sm] = startTime.split(":").map(Number);
+  const [eh, em] = endTime.split(":").map(Number);
+  const diff = (eh * 60 + em) - (sh * 60 + sm);
+  return diff > 0 ? diff : null;
+}
 
-const STATUS_CONFIG: Record<string, { label: string; classes: string }> = {
-  CONFIRMED: {
-    label: "Confirmado",
-    classes: "bg-teal/10 text-teal-dark border border-teal/20",
-  },
-  CONFIRMED_ATTENDANCE: {
-    label: "Asistencia confirmada",
-    classes: "bg-green-50 text-green-700 border border-green-200",
-  },
-  COMPLETED: {
-    label: "Atendido",
-    classes: "bg-green-50 text-green-700 border border-green-200",
-  },
-  CANCELLED: {
-    label: "Cancelado",
-    classes: "bg-gray-100 text-gray-500 border border-gray-200",
-  },
-  NO_SHOW: {
-    label: "No se presentó",
-    classes: "bg-coral/10 text-coral border border-coral/20",
-  },
-  HOLD: {
-    label: "Reservado",
-    classes: "bg-amber-50 text-amber-700 border border-amber-200",
-  },
-  PENDING: {
-    label: "Pendiente",
-    classes: "bg-amber-50 text-amber-700 border border-amber-200",
-  },
-  EXPIRED: {
-    label: "Expirado",
-    classes: "bg-gray-100 text-gray-400 border border-gray-200",
-  },
-  RESCHEDULED: {
-    label: "Reagendado",
-    classes: "bg-blue-50 text-blue-600 border border-blue-200",
-  },
-};
+// ─── Tab button ───────────────────────────────────────────────────────────────
 
-function StatusBadge({
-  status,
-  attendanceConfirmed,
+function TabButton({
+  active,
+  count,
+  onClick,
+  children,
 }: {
-  status: string;
-  attendanceConfirmed?: boolean;
+  active: boolean;
+  count?: number;
+  onClick: () => void;
+  children: React.ReactNode;
 }) {
-  const key =
-    status === "CONFIRMED" && attendanceConfirmed
-      ? "CONFIRMED_ATTENDANCE"
-      : status;
-  const config = STATUS_CONFIG[key] ?? {
-    label: status,
-    classes: "bg-gray-100 text-gray-500 border border-gray-200",
-  };
   return (
-    <span
+    <button
+      onClick={onClick}
       className={cn(
-        "inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold",
-        config.classes
+        "flex items-center gap-1.5 px-4 py-2 rounded-[8px] text-[12.5px] font-semibold transition-all",
+        active
+          ? "bg-bg text-teal-dark shadow-card"
+          : "text-ink3 hover:text-ink"
       )}
     >
-      {config.label}
-    </span>
+      {children}
+      {count !== undefined && (
+        <span className="text-[10px] text-ink3 font-medium">{count}</span>
+      )}
+    </button>
   );
 }
 
-// ─── Appointment card ─────────────────────────────────────────────────────────
+// ─── Appointment row ──────────────────────────────────────────────────────────
 
-function AppointmentCard({ appointment }: { appointment: Appointment }) {
+function ApptRow({
+  appointment,
+  isPast,
+}: {
+  appointment: Appointment;
+  isPast: boolean;
+}) {
+  const duration = calcDurationMinutes(appointment.start_time, appointment.end_time);
+  const mappedStatus = mapStatus(appointment.status, appointment.attendance_confirmed);
+
+  // Determine action buttons
+  const isUnpaid = appointment.status === "HOLD" || appointment.status === "PENDING";
+  const isOnlineConfirmed =
+    appointment.is_online &&
+    appointment.status === "CONFIRMED" &&
+    !!appointment.meeting_link;
+
+  // Patient name first word as avatar initial
+  const patientFirstName = appointment.patient_name.split(" ")[0] ?? appointment.patient_name;
+
   return (
-    <Link
-      to={`/portal/turnos/${appointment.id}`}
-      className="group block bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)] p-5 flex flex-col gap-4 hover:border-teal/40 hover:shadow-md transition-all"
-    >
-      {/* Header row */}
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[13px] font-semibold text-ink leading-snug">
-            {formatDate(appointment.scheduled_date)}
-          </p>
-          <div className="flex items-center gap-1.5 mt-1">
-            <Clock size={12} className="text-ink3 shrink-0" />
-            <span className="text-[12px] text-ink3">
-              {formatTime(appointment.start_time)}
-              {appointment.end_time
-                ? ` — ${formatTime(appointment.end_time)}`
-                : ""}
-            </span>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <StatusBadge
-            status={appointment.status}
-            attendanceConfirmed={appointment.attendance_confirmed}
-          />
-          <ChevronRight
-            size={15}
-            className="text-ink3 group-hover:text-teal-dark transition-colors shrink-0"
-          />
-        </div>
+    <li className="grid grid-cols-1 md:grid-cols-[100px_1fr_auto] gap-4 items-center px-5 py-4 hover:bg-bg transition-colors">
+      {/* Date column */}
+      <div className="text-center px-3 py-2 rounded-[10px] bg-bg border border-line self-start md:self-center w-fit md:w-auto mx-auto md:mx-0">
+        <p className="text-[10px] uppercase tracking-wider font-bold text-teal-dark leading-none">
+          {formatDayOfWeek(appointment.scheduled_date)}
+        </p>
+        <p className="font-display text-[22px] font-medium text-ink leading-tight mt-0.5">
+          {formatDayNumber(appointment.scheduled_date)}
+        </p>
+        <p className="text-[10px] text-ink2 font-medium leading-none mt-0.5">
+          {formatMonth(appointment.scheduled_date)}
+        </p>
       </div>
 
-      {/* Details */}
-      <div className="grid grid-cols-1 gap-2">
-        <div className="flex items-center gap-2">
-          <Stethoscope size={13} className="text-teal-dark shrink-0" />
-          <span className="text-[13px] text-ink">{appointment.service_name}</span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <User size={13} className="text-ink3 shrink-0" />
-          <span className="text-[13px] text-ink2">{appointment.patient_name}</span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {appointment.is_online ? (
-            <>
-              <Wifi size={13} className="text-teal-dark shrink-0" />
-              <span className="text-[13px] text-teal-dark font-medium">Online</span>
-            </>
-          ) : (
-            <>
-              <MapPin size={13} className="text-ink3 shrink-0" />
-              <span className="text-[13px] text-ink2">{appointment.location_name}</span>
-            </>
+      {/* Info column */}
+      <div className="flex flex-col gap-2 min-w-0">
+        {/* Time + duration + status */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-display text-[18px] font-medium text-ink leading-none">
+            {formatTime(appointment.start_time)}
+          </span>
+          {duration !== null && (
+            <span className="text-[11.5px] text-ink3">
+              {duration} min
+            </span>
           )}
+          <StatusBadge status={mappedStatus} />
+        </div>
+
+        {/* Child + service + location */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <Avatar name={patientFirstName} childIndex={appointment.patient % 4} size={22} />
+            <span className="text-[12.5px] font-semibold text-ink truncate">
+              {appointment.patient_name}
+            </span>
+          </div>
+          <div className="flex items-center gap-1 text-ink3">
+            <Stethoscope size={12} className="shrink-0" />
+            <span className="text-[12px] truncate">{appointment.service_name}</span>
+          </div>
+          <div className="flex items-center gap-1 text-ink3">
+            {appointment.is_online ? (
+              <>
+                <Video size={12} className="shrink-0 text-teal-dark" />
+                <span className="text-[12px] text-teal-dark font-medium">Online</span>
+              </>
+            ) : (
+              <>
+                <MapPin size={12} className="shrink-0" />
+                <span className="text-[12px] truncate">{appointment.location_name}</span>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Online meeting link indicator */}
-      {appointment.is_online &&
-        appointment.meeting_link &&
-        appointment.status === "CONFIRMED" && (
-          <div className="flex items-center gap-1.5">
-            <Wifi size={12} className="text-teal-dark" />
-            <span className="text-[12px] font-semibold text-teal-dark">
-              Consulta online disponible
-            </span>
-          </div>
+      {/* Actions column */}
+      <div className="flex items-center gap-1.5 justify-end">
+        {isPast ? (
+          <>
+            <Btn variant="ghost" size="sm" icon="FileText">
+              Resumen
+            </Btn>
+            <Btn variant="soft" size="sm" icon="RefreshCw">
+              Repetir
+            </Btn>
+          </>
+        ) : (
+          <>
+            {isOnlineConfirmed && (
+              <a href={appointment.meeting_link} target="_blank" rel="noopener noreferrer">
+                <Btn variant="primary" size="sm" icon="Video">
+                  Unirme
+                </Btn>
+              </a>
+            )}
+            {isUnpaid && (
+              <Btn variant="soft" size="sm" icon="CreditCard">
+                Pagar
+              </Btn>
+            )}
+            <Btn variant="ghost" size="sm" icon="RefreshCw">
+              Reagendar
+            </Btn>
+            <button
+              aria-label="Cancelar turno"
+              className="p-1.5 rounded-[8px] text-ink3 hover:text-[#A85050] hover:bg-destructive/10 transition-colors"
+            >
+              <X size={15} />
+            </button>
+          </>
         )}
-    </Link>
-  );
-}
-
-// ─── Empty state ──────────────────────────────────────────────────────────────
-
-function EmptyState({ tab }: { tab: "upcoming" | "past" }) {
-  return (
-    <div className="bg-surface border border-line rounded-[20px] p-10 flex flex-col items-center gap-4 text-center shadow-[var(--shadow-soft)]">
-      <div className="h-14 w-14 rounded-full bg-cream flex items-center justify-center">
-        <CalendarDays size={24} className="text-teal-dark" />
       </div>
-      <div>
-        <p className="text-[14px] font-semibold text-ink mb-1">
-          {tab === "upcoming"
-            ? "No tenés turnos próximos"
-            : "No hay turnos anteriores"}
-        </p>
-        <p className="text-[13px] text-ink3">
-          {tab === "upcoming"
-            ? "Cuando reserves un turno, va a aparecer acá."
-            : "Tus turnos pasados van a aparecer acá."}
-        </p>
-      </div>
-    </div>
+    </li>
   );
 }
 
@@ -219,32 +259,6 @@ function LoadingState() {
     <div className="flex items-center justify-center py-16">
       <div className="h-8 w-8 rounded-full border-2 border-line border-t-teal animate-spin" />
     </div>
-  );
-}
-
-// ─── Tab button ───────────────────────────────────────────────────────────────
-
-function TabButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "flex items-center gap-2 px-4 py-2 rounded-[12px] text-[13px] font-semibold transition-colors",
-        active
-          ? "bg-teal text-white shadow-sm"
-          : "text-ink3 hover:text-ink hover:bg-cream"
-      )}
-    >
-      {children}
-    </button>
   );
 }
 
@@ -263,21 +277,21 @@ function PaginationControls({
 }) {
   if (totalPages <= 1) return null;
   return (
-    <div className="flex items-center justify-center gap-4 pt-2">
+    <div className="flex items-center justify-center gap-4 pt-2 pb-1">
       <button
         onClick={onPrev}
         disabled={page === 1}
         aria-label="Página anterior"
         className={cn(
-          "flex items-center justify-center w-9 h-9 rounded-[12px] border border-line bg-surface text-ink transition-opacity",
+          "flex items-center justify-center w-9 h-9 rounded-[10px] border border-line bg-surface text-ink transition-opacity",
           page === 1 ? "opacity-30 cursor-not-allowed" : "hover:opacity-70"
         )}
       >
         <ChevronLeft size={16} />
       </button>
 
-      <span className="text-[13px] font-semibold text-ink2">
-        Página {page} de {totalPages}
+      <span className="text-[12.5px] font-semibold text-ink2">
+        {page} / {totalPages}
       </span>
 
       <button
@@ -285,7 +299,7 @@ function PaginationControls({
         disabled={page === totalPages}
         aria-label="Página siguiente"
         className={cn(
-          "flex items-center justify-center w-9 h-9 rounded-[12px] border border-line bg-surface text-ink transition-opacity",
+          "flex items-center justify-center w-9 h-9 rounded-[10px] border border-line bg-surface text-ink transition-opacity",
           page === totalPages
             ? "opacity-30 cursor-not-allowed"
             : "hover:opacity-70"
@@ -304,15 +318,13 @@ export default function MyAppointments() {
   const [upcomingPage, setUpcomingPage] = useState(1);
   const [pastPage, setPastPage] = useState(1);
 
-  const page = activeTab === "upcoming" ? upcomingPage : pastPage;
-  const setPage = activeTab === "upcoming" ? setUpcomingPage : setPastPage;
-  const statusFilter =
-    activeTab === "upcoming" ? UPCOMING_STATUSES : PAST_STATUSES;
-  // Upcoming: oldest first (next appointment at top); past: newest first
-  const ordering =
-    activeTab === "upcoming"
-      ? "scheduled_date,start_time"
-      : "-scheduled_date,-start_time";
+  const isPast = activeTab === "past";
+  const page = isPast ? pastPage : upcomingPage;
+  const setPage = isPast ? setPastPage : setUpcomingPage;
+  const statusFilter = isPast ? PAST_STATUSES : UPCOMING_STATUSES;
+  const ordering = isPast
+    ? "-scheduled_date,-start_time"
+    : "scheduled_date,start_time";
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["appointments", activeTab, page],
@@ -332,6 +344,24 @@ export default function MyAppointments() {
     },
   });
 
+  // Fetch upcoming count for tab badge (always, regardless of active tab)
+  const { data: upcomingCountData } = useQuery({
+    queryKey: ["appointments-count", "upcoming"],
+    queryFn: async () => {
+      const response = await api.get<PaginatedResponse<Appointment>>(
+        "/appointments/",
+        {
+          params: {
+            status: UPCOMING_STATUSES,
+            page: 1,
+            page_size: 1,
+          },
+        }
+      );
+      return response.data.count;
+    },
+  });
+
   const results = data?.results ?? [];
   const totalCount = data?.count ?? 0;
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
@@ -342,64 +372,92 @@ export default function MyAppointments() {
 
   return (
     <div className="max-w-3xl">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4 mb-6">
-        <div>
-          <h1 className="font-display text-[28px] font-semibold text-ink mb-1">
-            Mis Turnos
-          </h1>
-          <p className="text-[14px] text-ink3">
-            Revisá y gestioná tus turnos reservados.
-          </p>
+      {/* Header row */}
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+        {/* Tab switcher */}
+        <div className="inline-flex p-1 rounded-[12px] bg-surface border border-line">
+          <TabButton
+            active={activeTab === "upcoming"}
+            count={upcomingCountData}
+            onClick={() => handleTabChange("upcoming")}
+          >
+            Próximos
+          </TabButton>
+          <TabButton
+            active={activeTab === "past"}
+            onClick={() => handleTabChange("past")}
+          >
+            Anteriores
+          </TabButton>
         </div>
-        <Link
-          to="/booking"
-          className="shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-[12px] bg-teal text-white text-[13px] font-semibold hover:bg-teal-dark transition-colors shadow-sm"
-        >
-          <CalendarDays size={15} />
-          Reservar turno
-        </Link>
-      </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-2 mb-5 p-1 bg-cream rounded-[14px] w-fit">
-        <TabButton
-          active={activeTab === "upcoming"}
-          onClick={() => handleTabChange("upcoming")}
-        >
-          Próximos
-        </TabButton>
-        <TabButton
-          active={activeTab === "past"}
-          onClick={() => handleTabChange("past")}
-        >
-          Anteriores
-        </TabButton>
+        {/* Right actions */}
+        <div className="flex items-center gap-2">
+          <Link to="/portal/calendario">
+            <Btn variant="ghost" size="sm" icon="Calendar">
+              Ver calendario
+            </Btn>
+          </Link>
+          <Link to="/booking">
+            <Btn variant="primary" size="sm" icon="Plus">
+              Reservar turno
+            </Btn>
+          </Link>
+        </div>
       </div>
 
       {/* Content */}
       {isLoading ? (
         <LoadingState />
       ) : isError ? (
-        <div className="bg-surface border border-line rounded-[20px] p-8 text-center shadow-[var(--shadow-soft)]">
-          <p className="text-[13px] text-coral font-semibold mb-1">
-            No se pudieron cargar los turnos
-          </p>
-          <p className="text-[12px] text-ink3">
-            Intentá recargar la página. Si el problema persiste, contactanos.
-          </p>
-        </div>
+        <Card>
+          <div className="px-6 py-10 text-center">
+            <p className="text-[13px] font-semibold text-[#A85050] mb-1">
+              No se pudieron cargar los turnos
+            </p>
+            <p className="text-[12px] text-ink3">
+              Intentá recargar la página. Si el problema persiste, contactanos.
+            </p>
+          </div>
+        </Card>
       ) : results.length === 0 ? (
-        <EmptyState tab={activeTab} />
+        <Card padding={false}>
+          <EmptyState
+            icon={isPast ? "FileText" : "Calendar"}
+            title={
+              isPast ? "No hay turnos anteriores" : "No tenés turnos próximos"
+            }
+            text={
+              isPast
+                ? "Tus turnos pasados van a aparecer acá."
+                : "Cuando reserves un turno, va a aparecer acá."
+            }
+            action={
+              !isPast ? (
+                <Link to="/booking">
+                  <Btn variant="primary" size="sm" icon="Plus">
+                    Reservar turno
+                  </Btn>
+                </Link>
+              ) : undefined
+            }
+          />
+        </Card>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-3">
-            {results.map((appointment) => (
-              <AppointmentCard key={appointment.id} appointment={appointment} />
-            ))}
-          </div>
+          <Card padding={false}>
+            <ul className="divide-y divide-line/60">
+              {results.map((appointment) => (
+                <ApptRow
+                  key={appointment.id}
+                  appointment={appointment}
+                  isPast={isPast}
+                />
+              ))}
+            </ul>
+          </Card>
 
-          <div className="mt-4">
+          <div className="mt-3">
             <PaginationControls
               page={page}
               totalPages={totalPages}
@@ -407,6 +465,20 @@ export default function MyAppointments() {
               onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
             />
           </div>
+
+          {/* Bottom CTA — only for upcoming tab */}
+          {!isPast && (
+            <div className="mt-5 bg-surface border border-dashed border-line rounded-[14px] p-5 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-[13px] font-semibold text-ink">
+                ¿Necesitás otro turno?
+              </p>
+              <Link to="/booking">
+                <Btn variant="primary" size="sm" icon="Plus">
+                  Reservar turno
+                </Btn>
+              </Link>
+            </div>
+          )}
         </>
       )}
     </div>

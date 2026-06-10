@@ -1,82 +1,66 @@
-import { CalendarDays, Clock, MapPin, Wifi, User, Stethoscope, ExternalLink, ChevronRight } from "lucide-react";
+import {
+  CalendarDays,
+  Clock,
+  MapPin,
+  Video,
+  Stethoscope,
+  RefreshCw,
+  CreditCard,
+  X,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { StatusBadge, Btn, Avatar, clp } from "@/features/tutor/components/portal-ui";
 import type { Appointment } from "@/types/api";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const MONTH_NAMES = [
-  "ene", "feb", "mar", "abr", "may", "jun",
-  "jul", "ago", "sep", "oct", "nov", "dic",
-];
-
-const DAY_NAMES = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+const DAY_NAMES_SHORT = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+const MONTH_NAMES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
 function parseLocalDate(dateStr: string): Date {
   const [y, m, d] = dateStr.split("-").map(Number);
   return new Date(y, m - 1, d, 12, 0, 0);
 }
 
-function formatTime(timeStr: string): string {
-  return timeStr.slice(0, 5);
+function formatTime(t: string): string {
+  return t.slice(0, 5);
 }
 
-function formatDateLong(dateStr: string): { day: number; month: string; weekday: string } {
-  const date = parseLocalDate(dateStr);
-  return {
-    day: date.getDate(),
-    month: MONTH_NAMES[date.getMonth()],
-    weekday: DAY_NAMES[date.getDay()],
+function daysUntil(dateStr: string): number {
+  const target = parseLocalDate(dateStr);
+  const now = new Date();
+  now.setHours(12, 0, 0, 0);
+  return Math.ceil((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function mapStatus(status: string): string {
+  const MAP: Record<string, string> = {
+    CONFIRMED: "confirmado",
+    CONFIRMED_ATTENDANCE: "asistencia",
+    COMPLETED: "realizado",
+    CANCELLED: "cancelado",
+    HOLD: "pendiente",
+    PENDING: "pendiente",
   };
-}
-
-// ─── Empty state ──────────────────────────────────────────────────────────────
-
-function EmptyHero() {
-  return (
-    <div
-      className={cn(
-        "bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)]",
-        "p-8 flex flex-col items-center gap-4 text-center"
-      )}
-    >
-      <div className="h-14 w-14 rounded-full bg-cream flex items-center justify-center">
-        <CalendarDays size={24} className="text-teal-dark" />
-      </div>
-      <div>
-        <p className="text-[15px] font-semibold text-ink mb-1">
-          No tenés turnos próximos
-        </p>
-        <p className="text-[13px] text-ink3">
-          Reservá un turno para comenzar el seguimiento.
-        </p>
-      </div>
-      <Link
-        to="/booking"
-        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[12px] bg-teal-dark text-white text-[13px] font-semibold hover:opacity-90 transition-opacity"
-      >
-        <CalendarDays size={14} />
-        Reservar turno
-      </Link>
-    </div>
-  );
-}
-
-// ─── Props ────────────────────────────────────────────────────────────────────
-
-interface HeroAppointmentCardProps {
-  appointment: Appointment | null | undefined;
-  loading?: boolean;
+  return MAP[status] ?? "realizado";
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function HeroAppointmentCard({ appointment, loading }: HeroAppointmentCardProps) {
+interface Props {
+  appointment: Appointment | null | undefined;
+  loading?: boolean;
+}
+
+export default function HeroAppointmentCard({ appointment, loading }: Props) {
   if (loading) {
     return (
-      <div className="bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)] p-6 animate-pulse">
+      <div className="rounded-[18px] border border-line shadow-card p-6 animate-pulse"
+        style={{ background: "linear-gradient(135deg, rgba(123,181,189,0.10) 0%, rgba(229,184,71,0.08) 100%)" }}
+      >
         <div className="flex items-start gap-5">
-          <div className="h-16 w-14 bg-cream rounded-[12px] shrink-0" />
+          <div className="h-[72px] w-[64px] bg-cream rounded-[12px] shrink-0" />
           <div className="flex-1 space-y-2.5">
             <div className="h-4 w-2/3 bg-cream rounded-full" />
             <div className="h-3 w-1/2 bg-cream rounded-full" />
@@ -87,85 +71,142 @@ export default function HeroAppointmentCard({ appointment, loading }: HeroAppoin
     );
   }
 
-  if (!appointment) return <EmptyHero />;
+  if (!appointment) {
+    return (
+      <div className="rounded-[18px] border border-line shadow-card p-8 flex flex-col items-center gap-4 text-center bg-surface">
+        <div className="h-14 w-14 rounded-full bg-bg flex items-center justify-center">
+          <CalendarDays size={24} className="text-ink3" />
+        </div>
+        <p className="text-[15px] font-bold text-ink">No tenés turnos próximos</p>
+        <p className="text-[13px] text-ink2">Reservá un turno para comenzar.</p>
+        <Link
+          to="/booking"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] bg-teal-dark text-white text-[13px] font-semibold hover:opacity-90 transition-opacity"
+        >
+          <CalendarDays size={14} />
+          Reservar turno
+        </Link>
+      </div>
+    );
+  }
 
-  const { day, month, weekday } = formatDateLong(appointment.scheduled_date);
-  const hasJoinLink = appointment.is_online && !!appointment.meeting_link && appointment.status === "CONFIRMED";
+  const date = parseLocalDate(appointment.scheduled_date);
+  const dayNum = date.getDate();
+  const monthName = MONTH_NAMES[date.getMonth()];
+  const dayName = DAY_NAMES_SHORT[date.getDay()];
+  const remaining = daysUntil(appointment.scheduled_date);
+  const isOnline = appointment.is_online;
+  const hasJoinLink = isOnline && !!appointment.meeting_link && appointment.status === "CONFIRMED";
+  const isPaid = appointment.status !== "PENDING" && appointment.status !== "HOLD";
 
   return (
     <div
-      className={cn(
-        "bg-surface rounded-[20px] border border-teal/30 shadow-[var(--shadow-soft)]",
-        "p-6 flex flex-col gap-5"
-      )}
+      className="rounded-[18px] border border-line shadow-card overflow-hidden"
+      style={{
+        background:
+          "linear-gradient(135deg, rgba(123,181,189,0.10) 0%, rgba(229,184,71,0.08) 100%)",
+      }}
     >
-      {/* Header row */}
-      <div className="flex items-start gap-5">
-        {/* Date block */}
-        <div className="shrink-0 flex flex-col items-center justify-center bg-teal/10 rounded-[14px] h-16 w-14 text-center">
-          <span className="text-[22px] font-bold text-teal-dark leading-none">{day}</span>
-          <span className="text-[11px] font-semibold text-teal-dark uppercase tracking-wide mt-0.5">{month}</span>
+      <div className="p-6">
+        {/* Top row: label + badge + time-until */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-teal-dark" />
+            <span className="text-[11px] uppercase tracking-[0.12em] font-bold text-teal-dark">
+              Próximo turno
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <StatusBadge status={mapStatus(appointment.status)} />
+            {remaining > 0 && (
+              <span className="text-[11px] text-ink3 font-medium">
+                En {remaining} día{remaining !== 1 ? "s" : ""}
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* Info */}
-        <div className="flex-1 min-w-0">
-          <p className="text-[12px] font-semibold text-teal-dark uppercase tracking-wide capitalize mb-1">
-            {weekday}
-          </p>
-          <p className="text-[16px] font-semibold text-ink truncate flex items-center gap-2">
-            <Stethoscope size={14} className="text-teal-dark shrink-0" />
-            {appointment.service_name}
-          </p>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5">
-            <span className="flex items-center gap-1.5 text-[12px] text-ink3">
-              <Clock size={11} className="shrink-0" />
-              {formatTime(appointment.start_time)}
-              {appointment.end_time ? ` — ${formatTime(appointment.end_time)}` : ""}
-            </span>
-            <span className="flex items-center gap-1.5 text-[12px] text-ink3">
-              <User size={11} className="shrink-0" />
-              {appointment.patient_name}
-            </span>
-            <span className="flex items-center gap-1.5 text-[12px] text-ink3">
-              {appointment.is_online ? (
-                <>
-                  <Wifi size={11} className="text-teal-dark shrink-0" />
-                  <span className="text-teal-dark font-medium">Online</span>
-                </>
-              ) : (
-                <>
-                  <MapPin size={11} className="shrink-0" />
-                  {appointment.location_name}
-                </>
+        {/* Date + info */}
+        <div className="flex items-start gap-5">
+          {/* Date mini calendar */}
+          <div className="text-center px-4 py-3 rounded-[12px] bg-surface border border-line shrink-0">
+            <div className="text-[11px] uppercase tracking-wider font-bold text-teal-dark">
+              {dayName}
+            </div>
+            <div className="font-display text-[30px] font-medium text-ink leading-none mt-0.5">
+              {dayNum}
+            </div>
+            <div className="text-[10.5px] text-ink2 font-medium mt-0.5">{monthName}</div>
+          </div>
+
+          {/* Time + child info */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-baseline gap-2">
+              <span className="font-display text-[24px] font-medium text-ink">
+                {formatTime(appointment.start_time)}
+              </span>
+              {appointment.end_time && (
+                <span className="text-[15px] text-ink3">
+                  — {formatTime(appointment.end_time)}
+                </span>
               )}
-            </span>
+            </div>
+
+            <div className="flex items-center gap-2 mt-2">
+              <Avatar name={appointment.patient_name ?? "P"} childIndex={0} size={26} />
+              <div>
+                <span className="text-[13.5px] font-semibold text-ink">
+                  {appointment.patient_name}
+                </span>
+              </div>
+            </div>
+
+            {/* Type + sede */}
+            <div className="flex items-center gap-3 mt-2 text-[12px] text-ink2">
+              <span className="flex items-center gap-1">
+                <Stethoscope size={12} className="text-ink3" />
+                {appointment.service_name}
+              </span>
+              <span className="text-ink3">·</span>
+              <span className="flex items-center gap-1">
+                {isOnline ? (
+                  <Video size={12} className="text-teal-dark" />
+                ) : (
+                  <MapPin size={12} className="text-ink3" />
+                )}
+                {isOnline ? "Online" : (appointment.location_name ?? "Presencial")}
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Action buttons */}
-      <div className="flex flex-wrap items-center gap-3 pt-1 border-t border-line">
+      {/* Actions footer */}
+      <div className="border-t border-line/60 px-6 py-4 flex items-center gap-2 flex-wrap">
         {hasJoinLink && (
           <a
             href={appointment.meeting_link}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] bg-teal-dark text-white text-[12px] font-semibold hover:opacity-90 transition-opacity"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-[10px] bg-teal-dark text-white text-[12.5px] font-semibold hover:opacity-90 transition-opacity"
           >
-            <ExternalLink size={13} />
-            Unirme a la consulta
+            <Video size={14} />
+            Unirme online
           </a>
         )}
-        <Link
-          to={`/portal/turnos/${appointment.id}`}
-          className={cn(
-            "inline-flex items-center gap-2 px-4 py-2 rounded-[10px] text-[12px] font-semibold transition-colors",
-            "bg-cream border border-line text-ink hover:border-teal/40"
-          )}
-        >
-          Ver detalle
-          <ChevronRight size={13} />
-        </Link>
+        <Btn variant="ghost" size="sm" icon="RefreshCw">
+          Reagendar
+        </Btn>
+        {!isPaid && (
+          <Btn variant="soft" size="sm" icon="CreditCard">
+            Pagar {clp(parseFloat(String(appointment.amount ?? 0)))}
+          </Btn>
+        )}
+        <div className="flex-1" />
+        <button className="flex items-center gap-1 text-[12px] text-ink3 hover:text-[#A85050] transition-colors">
+          <X size={13} />
+          Cancelar
+        </button>
       </div>
     </div>
   );

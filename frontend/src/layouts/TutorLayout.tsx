@@ -7,9 +7,13 @@ import {
   CalendarDays,
   Baby,
   UserCircle,
-  LayoutDashboard,
+  Home,
   Receipt,
   HelpCircle,
+  Plus,
+  ExternalLink,
+  Search,
+  ChevronRight,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/auth";
@@ -22,34 +26,30 @@ import type { PaginatedResponse, Patient } from "@/types/api";
 // ─── Nav items ─────────────────────────────────────────────────────────────────
 
 const NAV_ITEMS = [
-  { label: "Inicio", href: "/portal", icon: LayoutDashboard, exact: true },
-  { label: "Mis Turnos", href: "/portal/turnos", icon: CalendarDays },
-  { label: "Mis Hijos", href: "/portal/hijos", icon: Baby },
+  { label: "Inicio", href: "/portal", icon: Home, exact: true },
+  { label: "Mis turnos", href: "/portal/turnos", icon: CalendarDays },
+  { label: "Mis hijos", href: "/portal/hijos", icon: Baby },
   { label: "Pagos", href: "/portal/pagos", icon: Receipt },
-  { label: "Mi Perfil", href: "/portal/perfil", icon: UserCircle },
+  { label: "Mi perfil", href: "/portal/perfil", icon: UserCircle },
 ];
 
-// ─── Initials helper ────────────────────────────────────────────────────────────
+// ─── Helpers ───────────────────────────────────────────────────────────────────
 
 function getInitials(firstName?: string, lastName?: string, email?: string): string {
-  if (firstName && lastName) {
-    return `${firstName[0]}${lastName[0]}`.toUpperCase();
-  }
+  if (firstName && lastName) return `${firstName[0]}${lastName[0]}`.toUpperCase();
   if (firstName) return firstName[0].toUpperCase();
   if (email) return email[0].toUpperCase();
   return "?";
 }
 
-// ─── Page title helper ──────────────────────────────────────────────────────────
-
-function usePageTitle(pathname: string): string {
-  if (pathname === "/portal") return "Inicio";
-  if (pathname.startsWith("/portal/turnos")) return "Mis Turnos";
-  if (pathname.startsWith("/portal/hijos")) return "Mis Hijos";
-  if (pathname.startsWith("/portal/pagos")) return "Pagos";
-  if (pathname.startsWith("/portal/perfil")) return "Mi Perfil";
-  if (pathname.startsWith("/portal/notificaciones")) return "Notificaciones";
-  return "Portal";
+function usePageTitle(pathname: string): { title: string; crumb: string } {
+  if (pathname === "/portal") return { title: "Inicio", crumb: "Inicio" };
+  if (pathname.startsWith("/portal/turnos")) return { title: "Mis turnos", crumb: "Mis turnos" };
+  if (pathname.startsWith("/portal/hijos")) return { title: "Mis hijos", crumb: "Mis hijos" };
+  if (pathname.startsWith("/portal/pagos")) return { title: "Pagos", crumb: "Pagos" };
+  if (pathname.startsWith("/portal/perfil")) return { title: "Mi perfil", crumb: "Mi perfil" };
+  if (pathname.startsWith("/portal/notificaciones")) return { title: "Notificaciones", crumb: "Notificaciones" };
+  return { title: "Portal", crumb: "Portal" };
 }
 
 // ─── TutorLayout ───────────────────────────────────────────────────────────────
@@ -61,15 +61,12 @@ export default function TutorLayout() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const pageTitle = usePageTitle(pathname);
+  const { title: pageTitle, crumb } = usePageTitle(pathname);
 
-  // Fetch linked children count for sidebar badge
   const { data: patientsData } = useQuery({
     queryKey: ["my-patients"],
     queryFn: () =>
-      api
-        .get<PaginatedResponse<Patient>>("/patients/")
-        .then((r) => r.data),
+      api.get<PaginatedResponse<Patient>>("/patients/").then((r) => r.data),
     staleTime: 1000 * 60 * 5,
   });
   const childCount = patientsData?.count ?? 0;
@@ -88,59 +85,50 @@ export default function TutorLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-bg flex">
+    <div className="flex min-h-screen bg-bg text-ink">
       {/* ── Sidebar ── */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 flex flex-col transition-transform duration-300",
-          "bg-gradient-to-b from-teal-dark/[0.06] to-bg border-r border-line",
-          "lg:translate-x-0 lg:static lg:flex",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          "fixed inset-y-0 left-0 z-50 w-[244px] flex flex-col h-screen",
+          "bg-surface border-r border-line",
+          "lg:translate-x-0 lg:sticky lg:top-0",
+          "transition-transform duration-300",
+          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
-        {/* Brand header */}
-        <div className="h-16 flex items-center gap-3 px-5 border-b border-line shrink-0">
-          <div className="h-9 w-9 rounded-full overflow-hidden bg-white shrink-0 ring-1 ring-line">
-            <img
-              src="/images/logo.svg"
-              alt="Logo"
-              className="w-full h-full object-contain"
-            />
-          </div>
-          <div className="leading-tight">
-            <div className="font-display text-[13px] font-semibold text-ink truncate max-w-[140px]">
-              Dra. Estefi Pediatra
-            </div>
-            <div className="text-[11px] text-ink3">Mi Portal</div>
-          </div>
-        </div>
-
-        {/* Tutor profile block */}
-        <div className="px-4 py-4 border-b border-line shrink-0">
+        {/* Brand */}
+        <div className="px-6 pt-6 pb-5">
           <div className="flex items-center gap-3">
-            {/* Initials avatar */}
-            <div className="h-10 w-10 rounded-full bg-teal-dark flex items-center justify-center shrink-0">
-              <span className="text-[14px] font-bold text-white">{initials}</span>
+            <div className="h-10 w-10 rounded-full overflow-hidden shrink-0" style={{ mixBlendMode: "multiply" }}>
+              <img src="/images/logo.svg" alt="Logo" className="w-full h-full object-contain" />
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-[13px] font-semibold text-ink truncate">
-                {displayName}
+            <div>
+              <div className="font-display text-[16px] font-semibold text-ink">Dra. Estefi</div>
+              <div className="text-[9.5px] tracking-[0.20em] uppercase text-ink3 font-medium">Pediatra</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Parent profile mini-card */}
+        <div className="mx-6 mb-4 p-3 rounded-[12px] bg-bg border border-line">
+          <div className="flex items-center gap-3">
+            <div className="relative shrink-0">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-teal to-mustard text-white font-bold text-[13px] flex items-center justify-center">
+                {initials.charAt(0)}
               </div>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                {/* Online indicator */}
-                <span className="h-2 w-2 rounded-full bg-green-500 shrink-0" />
-                <span className="text-[11px] text-ink3">
-                  {childCount === 1
-                    ? "1 hijo vinculado"
-                    : `${childCount} hijos vinculados`}
-                </span>
+              <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-sage border-2 border-bg" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[12.5px] font-bold text-ink truncate">{displayName}</div>
+              <div className="text-[10.5px] text-ink3">
+                {childCount === 1 ? "1 hijo" : `${childCount} hijos`}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Nav items */}
-        <nav className="flex-1 px-3 py-4 overflow-y-auto">
+        {/* Nav */}
+        <nav className="flex-1 px-3 overflow-y-auto">
           {NAV_ITEMS.map(({ label, href, icon: Icon, exact }) => {
             const isActive = exact ? pathname === href : pathname.startsWith(href);
             return (
@@ -148,43 +136,55 @@ export default function TutorLayout() {
                 key={href}
                 to={href}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-[13px] font-medium transition-colors mb-0.5",
+                  "relative flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-[13px] font-medium transition-colors mb-0.5",
                   isActive
-                    ? "bg-cream text-ink font-semibold border-l-2 border-teal-dark ml-[-2px] pl-[14px]"
-                    : "text-ink2 hover:bg-cream hover:text-ink"
+                    ? "text-teal-dark font-semibold bg-teal/[0.18]"
+                    : "text-ink2 hover:bg-bg hover:text-ink"
                 )}
                 onClick={() => setSidebarOpen(false)}
               >
+                {isActive && (
+                  <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-teal-dark" />
+                )}
                 <Icon
                   size={16}
-                  className={cn(
-                    "shrink-0 transition-colors",
-                    isActive ? "text-teal-dark" : "text-ink3"
-                  )}
+                  strokeWidth={isActive ? 1.85 : 1.6}
+                  className="shrink-0"
                 />
                 {label}
               </Link>
             );
           })}
-        </nav>
 
-        {/* Footer */}
-        <div className="px-3 py-4 border-t border-line shrink-0 space-y-0.5">
+          {/* Divider + secondary nav */}
+          <div className="mx-2 h-px bg-line my-4" />
           <Link
-            to="/"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-[13px] font-medium text-ink2 hover:text-ink hover:bg-cream transition-colors"
+            to="/portal/notificaciones"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-[13px] font-medium text-ink2 hover:bg-bg hover:text-ink transition-colors"
             onClick={() => setSidebarOpen(false)}
           >
-            <HelpCircle size={15} className="shrink-0 text-ink3" />
+            <HelpCircle size={16} strokeWidth={1.6} className="shrink-0" />
             Ayuda
           </Link>
-          <button
-            onClick={() => setLogoutOpen(true)}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-[13px] font-medium text-ink2 hover:text-ink hover:bg-cream transition-colors"
+        </nav>
+
+        {/* Bottom CTA */}
+        <div className="px-4 py-5 border-t border-line shrink-0 space-y-2">
+          <Link
+            to="/booking"
+            className="w-full flex items-center justify-center gap-2 bg-teal-dark text-white rounded-[10px] px-3 py-2.5 text-[12.5px] font-semibold shadow-soft hover:opacity-90 transition-opacity"
+            onClick={() => setSidebarOpen(false)}
           >
-            <LogOut size={15} className="shrink-0 text-ink3" />
-            Cerrar sesión
-          </button>
+            <Plus size={14} />
+            Reservar consulta
+          </Link>
+          <a
+            href="/"
+            className="flex items-center justify-center gap-1.5 text-[11.5px] text-ink3 hover:text-ink2 transition-colors"
+          >
+            <ExternalLink size={11} />
+            Volver al sitio
+          </a>
         </div>
 
         <ConfirmDialog
@@ -208,37 +208,57 @@ export default function TutorLayout() {
         />
       )}
 
-      {/* ── Main content ── */}
-      <div className="flex-1 flex flex-col min-w-0">
+      {/* ── Main ── */}
+      <main className="flex-1 min-w-0">
         {/* Top bar */}
-        <header className="h-16 bg-surface border-b border-line flex items-center px-5 gap-4 shrink-0">
-          <button
-            className="lg:hidden p-2 rounded-[8px] text-ink2 hover:bg-cream transition-colors"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            aria-label={sidebarOpen ? "Cerrar menú" : "Abrir menú"}
-          >
-            {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
+        <header className="sticky top-0 z-30 bg-bg/85 backdrop-blur-sm border-b border-line">
+          <div className="px-6 lg:px-8 py-4 flex items-center gap-4">
+            <button
+              className="lg:hidden p-2 rounded-[8px] text-ink2 hover:bg-cream transition-colors"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              aria-label={sidebarOpen ? "Cerrar menú" : "Abrir menú"}
+            >
+              {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
 
-          {/* Page title */}
-          <span className="flex-1 text-[14px] font-semibold text-ink">
-            {pageTitle}
-          </span>
+            <div className="flex-1 min-w-0">
+              {/* Breadcrumb */}
+              <div className="hidden md:flex items-center gap-1 text-[11px] text-ink3 mb-0.5">
+                <span>Portal</span>
+                <ChevronRight size={11} />
+                <span className="text-ink2 font-semibold">{crumb}</span>
+              </div>
+              {/* Title */}
+              <h1 className="text-[22px] font-bold text-ink tracking-tight font-display truncate">
+                {pageTitle}
+              </h1>
+            </div>
 
-          {/* Right side */}
-          <div className="flex items-center gap-2">
-            <NotificationBell />
-            {/* User avatar (topbar) */}
-            <div className="h-8 w-8 rounded-full bg-teal-dark flex items-center justify-center shrink-0 cursor-default">
-              <span className="text-[12px] font-bold text-white">{initials}</span>
+            {/* Search */}
+            <div className="hidden md:block relative w-[280px]">
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink3" />
+              <input
+                type="text"
+                placeholder="Buscar..."
+                className="w-full rounded-[10px] bg-surface border border-line pl-9 pr-3 py-2 text-[12.5px] text-ink placeholder:text-ink3 focus:outline-none focus:border-teal focus:ring-2 focus:ring-teal/20 transition"
+              />
+            </div>
+
+            {/* Right actions */}
+            <div className="flex items-center gap-2">
+              <NotificationBell />
+              <div className="h-8 w-8 rounded-full bg-teal-dark flex items-center justify-center shrink-0">
+                <span className="text-[12px] font-bold text-white">{initials}</span>
+              </div>
             </div>
           </div>
         </header>
 
-        <main className="flex-1 p-6 overflow-y-auto">
+        {/* Content area */}
+        <div className="px-6 lg:px-8 py-7 max-w-[1400px]">
           <Outlet />
-        </main>
-      </div>
+        </div>
+      </main>
     </div>
   );
 }
