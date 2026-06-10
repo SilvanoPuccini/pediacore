@@ -1,12 +1,30 @@
 import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { UserCircle, CheckCircle2, AlertCircle } from "lucide-react";
+import {
+  Pencil,
+  Check,
+  Lock,
+  Shield,
+  Download,
+  LogOut,
+  Mail,
+  Phone,
+  MapPin,
+  Users,
+  ChevronRight,
+  CheckCircle2,
+  AlertCircle,
+} from "lucide-react";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/auth";
+import { cn } from "@/lib/utils";
+import { Card, Btn, Chip, Toggle } from "@/features/tutor/components/portal-ui";
 import NotificationPreferencesSection from "@/features/tutor/components/NotificationPreferencesSection";
 import CoResponsiblesSection from "@/features/tutor/components/CoResponsiblesSection";
 import SecuritySection from "@/features/tutor/components/SecuritySection";
 import type { User, DocumentType } from "@/types/api";
+
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const DOCUMENT_TYPE_OPTIONS: { value: DocumentType; label: string }[] = [
   { value: "RUT", label: "RUT (Chile)" },
@@ -14,6 +32,23 @@ const DOCUMENT_TYPE_OPTIONS: { value: DocumentType; label: string }[] = [
   { value: "PASAPORTE", label: "Pasaporte" },
   { value: "OTRO", label: "Otro" },
 ];
+
+const PHONE_PREFIXES = [
+  { value: "+56", label: "+56" },
+  { value: "+54", label: "+54" },
+  { value: "+1", label: "+1" },
+  { value: "+51", label: "+51" },
+  { value: "+57", label: "+57" },
+  { value: "+598", label: "+598" },
+] as const;
+
+const INPUT_CLS =
+  "w-full px-3 py-2.5 rounded-[10px] bg-bg border border-line text-[13.5px] text-ink placeholder:text-ink3 focus:outline-none focus:border-teal focus:ring-2 focus:ring-teal/20 transition";
+
+const INPUT_DISABLED_CLS =
+  "w-full px-3 py-2.5 rounded-[10px] bg-cream border border-line text-[13.5px] text-ink3 cursor-not-allowed";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ProfileFormData {
   first_name: string;
@@ -25,36 +60,12 @@ interface ProfileFormData {
   rut: string;
 }
 
-interface ProfileUpdatePayload {
-  first_name: string;
-  last_name: string;
-  phone: string;
-  phone_prefix: string;
-  phone_alt: string;
-  document_type: DocumentType;
-  rut: string;
-}
-
-const PHONE_PREFIXES = [
-  { value: "+56", label: "🇨🇱 +56" },
-  { value: "+54", label: "🇦🇷 +54" },
-  { value: "+1", label: "🇺🇸 +1" },
-  { value: "+51", label: "🇵🇪 +51" },
-  { value: "+57", label: "🇨🇴 +57" },
-  { value: "+598", label: "🇺🇾 +598" },
-  { value: "+595", label: "🇵🇾 +595" },
-  { value: "+591", label: "🇧🇴 +591" },
-  { value: "+593", label: "🇪🇨 +593" },
-  { value: "+34", label: "🇪🇸 +34" },
-] as const;
-
-function updateProfile(payload: ProfileUpdatePayload): Promise<User> {
-  return api.patch<User>("/profile/", payload).then((res) => res.data);
-}
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function MyProfile() {
   const user = useAuthStore((s) => s.user);
   const fetchProfile = useAuthStore((s) => s.fetchProfile);
+  const [editing, setEditing] = useState(false);
 
   const [form, setForm] = useState<ProfileFormData>({
     first_name: user?.first_name ?? "",
@@ -66,10 +77,8 @@ export default function MyProfile() {
     rut: user?.rut ?? "",
   });
 
-  const [errors, setErrors] = useState<Partial<ProfileFormData>>({});
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // Keep form in sync if user loads after mount
   useEffect(() => {
     if (user) {
       setForm({
@@ -85,261 +94,290 @@ export default function MyProfile() {
   }, [user?.id]);
 
   const mutation = useMutation({
-    mutationFn: updateProfile,
+    mutationFn: (payload: ProfileFormData) =>
+      api.patch<User>("/profile/", payload).then((r) => r.data),
     onSuccess: async () => {
       await fetchProfile();
+      setEditing(false);
       setSuccessMessage("Tus datos fueron actualizados correctamente.");
       setTimeout(() => setSuccessMessage(null), 4000);
     },
   });
 
-  function validate(): boolean {
-    const next: Partial<ProfileFormData> = {};
-    if (!form.first_name.trim()) next.first_name = "El nombre es obligatorio.";
-    if (!form.last_name.trim()) next.last_name = "El apellido es obligatorio.";
-    if (!form.phone.trim()) next.phone = "El teléfono es obligatorio.";
-    if (!form.rut.trim()) next.rut = "El documento es obligatorio.";
-    setErrors(next);
-    return Object.keys(next).length === 0;
-  }
-
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-    if (errors[name as keyof ProfileFormData]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSuccessMessage(null);
-    if (!validate()) return;
-    mutation.mutate({
-      first_name: form.first_name.trim(),
-      last_name: form.last_name.trim(),
-      phone: form.phone.trim(),
-      phone_prefix: form.phone_prefix,
-      phone_alt: form.phone_alt.trim(),
-      document_type: form.document_type,
-      rut: form.rut.trim(),
-    });
+    mutation.mutate(form);
   }
 
-  return (
-    <div className="max-w-2xl">
-      <h1 className="font-display text-[28px] font-semibold text-ink mb-1">
-        Mi Perfil
-      </h1>
-      <p className="text-[14px] text-ink3 mb-8">
-        Actualizá tus datos personales.
-      </p>
+  const initials = user?.first_name
+    ? `${user.first_name[0]}${(user.last_name ?? "")[0] ?? ""}`.toUpperCase()
+    : "?";
 
-      <div className="bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)] p-8">
-        {/* Avatar header */}
-        <div className="flex items-center gap-4 mb-8 pb-8 border-b border-line">
-          <div className="h-14 w-14 rounded-full bg-cream flex items-center justify-center shrink-0">
-            <UserCircle size={28} className="text-teal-dark" />
+  const joinedDate = user?.date_joined
+    ? new Date(user.date_joined).toLocaleDateString("es-CL", { month: "long", year: "numeric" })
+    : "";
+
+  return (
+    <div className="space-y-6">
+      {/* ── Profile header card ── */}
+      <Card className="relative overflow-hidden">
+        {/* Decorative circle */}
+        <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-gradient-to-br from-teal/15 to-coral/10 pointer-events-none" />
+
+        <div className="relative flex flex-col sm:flex-row items-start gap-5">
+          {/* Avatar */}
+          <div className="relative shrink-0">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-teal to-mustard text-white font-bold text-[32px] flex items-center justify-center shadow-soft">
+              {initials}
+            </div>
+            <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-surface border border-line shadow-card flex items-center justify-center">
+              <Pencil size={12} className="text-ink3" />
+            </div>
           </div>
-          <div>
-            <p className="text-[16px] font-semibold text-ink leading-tight">
-              {user?.full_name || "—"}
-            </p>
-            <p className="text-[13px] text-ink3 mt-0.5">{user?.email}</p>
+
+          {/* Info */}
+          <div className="flex-1 min-w-0">
+            <h2 className="font-display text-[26px] font-bold text-ink">
+              {user?.full_name ?? "—"}
+            </h2>
+
+            {/* Contact info row */}
+            <div className="flex items-center gap-4 flex-wrap mt-2 text-[12.5px] text-ink2">
+              {user?.email && (
+                <span className="flex items-center gap-1.5">
+                  <Mail size={13} className="text-ink3" />
+                  {user.email}
+                </span>
+              )}
+              {user?.phone && (
+                <span className="flex items-center gap-1.5">
+                  <Phone size={13} className="text-ink3" />
+                  {user.phone_prefix ?? "+56"} {user.phone}
+                </span>
+              )}
+            </div>
+
+            {/* Chips */}
+            <div className="flex items-center gap-2 flex-wrap mt-3">
+              {joinedDate && (
+                <Chip color="teal">Miembro desde {joinedDate}</Chip>
+              )}
+              <Chip color="sage" icon="Shield">Verificada</Chip>
+              <Chip color="mustard" icon="Users">
+                {user ? "Datos completos" : "—"}
+              </Chip>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-2 shrink-0">
+            <Btn variant="ghost" size="sm" icon="Lock">
+              Cambiar contraseña
+            </Btn>
+            <Btn
+              variant={editing ? "primary" : "soft"}
+              size="sm"
+              icon={editing ? "Check" : "Pencil"}
+              onClick={() => {
+                if (editing) {
+                  // trigger form submit
+                  const formEl = document.getElementById("profile-form") as HTMLFormElement;
+                  formEl?.requestSubmit();
+                } else {
+                  setEditing(true);
+                }
+              }}
+            >
+              {editing ? "Guardar cambios" : "Editar perfil"}
+            </Btn>
           </div>
         </div>
+      </Card>
 
-        {/* Success banner */}
-        {successMessage && (
-          <div className="flex items-center gap-2.5 bg-teal/10 border border-teal/30 text-teal-dark rounded-[12px] px-4 py-3 mb-6 text-[13px] font-medium">
-            <CheckCircle2 size={16} className="shrink-0" />
-            {successMessage}
-          </div>
-        )}
+      {/* Banners */}
+      {successMessage && (
+        <div className="flex items-center gap-2.5 bg-teal/10 border border-teal/30 text-teal-dark rounded-[12px] px-4 py-3 text-[13px] font-medium">
+          <CheckCircle2 size={16} className="shrink-0" />
+          {successMessage}
+        </div>
+      )}
+      {mutation.isError && (
+        <div className="flex items-center gap-2.5 bg-coral/10 border border-coral/30 text-coral rounded-[12px] px-4 py-3 text-[13px] font-medium">
+          <AlertCircle size={16} className="shrink-0" />
+          Ocurrió un error al guardar. Intentá de nuevo.
+        </div>
+      )}
 
-        {/* Mutation error banner */}
-        {mutation.isError && (
-          <div className="flex items-center gap-2.5 bg-coral/10 border border-coral/30 text-coral rounded-[12px] px-4 py-3 mb-6 text-[13px] font-medium">
-            <AlertCircle size={16} className="shrink-0" />
-            Ocurrió un error al guardar. Intentá de nuevo.
-          </div>
-        )}
+      {/* ── Two-column: Personal data + Co-responsibles ── */}
+      <div className="grid grid-cols-1 xl:grid-cols-[1.2fr_1fr] gap-5">
+        {/* Personal data form */}
+        <Card>
+          <h3 className="text-[15px] font-bold text-ink mb-1">Datos personales</h3>
+          <p className="text-[12px] text-ink2 mb-5">
+            Mantené tus datos actualizados para comunicaciones y facturación.
+          </p>
 
-        <form onSubmit={handleSubmit} noValidate>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            {/* First name */}
-            <div>
-              <label htmlFor="first_name" className="text-[13px] font-semibold text-ink mb-1.5 block">
-                Nombre
-              </label>
-              <input
-                id="first_name"
-                name="first_name"
-                type="text"
-                value={form.first_name}
-                onChange={handleChange}
-                className={`w-full px-4 py-3 rounded-[12px] border bg-surface text-[14px] text-ink focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal transition-colors ${
-                  errors.first_name ? "border-coral" : "border-line"
-                }`}
-                placeholder="Tu nombre"
-              />
-              {errors.first_name && (
-                <p className="text-[12px] text-coral mt-1.5">{errors.first_name}</p>
-              )}
-            </div>
-
-            {/* Last name */}
-            <div>
-              <label htmlFor="last_name" className="text-[13px] font-semibold text-ink mb-1.5 block">
-                Apellido
-              </label>
-              <input
-                id="last_name"
-                name="last_name"
-                type="text"
-                value={form.last_name}
-                onChange={handleChange}
-                className={`w-full px-4 py-3 rounded-[12px] border bg-surface text-[14px] text-ink focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal transition-colors ${
-                  errors.last_name ? "border-coral" : "border-line"
-                }`}
-                placeholder="Tu apellido"
-              />
-              {errors.last_name && (
-                <p className="text-[12px] text-coral mt-1.5">{errors.last_name}</p>
-              )}
-            </div>
-
-            {/* Document type */}
-            <div>
-              <label htmlFor="document_type" className="text-[13px] font-semibold text-ink mb-1.5 block">
-                Tipo de documento
-              </label>
-              <select
-                id="document_type"
-                name="document_type"
-                value={form.document_type}
-                onChange={handleChange}
-                className="w-full px-4 py-3 rounded-[12px] border border-line bg-surface text-[14px] text-ink focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal transition-colors"
-              >
-                {DOCUMENT_TYPE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* RUT / document number */}
-            <div>
-              <label htmlFor="rut" className="text-[13px] font-semibold text-ink mb-1.5 block">
-                Nº de documento <span className="text-coral">*</span>
-              </label>
-              <input
-                id="rut"
-                name="rut"
-                type="text"
-                value={form.rut}
-                onChange={handleChange}
-                className={`w-full px-4 py-3 rounded-[12px] border bg-surface text-[14px] text-ink focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal transition-colors ${
-                  errors.rut ? "border-coral" : "border-line"
-                }`}
-                placeholder="12.345.678-9"
-              />
-              {errors.rut && (
-                <p className="text-[12px] text-coral mt-1.5">{errors.rut}</p>
-              )}
-            </div>
-
-            {/* Phone with prefix */}
-            <div className="sm:col-span-2">
-              <label htmlFor="phone" className="text-[13px] font-semibold text-ink mb-1.5 block">
-                Teléfono principal <span className="text-coral">*</span>
-              </label>
-              <div className="flex gap-2">
-                <select
-                  id="phone_prefix"
-                  name="phone_prefix"
-                  value={form.phone_prefix}
-                  onChange={handleChange}
-                  className="w-[110px] shrink-0 px-3 py-3 rounded-[12px] border border-line bg-surface text-[14px] text-ink focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal transition-colors"
-                >
-                  {PHONE_PREFIXES.map((p) => (
-                    <option key={p.value} value={p.value}>
-                      {p.label}
-                    </option>
-                  ))}
-                </select>
+          <form id="profile-form" onSubmit={handleSubmit} noValidate>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FieldBlock label="Nombre completo">
                 <input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  value={form.phone}
+                  name="first_name"
+                  value={form.first_name}
                   onChange={handleChange}
-                  className={`flex-1 px-4 py-3 rounded-[12px] border bg-surface text-[14px] text-ink focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal transition-colors ${
-                    errors.phone ? "border-coral" : "border-line"
-                  }`}
-                  placeholder="9 1234 5678"
+                  disabled={!editing}
+                  className={editing ? INPUT_CLS : INPUT_DISABLED_CLS}
                 />
-              </div>
-              {errors.phone && (
-                <p className="text-[12px] text-coral mt-1.5">{errors.phone}</p>
-              )}
+              </FieldBlock>
+              <FieldBlock label="Apellido">
+                <input
+                  name="last_name"
+                  value={form.last_name}
+                  onChange={handleChange}
+                  disabled={!editing}
+                  className={editing ? INPUT_CLS : INPUT_DISABLED_CLS}
+                />
+              </FieldBlock>
+              <FieldBlock label="RUT / Documento">
+                <input
+                  name="rut"
+                  value={form.rut}
+                  onChange={handleChange}
+                  disabled={!editing}
+                  className={editing ? INPUT_CLS : INPUT_DISABLED_CLS}
+                />
+              </FieldBlock>
+              <FieldBlock label="Email">
+                <input
+                  value={user?.email ?? ""}
+                  disabled
+                  className={INPUT_DISABLED_CLS}
+                />
+              </FieldBlock>
+              <FieldBlock label="Teléfono / WhatsApp">
+                <div className="flex gap-2">
+                  <select
+                    name="phone_prefix"
+                    value={form.phone_prefix}
+                    onChange={handleChange}
+                    disabled={!editing}
+                    className={cn(
+                      "w-[80px] shrink-0",
+                      editing ? INPUT_CLS : INPUT_DISABLED_CLS
+                    )}
+                  >
+                    {PHONE_PREFIXES.map((p) => (
+                      <option key={p.value} value={p.value}>{p.label}</option>
+                    ))}
+                  </select>
+                  <input
+                    name="phone"
+                    value={form.phone}
+                    onChange={handleChange}
+                    disabled={!editing}
+                    className={editing ? INPUT_CLS : INPUT_DISABLED_CLS}
+                  />
+                </div>
+              </FieldBlock>
+              <FieldBlock label="Sede preferida">
+                <select
+                  disabled={!editing}
+                  className={editing ? INPUT_CLS : INPUT_DISABLED_CLS}
+                >
+                  <option>Pucón</option>
+                  <option>Villarrica</option>
+                  <option>Online</option>
+                </select>
+              </FieldBlock>
             </div>
+          </form>
+        </Card>
 
-            {/* Alternate phone */}
-            <div className="sm:col-span-2">
-              <label htmlFor="phone_alt" className="text-[13px] font-semibold text-ink mb-1.5 block">
-                Teléfono alternativo <span className="text-ink3 font-normal">(opcional)</span>
-              </label>
-              <input
-                id="phone_alt"
-                name="phone_alt"
-                type="tel"
-                value={form.phone_alt}
-                onChange={handleChange}
-                className="w-full px-4 py-3 rounded-[12px] border border-line bg-surface text-[14px] text-ink focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal transition-colors"
-                placeholder="Otro número de contacto"
-              />
-            </div>
-
-            {/* Email — read only */}
-            <div>
-              <label className="text-[13px] font-semibold text-ink mb-1.5 block">
-                Email
-              </label>
-              <input
-                type="email"
-                value={user?.email ?? ""}
-                disabled
-                className="w-full px-4 py-3 rounded-[12px] border border-line bg-cream text-[14px] text-ink3 cursor-not-allowed"
-              />
-              <p className="text-[12px] text-ink3 mt-1.5">
-                El email no se puede modificar.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex justify-end mt-8 pt-6 border-t border-line">
-            <button
-              type="submit"
-              disabled={mutation.isPending}
-              className="bg-teal-dark text-white text-[13px] font-semibold px-6 py-3 rounded-[12px] hover:-translate-y-0.5 hover:shadow-[var(--shadow-cta)] transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none"
-            >
-              {mutation.isPending ? "Guardando..." : "Guardar cambios"}
-            </button>
-          </div>
-        </form>
+        {/* Co-responsibles */}
+        <CoResponsiblesSection />
       </div>
 
-      {/* Security section (last login + change password) */}
+      {/* ── Notification preferences ── */}
+      <NotificationPreferencesSection />
+
+      {/* ── Security section ── */}
       <SecuritySection />
 
-      {/* Co-responsibles section */}
-      <CoResponsiblesSection />
-
-      {/* Notification preferences section */}
-      <NotificationPreferencesSection />
+      {/* ── Bottom cards: Privacy / Export / Logout ── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <BottomCard
+          icon={Shield}
+          iconColor="#4A8590"
+          title="Privacidad"
+          text="Tus datos están protegidos según nuestra política de privacidad."
+          actionLabel="Política completa"
+          variant="ghost"
+        />
+        <BottomCard
+          icon={Download}
+          iconColor="#8A6A1F"
+          title="Exportar datos"
+          text="Descargá una copia de toda tu información personal y médica."
+          actionLabel="Solicitar exportación"
+          variant="ghost"
+        />
+        <BottomCard
+          icon={LogOut}
+          iconColor="#B5604F"
+          title="Cerrar sesión"
+          text="Vas a necesitar iniciar sesión de nuevo para acceder a tu portal."
+          actionLabel="Cerrar sesión"
+          variant="danger"
+        />
+      </div>
     </div>
   );
 }
 
+// ─── Field block ──────────────────────────────────────────────────────────────
+
+function FieldBlock({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="text-[11.5px] font-semibold text-ink2 uppercase tracking-wider block mb-1.5">
+        {label}
+      </span>
+      {children}
+    </label>
+  );
+}
+
+// ─── Bottom card ──────────────────────────────────────────────────────────────
+
+function BottomCard({
+  icon: Icon,
+  iconColor,
+  title,
+  text,
+  actionLabel,
+  variant = "ghost",
+}: {
+  icon: React.ComponentType<{ size: number; className?: string }>;
+  iconColor: string;
+  title: string;
+  text: string;
+  actionLabel: string;
+  variant?: "ghost" | "danger";
+}) {
+  return (
+    <Card>
+      <div className="flex items-center gap-3 mb-3">
+        <Icon size={18} style={{ color: iconColor }} />
+        <h4 className="text-[14px] font-bold text-ink">{title}</h4>
+      </div>
+      <p className="text-[12px] text-ink2 mb-4">{text}</p>
+      <Btn variant={variant} size="sm" iconRight="ChevronRight">
+        {actionLabel}
+      </Btn>
+    </Card>
+  );
+}
