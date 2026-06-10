@@ -486,6 +486,23 @@ export default function BlogPostPage() {
     .filter((p) => p.slug !== slug)
     .slice(0, 3);
 
+  // ── Prev/Next posts ───────────────────────────────────────────────────
+  const { data: allPostsData } = useQuery<PaginatedResponse<BlogPost>>({
+    queryKey: ["blog-all-for-nav"],
+    queryFn: async () => {
+      const res = await api.get<PaginatedResponse<BlogPost>>("/content/blog/", {
+        params: { page_size: 200 },
+      });
+      return res.data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const allPosts = allPostsData?.results ?? [];
+  const currentIdx = allPosts.findIndex((p) => p.slug === slug);
+  const prevPost = currentIdx > 0 ? allPosts[currentIdx - 1] : null;
+  const nextPost = currentIdx >= 0 && currentIdx < allPosts.length - 1 ? allPosts[currentIdx + 1] : null;
+
   // ── TOC ─────────────────────────────────────────────────────────────────
   const tocItems: TocItem[] = post ? parseToc(post.content) : [];
 
@@ -634,9 +651,7 @@ export default function BlogPostPage() {
         <div className="mt-6 flex items-center justify-between flex-wrap gap-4">
           {/* Author */}
           <div className="flex items-center gap-3">
-            <span className="w-11 h-11 rounded-full bg-gradient-to-br from-teal to-mustard flex items-center justify-center text-white font-bold text-[15px]">
-              {post.author_name.charAt(0).toUpperCase()}
-            </span>
+            <img src="/images/estefi-cutout.png" alt={post.author_name} className="w-11 h-11 rounded-full object-cover object-top bg-teal/20" />
             <div className="leading-tight">
               <div className="text-[14px] font-bold text-ink">{post.author_name}</div>
               <div className="text-[12px] text-ink3">
@@ -706,9 +721,7 @@ export default function BlogPostPage() {
             className="mt-8 border border-line rounded-[20px] p-6 flex items-start gap-5 flex-wrap"
             style={{ background: "linear-gradient(135deg, var(--cream), var(--bg))" }}
           >
-            <div className="w-20 h-20 rounded-full bg-teal/20 shrink-0 flex items-center justify-center font-display font-medium text-[28px] text-teal-dark">
-              E
-            </div>
+            <img src="/images/estefi-cutout.png" alt="Dra. Estefanía Ortigosa" className="w-20 h-20 rounded-full object-cover object-top bg-teal/20 shrink-0" />
             <div className="flex-1 min-w-[200px]">
               <div className="text-[11px] uppercase tracking-[0.14em] font-bold text-teal-dark">
                 Sobre la autora
@@ -779,9 +792,57 @@ export default function BlogPostPage() {
         </section>
       )}
 
+      {/* ── Prev / Next navigation ── */}
+      {(prevPost || nextPost) && (
+        <section className="max-w-[1180px] mx-auto px-6 mt-14">
+          <div className="grid sm:grid-cols-2 gap-px bg-line rounded-[20px] overflow-hidden border border-line">
+            {prevPost ? (
+              <Link
+                to={`/blog/${prevPost.slug}`}
+                className="group bg-surface hover:bg-bg transition p-6 flex items-center gap-4"
+              >
+                <svg className="text-ink3 group-hover:text-teal-dark transition shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+                <div className="w-14 h-14 rounded-[10px] shrink-0 overflow-hidden border border-line" style={{
+                  background: prevPost.cover_image
+                    ? `url(${prevPost.cover_image}) center/cover`
+                    : getTagGradient(parseTags(prevPost.tags)[0] ?? ""),
+                }} />
+                <div className="min-w-0">
+                  <div className="text-[11px] font-semibold text-ink3">← Artículo anterior</div>
+                  <span className="inline-block mt-1 px-2 py-0.5 rounded text-[9.5px] font-bold uppercase tracking-wider" style={(() => { const tc = getTagColor(parseTags(prevPost.tags)[0] ?? ""); return { background: tc.bg, color: tc.color }; })()}>
+                    {parseTags(prevPost.tags)[0] ?? "Blog"}
+                  </span>
+                  <div className="text-[13.5px] font-bold text-ink mt-1 leading-snug truncate">{prevPost.title}</div>
+                </div>
+              </Link>
+            ) : <div className="bg-surface p-6" />}
+            {nextPost ? (
+              <Link
+                to={`/blog/${nextPost.slug}`}
+                className="group bg-surface hover:bg-bg transition p-6 flex items-center gap-4 text-right sm:flex-row-reverse"
+              >
+                <svg className="text-ink3 group-hover:text-teal-dark transition shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+                <div className="w-14 h-14 rounded-[10px] shrink-0 overflow-hidden border border-line" style={{
+                  background: nextPost.cover_image
+                    ? `url(${nextPost.cover_image}) center/cover`
+                    : getTagGradient(parseTags(nextPost.tags)[0] ?? ""),
+                }} />
+                <div className="min-w-0">
+                  <div className="text-[11px] font-semibold text-ink3">Artículo siguiente →</div>
+                  <span className="inline-block mt-1 px-2 py-0.5 rounded text-[9.5px] font-bold uppercase tracking-wider" style={(() => { const tc = getTagColor(parseTags(nextPost.tags)[0] ?? ""); return { background: tc.bg, color: tc.color }; })()}>
+                    {parseTags(nextPost.tags)[0] ?? "Blog"}
+                  </span>
+                  <div className="text-[13.5px] font-bold text-ink mt-1 leading-snug truncate">{nextPost.title}</div>
+                </div>
+              </Link>
+            ) : <div className="bg-surface p-6" />}
+          </div>
+        </section>
+      )}
+
       {/* ── Bottom navigation ── */}
-      <section className="max-w-[1180px] mx-auto px-6 mt-14 pb-16">
-        <div className="mt-10 text-center">
+      <section className="max-w-[1180px] mx-auto px-6 mt-10 pb-16">
+        <div className="text-center">
           <Link
             to="/blog"
             className="inline-flex items-center gap-1.5 px-5 py-3 rounded-[12px] bg-surface border border-line text-[13.5px] font-semibold text-ink2 hover:bg-bg transition"
