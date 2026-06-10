@@ -21,7 +21,6 @@ import StagesSection from "@/components/landing/StagesSection";
 import ProcessSection from "@/components/landing/ProcessSection";
 import AboutSection from "@/components/landing/AboutSection";
 import TestimonialsSection from "@/components/landing/TestimonialsSection";
-import BlogSection from "@/components/landing/BlogSection";
 import LocationsSection from "@/components/landing/LocationsSection";
 import FAQSection from "@/components/landing/FAQSection";
 import CTASection from "@/components/landing/CTASection";
@@ -88,7 +87,6 @@ function LandingPage() {
       <ProcessSection />
       <AboutSection />
       <TestimonialsSection />
-      <BlogSection />
       <LocationsSection />
       <FAQSection />
       <CTASection />

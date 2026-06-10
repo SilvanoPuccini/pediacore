@@ -297,6 +297,7 @@ export default function BlogPage() {
   const [nlEmail, setNlEmail] = useState("");
   const [nlState, setNlState] = useState<"idle" | "loading" | "done">("idle");
   const [showToTop, setShowToTop] = useState(false);
+  const [bottomNlDone, setBottomNlDone] = useState(false);
 
   const mainRef = useRef<HTMLElement>(null);
 
@@ -811,6 +812,50 @@ export default function BlogPage() {
           </>
         )}
       </main>
+
+      {/* ── Newsletter Banner (bottom) ── */}
+      <section className="bg-teal-dark text-white">
+        <div className="max-w-[1280px] mx-auto px-6 py-10 lg:py-12 text-center">
+          <div className="w-12 h-12 rounded-[14px] bg-white/15 flex items-center justify-center mx-auto">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/><path d="M19 2.5 19.7 4 21 4.7 19.7 5.4 19 7 18.3 5.4 17 4.7 18.3 4z"/></svg>
+          </div>
+          <h2 className="mt-4 font-display text-[26px] lg:text-[32px] tracking-tight">
+            Recibí los últimos artículos en tu email
+          </h2>
+          <p className="mt-2 text-[14px] text-white/80 max-w-md mx-auto">
+            Sin spam. Solo información útil para vos y tu familia. Cancelá cuando quieras.
+          </p>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              setBottomNlDone(true);
+            }}
+            className="mt-6 max-w-md mx-auto flex items-center gap-2 flex-col sm:flex-row"
+          >
+            <input
+              type="email"
+              required
+              placeholder="tu@email.com"
+              disabled={bottomNlDone}
+              className="w-full px-4 py-3 rounded-[12px] bg-white/15 border border-white/25 text-white placeholder:text-white/60 text-[14px] focus:outline-none focus:ring-2 focus:ring-white/30 transition"
+            />
+            <button
+              type="submit"
+              disabled={bottomNlDone}
+              className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-[12px] bg-white text-teal-dark text-[14px] font-bold hover:opacity-90 transition"
+            >
+              {bottomNlDone ? "¡Suscripto!" : "Suscribirme"}
+              {!bottomNlDone && (
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+              )}
+            </button>
+          </form>
+          <div className="mt-3 text-[12.5px] text-white/75 flex items-center justify-center gap-1.5">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Ya se suscribieron +320 familias
+          </div>
+        </div>
+      </section>
 
       {/* Back to top */}
       <button

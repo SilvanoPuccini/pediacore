@@ -11,8 +11,8 @@ const NAV_LINKS = [
   { label: "Cómo funciona", href: "/#como-funciona" },
   { label: "Dra. Estefi", href: "/#dra-estefi" },
   { label: "Testimonios", href: "/#testimonios" },
-  { label: "Blog", href: "/blog" },
   { label: "Sedes", href: "/#sedes" },
+  { label: "Blog", href: "/blog" },
 ];
 
 export default function Navbar() {
