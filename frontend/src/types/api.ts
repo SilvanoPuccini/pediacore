@@ -56,12 +56,11 @@ export interface BlogPost {
   excerpt: string;
   content: string;
   cover_image: string | null;
-  featured_image: string | null;
   author_name: string;
+  is_published: boolean;
   published_at: string;
   tags: string;
   meta_description: string;
-  status: "DRAFT" | "PUBLISHED";
   created_at: string;
   updated_at: string;
 }

@@ -15,16 +15,13 @@ function formatDate(iso: string): string {
 
 // ─── status chip ──────────────────────────────────────────────────────────────
 
-const STATUS_MAP: Record<
-  "DRAFT" | "PUBLISHED",
-  { bg: string; text: string; label: string }
-> = {
+const STATUS_MAP = {
   PUBLISHED: { bg: "rgba(168, 213, 181, 0.30)", text: "#3F8358", label: "Publicado" },
   DRAFT:     { bg: "rgba(180, 180, 190, 0.25)", text: "#777",    label: "Borrador" },
 };
 
-function StatusChip({ status }: { status: "DRAFT" | "PUBLISHED" }) {
-  const s = STATUS_MAP[status] ?? STATUS_MAP.DRAFT;
+function StatusChip({ isPublished }: { isPublished: boolean }) {
+  const s = isPublished ? STATUS_MAP.PUBLISHED : STATUS_MAP.DRAFT;
   return (
     <span
       className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold"
@@ -43,7 +40,7 @@ export default function BlogPage() {
     queryKey: ["blog-posts-admin"],
     queryFn: async () => {
       const { data } = await api.get<PaginatedResponse<BlogPost>>(
-        "/content/blog-posts/?page_size=100"
+        "/admin/blog/?page_size=100"
       );
       return data;
     },
@@ -63,7 +60,7 @@ export default function BlogPage() {
           </p>
         </div>
         <button
-          onClick={() => window.open("/admin/content/blogpost/add/", "_blank")}
+          onClick={() => window.open("/gestion-9f3a/content/blogpost/add/", "_blank")}
           className="text-[12px] font-semibold px-3.5 py-2 rounded-[10px] bg-teal-dark text-white hover:opacity-90 transition-opacity"
         >
           Nuevo artículo
@@ -86,7 +83,7 @@ export default function BlogPage() {
             <FileText size={32} className="opacity-40" />
             <p className="text-[14px]">Sin artículos todavía</p>
             <button
-              onClick={() => window.open("/admin/content/blogpost/add/", "_blank")}
+              onClick={() => window.open("/gestion-9f3a/content/blogpost/add/", "_blank")}
               className="mt-2 text-[12px] font-semibold text-teal-dark hover:underline"
             >
               Crear el primero
@@ -124,7 +121,7 @@ export default function BlogPage() {
                       <div className="text-[11.5px] text-ink3 mt-0.5">{post.slug}</div>
                     </td>
                     <td className="px-5 py-3.5">
-                      <StatusChip status={post.status} />
+                      <StatusChip isPublished={post.is_published} />
                     </td>
                     <td className="px-5 py-3.5 text-[12.5px] text-ink2">
                       {formatDate(post.created_at)}
@@ -136,7 +133,7 @@ export default function BlogPage() {
                       <button
                         onClick={() =>
                           window.open(
-                            `/admin/content/blogpost/${post.id}/change/`,
+                            `/gestion-9f3a/content/blogpost/${post.id}/change/`,
                             "_blank"
                           )
                         }

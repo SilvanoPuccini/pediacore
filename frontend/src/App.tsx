@@ -65,6 +65,8 @@ const TelemedicinaPage = lazy(() => import("@/pages/services/TelemedicinaPage"))
 const AsesoriaLactanciaPage = lazy(() => import("@/pages/services/AsesoriaLactanciaPage"));
 const AlimentacionInfantilPage = lazy(() => import("@/pages/services/AlimentacionInfantilPage"));
 const SuenoDesarrolloPage = lazy(() => import("@/pages/services/SuenoDesarrolloPage"));
+const BlogPage = lazy(() => import("@/features/blog/pages/BlogPage"));
+const BlogPostPage = lazy(() => import("@/features/blog/pages/BlogPostPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -122,6 +124,22 @@ function AppRoutes() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password/:uid/:token" element={<ResetPasswordPage />} />
+        <Route
+          path="/blog"
+          element={
+            <PublicLayout>
+              <BlogPage />
+            </PublicLayout>
+          }
+        />
+        <Route
+          path="/blog/:slug"
+          element={
+            <PublicLayout>
+              <BlogPostPage />
+            </PublicLayout>
+          }
+        />
         <Route
           path="/booking"
           element={
