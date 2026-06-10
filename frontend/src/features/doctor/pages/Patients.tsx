@@ -174,7 +174,6 @@ export default function Patients() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex flex-wrap gap-2">
           {AGE_BUCKETS.map((b) => {
-            const count = b.key === "all" ? all.length : all.filter((p) => matchesBucket(p, b.key)).length;
             return (
               <button
                 key={b.key}

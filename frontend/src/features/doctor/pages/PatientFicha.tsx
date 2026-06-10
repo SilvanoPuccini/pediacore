@@ -153,17 +153,7 @@ function sexLabel(sex: string): string {
   return "No especifica";
 }
 
-function getPalette(name: string): [string, string] {
-  const PALETTES: [string, string][] = [
-    ["#F4A89A", "#FFE2D9"],
-    ["#7DD3C0", "#D6F1EA"],
-    ["#C7B8E8", "#EDE4FF"],
-    ["#A8D5B5", "#DAEFE0"],
-    ["#F5D4A0", "#FCEACB"],
-  ];
-  const code = name.charCodeAt(0) % PALETTES.length;
-  return PALETTES[code];
-}
+
 
 // ─── Tab definitions ──────────────────────────────────────────────────────────
 
