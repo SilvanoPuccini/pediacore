@@ -11,6 +11,10 @@ import {
   MapPin,
   ChevronRight,
   Sparkles,
+  Download,
+  Plus,
+  Syringe,
+  Mail,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuthStore } from "@/stores/auth";
@@ -81,6 +85,26 @@ function StatusChip({ status, label }: { status: string; label?: string }) {
   );
 }
 
+// ─── type chip ──────────────────────────────────────────────────────────────────
+
+const TYPE_COLORS: Record<string, { bg: string; text: string }> = {
+  "Control sano": { bg: "rgba(125, 211, 192, 0.20)", text: "#3E8E7C" },
+  "Consulta":     { bg: "rgba(199, 184, 232, 0.30)", text: "#6B569E" },
+  "Online":       { bg: "rgba(244, 168, 154, 0.25)", text: "#B5604F" },
+};
+
+function TypeChip({ label }: { label: string }) {
+  const colors = TYPE_COLORS[label] ?? { bg: "rgba(199, 184, 232, 0.30)", text: "#6B569E" };
+  return (
+    <span
+      className="inline-flex items-center px-2 py-0.5 rounded-md text-[10.5px] font-semibold"
+      style={{ background: colors.bg, color: colors.text }}
+    >
+      {label}
+    </span>
+  );
+}
+
 // ─── agenda item ────────────────────────────────────────────────────────────────
 
 function AgendaItem({
@@ -93,7 +117,7 @@ function AgendaItem({
   confirmPending: boolean;
 }) {
   return (
-    <div className="group flex items-stretch gap-4 px-4 py-3.5 rounded-[12px] hover:bg-bg transition-colors">
+    <div className="group flex items-stretch gap-4 px-4 py-3.5 rounded-[12px] hover:bg-bg transition-colors cursor-pointer">
       <div className="w-14 shrink-0 text-teal-dark font-bold text-[15px] leading-tight pt-0.5">
         {formatTime(appointment.start_time)}
       </div>
@@ -101,16 +125,24 @@ function AgendaItem({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-[13.5px] font-semibold text-ink">{appointment.patient_name}</span>
-          <span className="text-[11.5px] text-ink3">· {appointment.service_name}</span>
+          {(appointment as Record<string, unknown>)["patient_age"] !== undefined && (
+            <span className="text-[11.5px] text-ink3">{String((appointment as Record<string, unknown>)["patient_age"])}a</span>
+          )}
+          {appointment.service_name && <TypeChip label={appointment.service_name} />}
         </div>
-        {appointment.location_name && (
-          <div className="mt-1 flex items-center gap-1 text-[11.5px] text-ink2">
-            <MapPin size={11} className="text-ink3" />
-            {appointment.location_name}
+        {(appointment as Record<string, unknown>)["tutor_name"] && (
+          <div className="mt-1 text-[11.5px] text-ink2">
+            Tutor: {String((appointment as Record<string, unknown>)["tutor_name"])}
           </div>
         )}
       </div>
       <div className="flex flex-col items-end justify-between shrink-0 gap-2">
+        {appointment.location_name && (
+          <div className="flex items-center gap-1 text-[11px] text-ink3">
+            <MapPin size={11} />
+            {appointment.location_name}
+          </div>
+        )}
         <StatusChip status={appointment.status} label={appointment.status_display} />
         {appointment.status === "PENDING" && (
           <button
@@ -205,6 +237,20 @@ export default function Dashboard() {
             .
           </p>
         </div>
+        <div className="flex items-center gap-3">
+          <button className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] text-[13px] font-semibold text-ink2 border border-line hover:bg-bg transition-colors">
+            <Download size={14} />
+            Exportar
+          </button>
+          <Link
+            to="/dashboard/calendario"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] text-[13px] font-semibold text-white transition-colors"
+            style={{ background: "#3E8E7C" }}
+          >
+            <Plus size={14} />
+            Nuevo turno
+          </Link>
+        </div>
       </div>
 
       {/* Metric cards */}
@@ -218,7 +264,7 @@ export default function Dashboard() {
       {/* Two-column: Agenda + Revenue/Reminders */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
         {/* Agenda */}
-        <div className="xl:col-span-2 bg-surface border border-line rounded-[14px] shadow-[var(--shadow-card)] overflow-hidden">
+        <div className="xl:col-span-2 bg-surface border border-line rounded-[14px] shadow-card overflow-hidden">
           <div className="flex items-center justify-between px-5 pt-5 pb-3">
             <div>
               <h3 className="text-[15px] font-bold text-ink">Agenda de hoy</h3>
@@ -261,7 +307,7 @@ export default function Dashboard() {
         {/* Revenue + Reminders */}
         <div className="space-y-5">
           {/* Revenue chart */}
-          <div className="bg-surface border border-line rounded-[14px] shadow-[var(--shadow-card)] p-5">
+          <div className="bg-surface border border-line rounded-[14px] shadow-card p-5">
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="text-[14px] font-bold text-ink">Ingresos · 30 dias</h3>
@@ -280,23 +326,35 @@ export default function Dashboard() {
           </div>
 
           {/* Reminders */}
-          <div className="bg-surface border border-line rounded-[14px] shadow-[var(--shadow-card)] p-5">
+          <div className="bg-surface border border-line rounded-[14px] shadow-card p-5">
             <h3 className="text-[14px] font-bold text-ink">Recordatorios</h3>
             {reminders.length === 0 ? (
               <p className="mt-4 text-[12px] text-ink3">Sin recordatorios esta semana</p>
             ) : (
               <ul className="mt-4 space-y-3">
-                {reminders.map((r, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <div className="w-7 h-7 rounded-full bg-teal/20 flex items-center justify-center shrink-0">
-                      <Sparkles size={13} className="text-teal-dark" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-[12.5px] font-semibold text-ink leading-tight">{r.title}</div>
-                      <div className="text-[11.5px] text-ink2 mt-0.5">{r.detail}</div>
-                    </div>
-                  </li>
-                ))}
+                {reminders.map((r, i) => {
+                  const rtype = r.type as string;
+                  const iconProps =
+                    rtype === "vaccine"
+                      ? { Icon: Syringe, bg: "rgba(199,184,232,0.30)", color: "#6B569E" }
+                      : rtype === "email"
+                      ? { Icon: Mail, bg: "rgba(244,168,154,0.25)", color: "#B5604F" }
+                      : { Icon: Sparkles, bg: "rgba(125,211,192,0.20)", color: "#3E8E7C" };
+                  return (
+                    <li key={i} className="flex items-start gap-3">
+                      <div
+                        className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
+                        style={{ background: iconProps.bg }}
+                      >
+                        <iconProps.Icon size={13} style={{ color: iconProps.color }} />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-[12.5px] font-semibold text-ink leading-tight">{r.title}</div>
+                        <div className="text-[11.5px] text-ink2 mt-0.5">{r.detail}</div>
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>
@@ -307,7 +365,7 @@ export default function Dashboard() {
       {!loading && metrics && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           {/* Top servicios */}
-          <div className="bg-surface border border-line rounded-[14px] shadow-[var(--shadow-card)] p-5">
+          <div className="bg-surface border border-line rounded-[14px] shadow-card p-5">
             <h3 className="text-[14px] font-bold text-ink mb-3">Top servicios del mes</h3>
             {metrics.top_services.length === 0 ? (
               <p className="text-[12px] text-ink3">Sin datos este mes</p>
@@ -336,7 +394,7 @@ export default function Dashboard() {
           </div>
 
           {/* Método de pago */}
-          <div className="bg-surface border border-line rounded-[14px] shadow-[var(--shadow-card)] p-5">
+          <div className="bg-surface border border-line rounded-[14px] shadow-card p-5">
             <h3 className="text-[14px] font-bold text-ink mb-3">Método de pago</h3>
             {metrics.by_payment_method.length === 0 ? (
               <p className="text-[12px] text-ink3">Sin datos este mes</p>
@@ -375,7 +433,7 @@ export default function Dashboard() {
 
       {/* Alertas */}
       {!loading && metrics && metrics.alerts.length > 0 && (
-        <div className="bg-surface border border-line rounded-[14px] shadow-[var(--shadow-card)] p-5">
+        <div className="bg-surface border border-line rounded-[14px] shadow-card p-5">
           <h3 className="text-[14px] font-bold text-ink mb-3">Alertas</h3>
           <ul className="space-y-2">
             {metrics.alerts.map((alert: DashboardAlert, i: number) => (

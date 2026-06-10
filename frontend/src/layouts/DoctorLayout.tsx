@@ -17,6 +17,7 @@ import {
   Settings,
   MapPin,
   ChevronUp,
+  ChevronRight,
   Check,
   Search,
   CalendarPlus,
@@ -356,7 +357,7 @@ export default function DoctorLayout() {
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#F4A89A] to-[#C7B8E8] flex items-center justify-center text-white font-semibold text-sm">
                 {initials}
               </div>
-              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-surface" />
+              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-sage border-2 border-surface" />
             </div>
             <div className="min-w-0">
               <div className="text-[13.5px] font-semibold text-ink leading-tight">Dra. Estefi</div>
@@ -491,37 +492,47 @@ export default function DoctorLayout() {
       {/* ── Main content ── */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar */}
-        <header className="h-14 bg-surface border-b border-line flex items-center px-5 gap-4 shrink-0">
-          <button
-            className="lg:hidden p-2 rounded-[8px] text-ink2 hover:bg-bg transition-colors"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            aria-label={sidebarOpen ? "Cerrar menú" : "Abrir menú"}
-          >
-            {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
+        <header className="sticky top-0 z-30 bg-bg/85 backdrop-blur border-b border-line shrink-0">
+          <div className="px-8 py-4 flex items-center gap-4">
+            <button
+              className="lg:hidden p-2 rounded-[8px] text-ink2 hover:bg-bg transition-colors -ml-2"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              aria-label={sidebarOpen ? "Cerrar menú" : "Abrir menú"}
+            >
+              {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
 
-          <span className="text-[14px] font-semibold text-ink">{pageTitle}</span>
+            <div className="min-w-0 flex-1">
+              <div className="text-[11.5px] text-ink3 font-medium flex items-center gap-1.5">
+                <span>Inicio</span>
+                <ChevronRight size={11} />
+                <span className="text-ink2 font-semibold">{pageTitle}</span>
+              </div>
+              <h1 className="mt-0.5 text-[20px] font-bold text-ink tracking-tight">{pageTitle}</h1>
+            </div>
 
-          <button
-            onClick={() => setSearchOpen(true)}
-            className="flex-1 max-w-[220px] flex items-center gap-2 px-3 py-1.5 rounded-[9px] border border-line bg-bg hover:bg-line/60 transition-colors text-left"
-          >
-            <Search size={14} className="text-ink3 shrink-0" />
-            <span className="flex-1 text-[12.5px] text-ink3">Buscar...</span>
-            <kbd className="text-[10.5px] text-ink3 bg-surface border border-line rounded-[5px] px-1.5 py-0.5 shrink-0">
-              ⌘K
-            </kbd>
-          </button>
+            {/* Global search */}
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="relative w-[300px] hidden md:flex items-center gap-2 pl-9 pr-3 py-2 rounded-[10px] bg-surface border border-line hover:bg-bg transition-colors text-left"
+            >
+              <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink3" />
+              <span className="flex-1 text-[12.5px] text-ink3">Buscar en Pediacore...</span>
+              <kbd className="hidden lg:inline-flex items-center px-1.5 h-5 rounded-md bg-bg text-[10px] font-semibold text-ink3 border border-line">
+                ⌘K
+              </kbd>
+            </button>
 
-          <div className="flex items-center gap-2">
-            <NotificationBell />
-            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-[#F4A89A] to-[#C7B8E8] flex items-center justify-center shrink-0 cursor-default">
-              <span className="text-[12px] font-bold text-white">{initials}</span>
+            <div className="flex items-center gap-2">
+              <NotificationBell />
+              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-[#F4A89A] to-[#C7B8E8] flex items-center justify-center shrink-0 cursor-default">
+                <span className="text-[12px] font-bold text-white">{initials}</span>
+              </div>
             </div>
           </div>
         </header>
 
-        <main className="flex-1 p-6 overflow-y-auto">
+        <main className="flex-1 px-8 py-7 max-w-[1400px] overflow-y-auto">
           <Outlet />
         </main>
       </div>

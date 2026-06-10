@@ -21,16 +21,16 @@ type ServiceColor = { bg: string; border: string; text: string };
 function getServiceColor(serviceName: string): ServiceColor {
   const name = serviceName.toLowerCase();
   if (name.includes("control sano") || name.includes("control")) {
-    return { bg: "#D6F1EA", border: "#7DD3C0", text: "#3E8E7C" };
+    return { bg: "#D6F1EA", border: "#7DD3C0", text: "#2E6B5E" };
   }
   if (name.includes("online") || name.includes("telemedicina")) {
-    return { bg: "#FFE2D9", border: "#F4A89A", text: "#B5604F" };
+    return { bg: "#FFE2D9", border: "#F4A89A", text: "#9C4A3C" };
   }
   if (name.includes("consulta")) {
-    return { bg: "#EDE4FF", border: "#C7B8E8", text: "#6B569E" };
+    return { bg: "#EDE4FF", border: "#C7B8E8", text: "#5B4889" };
   }
   // default: lavender
-  return { bg: "#EDE4FF", border: "#C7B8E8", text: "#6B569E" };
+  return { bg: "#EDE4FF", border: "#C7B8E8", text: "#5B4889" };
 }
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
@@ -91,22 +91,28 @@ function AppointmentBlock({ appt, onSelect }: { appt: Appointment; onSelect: (a:
 
   return (
     <div
-      className="absolute left-1 right-1 rounded-[8px] px-2 py-1 overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+      className="absolute left-1 right-1 rounded-[8px] p-2 overflow-hidden cursor-pointer hover:shadow-soft transition-shadow"
       style={{
         top: `${top}px`,
         height: `${height}px`,
         background: color.bg,
-        border: `1.5px solid ${color.border}`,
+        borderLeft: `3px solid ${color.border}`,
       }}
       onClick={() => onSelect(appt)}
     >
       <p
-        className="text-[10.5px] font-semibold leading-tight truncate"
+        className="text-[10.5px] font-semibold leading-tight opacity-80"
         style={{ color: color.text }}
       >
-        {appt.start_time.slice(0, 5)} {appt.patient_name}
+        {appt.start_time.slice(0, 5)}
       </p>
-      {height > 32 && (
+      <p
+        className="text-[11.5px] font-bold leading-tight truncate"
+        style={{ color: color.text }}
+      >
+        {appt.patient_name}
+      </p>
+      {height > 40 && (
         <p className="text-[10px] leading-tight truncate mt-0.5" style={{ color: color.text, opacity: 0.75 }}>
           {appt.service_name}
         </p>
@@ -191,11 +197,11 @@ function AppointmentDetailModal({ appt, onClose }: AppointmentDetailModalProps) 
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-ink/30 flex items-center justify-center"
+      className="fixed inset-0 z-50 bg-ink/20 backdrop-blur-sm flex items-center justify-center"
       onClick={onClose}
     >
       <div
-        className="bg-surface rounded-[14px] shadow-[var(--shadow-pop)] max-w-md w-full mx-4 p-5"
+        className="max-w-md bg-surface rounded-[18px] shadow-[var(--shadow-pop)] border border-line w-full mx-4 p-5"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -298,8 +304,8 @@ function NowIndicator() {
       className="absolute left-0 right-0 flex items-center pointer-events-none z-10"
       style={{ top: `${top}px` }}
     >
-      <div className="w-2 h-2 rounded-full bg-coral shrink-0" style={{ marginLeft: -4 }} />
-      <div className="flex-1 h-px bg-coral" />
+      <div className="w-2.5 h-2.5 rounded-full bg-coral shrink-0" style={{ marginLeft: -4 }} />
+      <div className="flex-1 h-[1.5px] bg-coral" />
     </div>
   );
 }
@@ -392,77 +398,74 @@ export default function Calendar() {
   return (
     <div className="flex flex-col h-full max-w-[1400px] space-y-0">
       {/* ── Header bar ── */}
-      <div className="bg-surface border border-line rounded-[14px] shadow-[var(--shadow-card)] p-4 mb-4">
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Nav buttons */}
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setMonday((m) => addDays(m, -7))}
-              className="w-8 h-8 rounded-[8px] flex items-center justify-center hover:bg-bg border border-line transition-colors"
-            >
-              <ChevronLeft size={16} className="text-ink2" />
-            </button>
-            <button
-              onClick={() => setMonday((m) => addDays(m, 7))}
-              className="w-8 h-8 rounded-[8px] flex items-center justify-center hover:bg-bg border border-line transition-colors"
-            >
-              <ChevronRight size={16} className="text-ink2" />
-            </button>
-          </div>
-
-          {/* Today button */}
+      <div className="bg-surface border border-line rounded-[14px] shadow-card px-5 py-4 flex items-center gap-4 flex-wrap mb-4">
+        {/* Nav: left · today · right */}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setMonday((m) => addDays(m, -7))}
+            className="w-8 h-8 rounded-[8px] flex items-center justify-center hover:bg-bg border border-line transition-colors"
+          >
+            <ChevronLeft size={16} className="text-ink2" />
+          </button>
           <button
             onClick={() => setMonday(getMondayOfWeek(new Date()))}
             className="px-3 py-1.5 rounded-[8px] text-[12.5px] font-medium border border-line hover:bg-bg transition-colors text-ink2"
           >
             Hoy
           </button>
-
-          {/* Title */}
-          <div className="flex items-center gap-2">
-            <span className="text-[15px] font-bold text-ink">{monthTitle}</span>
-            <span className="text-[11.5px] text-ink3 bg-bg px-2 py-0.5 rounded-full border border-line">
-              Semana {weekNum}
-            </span>
-          </div>
-
-          {/* Locations tabs */}
-          {locations.length > 0 && (
-            <div className="flex items-center gap-1 ml-auto">
-              <button
-                onClick={() => setActiveSede(null)}
-                className={cn(
-                  "px-3 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors",
-                  activeSede === null
-                    ? "bg-teal text-white"
-                    : "bg-surface border border-line text-ink2 hover:bg-bg"
-                )}
-              >
-                Todas
-              </button>
-              {locations.map((loc) => (
-                <button
-                  key={loc.id}
-                  onClick={() => setActiveSede(loc.id)}
-                  className={cn(
-                    "px-3 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors",
-                    activeSede === loc.id
-                      ? "bg-teal text-white"
-                      : "bg-surface border border-line text-ink2 hover:bg-bg"
-                  )}
-                >
-                  {loc.name}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* New appointment button */}
-          <button className="ml-auto flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] bg-teal-dark text-white text-[12.5px] font-semibold hover:opacity-90 transition-opacity">
-            <Plus size={14} />
-            Nuevo turno
+          <button
+            onClick={() => setMonday((m) => addDays(m, 7))}
+            className="w-8 h-8 rounded-[8px] flex items-center justify-center hover:bg-bg border border-line transition-colors"
+          >
+            <ChevronRight size={16} className="text-ink2" />
           </button>
         </div>
+
+        {/* Title */}
+        <div className="flex items-center gap-2">
+          <span className="text-[20px] font-bold text-ink tracking-tight">{monthTitle}</span>
+          <span className="text-[12.5px] text-ink3">· Semana {weekNum}</span>
+        </div>
+
+        {/* Locations segmented tabs */}
+        {locations.length > 0 && (
+          <div className="inline-flex p-1 rounded-[10px] bg-bg ml-auto">
+            <button
+              onClick={() => setActiveSede(null)}
+              className={cn(
+                "px-3.5 py-1.5 rounded-[8px] text-[12px] font-semibold transition-all",
+                activeSede === null
+                  ? "bg-surface text-teal-dark shadow-card"
+                  : "text-ink2 hover:text-ink"
+              )}
+            >
+              Todas
+            </button>
+            {locations.map((loc) => (
+              <button
+                key={loc.id}
+                onClick={() => setActiveSede(loc.id)}
+                className={cn(
+                  "px-3.5 py-1.5 rounded-[8px] text-[12px] font-semibold transition-all",
+                  activeSede === loc.id
+                    ? "bg-surface text-teal-dark shadow-card"
+                    : "text-ink2 hover:text-ink"
+                )}
+              >
+                {loc.name}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* New appointment button */}
+        <button className={cn(
+          "flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] bg-teal-dark text-white text-[12.5px] font-semibold hover:opacity-90 transition-opacity",
+          locations.length === 0 && "ml-auto"
+        )}>
+          <Plus size={14} />
+          Nuevo turno
+        </button>
       </div>
 
       {/* ── Loading state ── */}
@@ -476,7 +479,7 @@ export default function Calendar() {
       {!apptsQ.isLoading && (
         <div className="bg-surface border border-line rounded-[14px] shadow-[var(--shadow-card)] overflow-hidden flex flex-col">
           {/* Day headers */}
-          <div className="grid border-b border-line" style={{ gridTemplateColumns: "56px repeat(7, 1fr)" }}>
+          <div className="grid border-b border-line" style={{ gridTemplateColumns: "64px repeat(7, 1fr)" }}>
             <div className="border-r border-line" /> {/* hour gutter */}
             {weekDays.map((day, i) => {
               const iso = toISO(day);
@@ -490,16 +493,18 @@ export default function Calendar() {
                     isWeekend && "bg-bg/40"
                   )}
                 >
-                  <p className="text-[10.5px] font-semibold text-ink3 uppercase tracking-wide">
+                  <p className="text-[10.5px] uppercase tracking-[0.12em] font-semibold text-ink3">
                     {DAY_ABBREVS[day.getDay()]}
                   </p>
-                  <div
-                    className={cn(
-                      "mx-auto mt-1 w-7 h-7 rounded-full flex items-center justify-center text-[14px] font-bold",
-                      isToday ? "bg-teal text-white" : "text-ink"
-                    )}
-                  >
-                    {day.getDate()}
+                  <div className="mx-auto mt-1 flex items-center justify-center">
+                    <div
+                      className={cn(
+                        "w-9 h-9 rounded-full flex items-center justify-center text-[18px] font-bold tracking-tight",
+                        isToday ? "bg-teal/20 text-teal-dark" : "text-ink"
+                      )}
+                    >
+                      {day.getDate()}
+                    </div>
                   </div>
                 </div>
               );
@@ -512,7 +517,7 @@ export default function Calendar() {
             className="overflow-y-auto"
             style={{ maxHeight: `${SLOT_HEIGHT * 10}px` }}
           >
-            <div className="grid" style={{ gridTemplateColumns: "56px repeat(7, 1fr)" }}>
+            <div className="grid" style={{ gridTemplateColumns: "64px repeat(7, 1fr)" }}>
               {/* Hour labels column */}
               <div className="border-r border-line">
                 {hours.map((h) => (
@@ -521,7 +526,7 @@ export default function Calendar() {
                     className="flex items-start justify-end pr-2"
                     style={{ height: `${SLOT_HEIGHT}px` }}
                   >
-                    <span className="text-[10.5px] text-ink3 -translate-y-2">
+                    <span className="text-[10.5px] font-medium text-ink3 -translate-y-2">
                       {String(h).padStart(2, "0")}:00
                     </span>
                   </div>
@@ -578,11 +583,18 @@ export default function Calendar() {
           <div key={item.label} className="flex items-center gap-1.5 text-[11.5px] text-ink2">
             <span
               className="w-3 h-3 rounded-[3px]"
-              style={{ background: item.bg, border: `1.5px solid ${item.color}` }}
+              style={{ background: item.bg, borderLeft: `3px solid ${item.color}` }}
             />
             {item.label}
           </div>
         ))}
+        <div className="flex items-center gap-1.5 text-[11.5px] text-ink2">
+          <span className="inline-flex items-center gap-0.5">
+            <span className="w-2 h-2 rounded-full bg-coral" />
+            <span className="w-4 h-[1.5px] bg-coral" />
+          </span>
+          Hora actual
+        </div>
       </div>
 
       {/* ── Appointment detail modal ── */}
