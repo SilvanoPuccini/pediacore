@@ -287,7 +287,7 @@ export default function BlogSection() {
             </h2>
           </div>
           <a
-            href="#"
+            href="/blog"
             className="hidden md:flex items-center gap-1.5 text-[13.5px] font-semibold text-teal-dark hover:gap-2.5 transition-all duration-200 shrink-0 mb-2"
           >
             Ver todo el blog
@@ -317,7 +317,7 @@ export default function BlogSection() {
         {/* Mobile "ver todo" link */}
         <div className="flex justify-center mt-8 md:hidden">
           <a
-            href="#"
+            href="/blog"
             className="flex items-center gap-1.5 text-[13.5px] font-semibold text-teal-dark"
           >
             Ver todo el blog
