@@ -43,6 +43,7 @@ THIRD_PARTY_APPS = [
     "allauth.mfa",
     "axes",
     "django_q",
+    "django_ckeditor_5",
 ]
 
 LOCAL_APPS = [
@@ -490,6 +491,45 @@ UNFOLD = {
                 ],
             },
         ],
+    },
+}
+
+# ─── CKEditor 5 ──────────────────────────────────────────────────────────────
+CK_EDITOR_5_UPLOAD_FILE_TYPES = ["jpeg", "jpg", "png", "gif", "webp", "svg"]
+CK_EDITOR_5_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
+
+CKEDITOR_5_CONFIGS = {
+    "default": {
+        "toolbar": [
+            "heading", "|",
+            "bold", "italic", "underline", "strikethrough", "|",
+            "link", "bulletedList", "numberedList", "blockQuote", "|",
+            "imageUpload", "mediaEmbed", "|",
+            "insertTable", "horizontalLine", "|",
+            "sourceEditing",
+        ],
+        "heading": {
+            "options": [
+                {"model": "paragraph", "title": "Párrafo", "class": "ck-heading_paragraph"},
+                {"model": "heading2", "view": "h2", "title": "Título sección", "class": "ck-heading_heading2"},
+                {"model": "heading3", "view": "h3", "title": "Subtítulo", "class": "ck-heading_heading3"},
+            ],
+        },
+        "image": {
+            "toolbar": ["imageTextAlternative", "imageStyle:inline", "imageStyle:block", "imageStyle:side"],
+        },
+        "table": {
+            "contentToolbar": ["tableColumn", "tableRow", "mergeTableCells"],
+        },
+        "mediaEmbed": {
+            "previewsInData": True,
+        },
+        "htmlSupport": {
+            "allow": [
+                {"name": "div", "classes": True},
+                {"name": "span", "classes": True, "styles": True},
+            ],
+        },
     },
 }
 

@@ -20,6 +20,7 @@ from apps.core.admin_views import patient_growth_chart
 
 urlpatterns = [
     path("gestion-9f3a/patients/<int:patient_id>/growth-chart/", patient_growth_chart, name="admin-patient-growth-chart"),
+    path("gestion-9f3a/ckeditor5/", include("django_ckeditor_5.urls")),
     path("gestion-9f3a/", admin.site.urls),
     # JWT auth
     path("api/v1/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),

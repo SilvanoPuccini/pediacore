@@ -11,6 +11,9 @@ argon2-cffi==23.1.0
 # Admin theme
 django-unfold==0.81.0
 
+# WYSIWYG editor for blog
+django-ckeditor-5==0.2.20
+
 # API utilities
 django-cors-headers==4.6.0
 drf-spectacular==0.28.0
