@@ -5,13 +5,24 @@ Django admin configuration for the content app.
 from __future__ import annotations
 
 from django.contrib import admin
+from django_ckeditor_5.widgets import CKEditor5Widget
 from unfold.admin import ModelAdmin
 
 from apps.content.models import FAQ, BlogPost, Page
 
 
+class BlogPostAdminForm(admin.options.forms.ModelForm):
+    class Meta:
+        model = BlogPost
+        fields = "__all__"
+        widgets = {
+            "content": CKEditor5Widget(config_name="default"),
+        }
+
+
 @admin.register(BlogPost)
 class BlogPostAdmin(ModelAdmin):
+    form = BlogPostAdminForm
     list_display = ["title", "author", "practice", "is_published", "published_at", "created_at"]
     list_filter = ["is_published", "practice"]
     search_fields = ["title", "excerpt", "tags"]
