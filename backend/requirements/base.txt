@@ -44,6 +44,9 @@ resend==2.30.1
 # Rate limiting
 django-ratelimit==4.1.0
 
+# Brute-force protection
+django-axes>=5.41,<6.0
+
 # Structured logging
 structlog==24.4.0
 
