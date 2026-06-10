@@ -3,20 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
-  Baby,
-  Droplet,
   AlertCircle,
   Check,
   Clock,
   Stethoscope,
-  FileText,
-  Syringe,
-  Bell,
   Scale,
   Ruler,
   Activity,
   TrendingUp,
-  ChevronRight,
   CalendarDays,
   X,
   Trash2,
@@ -29,7 +23,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from "recharts";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -125,11 +118,6 @@ function calcAgeFull(dateOfBirth: string): string {
   return `${years} años`;
 }
 
-function calcAgeMonths(dateOfBirth: string): number {
-  const birth = new Date(dateOfBirth);
-  const now = new Date();
-  return (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth());
-}
 
 function formatDate(isoDate: string | null | undefined): string {
   if (!isoDate) return "—";
@@ -500,9 +488,9 @@ function GrowthTab({ patient, growthData }: GrowthTabProps) {
               />
               <Tooltip
                 contentStyle={{ borderRadius: 10, border: "1px solid #E8E6E1", fontSize: 12 }}
-                formatter={(value: number, name: string) => {
+                formatter={(value: unknown, name: unknown) => {
                   if (name === "weight") return [`${value} kg`, "Paciente"];
-                  return [`${value} kg`, name.toUpperCase()];
+                  return [`${value} kg`, String(name).toUpperCase()];
                 }}
                 labelFormatter={(label) => `${label} meses`}
               />

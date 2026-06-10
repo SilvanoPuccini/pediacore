@@ -1,6 +1,5 @@
-import { ChevronRight, Check, Syringe } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
-import { cn } from "@/lib/utils";
 import { Avatar, Chip, childPalette } from "@/features/tutor/components/portal-ui";
 import type { Patient } from "@/types/api";
 
@@ -29,8 +28,6 @@ interface Props {
 
 export default function ChildStatCard({ patient, index }: Props) {
   const age = calculateAge(patient.date_of_birth);
-  const pal = childPalette(index);
-  const firstName = patient.first_name || patient.full_name.split(" ")[0];
 
   return (
     <Link

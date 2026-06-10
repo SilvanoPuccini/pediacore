@@ -2,36 +2,24 @@ import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import {
   Pencil,
-  Check,
-  Lock,
   Shield,
   Download,
   LogOut,
   Mail,
   Phone,
-  MapPin,
-  Users,
-  ChevronRight,
   CheckCircle2,
   AlertCircle,
 } from "lucide-react";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/auth";
 import { cn } from "@/lib/utils";
-import { Card, Btn, Chip, Toggle } from "@/features/tutor/components/portal-ui";
+import { Card, Btn, Chip } from "@/features/tutor/components/portal-ui";
 import NotificationPreferencesSection from "@/features/tutor/components/NotificationPreferencesSection";
 import CoResponsiblesSection from "@/features/tutor/components/CoResponsiblesSection";
 import SecuritySection from "@/features/tutor/components/SecuritySection";
 import type { User, DocumentType } from "@/types/api";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-
-const DOCUMENT_TYPE_OPTIONS: { value: DocumentType; label: string }[] = [
-  { value: "RUT", label: "RUT (Chile)" },
-  { value: "DNI", label: "DNI extranjero" },
-  { value: "PASAPORTE", label: "Pasaporte" },
-  { value: "OTRO", label: "Otro" },
-];
 
 const PHONE_PREFIXES = [
   { value: "+56", label: "+56" },
@@ -118,8 +106,8 @@ export default function MyProfile() {
     ? `${user.first_name[0]}${(user.last_name ?? "")[0] ?? ""}`.toUpperCase()
     : "?";
 
-  const joinedDate = user?.date_joined
-    ? new Date(user.date_joined).toLocaleDateString("es-CL", { month: "long", year: "numeric" })
+  const joinedDate = user?.created_at
+    ? new Date(user.created_at).toLocaleDateString("es-CL", { month: "long", year: "numeric" })
     : "";
 
   return (
@@ -311,7 +299,7 @@ export default function MyProfile() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <BottomCard
           icon={Shield}
-          iconColor="#4A8590"
+          iconClassName="text-[#4A8590]"
           title="Privacidad"
           text="Tus datos están protegidos según nuestra política de privacidad."
           actionLabel="Política completa"
@@ -319,7 +307,7 @@ export default function MyProfile() {
         />
         <BottomCard
           icon={Download}
-          iconColor="#8A6A1F"
+          iconClassName="text-[#8A6A1F]"
           title="Exportar datos"
           text="Descargá una copia de toda tu información personal y médica."
           actionLabel="Solicitar exportación"
@@ -327,7 +315,7 @@ export default function MyProfile() {
         />
         <BottomCard
           icon={LogOut}
-          iconColor="#B5604F"
+          iconClassName="text-[#B5604F]"
           title="Cerrar sesión"
           text="Vas a necesitar iniciar sesión de nuevo para acceder a tu portal."
           actionLabel="Cerrar sesión"
@@ -355,14 +343,14 @@ function FieldBlock({ label, children }: { label: string; children: React.ReactN
 
 function BottomCard({
   icon: Icon,
-  iconColor,
+  iconClassName,
   title,
   text,
   actionLabel,
   variant = "ghost",
 }: {
   icon: React.ComponentType<{ size: number; className?: string }>;
-  iconColor: string;
+  iconClassName: string;
   title: string;
   text: string;
   actionLabel: string;
@@ -371,7 +359,7 @@ function BottomCard({
   return (
     <Card>
       <div className="flex items-center gap-3 mb-3">
-        <Icon size={18} style={{ color: iconColor }} />
+        <Icon size={18} className={iconClassName} />
         <h4 className="text-[14px] font-bold text-ink">{title}</h4>
       </div>
       <p className="text-[12px] text-ink2 mb-4">{text}</p>
