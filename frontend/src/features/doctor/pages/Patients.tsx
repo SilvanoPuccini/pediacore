@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, ChevronRight } from "lucide-react";
+import { Search, ChevronRight, Filter, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -80,19 +80,14 @@ function AgeBadge({ patient }: { patient: Patient }) {
 
 function PatientAvatar({ name }: { name: string }) {
   const [border, bg] = getPalette(name);
-  const initials = name
-    .split(" ")
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase();
+  const initial = name.trim()[0]?.toUpperCase() ?? "?";
 
   return (
     <div
-      className="w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-bold shrink-0"
+      className="w-9 h-9 rounded-full flex items-center justify-center text-[12.5px] font-bold shrink-0"
       style={{ background: bg, color: border, border: `1.5px solid ${border}` }}
     >
-      {initials}
+      {initial}
     </div>
   );
 }
@@ -144,18 +139,12 @@ export default function Patients() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-[22px] font-bold text-ink">Pacientes</h1>
-          {!isLoading && (
-            <p className="text-[12.5px] text-ink3 mt-0.5">
-              {filtered.length} paciente{filtered.length !== 1 ? "s" : ""}
-            </p>
-          )}
         </div>
       </div>
 
-      {/* Filters row */}
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-        {/* Search */}
-        <div className="relative flex-1 max-w-sm">
+      {/* Search row */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="relative flex-1 min-w-[260px] max-w-[520px]">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink3 pointer-events-none" />
           <input
             type="text"
@@ -163,7 +152,7 @@ export default function Patients() {
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar paciente por nombre o RUT"
             className={cn(
-              "w-full pl-9 pr-3 py-2.5 text-[13px] rounded-[10px]",
+              "w-full pl-10 pr-4 py-3 text-[13.5px] rounded-[10px]",
               "bg-surface border border-line",
               "text-ink placeholder:text-ink3",
               "focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal",
@@ -171,28 +160,42 @@ export default function Patients() {
             )}
           />
         </div>
+        <button className="px-4 py-3 rounded-[10px] bg-surface border border-line text-[13px] font-semibold text-ink2 flex items-center gap-2">
+          <Filter size={14} />
+          Más filtros
+        </button>
+        <button className="px-4 py-3 rounded-[10px] bg-teal-dark text-white text-[13px] font-semibold shadow-soft flex items-center gap-2">
+          <Plus size={14} />
+          Nuevo paciente
+        </button>
+      </div>
 
-        {/* Age bucket chips */}
+      {/* Age bucket chips */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex flex-wrap gap-2">
-          {AGE_BUCKETS.map((b) => (
-            <button
-              key={b.key}
-              onClick={() => setBucket(b.key)}
-              className={cn(
-                "px-3 py-1.5 rounded-full text-[11.5px] font-medium transition-colors",
-                bucket === b.key
-                  ? "bg-teal text-white"
-                  : "bg-surface border border-line text-ink2 hover:bg-bg"
-              )}
-            >
-              {b.label}
-            </button>
-          ))}
+          {AGE_BUCKETS.map((b) => {
+            const count = b.key === "all" ? all.length : all.filter((p) => matchesBucket(p, b.key)).length;
+            return (
+              <button
+                key={b.key}
+                onClick={() => setBucket(b.key)}
+                className={cn(
+                  "px-3.5 py-1.5 rounded-full text-[12.5px] font-semibold border transition-colors",
+                  bucket === b.key
+                    ? "bg-teal/20 border-teal/40 text-teal-dark"
+                    : "bg-surface border-line text-ink2 hover:bg-bg"
+                )}
+              >
+                {b.label}
+              </button>
+            );
+          })}
         </div>
+        <span className="text-[11.5px] text-ink3">{filtered.length} paciente{filtered.length !== 1 ? "s" : ""}</span>
       </div>
 
       {/* Table */}
-      <div className="bg-surface border border-line rounded-[14px] shadow-[var(--shadow-card)] overflow-hidden">
+      <div className="bg-surface border border-line rounded-[14px] shadow-card overflow-hidden">
         {isLoading ? (
           <div className="flex items-center justify-center py-16">
             <div className="h-5 w-5 rounded-full border-2 border-line border-t-teal animate-spin" />
@@ -206,62 +209,39 @@ export default function Patients() {
             </div>
           </div>
         ) : (
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-line">
-                <th className="text-left px-5 py-3 text-[11px] font-semibold text-ink3 uppercase tracking-wider">
-                  Paciente
-                </th>
-                <th className="text-left px-4 py-3 text-[11px] font-semibold text-ink3 uppercase tracking-wider hidden sm:table-cell">
-                  Edad
-                </th>
-                <th className="text-left px-4 py-3 text-[11px] font-semibold text-ink3 uppercase tracking-wider hidden md:table-cell">
-                  Tutor principal
-                </th>
-                <th className="text-left px-4 py-3 text-[11px] font-semibold text-ink3 uppercase tracking-wider hidden lg:table-cell">
-                  Última consulta
-                </th>
-                <th className="text-left px-4 py-3 text-[11px] font-semibold text-ink3 uppercase tracking-wider hidden lg:table-cell">
-                  Próximo control
-                </th>
-                <th className="w-10" />
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((patient, i) => {
-                const tutor = primaryTutor(patient);
-                return (
-                  <tr
-                    key={patient.id}
+          <div>
+            <div className="grid grid-cols-[2.2fr_1.4fr_1.4fr_1fr_1fr_60px] gap-4 px-5 py-3 text-[10.5px] uppercase tracking-[0.12em] font-semibold text-ink3 border-b border-line bg-bg/50">
+              <span>Paciente</span>
+              <span>Edad</span>
+              <span>Tutor principal</span>
+              <span>Última consulta</span>
+              <span>Próximo control</span>
+              <span />
+            </div>
+            {filtered.map((patient, i) => {
+              const tutor = primaryTutor(patient);
+              return (
+                <div key={patient.id}>
+                  <div
                     onClick={() => navigate(`/dashboard/pacientes/${patient.id}`)}
-                    className={cn(
-                      "cursor-pointer hover:bg-bg transition-colors",
-                      i < filtered.length - 1 && "border-b border-line/60"
-                    )}
+                    className="grid grid-cols-[2.2fr_1.4fr_1.4fr_1fr_1fr_60px] gap-4 px-5 py-3.5 hover:bg-bg group cursor-pointer transition-colors items-center"
                   >
-                    {/* Patient name + avatar */}
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-3">
-                        <PatientAvatar name={patient.full_name} />
-                        <div className="min-w-0">
-                          <div className="text-[13.5px] font-semibold text-ink truncate">
-                            {patient.full_name}
-                          </div>
-                          <div className="text-[11.5px] text-ink3 mt-0.5">{patient.rut}</div>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <PatientAvatar name={patient.full_name} />
+                      <div className="min-w-0">
+                        <div className="text-[13.5px] font-semibold text-ink truncate">
+                          {patient.full_name}
                         </div>
+                        <div className="text-[11.5px] text-ink3 mt-0.5">{patient.rut}</div>
                       </div>
-                    </td>
+                    </div>
 
-                    {/* Age */}
-                    <td className="px-4 py-3.5 hidden sm:table-cell">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[13px] text-ink">{formatAge(patient)}</span>
-                        <AgeBadge patient={patient} />
-                      </div>
-                    </td>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[13px] text-ink">{formatAge(patient)}</span>
+                      <AgeBadge patient={patient} />
+                    </div>
 
-                    {/* Tutor */}
-                    <td className="px-4 py-3.5 hidden md:table-cell">
+                    <div>
                       {tutor ? (
                         <div>
                           <div className="text-[13px] text-ink">{tutor.tutor_full_name}</div>
@@ -270,35 +250,31 @@ export default function Patients() {
                       ) : (
                         <span className="text-[13px] text-ink3">—</span>
                       )}
-                    </td>
+                    </div>
 
-                    {/* Last visit */}
-                    <td className="px-4 py-3.5 hidden lg:table-cell">
-                      <span className="text-[13px] text-ink3">
-                        {patient.last_encounter_date
-                          ? new Date(patient.last_encounter_date).toLocaleDateString("es-CL", { day: "numeric", month: "short", year: "numeric" })
-                          : "—"}
-                      </span>
-                    </td>
+                    <span className="text-[13px] text-ink3">
+                      {patient.last_encounter_date
+                        ? new Date(patient.last_encounter_date).toLocaleDateString("es-CL", { day: "numeric", month: "short", year: "numeric" })
+                        : "—"}
+                    </span>
 
-                    {/* Next visit */}
-                    <td className="px-4 py-3.5 hidden lg:table-cell">
-                      <span className="text-[13px] text-ink3">
-                        {patient.next_appointment_date
-                          ? new Date(patient.next_appointment_date + "T00:00:00").toLocaleDateString("es-CL", { day: "numeric", month: "short", year: "numeric" })
-                          : "—"}
-                      </span>
-                    </td>
+                    <span className="text-[13px] text-ink3">
+                      {patient.next_appointment_date
+                        ? new Date(patient.next_appointment_date + "T00:00:00").toLocaleDateString("es-CL", { day: "numeric", month: "short", year: "numeric" })
+                        : "—"}
+                    </span>
 
-                    {/* Arrow */}
-                    <td className="px-3 py-3.5">
-                      <ChevronRight size={16} className="text-ink3" />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                    <div className="flex justify-center">
+                      <ChevronRight size={16} className="text-ink3 group-hover:text-teal-dark transition-colors" />
+                    </div>
+                  </div>
+                  {i < filtered.length - 1 && (
+                    <div className="mx-5 h-px bg-line/60" />
+                  )}
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     </div>

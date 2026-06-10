@@ -14,6 +14,14 @@ import {
   ChevronDown,
   ChevronUp,
   Download,
+  Baby,
+  Users,
+  Scale,
+  Ruler,
+  CircleUser,
+  Activity,
+  Edit2,
+  CalendarPlus,
 } from "lucide-react";
 import {
   ComposedChart,
@@ -333,6 +341,77 @@ function FileCard({ file }: { file: PatientFile }) {
   );
 }
 
+// ─── FichaChip ────────────────────────────────────────────────────────────────
+
+const CHIP_COLORS: Record<string, { bg: string; text: string }> = {
+  teal:    { bg: "rgba(62,142,124,0.12)",  text: "#2D6B5E" },
+  lavender:{ bg: "rgba(107,86,158,0.12)", text: "#4C3A7A" },
+  coral:   { bg: "rgba(181,96,79,0.12)",  text: "#8B3D2E" },
+  ok:      { bg: "rgba(63,131,88,0.12)",  text: "#2A6040" },
+  warn:    { bg: "rgba(156,116,35,0.12)", text: "#7A5A10" },
+  neutral: { bg: "rgba(107,107,107,0.1)", text: "#4A4A4A" },
+};
+
+function FichaChip({
+  color = "neutral",
+  icon,
+  children,
+}: {
+  color?: keyof typeof CHIP_COLORS;
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  const { bg, text } = CHIP_COLORS[color] ?? CHIP_COLORS.neutral;
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold"
+      style={{ background: bg, color: text }}
+    >
+      {icon}
+      {children}
+    </span>
+  );
+}
+
+// ─── MeasurementRow ───────────────────────────────────────────────────────────
+
+function MeasurementRow({
+  icon,
+  iconBg,
+  iconColor,
+  label,
+  value,
+  unit,
+  hint,
+}: {
+  icon: React.ReactNode;
+  iconBg: string;
+  iconColor: string;
+  label: string;
+  value: string | null;
+  unit: string;
+  hint?: string;
+}) {
+  return (
+    <div className="flex items-start gap-3 py-3">
+      <div
+        className="w-8 h-8 rounded-[8px] flex items-center justify-center shrink-0"
+        style={{ background: iconBg, color: iconColor }}
+      >
+        {icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[11.5px] text-ink3 font-medium">{label}</p>
+        <p className="text-[16px] font-bold text-ink leading-tight">
+          {value ?? "—"}
+          {value && <span className="text-[11px] font-normal text-ink3 ml-1">{unit}</span>}
+        </p>
+        {hint && <p className="text-[10.5px] text-ink3">{hint}</p>}
+      </div>
+    </div>
+  );
+}
+
 // ─── Growth chart ─────────────────────────────────────────────────────────────
 
 type ChartPoint = {
@@ -375,10 +454,12 @@ function getPatientValue(pt: GrowthPoint, metric: MetricKey): number | null {
 function GrowthChart({
   growthData,
   metric,
+  patientName,
   sex,
 }: {
   growthData: GrowthPoint[];
   metric: MetricKey;
+  patientName: string;
   sex: SexKey;
 }) {
   const omsDataset = OMS_DATA[metric][sex];
@@ -423,30 +504,39 @@ function GrowthChart({
     ? (latestGrowth[indCfg.zKey] as number | null)
     : null;
 
+  const bmiVal = latestGrowth?.bmi ? parseFloat(latestGrowth.bmi) : null;
+  let bmiStatus = "—";
+  if (bmiVal !== null) {
+    if (bmiVal < 14) bmiStatus = "Bajo peso";
+    else if (bmiVal < 18) bmiStatus = "Normal";
+    else if (bmiVal < 22) bmiStatus = "Sobrepeso";
+    else bmiStatus = "Obesidad";
+  }
+
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-      {/* Chart */}
-      <div className="xl:col-span-2 bg-surface border border-line rounded-[14px] shadow-[var(--shadow-card)] p-5">
-        <div className="flex items-center justify-between mb-4">
+    <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-5">
+      {/* Chart card */}
+      <div className="bg-surface border border-line rounded-[14px] shadow-[var(--shadow-card)] p-6">
+        <div className="flex items-center justify-between mb-5">
           <h3 className="text-[14px] font-bold text-ink">{cfg.title}</h3>
-          <div className="flex items-center gap-3 text-[11px] text-ink3">
+          <div className="flex items-center gap-4 text-[11px] text-ink3">
             <span className="flex items-center gap-1.5">
-              <span className="w-4 h-px border-t border-dashed border-ink3 inline-block" />
-              Percentiles OMS
+              <span className="w-5 h-px bg-[#3E8E7C] inline-block" />
+              {patientName.split(" ")[0]}
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-4 h-px bg-teal inline-block" />
-              Paciente
+              <span className="w-5 h-px border-t-2 border-dashed border-ink3 inline-block" />
+              Percentiles OMS
             </span>
           </div>
         </div>
 
         {growthData.length === 0 ? (
-          <div className="flex items-center justify-center h-[260px] text-ink3 text-[13px]">
+          <div className="flex items-center justify-center h-[400px] text-ink3 text-[13px]">
             Sin registros de crecimiento
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height={260}>
+          <ResponsiveContainer width="100%" height={400}>
             <ComposedChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E8E6E1" vertical={false} />
               <XAxis
@@ -489,75 +579,102 @@ function GrowthChart({
               <Line
                 type="monotone"
                 dataKey="patient"
-                stroke="#7BB5BD"
+                stroke="#3E8E7C"
                 strokeWidth={2.5}
-                dot={{ r: 4, fill: "#7BB5BD", strokeWidth: 2, stroke: "#fff" }}
+                dot={{ r: 4, fill: "#3E8E7C", strokeWidth: 2, stroke: "#fff" }}
                 activeDot={{ r: 5 }}
                 connectNulls
               />
             </ComposedChart>
           </ResponsiveContainer>
         )}
+
+        {/* P3–P97 strip */}
+        <div className="mt-4 grid grid-cols-5 rounded-[8px] overflow-hidden border border-line">
+          {(["P3", "P15", "P50", "P85", "P97"] as const).map((p) => (
+            <div key={p} className="bg-bg/70 text-center py-1.5 text-[11px] text-ink3 font-medium border-r border-line last:border-r-0">
+              {p}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Side panel */}
       <div className="space-y-4">
         {/* Latest measurement */}
         <div className="bg-surface border border-line rounded-[14px] shadow-[var(--shadow-card)] p-4">
-          <h4 className="text-[12.5px] font-bold text-ink mb-3">Última medición</h4>
+          <h4 className="text-[12.5px] font-bold text-ink mb-1">Última medición</h4>
           {latestGrowth ? (
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <p className="text-[10.5px] text-ink3 font-medium uppercase tracking-wide">Peso</p>
-                <p className="text-[18px] font-bold text-ink mt-0.5">
-                  {latestGrowth.weight_kg}
-                  <span className="text-[11px] font-normal text-ink3 ml-1">kg</span>
-                </p>
-              </div>
-              <div>
-                <p className="text-[10.5px] text-ink3 font-medium uppercase tracking-wide">Talla</p>
-                <p className="text-[18px] font-bold text-ink mt-0.5">
-                  {latestGrowth.height_cm || "—"}
-                  <span className="text-[11px] font-normal text-ink3 ml-1">cm</span>
-                </p>
-              </div>
-              <div>
-                <p className="text-[10.5px] text-ink3 font-medium uppercase tracking-wide">PC</p>
-                <p className="text-[18px] font-bold text-ink mt-0.5">
-                  {latestGrowth.head_circumference_cm || "—"}
-                  <span className="text-[11px] font-normal text-ink3 ml-1">cm</span>
-                </p>
-              </div>
-              <div>
-                <p className="text-[10.5px] text-ink3 font-medium uppercase tracking-wide">IMC</p>
-                <p className="text-[18px] font-bold text-ink mt-0.5">
-                  {latestGrowth.bmi ? parseFloat(latestGrowth.bmi).toFixed(1) : "—"}
-                  <span className="text-[11px] font-normal text-ink3 ml-1">kg/m²</span>
-                </p>
-              </div>
+            <div className="divide-y divide-line">
+              <MeasurementRow
+                icon={<Scale size={15} />}
+                iconBg="rgba(62,142,124,0.12)"
+                iconColor="#2D6B5E"
+                label="Peso"
+                value={latestGrowth.weight_kg}
+                unit="kg"
+              />
+              <MeasurementRow
+                icon={<Ruler size={15} />}
+                iconBg="rgba(107,86,158,0.12)"
+                iconColor="#4C3A7A"
+                label="Talla"
+                value={latestGrowth.height_cm || null}
+                unit="cm"
+              />
+              <MeasurementRow
+                icon={<CircleUser size={15} />}
+                iconBg="rgba(181,96,79,0.12)"
+                iconColor="#8B3D2E"
+                label="Perímetro cefálico"
+                value={latestGrowth.head_circumference_cm || null}
+                unit="cm"
+              />
+              <MeasurementRow
+                icon={<Activity size={15} />}
+                iconBg="rgba(63,131,88,0.12)"
+                iconColor="#2A6040"
+                label="IMC"
+                value={bmiVal !== null ? bmiVal.toFixed(1) : null}
+                unit="kg/m²"
+                hint={bmiVal !== null ? bmiStatus : undefined}
+              />
             </div>
           ) : (
-            <p className="text-[12.5px] text-ink3">Sin registros</p>
+            <p className="text-[12.5px] text-ink3 py-3">Sin registros</p>
           )}
         </div>
 
-        {/* Indicators — dynamic per metric */}
+        {/* Indicators */}
         <div className="bg-surface border border-line rounded-[14px] shadow-[var(--shadow-card)] p-4">
           <h4 className="text-[12.5px] font-bold text-ink mb-3">Indicadores</h4>
           {latestGrowth ? (
-            <div className="space-y-2.5">
+            <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-[11.5px] text-ink2">Percentil {indCfg.label}</span>
-                <span className="text-[12.5px] font-semibold text-ink">
+                <span className="text-[11.5px] text-ink2">Percentil</span>
+                <span className="text-[13px] font-bold text-ink">
                   {latestPercentile != null ? `P${Math.round(latestPercentile)}` : "—"}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-[11.5px] text-ink2">Z-score {indCfg.label}</span>
-                <span className="text-[12.5px] font-semibold text-ink">
+                <span className="text-[11.5px] text-ink2">Z-score</span>
+                <span className="text-[13px] font-bold text-ink">
                   {latestZ != null ? latestZ.toFixed(2) : "—"}
                 </span>
               </div>
+              {latestGrowth.encounter_date && (
+                <div className="flex justify-between items-center">
+                  <span className="text-[11.5px] text-ink2">Velocidad</span>
+                  <span className="text-[11.5px] text-ink3">—</span>
+                </div>
+              )}
+              <p className="text-[11px] text-ink3 pt-1 border-t border-line">
+                {latestPercentile != null && latestPercentile >= 3 && latestPercentile <= 97
+                  ? "Dentro de rangos normales OMS"
+                  : latestPercentile != null
+                  ? "Fuera de rangos normales OMS"
+                  : "Sin datos suficientes"}
+              </p>
             </div>
           ) : (
             <p className="text-[12.5px] text-ink3">Sin datos disponibles</p>
@@ -664,113 +781,95 @@ export default function PatientFicha() {
     );
   }
 
-  const [borderColor, bgColor] = getPalette(patient.full_name);
-  const initials = patient.full_name
-    .split(" ")
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase();
-
-  const primaryTutor = patient.tutors.find((t) => t.is_primary) ?? patient.tutors[0];
+  const firstInitial = patient.full_name.trim()[0]?.toUpperCase() ?? "?";
 
   return (
     <div className="space-y-5 max-w-[1200px]">
-      {/* Back */}
-      <button
-        onClick={() => navigate(-1)}
-        className="inline-flex items-center gap-1.5 text-[12.5px] text-ink2 hover:text-ink transition-colors"
-      >
-        <ArrowLeft size={14} />
-        Volver
-      </button>
-
       {/* Patient header card */}
-      <div className="bg-surface border border-line rounded-[14px] shadow-[var(--shadow-card)] p-5">
+      <div className="bg-surface border border-line rounded-[18px] shadow-[var(--shadow-card)] p-6">
         <div className="flex flex-col sm:flex-row items-start gap-5">
-          {/* Gradient avatar */}
+          {/* Avatar */}
           <div
-            className="w-16 h-16 rounded-2xl flex items-center justify-center text-[20px] font-bold shrink-0"
-            style={{
-              background: `linear-gradient(135deg, ${bgColor}, ${borderColor})`,
-              color: borderColor,
-              border: `2px solid ${borderColor}`,
-            }}
+            className="w-16 h-16 rounded-full flex items-center justify-center text-[22px] font-bold shrink-0 text-white"
+            style={{ background: "linear-gradient(135deg, #3E8E7C, #6B569E)" }}
           >
-            {initials}
+            {firstInitial}
           </div>
 
-          {/* Name + chips */}
+          {/* Name + chips + tutors */}
           <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-[20px] font-bold text-ink">{patient.full_name}</h1>
-              <span className="text-[11.5px] text-ink3">{patient.rut}</span>
+            <div className="flex flex-wrap items-baseline gap-2">
+              <h1 className="text-[22px] font-bold text-ink tracking-tight">{patient.full_name}</h1>
+              <span className="text-[12px] text-ink3">· RUT {patient.rut}</span>
             </div>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <span className="px-2.5 py-1 rounded-full bg-teal/10 text-teal-dark text-[11.5px] font-medium">
+            <div className="mt-2.5 flex flex-wrap gap-2">
+              <FichaChip color="teal" icon={<Baby size={12} />}>
                 {formatAge(patient)}
-              </span>
-              <span className="px-2.5 py-1 rounded-full bg-bg border border-line text-ink2 text-[11.5px]">
+              </FichaChip>
+              <FichaChip color="lavender">
                 {sexLabel(patient.sex_at_birth)}
-              </span>
+              </FichaChip>
               {patient.blood_type && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-bg border border-line text-ink2 text-[11.5px]">
-                  <Droplets size={11} className="text-coral" />
+                <FichaChip color="neutral" icon={<Droplets size={12} />}>
                   {patient.blood_type}
-                </span>
+                </FichaChip>
               )}
-              {patient.insurance && (
-                <span className="px-2.5 py-1 rounded-full bg-bg border border-line text-ink2 text-[11.5px]">
-                  {patient.insurance}
-                </span>
+              {patient.allergies && (
+                <FichaChip color="coral" icon={<AlertCircle size={12} />}>
+                  {patient.allergies}
+                </FichaChip>
               )}
             </div>
 
-            {/* Allergies */}
-            {patient.allergies && (
-              <div className="mt-2 flex items-start gap-1.5 text-[12px] text-ink2">
-                <AlertCircle size={12} className="text-coral shrink-0 mt-px" />
-                <span><span className="font-semibold">Alergias:</span> {patient.allergies}</span>
-              </div>
-            )}
-
-            {/* Tutors */}
+            {/* Tutors line */}
             {patient.tutors.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-3">
-                {patient.tutors.map((t) => (
-                  <span key={t.id} className="text-[11.5px] text-ink2">
-                    <span className="font-medium">{t.tutor_full_name}</span>
-                    <span className="text-ink3 ml-1">({t.relationship}{t.is_primary ? " · principal" : ""})</span>
-                  </span>
-                ))}
+              <div className="mt-2.5 flex items-center gap-1.5 text-[12px] text-ink2">
+                <Users size={13} className="text-ink3 shrink-0" />
+                <span>
+                  <span className="text-ink3 mr-1">Tutores:</span>
+                  {patient.tutors.map((t, i) => (
+                    <span key={t.id}>
+                      {i > 0 && <span className="text-ink3 mx-1">·</span>}
+                      <span className="font-medium text-ink">{t.tutor_full_name}</span>
+                      {t.relationship && (
+                        <span className="text-ink3 ml-1">({t.relationship})</span>
+                      )}
+                    </span>
+                  ))}
+                </span>
               </div>
             )}
           </div>
 
-          {/* Primary tutor summary */}
-          {primaryTutor && (
-            <div className="shrink-0 text-right hidden sm:block">
-              <p className="text-[10.5px] text-ink3 font-medium uppercase tracking-wide">Tutor principal</p>
-              <p className="text-[13px] font-semibold text-ink mt-1">{primaryTutor.tutor_full_name}</p>
-              <p className="text-[11.5px] text-ink3">{primaryTutor.tutor_email}</p>
-            </div>
-          )}
+          {/* Action buttons */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => navigate(-1)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] bg-bg text-[12.5px] font-semibold text-ink2 hover:text-ink transition-colors"
+            >
+              <ArrowLeft size={14} />
+              Volver
+            </button>
+            <button className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] border border-line bg-surface text-[12.5px] font-semibold text-ink2 hover:text-ink transition-colors">
+              <Edit2 size={13} />
+              Editar
+            </button>
+            <button className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] text-[12.5px] font-semibold text-white transition-opacity hover:opacity-90" style={{ background: "#2D6B5E" }}>
+              <CalendarPlus size={14} />
+              Nueva consulta
+            </button>
+          </div>
         </div>
-      </div>
 
-      {/* Tabs */}
-      <div className="border-b border-line">
-        <div className="flex gap-1 overflow-x-auto">
+        {/* Tabs inside header card */}
+        <div className="mt-6 border-b border-line -mx-6 px-6 flex items-center gap-1 overflow-x-auto">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               className={cn(
-                "inline-flex items-center gap-1.5 px-4 py-3 text-[13px] font-medium whitespace-nowrap transition-colors",
-                "border-b-2 -mb-px",
-                activeTab === tab.key
-                  ? "border-teal text-teal-dark"
-                  : "border-transparent text-ink2 hover:text-ink"
+                "relative inline-flex items-center gap-1.5 px-3.5 py-3 text-[13px] font-semibold whitespace-nowrap transition-colors",
+                activeTab === tab.key ? "text-teal-dark" : "text-ink2 hover:text-ink"
               )}
             >
               {tab.icon}
@@ -778,14 +877,17 @@ export default function PatientFicha() {
               {tab.count !== undefined && tab.count > 0 && (
                 <span
                   className={cn(
-                    "text-[10.5px] font-semibold px-1.5 py-0.5 rounded-full",
+                    "min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold inline-flex items-center justify-center",
                     activeTab === tab.key
-                      ? "bg-teal/15 text-teal-dark"
+                      ? "bg-teal/30 text-teal-dark"
                       : "bg-bg text-ink3"
                   )}
                 >
                   {tab.count}
                 </span>
+              )}
+              {activeTab === tab.key && (
+                <span className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-teal-dark rounded-full" />
               )}
             </button>
           ))}
@@ -956,7 +1058,7 @@ export default function PatientFicha() {
         {/* ── CRECIMIENTO ── */}
         {activeTab === "crecimiento" && (
           <div className="space-y-4">
-            {/* Metric toggle */}
+            {/* Metric toggles */}
             <div className="flex flex-wrap gap-2">
               {(
                 [
@@ -970,11 +1072,12 @@ export default function PatientFicha() {
                   key={key}
                   onClick={() => setMetric(key)}
                   className={cn(
-                    "px-3.5 py-2 rounded-[10px] text-[12.5px] font-medium transition-colors",
+                    "px-3.5 py-2 rounded-[10px] text-[12.5px] font-semibold border transition-colors",
                     metric === key
-                      ? "bg-teal text-white"
-                      : "bg-surface border border-line text-ink2 hover:text-ink"
+                      ? "border-teal-dark text-white"
+                      : "bg-surface border-line text-ink2 hover:text-ink"
                   )}
+                  style={metric === key ? { background: "#2D6B5E" } : undefined}
                 >
                   {label}
                 </button>
@@ -989,6 +1092,7 @@ export default function PatientFicha() {
               <GrowthChart
                 growthData={growthData}
                 metric={metric}
+                patientName={patient.full_name}
                 sex={patient.sex_at_birth === "F" ? "F" : "M"}
               />
             )}
