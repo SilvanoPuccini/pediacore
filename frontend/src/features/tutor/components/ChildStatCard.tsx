@@ -1,6 +1,6 @@
 import { ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Avatar, Chip, childPalette } from "@/features/tutor/components/portal-ui";
+import { Avatar, Chip } from "@/features/tutor/components/portal-ui";
 import type { Patient } from "@/types/api";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

@@ -125,16 +125,8 @@ function AgendaItem({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-[13.5px] font-semibold text-ink">{appointment.patient_name}</span>
-          {(appointment as Record<string, unknown>)["patient_age"] !== undefined && (
-            <span className="text-[11.5px] text-ink3">{String((appointment as Record<string, unknown>)["patient_age"])}a</span>
-          )}
           {appointment.service_name && <TypeChip label={appointment.service_name} />}
         </div>
-        {(appointment as Record<string, unknown>)["tutor_name"] && (
-          <div className="mt-1 text-[11.5px] text-ink2">
-            Tutor: {String((appointment as Record<string, unknown>)["tutor_name"])}
-          </div>
-        )}
       </div>
       <div className="flex flex-col items-end justify-between shrink-0 gap-2">
         {appointment.location_name && (
