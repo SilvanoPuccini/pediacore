@@ -6,15 +6,13 @@ import {
   Receipt,
   Download,
   Plus,
-  HelpCircle,
   ChevronLeft,
   ChevronRight,
   Trash2,
-  AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import api from "@/lib/api";
-import { Card, Btn, EmptyState, Avatar, clp, childPalette } from "@/features/tutor/components/portal-ui";
+import { Card, Btn, EmptyState, Avatar, clp } from "@/features/tutor/components/portal-ui";
 import type { PaymentListItem, PaginatedResponse } from "@/types/api";
 
 const PAGE_SIZE = 10;
@@ -43,19 +41,19 @@ function SummaryCard({
   subtitle,
   icon: Icon,
   iconBg,
-  iconColor,
+  iconClassName,
 }: {
   label: string;
   amount: string;
   subtitle: string;
   icon: React.ComponentType<{ size: number; className?: string }>;
   iconBg: string;
-  iconColor: string;
+  iconClassName: string;
 }) {
   return (
     <Card className="flex items-start justify-between">
       <div>
-        <p className="text-[10.5px] uppercase tracking-[0.14em] font-semibold" style={{ color: iconColor }}>
+        <p className={cn("text-[10.5px] uppercase tracking-[0.14em] font-semibold", iconClassName)}>
           {label}
         </p>
         <p className="font-display text-[28px] font-bold text-ink mt-1">{amount}</p>
@@ -65,7 +63,7 @@ function SummaryCard({
         className="w-10 h-10 rounded-[10px] flex items-center justify-center shrink-0"
         style={{ backgroundColor: iconBg }}
       >
-        <Icon size={18} className="shrink-0" style={{ color: iconColor }} />
+        <Icon size={18} className={cn("shrink-0", iconClassName)} />
       </div>
     </Card>
   );
@@ -114,7 +112,7 @@ export default function BillingHistory() {
           subtitle={`${pending.length} pago${pending.length !== 1 ? "s" : ""} pendiente${pending.length !== 1 ? "s" : ""}`}
           icon={CreditCard}
           iconBg="rgba(243,168,161,0.25)"
-          iconColor="#B5604F"
+          iconClassName="text-[#B5604F]"
         />
         <SummaryCard
           label="Pagado este año"
@@ -122,7 +120,7 @@ export default function BillingHistory() {
           subtitle={`${paid.length} pago${paid.length !== 1 ? "s" : ""} completado${paid.length !== 1 ? "s" : ""}`}
           icon={TrendingUp}
           iconBg="rgba(123,181,189,0.20)"
-          iconColor="#4A8590"
+          iconClassName="text-[#4A8590]"
         />
         <SummaryCard
           label="Boletas"
@@ -130,7 +128,7 @@ export default function BillingHistory() {
           subtitle="disponibles para reembolso"
           icon={Receipt}
           iconBg="rgba(229,184,71,0.30)"
-          iconColor="#8A6A1F"
+          iconClassName="text-[#8A6A1F]"
         />
       </div>
 

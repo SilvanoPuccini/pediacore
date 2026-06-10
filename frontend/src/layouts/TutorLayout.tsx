@@ -3,7 +3,6 @@ import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   Menu,
   X,
-  LogOut,
   CalendarDays,
   Baby,
   UserCircle,

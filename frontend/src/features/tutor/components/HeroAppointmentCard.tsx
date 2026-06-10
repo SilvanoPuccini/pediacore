@@ -1,16 +1,12 @@
 import {
   CalendarDays,
-  Clock,
   MapPin,
   Video,
   Stethoscope,
-  RefreshCw,
-  CreditCard,
   X,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { cn } from "@/lib/utils";
-import { StatusBadge, Btn, Avatar, clp } from "@/features/tutor/components/portal-ui";
+import { StatusBadge, Btn, Avatar } from "@/features/tutor/components/portal-ui";
 import type { Appointment } from "@/types/api";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -199,7 +195,7 @@ export default function HeroAppointmentCard({ appointment, loading }: Props) {
         </Btn>
         {!isPaid && (
           <Btn variant="soft" size="sm" icon="CreditCard">
-            Pagar {clp(parseFloat(String(appointment.amount ?? 0)))}
+            Pagar
           </Btn>
         )}
         <div className="flex-1" />
