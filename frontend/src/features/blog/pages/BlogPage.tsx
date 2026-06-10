@@ -6,9 +6,7 @@ import {
   ChevronRight,
   Search,
   BookOpen,
-  Mail,
   ArrowRight,
-  Check,
   ChevronUp,
 } from "lucide-react";
 import api from "@/lib/api";
@@ -294,8 +292,6 @@ export default function BlogPage() {
   const activeTag = searchParams.get("tag") ?? "";
   const currentPage = parseInt(searchParams.get("page") ?? "1", 10);
 
-  const [nlEmail, setNlEmail] = useState("");
-  const [nlState, setNlState] = useState<"idle" | "loading" | "done">("idle");
   const [showToTop, setShowToTop] = useState(false);
   const [bottomNlDone, setBottomNlDone] = useState(false);
 
@@ -365,16 +361,6 @@ export default function BlogPage() {
     next.set("page", String(page));
     setSearchParams(next);
     mainRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
-  function handleNewsletter(e: React.FormEvent) {
-    e.preventDefault();
-    if (nlState !== "idle") return;
-    setNlState("loading");
-    setTimeout(() => {
-      setNlState("done");
-      setNlEmail("");
-    }, 1100);
   }
 
   // Build visible page numbers (max 5 around current)
@@ -480,63 +466,6 @@ export default function BlogPage() {
                 {label}
               </span>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Newsletter Banner ── */}
-      <section className="bg-teal-dark text-white">
-        <div className="max-w-[1280px] mx-auto px-6 py-10 lg:py-12 text-center">
-          <div className="w-12 h-12 rounded-[14px] bg-white/15 flex items-center justify-center mx-auto">
-            <Mail size={22} />
-          </div>
-          <h2 className="mt-4 font-display text-[26px] lg:text-[32px] tracking-tight">
-            Recibí los últimos artículos en tu email
-          </h2>
-          <p className="mt-2 text-[14px] text-white/80 max-w-md mx-auto">
-            Sin spam. Solo información útil para vos y tu familia. Cancelá cuando quieras.
-          </p>
-
-          {nlState === "done" ? (
-            <div className="mt-6 flex items-center justify-center gap-2 text-[15px] font-semibold">
-              <Check size={18} />
-              ¡Te suscribiste! Revisá tu email para confirmar.
-            </div>
-          ) : (
-            <form onSubmit={handleNewsletter} className="mt-6 max-w-md mx-auto flex items-center gap-2 flex-col sm:flex-row">
-              <input
-                type="email"
-                required
-                placeholder="tu@email.com"
-                value={nlEmail}
-                onChange={(e) => setNlEmail(e.target.value)}
-                className="nl-input w-full px-4 py-3 rounded-[12px] bg-white/15 border border-white/25 text-white placeholder:text-white/60 text-[14px] transition"
-              />
-              <button
-                type="submit"
-                disabled={nlState === "loading"}
-                className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-[12px] bg-white text-teal-dark text-[14px] font-bold hover:opacity-90 transition disabled:opacity-70"
-              >
-                {nlState === "loading" ? (
-                  <>
-                    <svg className="spin" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
-                      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-                    </svg>
-                    Enviando
-                  </>
-                ) : (
-                  <>
-                    Suscribirme
-                    <ArrowRight size={15} />
-                  </>
-                )}
-              </button>
-            </form>
-          )}
-
-          <div className="mt-3 text-[12.5px] text-white/75 flex items-center justify-center gap-1.5">
-            <Check size={13} />
-            Ya se suscribieron +320 familias
           </div>
         </div>
       </section>
