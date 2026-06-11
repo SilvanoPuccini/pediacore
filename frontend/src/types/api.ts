@@ -60,6 +60,7 @@ export interface BlogPost {
   is_published: boolean;
   published_at: string;
   tags: string;
+  post_number: number | null;
   meta_description: string;
   created_at: string;
   updated_at: string;
