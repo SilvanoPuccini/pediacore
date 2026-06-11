@@ -815,17 +815,17 @@ export default function BlogPostPage() {
           </div>
 
           {/* Author bio + Newsletter side-by-side */}
-          <div className="mt-8 grid sm:grid-cols-[1fr_1fr] gap-4 items-stretch">
+          <div className="mt-8 grid gap-4 items-stretch">
             {/* Author bio card */}
             <div
-              className="border border-line rounded-[20px] p-6 flex flex-col"
+              className="border border-line rounded-[20px] p-6 flex flex-col sm:flex-row sm:items-center gap-5"
               style={{ background: "linear-gradient(135deg, var(--cream), var(--bg))" }}
             >
-              <div className="flex items-start gap-4">
+              <div className="flex items-start gap-4 sm:flex-1">
                 <img
-                  src="/images/estefi-cutout.png"
+                  src="/images/dra-estefi-consultorio.jpg"
                   alt="Dra. Estefanía Ortigosa"
-                  className="w-20 h-20 rounded-full object-cover object-top bg-teal/20 shrink-0 border-2 border-white shadow-sm"
+                  className="w-24 h-24 rounded-full object-cover object-top bg-teal/20 shrink-0 border-2 border-white shadow-sm"
                 />
                 <div>
                   <div className="text-[11px] uppercase tracking-[0.14em] font-bold text-teal-dark">
@@ -836,12 +836,13 @@ export default function BlogPostPage() {
                   </h3>
                 </div>
               </div>
-              <p className="mt-3 text-[13px] text-ink2 leading-relaxed flex-1">
+              <p className="sm:mt-0 mt-3 text-[13px] text-ink2 leading-relaxed sm:flex-1">
                 Médica pediatra titulada, atiende en Pucón y Villarrica. Apasionada por la lactancia y el acompañamiento cercano a las familias del sur de Chile.
               </p>
               <Link
                 to="/booking"
-                className="mt-4 inline-flex items-center justify-center gap-1.5 w-full px-4 py-2.5 rounded-[10px] bg-teal-dark text-white text-[12.5px] font-semibold hover:opacity-90 transition shadow-[var(--shadow-cta)] whitespace-nowrap"
+                className="mt-4 sm:mt-0 inline-flex items-center justify-center gap-1.5 shrink-0 px-5 py-2.5 rounded-[10px] bg-teal-dark text-[12.5px] font-semibold hover:opacity-90 transition shadow-[var(--shadow-cta)] whitespace-nowrap"
+                style={{ color: "#ffffff" }}
               >
                 Reservar consulta
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
