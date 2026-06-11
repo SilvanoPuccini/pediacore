@@ -699,25 +699,34 @@ export default function BlogPage() {
 
             {/* Videos section */}
             <section className="mt-16">
-              <h2 className="font-display text-[24px] text-ink flex items-center gap-2.5">
-                <span
-                  className="w-9 h-9 rounded-[10px] flex items-center justify-center"
-                  style={{ background: "rgba(243,168,161,0.25)", color: "#B5604F" }}
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="m22 8-6 4 6 4V8Z" />
-                    <rect width="14" height="12" x="2" y="6" rx="2" />
+              <div className="flex items-end justify-between flex-wrap gap-3">
+                <h2 className="font-display text-[24px] text-ink flex items-center gap-2.5">
+                  <span
+                    className="w-9 h-9 rounded-[10px] flex items-center justify-center"
+                    style={{ background: "rgba(243,168,161,0.25)", color: "#B5604F" }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="m22 8-6 4 6 4V8Z" />
+                      <rect width="14" height="12" x="2" y="6" rx="2" />
+                    </svg>
+                  </span>
+                  Videos y recursos
+                </h2>
+                <Link to="/videos" className="inline-flex items-center gap-1.5 text-[13px] font-bold text-teal-dark hover:underline">
+                  Ver toda la videoteca
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12h14"/>
+                    <path d="m12 5 7 7-7 7"/>
                   </svg>
-                </span>
-                Videos y recursos
-              </h2>
+                </Link>
+              </div>
               <div className="mt-6 grid sm:grid-cols-3 gap-6">
                 {[
                   { gradient: "linear-gradient(150deg, rgba(123,181,189,0.5), rgba(243,168,161,0.30))", title: "Cómo tomar la fiebre correctamente", duration: "4:12" },
                   { gradient: "linear-gradient(150deg, rgba(168,201,168,0.5), rgba(229,184,71,0.30))",  title: "Primeros alimentos: demostración práctica", duration: "6:48" },
                   { gradient: "linear-gradient(150deg, rgba(196,181,253,0.5), rgba(123,181,189,0.30))", title: "Posiciones para amamantar sin dolor", duration: "3:30" },
                 ].map(({ gradient, title, duration }) => (
-                  <div key={title} className="group cursor-pointer">
+                  <Link key={title} to="/videos" className="group cursor-pointer">
                     <div
                       className="relative aspect-video rounded-[20px] overflow-hidden border border-line"
                       style={{
@@ -740,8 +749,8 @@ export default function BlogPage() {
                         {duration}
                       </span>
                     </div>
-                    <h3 className="mt-3 text-[14px] font-bold text-ink leading-tight">{title}</h3>
-                  </div>
+                    <h3 className="mt-3 text-[14px] font-bold text-ink leading-tight group-hover:text-teal-dark transition-colors">{title}</h3>
+                  </Link>
                 ))}
               </div>
             </section>

@@ -13,6 +13,7 @@ const NAV_LINKS = [
   { label: "Testimonios", href: "/#testimonios" },
   { label: "Sedes", href: "/#sedes" },
   { label: "Blog", href: "/blog" },
+  { label: "Videos", href: "/videos" },
 ];
 
 export default function Navbar() {
