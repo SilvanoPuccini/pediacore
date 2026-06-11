@@ -12,6 +12,7 @@ import hashlib
 import hmac
 
 from django.conf import settings
+from django.db import models
 from django.db.models import QuerySet
 from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
@@ -24,7 +25,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.content.models import FAQ, BlogPost, Page, PostEngagement, Subscriber
+from apps.content.models import FAQ, BlogPost, Page, PostEngagement, Subscriber, VideoResource
 from apps.content.serializers import (
     BlogPostAdminSerializer,
     BlogPostPublicSerializer,
@@ -34,6 +35,8 @@ from apps.content.serializers import (
     PageAdminSerializer,
     PagePublicSerializer,
     SubscribeSerializer,
+    VideoResourceAdminSerializer,
+    VideoResourcePublicSerializer,
 )
 from apps.core.pagination import StandardPagination
 from apps.core.permissions import IsDoctor
@@ -182,6 +185,80 @@ class AdminFAQViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self) -> QuerySet[FAQ]:
         return FAQ.objects.select_related("practice").order_by("order")
+
+
+# ---------------------------------------------------------------------------
+# Video views
+# ---------------------------------------------------------------------------
+
+
+class PublicVideoViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Public read-only endpoints for published videos.
+
+    GET /api/v1/content/videos/           — paginated list with ?search= and ?category= filters
+    GET /api/v1/content/videos/<slug>/    — video detail by slug
+    POST /api/v1/content/videos/<slug>/increment_view/ — bump view counter
+    """
+
+    serializer_class = VideoResourcePublicSerializer
+    pagination_class = StandardPagination
+    permission_classes = [AllowAny]
+    lookup_field = "slug"
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["title", "description"]
+
+    def get_queryset(self) -> QuerySet[VideoResource]:
+        qs = VideoResource.objects.filter(is_published=True).select_related("author", "practice")
+        category = self.request.query_params.get("category")
+        if category:
+            qs = qs.filter(category=category.upper())
+        return qs
+
+    @action(detail=True, methods=["post"])
+    def increment_view(self, request: Request, slug: str | None = None) -> Response:
+        video = self.get_object()
+        VideoResource.objects.filter(pk=video.pk).update(view_count=models.F("view_count") + 1)
+        return Response({"view_count": video.view_count + 1})
+
+
+class AdminVideoViewSet(viewsets.ModelViewSet):
+    """
+    Admin CRUD endpoints for videos (IsDoctor only).
+
+    GET    /api/v1/admin/videos/              — all videos including drafts
+    POST   /api/v1/admin/videos/              — create video (author auto-set)
+    GET    /api/v1/admin/videos/<pk>/         — detail
+    PUT    /api/v1/admin/videos/<pk>/         — update
+    DELETE /api/v1/admin/videos/<pk>/         — soft delete
+    POST   /api/v1/admin/videos/<pk>/publish/
+    POST   /api/v1/admin/videos/<pk>/unpublish/
+    """
+
+    serializer_class = VideoResourceAdminSerializer
+    pagination_class = StandardPagination
+    permission_classes = [IsDoctor]
+
+    def get_queryset(self) -> QuerySet[VideoResource]:
+        return VideoResource.objects.select_related("author", "practice").order_by("-created_at")
+
+    def perform_create(self, serializer: VideoResourceAdminSerializer) -> None:
+        """Auto-assign the request user as author and their practice."""
+        serializer.save(author=self.request.user, practice=self.request.user.practice)
+
+    @action(detail=True, methods=["post"])
+    def publish(self, request: Request, pk: int | None = None) -> Response:
+        video = self.get_object()
+        video.publish()
+        serializer = self.get_serializer(video)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"])
+    def unpublish(self, request: Request, pk: int | None = None) -> Response:
+        video = self.get_object()
+        video.unpublish()
+        serializer = self.get_serializer(video)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 # ---------------------------------------------------------------------------

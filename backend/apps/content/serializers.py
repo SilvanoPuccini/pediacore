@@ -10,7 +10,7 @@ from __future__ import annotations
 from django.utils.text import slugify
 from rest_framework import serializers
 
-from apps.content.models import FAQ, BlogPost, Page
+from apps.content.models import FAQ, BlogPost, Page, VideoResource
 
 
 # ---------------------------------------------------------------------------
@@ -204,6 +204,106 @@ class EngagementSerializer(serializers.Serializer):
             raise serializers.ValidationError({"value": "Rating requires a value between 1 and 5."})
         if attrs["engagement_type"] != "RATING":
             attrs["value"] = None
+        return attrs
+
+
+# ---------------------------------------------------------------------------
+# VideoResource serializers
+# ---------------------------------------------------------------------------
+
+
+class VideoResourcePublicSerializer(serializers.ModelSerializer):
+    """Read-only serializer for the public videoteca listing and detail views."""
+
+    author_name = serializers.SerializerMethodField()
+    youtube_embed_url = serializers.CharField(read_only=True)
+    duration_formatted = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = VideoResource
+        fields = [
+            "id",
+            "title",
+            "slug",
+            "youtube_url",
+            "youtube_embed_url",
+            "description",
+            "category",
+            "duration_seconds",
+            "duration_formatted",
+            "chapters",
+            "thumbnail",
+            "video_number",
+            "is_published",
+            "published_at",
+            "view_count",
+            "author_name",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+    def get_author_name(self, obj: VideoResource) -> str:
+        return obj.author.full_name or obj.author.email
+
+
+class VideoResourceAdminSerializer(serializers.ModelSerializer):
+    """Full-CRUD serializer for admin (IsDoctor) video endpoints."""
+
+    author_name = serializers.SerializerMethodField(read_only=True)
+    youtube_embed_url = serializers.CharField(read_only=True)
+    duration_formatted = serializers.CharField(read_only=True)
+    slug = serializers.SlugField(max_length=255, required=False, allow_blank=True)
+
+    class Meta:
+        model = VideoResource
+        fields = [
+            "id",
+            "practice",
+            "author",
+            "author_name",
+            "title",
+            "slug",
+            "youtube_url",
+            "youtube_embed_url",
+            "description",
+            "category",
+            "duration_seconds",
+            "duration_formatted",
+            "chapters",
+            "thumbnail",
+            "video_number",
+            "is_published",
+            "published_at",
+            "view_count",
+            "created_at",
+            "updated_at",
+            "deleted_at",
+        ]
+        read_only_fields = [
+            "id",
+            "author",
+            "author_name",
+            "published_at",
+            "video_number",
+            "youtube_embed_url",
+            "duration_formatted",
+            "created_at",
+            "updated_at",
+            "deleted_at",
+        ]
+
+    def get_author_name(self, obj: VideoResource) -> str:
+        return obj.author.full_name or obj.author.email
+
+    def validate_slug(self, value: str) -> str:
+        """Ensure slug is properly formatted."""
+        return slugify(value) if value else value
+
+    def validate(self, attrs: dict) -> dict:
+        """Auto-generate slug from title if not provided."""
+        if not attrs.get("slug") and attrs.get("title"):
+            attrs["slug"] = slugify(attrs["title"])
         return attrs
 
 

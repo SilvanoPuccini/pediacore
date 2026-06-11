@@ -14,26 +14,30 @@ from apps.content.views import (
     AdminBlogPostViewSet,
     AdminFAQViewSet,
     AdminPageViewSet,
+    AdminVideoViewSet,
     PostEngagementView,
     PublicBlogPostViewSet,
     PublicFAQListView,
     PublicPageDetailView,
+    PublicVideoViewSet,
     SubscribeView,
     UnsubscribeView,
 )
 
 app_name = "content"
 
-# Public router — read-only blog listing and FAQ listing
+# Public router — read-only blog listing, FAQ listing, and video listing
 public_router = DefaultRouter()
 public_router.register(r"content/blog", PublicBlogPostViewSet, basename="public-blog")
 public_router.register(r"content/faqs", PublicFAQListView, basename="public-faqs")
+public_router.register(r"content/videos", PublicVideoViewSet, basename="public-video")
 
 # Admin router — full CRUD
 admin_router = DefaultRouter()
 admin_router.register(r"admin/blog", AdminBlogPostViewSet, basename="admin-blog")
 admin_router.register(r"admin/pages", AdminPageViewSet, basename="admin-pages")
 admin_router.register(r"admin/faqs", AdminFAQViewSet, basename="admin-faqs")
+admin_router.register(r"admin/videos", AdminVideoViewSet, basename="admin-video")
 
 urlpatterns = [
     # Public read-only
