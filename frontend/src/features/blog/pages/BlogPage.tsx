@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   ChevronLeft,
@@ -283,15 +283,15 @@ function CardSkeleton() {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function BlogPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const activeTag = searchParams.get("tag") ?? "";
-  const currentPage = parseInt(searchParams.get("page") ?? "1", 10);
+  const [activeTag, setActiveTagState] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [showToTop, setShowToTop] = useState(false);
   const [bottomNlEmail, setBottomNlEmail] = useState("");
   const [bottomNlState, setBottomNlState] = useState<"idle" | "loading" | "done" | "error">("idle");
 
   const mainRef = useRef<HTMLElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
 
   // Scroll-to-top button
   useEffect(() => {
@@ -300,21 +300,47 @@ export default function BlogPage() {
     return () => window.removeEventListener("scroll", handler);
   }, []);
 
-  // Query
+  // Fetch all posts once — client-side filtering and pagination
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["blog", activeTag, currentPage],
+    queryKey: ["blog"],
     queryFn: async () => {
-      const params: Record<string, string | number> = { page: currentPage, page_size: PAGE_SIZE };
-      if (activeTag) params.tag = activeTag;
-      const res = await api.get<PaginatedResponse<BlogPost>>("/content/blog/", { params });
+      const res = await api.get<PaginatedResponse<BlogPost>>("/content/blog/", {
+        params: { page_size: 100 },
+      });
       return res.data;
     },
     staleTime: 1000 * 60 * 5,
   });
 
-  const posts = data?.results ?? [];
-  const totalCount = data?.count ?? 0;
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  // Sort all posts by post_number descending (highest = most recent)
+  const allPosts = [...(data?.results ?? [])].sort(
+    (a, b) => (b.post_number ?? 0) - (a.post_number ?? 0)
+  );
+
+  // Featured = highest post_number; secondary = next 2; rest go to grid
+  const featuredPost = allPosts[0] ?? null;
+  const secondaryPosts = allPosts.slice(1, 3);
+  const remainingPosts = allPosts.slice(3);
+
+  // Client-side tag filter on grid posts only
+  const filteredGridPosts = activeTag
+    ? remainingPosts.filter((p) =>
+        p.tags
+          .split(",")
+          .map((t) => t.trim())
+          .includes(activeTag)
+      )
+    : remainingPosts;
+
+  const totalPages = Math.max(1, Math.ceil(filteredGridPosts.length / PAGE_SIZE));
+
+  // Paginate filtered grid posts
+  const gridPosts = filteredGridPosts.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
+
+  const totalCount = allPosts.length;
 
   // Reveal animation via IntersectionObserver (runs when posts change so
   // newly rendered DOM elements with [data-reveal] get observed)
@@ -338,26 +364,16 @@ export default function BlogPage() {
     );
     document.querySelectorAll("[data-reveal]").forEach((el) => io.observe(el));
     return () => io.disconnect();
-  }, [posts]);
-
-  // Separate featured (first) from secondary (2nd, 3rd) and grid (rest)
-  const featuredPost = posts[0] ?? null;
-  const secondaryPosts = posts.slice(1, 3);
-  const gridPosts = posts.slice(3);
+  }, [allPosts]);
 
   function setTag(tag: string) {
-    const next = new URLSearchParams(searchParams);
-    if (tag) next.set("tag", tag);
-    else next.delete("tag");
-    next.set("page", "1");
-    setSearchParams(next);
+    setActiveTagState(tag);
+    setCurrentPage(1);
   }
 
   function setPage(page: number) {
-    const next = new URLSearchParams(searchParams);
-    next.set("page", String(page));
-    setSearchParams(next);
-    mainRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setCurrentPage(page);
+    gridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   // Build visible page numbers (max 5 around current)
@@ -538,12 +554,14 @@ export default function BlogPage() {
             {/* Grid + Sidebar */}
             <div className="grid lg:grid-cols-[1fr_300px] gap-10">
               {/* Left: grid */}
-              <div>
+              <div ref={gridRef}>
                 <div className="flex items-baseline justify-between mb-6">
                   <h2 className="font-display text-[24px] text-ink">Últimos artículos</h2>
                   {totalCount > 0 && (
                     <span className="text-[12.5px] text-ink3">
-                      Mostrando {posts.length} de {totalCount} artículos
+                      {activeTag
+                        ? `${filteredGridPosts.length} artículo${filteredGridPosts.length !== 1 ? "s" : ""} en "${activeTag}"`
+                        : `${totalCount} artículo${totalCount !== 1 ? "s" : ""} en total`}
                     </span>
                   )}
                 </div>
@@ -554,7 +572,7 @@ export default function BlogPage() {
                       <PostCard key={post.id} post={post} />
                     ))}
                   </div>
-                ) : posts.length === 0 ? (
+                ) : filteredGridPosts.length === 0 ? (
                   <div className="text-center py-16">
                     <div className="mx-auto w-14 h-14 rounded-full bg-bg flex items-center justify-center mb-3">
                       <Search size={22} color="#A0A0A0" />
