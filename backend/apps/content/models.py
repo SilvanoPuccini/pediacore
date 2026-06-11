@@ -138,3 +138,55 @@ class FAQ(BaseModel):
 
     def __str__(self) -> str:
         return self.question
+
+
+class Subscriber(BaseModel):
+    """
+    Newsletter subscriber for the practice's blog notifications.
+
+    Subscribers opt-in via the public subscribe endpoint and can
+    unsubscribe at any time via a signed token link.
+    """
+
+    email = models.EmailField(unique=True, max_length=255)
+    name = models.CharField(max_length=100, blank=True)
+    status = models.CharField(
+        max_length=20,
+        choices=[("ACTIVE", "Active"), ("UNSUBSCRIBED", "Unsubscribed")],
+        default="ACTIVE",
+        db_index=True,
+    )
+
+    class Meta:
+        db_table = "subscribers"
+        ordering = ["-created_at"]
+        verbose_name = "subscriber"
+        verbose_name_plural = "subscribers"
+
+    def __str__(self) -> str:
+        return self.email
+
+
+class NewsletterSent(BaseModel):
+    """
+    Record of a newsletter send triggered by a blog post publish event.
+
+    Tracks how many subscribers received each notification.
+    """
+
+    blog_post = models.ForeignKey(
+        "content.BlogPost",
+        on_delete=models.CASCADE,
+        related_name="newsletter_sends",
+    )
+    recipients_count = models.PositiveIntegerField(default=0)
+    sent_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "newsletter_sent"
+        ordering = ["-sent_at"]
+        verbose_name = "newsletter sent"
+        verbose_name_plural = "newsletters sent"
+
+    def __str__(self) -> str:
+        return f"Newsletter for '{self.blog_post.title}' ({self.recipients_count} recipients)"

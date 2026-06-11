@@ -8,7 +8,7 @@ from django.contrib import admin
 from django_ckeditor_5.widgets import CKEditor5Widget
 from unfold.admin import ModelAdmin
 
-from apps.content.models import FAQ, BlogPost, Page
+from apps.content.models import FAQ, BlogPost, NewsletterSent, Page, Subscriber
 
 
 class BlogPostAdminForm(admin.options.forms.ModelForm):
@@ -76,5 +76,28 @@ class FAQAdmin(ModelAdmin):
     fieldsets = [
         (None, {"fields": ["practice", "question", "answer", "order"]}),
         ("Publishing", {"fields": ["is_published"]}),
+        ("Timestamps", {"fields": ["created_at", "updated_at", "deleted_at"], "classes": ["collapse"]}),
+    ]
+
+
+@admin.register(Subscriber)
+class SubscriberAdmin(ModelAdmin):
+    list_display = ["email", "name", "status", "created_at"]
+    list_filter = ["status"]
+    search_fields = ["email", "name"]
+    readonly_fields = ["created_at", "updated_at", "deleted_at"]
+    fieldsets = [
+        (None, {"fields": ["email", "name", "status"]}),
+        ("Timestamps", {"fields": ["created_at", "updated_at", "deleted_at"], "classes": ["collapse"]}),
+    ]
+
+
+@admin.register(NewsletterSent)
+class NewsletterSentAdmin(ModelAdmin):
+    list_display = ["blog_post", "recipients_count", "sent_at", "created_at"]
+    list_select_related = ["blog_post"]
+    readonly_fields = ["blog_post", "recipients_count", "sent_at", "created_at", "updated_at", "deleted_at"]
+    fieldsets = [
+        (None, {"fields": ["blog_post", "recipients_count", "sent_at"]}),
         ("Timestamps", {"fields": ["created_at", "updated_at", "deleted_at"], "classes": ["collapse"]}),
     ]

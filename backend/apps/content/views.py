@@ -8,16 +8,23 @@ publish/unpublish actions for blog posts.
 
 from __future__ import annotations
 
+import hashlib
+import hmac
+
+from django.conf import settings
 from django.db.models import QuerySet
 from django.shortcuts import get_object_or_404
+from django.utils.decorators import method_decorator
 from django.utils.text import slugify
+from django_ratelimit.decorators import ratelimit
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
-from apps.content.models import FAQ, BlogPost, Page
+from apps.content.models import FAQ, BlogPost, Page, Subscriber
 from apps.content.serializers import (
     BlogPostAdminSerializer,
     BlogPostPublicSerializer,
@@ -25,6 +32,7 @@ from apps.content.serializers import (
     FAQPublicSerializer,
     PageAdminSerializer,
     PagePublicSerializer,
+    SubscribeSerializer,
 )
 from apps.core.pagination import StandardPagination
 from apps.core.permissions import IsDoctor
@@ -173,3 +181,90 @@ class AdminFAQViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self) -> QuerySet[FAQ]:
         return FAQ.objects.select_related("practice").order_by("order")
+
+
+# ---------------------------------------------------------------------------
+# Newsletter views
+# ---------------------------------------------------------------------------
+
+
+class SubscribeView(APIView):
+    """
+    Public endpoint for newsletter subscription.
+
+    POST /api/v1/content/subscribe/
+    """
+
+    permission_classes = [AllowAny]
+
+    @method_decorator(ratelimit(key="ip", rate="5/h", method="POST", block=True))
+    def post(self, request: Request) -> Response:
+        serializer = SubscribeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # Honeypot — bots fill the hidden "website" field
+        if serializer.validated_data.get("website"):
+            return Response({"detail": "OK"}, status=status.HTTP_200_OK)
+
+        email = serializer.validated_data["email"].lower()
+        name = serializer.validated_data.get("name", "")
+
+        subscriber, created = Subscriber.objects.get_or_create(
+            email=email,
+            defaults={"name": name, "status": "ACTIVE"},
+        )
+
+        if not created and subscriber.status == "UNSUBSCRIBED":
+            subscriber.status = "ACTIVE"
+            subscriber.name = name or subscriber.name
+            subscriber.save(update_fields=["status", "name", "updated_at"])
+            created = True  # treat reactivation as new for welcome email
+
+        if created:
+            from apps.content.services import send_welcome_email
+
+            send_welcome_email(subscriber)
+
+        return Response(
+            {"detail": "Suscripción confirmada"},
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class UnsubscribeView(APIView):
+    """
+    Public endpoint for newsletter unsubscription via signed token.
+
+    GET /api/v1/content/unsubscribe/?token=XXX&email=YYY
+    """
+
+    permission_classes = [AllowAny]
+
+    def get(self, request: Request) -> Response:
+        token = request.query_params.get("token", "")
+        email = request.query_params.get("email", "")
+
+        if not token or not email:
+            return Response(
+                {"detail": "Parámetros inválidos"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        expected = hmac.new(
+            settings.SECRET_KEY.encode(), email.encode(), hashlib.sha256
+        ).hexdigest()
+
+        if not hmac.compare_digest(token, expected):
+            return Response(
+                {"detail": "Token inválido"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            subscriber = Subscriber.objects.get(email=email)
+            subscriber.status = "UNSUBSCRIBED"
+            subscriber.save(update_fields=["status", "updated_at"])
+        except Subscriber.DoesNotExist:
+            pass  # Silently ignore — don't leak subscriber existence
+
+        return Response({"detail": "Te has dado de baja del newsletter"})
