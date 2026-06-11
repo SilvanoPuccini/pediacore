@@ -34,6 +34,7 @@ class BlogPostPublicSerializer(serializers.ModelSerializer):
             "cover_image",
             "published_at",
             "tags",
+            "post_number",
             "meta_description",
             "author_name",
             "created_at",
@@ -66,12 +67,13 @@ class BlogPostAdminSerializer(serializers.ModelSerializer):
             "is_published",
             "published_at",
             "tags",
+            "post_number",
             "meta_description",
             "created_at",
             "updated_at",
             "deleted_at",
         ]
-        read_only_fields = ["id", "author", "author_name", "published_at", "created_at", "updated_at", "deleted_at"]
+        read_only_fields = ["id", "author", "author_name", "published_at", "post_number", "created_at", "updated_at", "deleted_at"]
 
     def get_author_name(self, obj: BlogPost) -> str:
         return obj.author.full_name or obj.author.email
@@ -185,3 +187,30 @@ class SubscribeSerializer(serializers.Serializer):
     email = serializers.EmailField()
     name = serializers.CharField(max_length=100, required=False, allow_blank=True, default="")
     website = serializers.CharField(required=False, allow_blank=True, default="")  # honeypot
+
+
+# ---------------------------------------------------------------------------
+# Engagement serializers
+# ---------------------------------------------------------------------------
+
+
+class EngagementSerializer(serializers.Serializer):
+    engagement_type = serializers.ChoiceField(choices=["USEFUL", "LOVE", "RATING"])
+    value = serializers.IntegerField(min_value=1, max_value=5, required=False, allow_null=True)
+    session_key = serializers.CharField(max_length=64)
+
+    def validate(self, attrs):
+        if attrs["engagement_type"] == "RATING" and not attrs.get("value"):
+            raise serializers.ValidationError({"value": "Rating requires a value between 1 and 5."})
+        if attrs["engagement_type"] != "RATING":
+            attrs["value"] = None
+        return attrs
+
+
+class EngagementSummarySerializer(serializers.Serializer):
+    useful_count = serializers.IntegerField()
+    love_count = serializers.IntegerField()
+    rating_count = serializers.IntegerField()
+    rating_avg = serializers.FloatField(allow_null=True)
+    user_engagements = serializers.ListField(child=serializers.CharField())
+    user_rating = serializers.IntegerField(allow_null=True)

@@ -51,6 +51,13 @@ class BlogPost(BaseModel):
         blank=True,
         help_text=_("Comma-separated tags, e.g. salud,pediatría,vacunas"),
     )
+    post_number = models.PositiveIntegerField(
+        _("post number"),
+        null=True,
+        blank=True,
+        unique=True,
+        help_text=_("Auto-assigned sequential number on first publish."),
+    )
     meta_description = models.CharField(_("meta description"), max_length=255, blank=True)
 
     class Meta:
@@ -67,11 +74,14 @@ class BlogPost(BaseModel):
     # ------------------------------------------------------------------
 
     def publish(self) -> None:
-        """Mark this post as published. Sets published_at only on first publish."""
+        """Mark this post as published. Sets published_at and post_number on first publish."""
         self.is_published = True
         if self.published_at is None:
             self.published_at = timezone.now()
-        self.save(update_fields=["is_published", "published_at", "updated_at"])
+        if self.post_number is None:
+            last = BlogPost.objects.filter(post_number__isnull=False).order_by("-post_number").values_list("post_number", flat=True).first()
+            self.post_number = (last or 0) + 1
+        self.save(update_fields=["is_published", "published_at", "post_number", "updated_at"])
 
     def unpublish(self) -> None:
         """Retract this post from public visibility."""
@@ -190,3 +200,38 @@ class NewsletterSent(BaseModel):
 
     def __str__(self) -> str:
         return f"Newsletter for '{self.blog_post.title}' ({self.recipients_count} recipients)"
+
+
+class PostEngagement(BaseModel):
+    """Tracks reader engagement: reactions and star ratings on blog posts."""
+
+    ENGAGEMENT_TYPES = [
+        ("USEFUL", "Useful"),
+        ("LOVE", "Love"),
+        ("RATING", "Rating"),
+    ]
+
+    blog_post = models.ForeignKey(
+        "content.BlogPost",
+        on_delete=models.CASCADE,
+        related_name="engagements",
+    )
+    engagement_type = models.CharField(max_length=10, choices=ENGAGEMENT_TYPES, db_index=True)
+    value = models.PositiveSmallIntegerField(null=True, blank=True, help_text="1-5 for ratings, null for reactions")
+    session_key = models.CharField(max_length=64, db_index=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+
+    class Meta:
+        db_table = "post_engagements"
+        ordering = ["-created_at"]
+        verbose_name = "post engagement"
+        verbose_name_plural = "post engagements"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["blog_post", "engagement_type", "session_key"],
+                name="unique_engagement_per_session",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.engagement_type} on '{self.blog_post.title}' ({self.session_key[:8]})"

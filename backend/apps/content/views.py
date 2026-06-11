@@ -24,10 +24,11 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.content.models import FAQ, BlogPost, Page, Subscriber
+from apps.content.models import FAQ, BlogPost, Page, PostEngagement, Subscriber
 from apps.content.serializers import (
     BlogPostAdminSerializer,
     BlogPostPublicSerializer,
+    EngagementSerializer,
     FAQAdminSerializer,
     FAQPublicSerializer,
     PageAdminSerializer,
@@ -268,3 +269,76 @@ class UnsubscribeView(APIView):
             pass  # Silently ignore — don't leak subscriber existence
 
         return Response({"detail": "Te has dado de baja del newsletter"})
+
+
+# ---------------------------------------------------------------------------
+# Engagement views
+# ---------------------------------------------------------------------------
+
+
+class PostEngagementView(APIView):
+    """
+    Blog post engagement (reactions + ratings).
+
+    GET  /api/v1/content/blog/{slug}/engage/ — aggregated counts + user's own engagements
+    POST /api/v1/content/blog/{slug}/engage/ — submit reaction or rating
+    """
+
+    permission_classes = [AllowAny]
+
+    def _get_client_ip(self, request: Request) -> str | None:
+        xff = request.META.get("HTTP_X_FORWARDED_FOR")
+        return xff.split(",")[0].strip() if xff else request.META.get("REMOTE_ADDR")
+
+    def get(self, request: Request, slug: str) -> Response:
+        from django.db.models import Avg, Count, Q
+
+        post = get_object_or_404(BlogPost, slug=slug, is_published=True)
+        session_key = request.query_params.get("session_key", "")
+
+        engagements = PostEngagement.objects.filter(blog_post=post)
+
+        stats = engagements.aggregate(
+            useful_count=Count("id", filter=Q(engagement_type="USEFUL")),
+            love_count=Count("id", filter=Q(engagement_type="LOVE")),
+            rating_count=Count("id", filter=Q(engagement_type="RATING")),
+            rating_avg=Avg("value", filter=Q(engagement_type="RATING")),
+        )
+
+        # User's own engagements
+        user_engagements = []
+        user_rating = None
+        if session_key:
+            user_entries = engagements.filter(session_key=session_key)
+            user_engagements = list(user_entries.values_list("engagement_type", flat=True))
+            rating_entry = user_entries.filter(engagement_type="RATING").first()
+            if rating_entry:
+                user_rating = rating_entry.value
+
+        data = {
+            **stats,
+            "rating_avg": round(stats["rating_avg"], 1) if stats["rating_avg"] else None,
+            "user_engagements": user_engagements,
+            "user_rating": user_rating,
+        }
+        return Response(data)
+
+    def post(self, request: Request, slug: str) -> Response:
+        post = get_object_or_404(BlogPost, slug=slug, is_published=True)
+        serializer = EngagementSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        data = serializer.validated_data
+        ip = self._get_client_ip(request)
+
+        engagement, created = PostEngagement.objects.update_or_create(
+            blog_post=post,
+            engagement_type=data["engagement_type"],
+            session_key=data["session_key"],
+            defaults={"value": data.get("value"), "ip_address": ip},
+        )
+
+        return Response(
+            {"detail": "Engagement registered", "created": created},
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
