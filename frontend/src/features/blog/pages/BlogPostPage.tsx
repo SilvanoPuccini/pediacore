@@ -644,7 +644,7 @@ export default function BlogPostPage() {
         <div className="mt-6 flex items-center justify-between flex-wrap gap-4">
           {/* Author */}
           <div className="flex items-center gap-3">
-            <img src="/images/estefi-cutout.png" alt={post.author_name} className="w-11 h-11 rounded-full object-cover object-top bg-teal/20" />
+            <img src="/images/estefi-avatar.png" alt={post.author_name} width={88} height={88} className="w-11 h-11 rounded-full object-cover bg-teal/20" />
             <div className="leading-tight">
               <div className="text-[14px] font-bold text-ink">{post.author_name}</div>
               <div className="text-[12px] text-ink3">
