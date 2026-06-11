@@ -73,6 +73,7 @@ const AlimentacionInfantilPage = lazy(() => import("@/pages/services/Alimentacio
 const SuenoDesarrolloPage = lazy(() => import("@/pages/services/SuenoDesarrolloPage"));
 const BlogPage = lazy(() => import("@/features/blog/pages/BlogPage"));
 const BlogPostPage = lazy(() => import("@/features/blog/pages/BlogPostPage"));
+const VideosPage = lazy(() => import("@/features/blog/pages/VideosPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -142,6 +143,14 @@ function AppRoutes() {
           element={
             <PublicLayout>
               <BlogPostPage />
+            </PublicLayout>
+          }
+        />
+        <Route
+          path="/videos"
+          element={
+            <PublicLayout>
+              <VideosPage />
             </PublicLayout>
           }
         />

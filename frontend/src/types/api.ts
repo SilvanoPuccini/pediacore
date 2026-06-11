@@ -66,6 +66,27 @@ export interface BlogPost {
   updated_at: string;
 }
 
+export interface VideoResource {
+  id: number;
+  title: string;
+  slug: string;
+  youtube_url: string;
+  youtube_embed_url: string;
+  description: string;
+  category: string;
+  duration_seconds: number;
+  duration_formatted: string;
+  chapters: { time_seconds: number; label: string }[];
+  thumbnail: string | null;
+  video_number: number | null;
+  is_published: boolean;
+  published_at: string;
+  view_count: number;
+  author_name: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface FAQ {
   id: number;
   question: string;
