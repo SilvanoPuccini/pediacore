@@ -530,7 +530,7 @@ export default function BlogPage() {
             ) : null}
 
             {/* Category filter */}
-            <div className="filter-scroll overflow-x-auto -mx-6 px-6 mb-10">
+            <div ref={gridRef} className="filter-scroll overflow-x-auto -mx-6 px-6 mb-10">
               <div className="flex items-center gap-2 w-max pb-1">
                 {CATEGORIES.map((cat) => {
                   const isActive = activeTag === cat.value;
@@ -554,7 +554,7 @@ export default function BlogPage() {
             {/* Grid + Sidebar */}
             <div className="grid lg:grid-cols-[1fr_300px] gap-10">
               {/* Left: grid */}
-              <div ref={gridRef}>
+              <div>
                 <div className="flex items-baseline justify-between mb-6">
                   <h2 className="font-display text-[24px] text-ink">Últimos artículos</h2>
                   {totalCount > 0 && (
