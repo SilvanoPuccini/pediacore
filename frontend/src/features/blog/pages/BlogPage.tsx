@@ -486,28 +486,6 @@ export default function BlogPage() {
       {/* ── Main content ── */}
       <main id="contenido" ref={mainRef} className="max-w-[1280px] mx-auto px-6 py-12 lg:py-16">
 
-        {/* Category filter */}
-        <div className="filter-scroll overflow-x-auto -mx-6 px-6 mb-10">
-          <div className="flex items-center gap-2 w-max pb-1">
-            {CATEGORIES.map((cat) => {
-              const isActive = activeTag === cat.value;
-              return (
-                <button
-                  key={cat.value}
-                  onClick={() => setTag(cat.value)}
-                  className={`px-4 py-2 rounded-full text-[12.5px] font-semibold whitespace-nowrap transition border ${
-                    isActive
-                      ? "bg-teal-dark text-white border-teal-dark"
-                      : "bg-surface text-ink2 border-line hover:bg-bg"
-                  }`}
-                >
-                  {cat.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
         {/* Loading state */}
         {isLoading && (
           <div className="grid lg:grid-cols-[1.5fr_1fr] gap-6 mb-14">
@@ -550,6 +528,28 @@ export default function BlogPage() {
                 </div>
               </div>
             ) : null}
+
+            {/* Category filter */}
+            <div className="filter-scroll overflow-x-auto -mx-6 px-6 mb-10">
+              <div className="flex items-center gap-2 w-max pb-1">
+                {CATEGORIES.map((cat) => {
+                  const isActive = activeTag === cat.value;
+                  return (
+                    <button
+                      key={cat.value}
+                      onClick={() => setTag(cat.value)}
+                      className={`px-4 py-2 rounded-full text-[12.5px] font-semibold whitespace-nowrap transition border ${
+                        isActive
+                          ? "bg-teal-dark text-white border-teal-dark"
+                          : "bg-surface text-ink2 border-line hover:bg-bg"
+                      }`}
+                    >
+                      {cat.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
             {/* Grid + Sidebar */}
             <div className="grid lg:grid-cols-[1fr_300px] gap-10">
