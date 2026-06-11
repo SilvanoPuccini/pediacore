@@ -169,3 +169,19 @@ class FAQAdminSerializer(serializers.ModelSerializer):
             "deleted_at",
         ]
         read_only_fields = ["id", "created_at", "updated_at", "deleted_at"]
+
+
+# ---------------------------------------------------------------------------
+# Newsletter serializers
+# ---------------------------------------------------------------------------
+
+
+class SubscribeSerializer(serializers.Serializer):
+    """Serializer for newsletter subscription requests.
+
+    Includes a honeypot field (website) to silently reject bots.
+    """
+
+    email = serializers.EmailField()
+    name = serializers.CharField(max_length=100, required=False, allow_blank=True, default="")
+    website = serializers.CharField(required=False, allow_blank=True, default="")  # honeypot

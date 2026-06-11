@@ -293,7 +293,8 @@ export default function BlogPage() {
   const currentPage = parseInt(searchParams.get("page") ?? "1", 10);
 
   const [showToTop, setShowToTop] = useState(false);
-  const [bottomNlDone, setBottomNlDone] = useState(false);
+  const [bottomNlEmail, setBottomNlEmail] = useState("");
+  const [bottomNlState, setBottomNlState] = useState<"idle" | "loading" | "done" | "error">("idle");
 
   const mainRef = useRef<HTMLElement>(null);
 
@@ -755,30 +756,41 @@ export default function BlogPage() {
             Sin spam. Solo información útil para vos y tu familia. Cancelá cuando quieras.
           </p>
           <form
-            onSubmit={(e) => {
+            onSubmit={async (e) => {
               e.preventDefault();
-              setBottomNlDone(true);
+              setBottomNlState("loading");
+              try {
+                await api.post("/content/subscribe/", { email: bottomNlEmail, website: "" });
+                setBottomNlState("done");
+              } catch {
+                setBottomNlState("error");
+              }
             }}
             className="mt-6 max-w-md mx-auto flex items-center gap-2 flex-col sm:flex-row"
           >
             <input
               type="email"
               required
+              value={bottomNlEmail}
+              onChange={(e) => setBottomNlEmail(e.target.value)}
               placeholder="tu@email.com"
-              disabled={bottomNlDone}
+              disabled={bottomNlState === "done" || bottomNlState === "loading"}
               className="w-full px-4 py-3 rounded-[12px] bg-white/15 border border-white/25 text-white placeholder:text-white/60 text-[14px] focus:outline-none focus:ring-2 focus:ring-white/30 transition"
             />
             <button
               type="submit"
-              disabled={bottomNlDone}
+              disabled={bottomNlState === "done" || bottomNlState === "loading"}
               className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-[12px] bg-white text-teal-dark text-[14px] font-bold hover:opacity-90 transition"
             >
-              {bottomNlDone ? "¡Suscripto!" : "Suscribirme"}
-              {!bottomNlDone && (
+              {bottomNlState === "done" ? "¡Suscripto!" : bottomNlState === "loading" ? "Enviando..." : "Suscribirme"}
+              {bottomNlState === "idle" && (
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
               )}
             </button>
           </form>
+          {bottomNlState === "error" && (
+            <p className="mt-2 text-[13px] text-white/80">Hubo un error. Intentá de nuevo.</p>
+          )}
           <div className="mt-3 text-[12.5px] text-white/75 flex items-center justify-center gap-1.5">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             Ya se suscribieron +320 familias

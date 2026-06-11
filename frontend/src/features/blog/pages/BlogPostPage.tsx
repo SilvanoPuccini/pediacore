@@ -315,7 +315,18 @@ function TableOfContents({ items, activeId }: TocProps) {
 // ─── Newsletter mini ──────────────────────────────────────────────────────
 function NewsletterMini() {
   const [email, setEmail] = useState("");
-  const [sent,  setSent]  = useState(false);
+  const [state, setState] = useState<"idle" | "loading" | "done" | "error">("idle");
+
+  const handleSubscribe = async () => {
+    if (!email) return;
+    setState("loading");
+    try {
+      await api.post("/content/subscribe/", { email, website: "" });
+      setState("done");
+    } catch {
+      setState("error");
+    }
+  };
 
   return (
     <div className="bg-teal-dark rounded-[20px] p-5 text-white">
@@ -327,9 +338,9 @@ function NewsletterMini() {
       </div>
       <h3 className="mt-3 font-display text-[17px]">Recibí los artículos en tu email</h3>
       <p className="mt-1 text-[12px] text-white/80">Sin spam. Cancelá cuando quieras.</p>
-      {sent ? (
+      {state === "done" ? (
         <p className="mt-3 text-[13px] text-white/90 font-semibold">
-          ¡Gracias! Te sumamos a la lista. 💛
+          ¡Gracias! Te sumamos a la lista.
         </p>
       ) : (
         <>
@@ -338,14 +349,19 @@ function NewsletterMini() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="tu@email.com"
+            disabled={state === "loading"}
             className="mt-3 w-full px-3 py-2.5 rounded-[10px] bg-white/15 border border-white/25 text-white placeholder:text-white/60 text-[13px] focus:outline-none focus:ring-2 focus:ring-white/30 transition"
           />
           <button
-            onClick={() => email && setSent(true)}
+            onClick={handleSubscribe}
+            disabled={state === "loading"}
             className="mt-2 w-full px-4 py-2.5 rounded-[10px] bg-white text-teal-dark text-[13px] font-bold hover:opacity-90 transition"
           >
-            Suscribirme
+            {state === "loading" ? "Enviando..." : "Suscribirme"}
           </button>
+          {state === "error" && (
+            <p className="mt-2 text-[11px] text-white/80">Hubo un error. Intentá de nuevo.</p>
+          )}
         </>
       )}
     </div>

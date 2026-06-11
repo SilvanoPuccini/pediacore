@@ -17,6 +17,8 @@ from apps.content.views import (
     PublicBlogPostViewSet,
     PublicFAQListView,
     PublicPageDetailView,
+    SubscribeView,
+    UnsubscribeView,
 )
 
 app_name = "content"
@@ -36,6 +38,9 @@ urlpatterns = [
     # Public read-only
     path("", include(public_router.urls)),
     path("content/pages/<slug:slug>/", PublicPageDetailView.as_view({"get": "retrieve"}), name="public-page-detail"),
+    # Newsletter
+    path("content/subscribe/", SubscribeView.as_view(), name="subscribe"),
+    path("content/unsubscribe/", UnsubscribeView.as_view(), name="unsubscribe"),
     # Admin full CRUD
     path("", include(admin_router.urls)),
 ]

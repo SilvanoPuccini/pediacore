@@ -3,7 +3,7 @@ from __future__ import annotations
 import factory
 from django.utils import timezone
 
-from apps.content.models import FAQ, BlogPost, Page
+from apps.content.models import FAQ, BlogPost, Page, Subscriber
 from tests.factories.practice import PracticeFactory
 from tests.factories.users import DoctorFactory
 
@@ -71,3 +71,14 @@ class PublishedFAQFactory(FAQFactory):
     """Factory that creates an already-published FAQ."""
 
     is_published = True
+
+
+class SubscriberFactory(factory.django.DjangoModelFactory):
+    """Factory for creating Subscriber instances in tests."""
+
+    class Meta:
+        model = Subscriber
+
+    email = factory.Sequence(lambda n: f"subscriber{n}@example.com")
+    name = factory.Faker("first_name")
+    status = "ACTIVE"
