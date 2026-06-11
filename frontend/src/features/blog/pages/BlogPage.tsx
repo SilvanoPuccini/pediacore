@@ -75,7 +75,7 @@ const MOST_READ_TITLES = [
   "Sueño seguro del bebé: mitos y verdades",
 ];
 
-const PAGE_SIZE = 6;
+const PAGE_SIZE = 4;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -677,7 +677,7 @@ export default function BlogPage() {
                     boxShadow: "var(--shadow-card)",
                   }}
                 >
-                  <img src="/images/estefi-cutout.png" alt="Dra. Estefanía Ortigosa" className="w-20 h-20 object-cover object-top rounded-full mx-auto bg-teal/20" />
+                  <img src="/images/dra-estefi-consultorio.jpg" alt="Dra. Estefanía Ortigosa" className="w-20 h-20 object-cover object-top rounded-full mx-auto bg-teal/20" />
                   <h3 className="mt-3 font-display text-[17px] text-ink">
                     Dra. Estefanía Ortigosa
                   </h3>
@@ -687,8 +687,8 @@ export default function BlogPage() {
                   </p>
                   <Link
                     to="/booking"
-                    className="mt-4 inline-flex items-center justify-center gap-1.5 w-full px-4 py-2.5 rounded-[10px] bg-teal-dark text-white text-[13px] font-semibold hover:opacity-90 transition"
-                    style={{ boxShadow: "var(--shadow-cta)" }}
+                    className="mt-4 inline-flex items-center justify-center gap-1.5 w-full px-4 py-2.5 rounded-[10px] bg-teal-dark text-[13px] font-semibold hover:opacity-90 transition"
+                    style={{ boxShadow: "var(--shadow-cta)", color: "#ffffff" }}
                   >
                     Reservar consulta
                     <ArrowRight size={13} />
