@@ -333,7 +333,8 @@ function Reactions({
           Podés consultarme directamente reservando una consulta.{" "}
           <Link
             to="/booking"
-            className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-[10px] bg-teal-dark text-white text-[12.5px] font-semibold hover:opacity-90 transition"
+            className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-[10px] bg-teal-dark text-[12.5px] font-semibold hover:opacity-90 transition"
+            style={{ color: "#ffffff" }}
           >
             Reservar consulta
           </Link>
@@ -715,22 +716,24 @@ export default function BlogPostPage() {
               className="border border-line rounded-[20px] p-6 flex flex-col"
               style={{ background: "linear-gradient(135deg, var(--cream), var(--bg))" }}
             >
-              <div className="flex items-start gap-4">
+              <div className="flex items-start gap-3">
                 <img
-                  src="/images/estefi-cutout.png"
+                  src="/images/estefi-avatar.png"
                   alt="Dra. Estefanía Ortigosa"
-                  className="w-20 h-20 rounded-full object-cover object-top bg-teal/20 shrink-0 border-2 border-white shadow-sm"
+                  width={160}
+                  height={160}
+                  className="w-16 h-16 rounded-full object-cover bg-teal/20 shrink-0 border-2 border-white shadow-sm"
                 />
                 <div>
                   <div className="text-[11px] uppercase tracking-[0.14em] font-bold text-teal-dark">
                     Sobre la autora
                   </div>
-                  <h3 className="mt-1 font-display text-[18px] text-ink leading-snug">
+                  <h3 className="mt-0.5 font-display text-[17px] text-ink leading-snug">
                     Dra. Estefanía Ortigosa
                   </h3>
                 </div>
               </div>
-              <p className="mt-3 text-[13px] text-ink2 leading-relaxed flex-1">
+              <p className="mt-2 text-[13px] text-ink2 leading-relaxed flex-1">
                 Médica pediatra titulada, atiende en Pucón y Villarrica. Apasionada por la lactancia y el acompañamiento cercano a las familias del sur de Chile.
               </p>
               <Link
