@@ -167,9 +167,8 @@ function ShareButtonsCompact({ title }: { title: string }) {
     "share-btn w-9 h-9 rounded-full bg-surface border border-line flex items-center justify-center text-ink2 hover:text-teal-dark transition";
 
   return (
-    <div className="mt-8 flex flex-col items-center gap-3">
+    <div className="mt-8 flex items-center justify-center gap-3">
       <span className="text-[12.5px] font-semibold text-ink2">Compartir:</span>
-      <div className="flex items-center gap-3">
       <a href={waHref} target="_blank" rel="noreferrer" className={btnCls}>
         <WhatsAppIcon size={15} />
       </a>
@@ -183,7 +182,6 @@ function ShareButtonsCompact({ title }: { title: string }) {
       >
         <LinkIcon size={15} />
       </button>
-      </div>
     </div>
   );
 }
