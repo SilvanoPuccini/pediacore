@@ -14,6 +14,7 @@ from apps.content.views import (
     AdminBlogPostViewSet,
     AdminFAQViewSet,
     AdminPageViewSet,
+    PostEngagementView,
     PublicBlogPostViewSet,
     PublicFAQListView,
     PublicPageDetailView,
@@ -41,6 +42,8 @@ urlpatterns = [
     # Newsletter
     path("content/subscribe/", SubscribeView.as_view(), name="subscribe"),
     path("content/unsubscribe/", UnsubscribeView.as_view(), name="unsubscribe"),
+    # Engagement
+    path("content/blog/<slug:slug>/engage/", PostEngagementView.as_view(), name="post-engage"),
     # Admin full CRUD
     path("", include(admin_router.urls)),
 ]
