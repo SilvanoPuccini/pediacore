@@ -373,7 +373,9 @@ export default function BlogPage() {
 
   function setPage(page: number) {
     setCurrentPage(page);
-    gridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    requestAnimationFrame(() => {
+      gridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
 
   // Build visible page numbers (max 5 around current)
