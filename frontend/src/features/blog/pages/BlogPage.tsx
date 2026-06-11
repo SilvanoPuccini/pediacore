@@ -314,7 +314,7 @@ export default function BlogPage() {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["blog", activeTag, currentPage],
     queryFn: async () => {
-      const params: Record<string, string | number> = { page: currentPage };
+      const params: Record<string, string | number> = { page: currentPage, page_size: PAGE_SIZE };
       if (activeTag) params.tag = activeTag;
       const res = await api.get<PaginatedResponse<BlogPost>>("/content/blog/", { params });
       return res.data;
@@ -677,7 +677,9 @@ export default function BlogPage() {
                     boxShadow: "var(--shadow-card)",
                   }}
                 >
-                  <img src="/images/dra-estefi-consultorio.jpg" alt="Dra. Estefanía Ortigosa" className="w-20 h-20 object-cover object-top rounded-full mx-auto bg-teal/20" />
+                  <div className="w-20 h-20 rounded-full mx-auto overflow-hidden bg-teal/20 border-2 border-white shadow-sm">
+                    <img src="/images/dra-estefi-consultorio.jpg" alt="Dra. Estefanía Ortigosa" width={160} height={160} className="w-full h-full object-cover object-top" style={{ imageRendering: "auto" }} />
+                  </div>
                   <h3 className="mt-3 font-display text-[17px] text-ink">
                     Dra. Estefanía Ortigosa
                   </h3>
