@@ -257,7 +257,12 @@ function PostCard({ post }: { post: BlogPost }) {
         <CoverImage post={post} />
       </div>
       <div className="p-5">
-        {tag && <TagBadge tag={tag} small />}
+        <div className="flex items-center gap-2">
+          {tag && <TagBadge tag={tag} small />}
+          {post.post_number && (
+            <span className="text-[10px] font-bold text-ink3/60 tracking-wide">#{post.post_number}</span>
+          )}
+        </div>
         <h3 className="post-title mt-2.5 font-display text-[18px] leading-tight text-ink">
           {post.title}
         </h3>
@@ -326,7 +331,7 @@ export default function BlogPage() {
     );
     document.querySelectorAll("[data-reveal]").forEach((el) => io.observe(el));
     return () => io.disconnect();
-  }, []);
+  }, [posts]);
 
   // Query
   const { data, isLoading, isError } = useQuery({
@@ -409,7 +414,7 @@ export default function BlogPage() {
       </a>
 
       {/* ── Hero ── */}
-      <section className="relative overflow-hidden border-b border-line">
+      <section className="relative overflow-hidden border-b border-line pt-16">
         <span
           className="blob"
           style={{ width: 360, height: 360, background: "#7BB5BD", top: -140, left: -100 }}
@@ -680,7 +685,7 @@ export default function BlogPage() {
                     información clara y cercana.
                   </p>
                   <Link
-                    to="/reservar"
+                    to="/booking"
                     className="mt-4 inline-flex items-center justify-center gap-1.5 w-full px-4 py-2.5 rounded-[10px] bg-teal-dark text-white text-[13px] font-semibold hover:opacity-90 transition"
                     style={{ boxShadow: "var(--shadow-cta)" }}
                   >

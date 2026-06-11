@@ -65,12 +65,12 @@ export default function Navbar() {
             <ul className="hidden lg:flex items-center gap-1">
               {NAV_LINKS.map((link) => (
                 <li key={link.href}>
-                  <a
-                    href={link.href}
+                  <Link
+                    to={link.href}
                     className="px-3 py-2 text-[13px] text-[var(--ink2)] hover:text-[var(--ink)] transition-colors rounded-lg hover:bg-[var(--cream)]"
                   >
                     {link.label}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -148,14 +148,14 @@ export default function Navbar() {
           <div className="max-w-[1280px] mx-auto px-6 pb-5 pt-2 flex flex-col gap-1">
             {/* Section links (hidden on booking) */}
             {!isBooking && NAV_LINKS.map((link) => (
-              <a
+              <Link
                 key={link.href}
-                href={link.href}
+                to={link.href}
                 className="px-3 py-2.5 text-[14px] text-[var(--ink2)] hover:text-[var(--ink)] hover:bg-[var(--cream)] rounded-lg transition-colors"
                 onClick={() => setMobileOpen(false)}
               >
                 {link.label}
-              </a>
+              </Link>
             ))}
             <div className="mt-3 flex flex-col gap-2">
               {isAuthenticated && user && (

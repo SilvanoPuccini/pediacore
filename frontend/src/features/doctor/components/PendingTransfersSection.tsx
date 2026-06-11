@@ -38,15 +38,23 @@ function OcrFieldRow({
   match?: boolean;
 }) {
   if (value === null || value === undefined) return null;
-  let icon: string;
   let statusText: string;
-  if (match === true) { icon = "✅"; statusText = "coincide"; }
-  else if (match === false) { icon = "❌"; statusText = "no coincide"; }
-  else { icon = "ℹ️"; statusText = ""; }
+  let iconColor: string;
+  if (match === true) { iconColor = "#22C55E"; statusText = "coincide"; }
+  else if (match === false) { iconColor = "#EF4444"; statusText = "no coincide"; }
+  else { iconColor = "#6B7280"; statusText = ""; }
 
   return (
     <div className="flex items-center gap-2 text-[12px]">
-      <span>{icon}</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        {match === true ? (
+          <><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></>
+        ) : match === false ? (
+          <><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></>
+        ) : (
+          <><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></>
+        )}
+      </svg>
       <span className="text-ink2 font-medium">{label}:</span>
       <span className="text-ink">{value}</span>
       {statusText && <span className="text-ink3">({statusText})</span>}
