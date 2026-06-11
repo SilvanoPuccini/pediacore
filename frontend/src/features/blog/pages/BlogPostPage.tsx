@@ -60,19 +60,6 @@ function estimateReadTime(html: string): number {
   return Math.max(1, Math.round(words / 200));
 }
 
-interface TocItem {
-  id: string;
-  text: string;
-}
-
-function parseToc(html: string): TocItem[] {
-  const matches = [...html.matchAll(/<h2[^>]*id="([^"]+)"[^>]*>(.*?)<\/h2>/gi)];
-  return matches.map((m) => ({
-    id: m[1],
-    text: m[2].replace(/<[^>]*>/g, "").trim(),
-  }));
-}
-
 /** Sanitize HTML from backend CMS — allows rich content tags, strips scripts. */
 function sanitize(html: string): string {
   return DOMPurify.sanitize(html, {
@@ -354,43 +341,6 @@ function Reactions({
   );
 }
 
-// ─── TOC ──────────────────────────────────────────────────────────────────
-interface TocProps {
-  items:    TocItem[];
-  activeId: string;
-}
-
-function TableOfContents({ items, activeId }: TocProps) {
-  if (!items.length) return null;
-  return (
-    <div className="bg-surface border border-line rounded-[20px] p-5 shadow-[var(--shadow-card)]">
-      <h3 className="text-[12px] uppercase tracking-[0.14em] font-bold text-ink3">
-        En este artículo
-      </h3>
-      <nav className="mt-3">
-        {items.map((item) => (
-          <a
-            key={item.id}
-            href={`#${item.id}`}
-            className="toc-link"
-            style={
-              activeId === item.id
-                ? {
-                    borderLeftColor: "var(--teal-dark)",
-                    color:           "var(--teal-dark)",
-                    fontWeight:      700,
-                  }
-                : undefined
-            }
-          >
-            {item.text}
-          </a>
-        ))}
-      </nav>
-    </div>
-  );
-}
-
 // ─── Newsletter mini ──────────────────────────────────────────────────────
 function NewsletterMini() {
   const [email, setEmail] = useState("");
@@ -443,42 +393,6 @@ function NewsletterMini() {
           )}
         </>
       )}
-    </div>
-  );
-}
-
-// ─── Sidebar related ─────────────────────────────────────────────────────
-function SidebarRelated({ posts }: { posts: BlogPost[] }) {
-  if (!posts.length) return null;
-  return (
-    <div className="bg-surface border border-line rounded-[20px] p-5 shadow-[var(--shadow-card)]">
-      <h3 className="text-[12px] uppercase tracking-[0.14em] font-bold text-ink3">
-        Seguí leyendo
-      </h3>
-      <div className="mt-3 space-y-3">
-        {posts.slice(0, 3).map((post) => {
-          const tags     = parseTags(post.tags);
-          const gradient = getTagGradient(tags[0] ?? "");
-          return (
-            <Link key={post.id} to={`/blog/${post.slug}`} className="flex gap-3 group">
-              <div className="w-14 h-14 rounded-[10px] shrink-0 overflow-hidden">
-                {post.cover_image ? (
-                  <img
-                    src={post.cover_image}
-                    alt={post.title}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full" style={{ background: gradient }} />
-                )}
-              </div>
-              <span className="text-[12.5px] font-semibold text-ink leading-snug group-hover:text-teal-dark transition">
-                {post.title}
-              </span>
-            </Link>
-          );
-        })}
-      </div>
     </div>
   );
 }
@@ -548,7 +462,6 @@ export default function BlogPostPage() {
 
   const [readProgress, setReadProgress] = useState(0);
   const articleRef = useRef<HTMLElement>(null);
-  const [activeId,   setActiveId]   = useState("");
   const [copyLabel,  setCopyLabel]  = useState("Copiar link");
 
   // ── Engagement ──────────────────────────────────────────────────────────
@@ -601,9 +514,6 @@ export default function BlogPostPage() {
   const prevPost = currentIdx > 0 ? allPosts[currentIdx - 1] : null;
   const nextPost = currentIdx >= 0 && currentIdx < allPosts.length - 1 ? allPosts[currentIdx + 1] : null;
 
-  // ── TOC ─────────────────────────────────────────────────────────────────
-  const tocItems: TocItem[] = post ? parseToc(post.content) : [];
-
   // ── Reading progress ────────────────────────────────────────────────────
   const updateProgress = useCallback(() => {
     const el = articleRef.current;
@@ -619,24 +529,6 @@ export default function BlogPostPage() {
     updateProgress();
     return () => window.removeEventListener("scroll", updateProgress);
   }, [updateProgress]);
-
-  // ── TOC intersection observer ────────────────────────────────────────────
-  useEffect(() => {
-    if (!tocItems.length) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) setActiveId(entry.target.id);
-        });
-      },
-      { rootMargin: "-80px 0px -60% 0px", threshold: 0 },
-    );
-    tocItems.forEach(({ id }) => {
-      const el = document.getElementById(id);
-      if (el) observer.observe(el);
-    });
-    return () => observer.disconnect();
-  }, [tocItems.length]);
 
   // ── Copy handler ─────────────────────────────────────────────────────────
   const handleCopy = useCallback(() => {
@@ -793,8 +685,8 @@ export default function BlogPostPage() {
         </div>
       </div>
 
-      {/* ── Content + Sidebar ── */}
-      <div className="max-w-[1180px] mx-auto px-6 mt-12 grid lg:grid-cols-[1fr_300px] gap-12">
+      {/* ── Content ── */}
+      <div className="max-w-[1180px] mx-auto px-6 mt-12">
 
         {/* MAIN ARTICLE */}
         <article ref={articleRef} className="article max-w-[700px]">
@@ -882,14 +774,6 @@ export default function BlogPostPage() {
           {/* Share compact */}
           <ShareButtonsCompact title={post.title} />
         </article>
-
-        {/* SIDEBAR */}
-        <aside className="hidden lg:block">
-          <div className="sticky top-[88px] space-y-6">
-            <TableOfContents items={tocItems} activeId={activeId} />
-            <SidebarRelated posts={relatedPosts} />
-          </div>
-        </aside>
       </div>
 
       {/* ── Related posts (bottom 3-col grid) ── */}

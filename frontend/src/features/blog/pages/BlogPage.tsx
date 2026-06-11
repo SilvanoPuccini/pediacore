@@ -45,16 +45,6 @@ const TAG_DOT_COLORS: Record<string, string> = {
   Desarrollo:   "#E5B847",
 };
 
-const TOPIC_CLOUD_COLORS: Record<string, string> = {
-  Lactancia:    "rgba(249,168,212,0.18)",
-  Vacunas:      "rgba(147,197,253,0.18)",
-  Alimentación: "rgba(134,239,172,0.18)",
-  Sueño:        "rgba(196,181,253,0.18)",
-  Urgencias:    "rgba(252,165,165,0.18)",
-  Desarrollo:   "rgba(252,211,77,0.18)",
-  Consejos:     "rgba(94,234,212,0.18)",
-};
-
 const CATEGORIES = [
   { label: "Todos", value: "" },
   { label: "Lactancia", value: "Lactancia" },
@@ -647,26 +637,6 @@ export default function BlogPage() {
                       </li>
                     ))}
                   </ol>
-                </div>
-
-                {/* Topics cloud */}
-                <div
-                  className="bg-surface border border-line rounded-[20px] p-5"
-                  style={{ boxShadow: "var(--shadow-card)" }}
-                >
-                  <h3 className="font-display text-[16px] text-ink">Temas</h3>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {Object.entries(TOPIC_CLOUD_COLORS).map(([label, bg]) => (
-                      <button
-                        key={label}
-                        onClick={() => setTag(label)}
-                        className="px-3 py-1.5 rounded-full text-[12px] font-semibold border border-line text-ink2 hover:bg-bg transition"
-                        style={{ background: bg }}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
                 </div>
 
                 {/* Author card */}

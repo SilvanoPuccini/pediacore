@@ -69,7 +69,7 @@ class PublicBlogPostViewSet(viewsets.ReadOnlyModelViewSet):
         if tag:
             qs = qs.filter(tags__icontains=tag)
 
-        return qs
+        return qs.order_by("post_number")
 
 
 class PublicPageDetailView(viewsets.ViewSet):
