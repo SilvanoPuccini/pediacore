@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import DOMPurify from "dompurify";
 import api from "@/lib/api";
 import type { BlogPost, PaginatedResponse } from "@/types/api";
@@ -82,6 +82,63 @@ function sanitize(html: string): string {
   });
 }
 
+// ─── Engagement helpers ───────────────────────────────────────────────────
+
+interface EngagementSummary {
+  useful_count: number;
+  love_count: number;
+  rating_count: number;
+  rating_avg: number | null;
+  user_engagements: string[];
+  user_rating: number | null;
+}
+
+function getSessionKey(): string {
+  const KEY = "pediacore_session_key";
+  let key = localStorage.getItem(KEY);
+  if (!key) {
+    key = crypto.randomUUID();
+    localStorage.setItem(KEY, key);
+  }
+  return key;
+}
+
+function useEngagement(slug: string | undefined) {
+  const queryClient = useQueryClient();
+  const sessionKey = getSessionKey();
+
+  const query = useQuery<EngagementSummary>({
+    queryKey: ["engagement", slug],
+    queryFn: async () => {
+      const { data } = await api.get<EngagementSummary>(
+        `/content/blog/${slug}/engage/`,
+        { params: { session_key: sessionKey } },
+      );
+      return data;
+    },
+    enabled: !!slug,
+    staleTime: 30_000,
+  });
+
+  const mutation = useMutation({
+    mutationFn: async (payload: {
+      engagement_type: "USEFUL" | "LOVE" | "RATING";
+      value?: number;
+    }) => {
+      const { data } = await api.post(`/content/blog/${slug}/engage/`, {
+        ...payload,
+        session_key: sessionKey,
+      });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["engagement", slug] });
+    },
+  });
+
+  return { data: query.data, isLoading: query.isLoading, submit: mutation.mutate };
+}
+
 // ─── Share buttons — header (with labels) ─────────────────────────────────
 interface ShareButtonsInlineProps {
   title: string;
@@ -92,7 +149,7 @@ interface ShareButtonsInlineProps {
 function ShareButtonsInline({ title, copyLabel, onCopy }: ShareButtonsInlineProps) {
   const url = typeof window !== "undefined" ? window.location.href : "";
   const waHref  = `https://wa.me/?text=${encodeURIComponent(title + " " + url)}`;
-  const fbHref  = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+  const igHref  = "https://www.instagram.com/estefiortigosa.pediatra/";
   const btnCls  =
     "share-btn inline-flex items-center gap-1.5 px-3 py-2 rounded-[10px] bg-surface border border-line text-[12px] font-semibold text-ink2 hover:text-ink transition";
 
@@ -102,9 +159,9 @@ function ShareButtonsInline({ title, copyLabel, onCopy }: ShareButtonsInlineProp
         <WhatsAppIcon />
         WhatsApp
       </a>
-      <a href={fbHref} target="_blank" rel="noreferrer" className={btnCls}>
-        <FacebookIcon />
-        Facebook
+      <a href={igHref} target="_blank" rel="noreferrer" className={btnCls}>
+        <InstagramIcon />
+        Instagram
       </a>
       <button onClick={onCopy} className={btnCls}>
         <LinkIcon />
@@ -118,7 +175,7 @@ function ShareButtonsInline({ title, copyLabel, onCopy }: ShareButtonsInlineProp
 function ShareButtonsCompact({ title }: { title: string }) {
   const url    = typeof window !== "undefined" ? window.location.href : "";
   const waHref = `https://wa.me/?text=${encodeURIComponent(title + " " + url)}`;
-  const fbHref = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+  const igHref = "https://www.instagram.com/estefiortigosa.pediatra/";
   const btnCls =
     "share-btn w-9 h-9 rounded-full bg-surface border border-line flex items-center justify-center text-ink2 hover:text-teal-dark transition";
 
@@ -128,8 +185,8 @@ function ShareButtonsCompact({ title }: { title: string }) {
       <a href={waHref} target="_blank" rel="noreferrer" className={btnCls}>
         <WhatsAppIcon size={15} />
       </a>
-      <a href={fbHref} target="_blank" rel="noreferrer" className={btnCls}>
-        <FacebookIcon size={15} />
+      <a href={igHref} target="_blank" rel="noreferrer" className={btnCls}>
+        <InstagramIcon size={15} />
       </a>
       <button
         onClick={() => navigator.clipboard?.writeText(url)}
@@ -151,10 +208,12 @@ function WhatsAppIcon({ size = 14 }: { size?: number }) {
   );
 }
 
-function FacebookIcon({ size = 14 }: { size?: number }) {
+function InstagramIcon({ size = 14 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z" />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="2" width="20" height="20" rx="5" />
+      <circle cx="12" cy="12" r="5" />
+      <circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none" />
     </svg>
   );
 }
@@ -169,10 +228,19 @@ function LinkIcon({ size = 14 }: { size?: number }) {
 }
 
 // ─── Star rating ──────────────────────────────────────────────────────────
-function StarRating() {
-  const [hover, setHover]  = useState(0);
-  const [rated, setRated]  = useState(0);
-  const [msg,   setMsg]    = useState("");
+function StarRating({
+  currentRating,
+  ratingAvg,
+  ratingCount,
+  onRate,
+}: {
+  currentRating: number | null;
+  ratingAvg: number | null;
+  ratingCount: number;
+  onRate: (value: number) => void;
+}) {
+  const [hover, setHover] = useState(0);
+  const rated = currentRating ?? 0;
 
   return (
     <div>
@@ -186,10 +254,7 @@ function StarRating() {
               aria-label={`${v} estrella${v !== 1 ? "s" : ""}`}
               onMouseEnter={() => setHover(v)}
               onMouseLeave={() => setHover(0)}
-              onClick={() => {
-                setRated(v);
-                setMsg(v >= 4 ? "¡Gracias por tu valoración! 💛" : "Gracias, ¡seguimos mejorando!");
-              }}
+              onClick={() => onRate(v)}
             >
               <svg
                 width="30"
@@ -206,52 +271,66 @@ function StarRating() {
           );
         })}
       </div>
-      <div className="mt-2 text-[12.5px] text-ink3 h-4">{msg}</div>
+      <div className="mt-2 text-[12.5px] text-ink3 h-4">
+        {rated > 0
+          ? (rated >= 4 ? "¡Gracias por tu valoración!" : "Gracias, ¡seguimos mejorando!")
+          : ratingCount > 0 && ratingAvg
+            ? `${ratingAvg.toFixed(1)} promedio · ${ratingCount} valoracion${ratingCount !== 1 ? "es" : ""}`
+            : ""}
+      </div>
     </div>
   );
 }
 
 // ─── Reactions ────────────────────────────────────────────────────────────
-function Reactions() {
-  const [bumped,     setBumped]     = useState<Record<string, boolean>>({});
-  const [counts,     setCounts]     = useState({ util: 24, love: 12 });
-  const [showDudas,  setShowDudas]  = useState(false);
-
-  const handleReact = (key: "util" | "love") => {
-    if (bumped[key]) return;
-    setCounts((prev) => ({ ...prev, [key]: prev[key] + 1 }));
-    setBumped((prev) => ({ ...prev, [key]: true }));
-  };
+function Reactions({
+  usefulCount,
+  loveCount,
+  userEngagements,
+  onReact,
+}: {
+  usefulCount: number;
+  loveCount: number;
+  userEngagements: string[];
+  onReact: (type: "USEFUL" | "LOVE") => void;
+}) {
+  const [showDudas, setShowDudas] = useState(false);
+  const hasUseful = userEngagements.includes("USEFUL");
+  const hasLove = userEngagements.includes("LOVE");
 
   return (
     <div className="mt-4">
       <div className="flex items-center justify-center gap-2 flex-wrap">
         <button
-          onClick={() => handleReact("util")}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border text-[13px] font-semibold text-ink2 transition"
+          onClick={() => onReact("USEFUL")}
+          disabled={hasUseful}
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border text-[13px] font-semibold text-ink2 transition disabled:cursor-default"
           style={{
-            background:   bumped.util ? "rgba(123,181,189,0.15)" : "var(--bg)",
-            borderColor:  bumped.util ? "rgba(123,181,189,0.5)"  : "var(--line)",
+            background:  hasUseful ? "rgba(123,181,189,0.15)" : "var(--bg)",
+            borderColor: hasUseful ? "rgba(123,181,189,0.5)"  : "var(--line)",
           }}
         >
-          👍 Útil ({counts.util})
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/></svg>
+          Útil ({usefulCount})
         </button>
         <button
-          onClick={() => handleReact("love")}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border text-[13px] font-semibold text-ink2 transition"
+          onClick={() => onReact("LOVE")}
+          disabled={hasLove}
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border text-[13px] font-semibold text-ink2 transition disabled:cursor-default"
           style={{
-            background:   bumped.love ? "rgba(123,181,189,0.15)" : "var(--bg)",
-            borderColor:  bumped.love ? "rgba(123,181,189,0.5)"  : "var(--line)",
+            background:  hasLove ? "rgba(123,181,189,0.15)" : "var(--bg)",
+            borderColor: hasLove ? "rgba(123,181,189,0.5)"  : "var(--line)",
           }}
         >
-          ❤️ Me encantó ({counts.love})
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+          Me encantó ({loveCount})
         </button>
         <button
           onClick={() => setShowDudas((v) => !v)}
           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-bg border border-line text-[13px] font-semibold text-ink2 transition"
-          style={{ ["--tw-border-opacity" as string]: "1" }}
         >
-          💬 Tengo dudas
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
+          Tengo dudas
         </button>
       </div>
       {showDudas && (
@@ -264,7 +343,7 @@ function Reactions() {
         >
           Podés consultarme directamente reservando una consulta.{" "}
           <Link
-            to="/reservar"
+            to="/booking"
             className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-[10px] bg-teal-dark text-white text-[12.5px] font-semibold hover:opacity-90 transition"
           >
             Reservar consulta
@@ -472,6 +551,9 @@ export default function BlogPostPage() {
   const [activeId,   setActiveId]   = useState("");
   const [copyLabel,  setCopyLabel]  = useState("Copiar link");
 
+  // ── Engagement ──────────────────────────────────────────────────────────
+  const engagement = useEngagement(slug);
+
   // ── Fetch post ──────────────────────────────────────────────────────────
   const { data: post, isLoading, isError } = useQuery<BlogPost>({
     queryKey:  ["blog-post", slug],
@@ -612,7 +694,7 @@ export default function BlogPostPage() {
       />
 
       {/* ── Breadcrumb + back link ── */}
-      <div className="max-w-[1180px] mx-auto px-6 pt-6">
+      <div className="max-w-[1180px] mx-auto px-6 pt-6 mt-16">
         <nav className="text-[12px] text-ink3 flex items-center gap-1.5 flex-wrap">
           <Link to="/" className="hover:text-teal-dark transition">Inicio</Link>
           <span>›</span>
@@ -647,14 +729,19 @@ export default function BlogPostPage() {
 
       {/* ── Post header ── */}
       <header className="max-w-[760px] mx-auto px-6 pt-7">
-        {primaryTag && (
-          <span
-            className="inline-block px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider"
-            style={{ background: tagColor.bg, color: tagColor.color }}
-          >
-            {primaryTag}
-          </span>
-        )}
+        <div className="flex items-center gap-2.5">
+          {primaryTag && (
+            <span
+              className="inline-block px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider"
+              style={{ background: tagColor.bg, color: tagColor.color }}
+            >
+              {primaryTag}
+            </span>
+          )}
+          {post.post_number && (
+            <span className="text-[11px] font-bold text-ink3/60 tracking-wide">#{post.post_number}</span>
+          )}
+        </div>
 
         <h1 className="mt-4 font-display text-[32px] sm:text-[40px] leading-[1.08] text-ink tracking-tight">
           {post.title}
@@ -732,25 +819,30 @@ export default function BlogPostPage() {
             ))}
           </div>
 
-          {/* Author bio card */}
-          <div
-            className="mt-8 border border-line rounded-[20px] p-6 flex items-start gap-5 flex-wrap"
-            style={{ background: "linear-gradient(135deg, var(--cream), var(--bg))" }}
-          >
-            <img src="/images/estefi-cutout.png" alt="Dra. Estefanía Ortigosa" className="w-20 h-20 rounded-full object-cover object-top bg-teal/20 shrink-0" />
-            <div className="flex-1 min-w-[200px]">
-              <div className="text-[11px] uppercase tracking-[0.14em] font-bold text-teal-dark">
-                Sobre la autora
+          {/* Author bio + Newsletter side-by-side */}
+          <div className="mt-8 grid sm:grid-cols-2 gap-4">
+            {/* Author bio card */}
+            <div
+              className="border border-line rounded-[20px] p-6 flex flex-col"
+              style={{ background: "linear-gradient(135deg, var(--cream), var(--bg))" }}
+            >
+              <div className="flex items-start gap-4">
+                <img src="/images/estefi-cutout.png" alt="Dra. Estefanía Ortigosa" className="w-16 h-16 rounded-full object-cover object-top bg-teal/20 shrink-0" />
+                <div>
+                  <div className="text-[11px] uppercase tracking-[0.14em] font-bold text-teal-dark">
+                    Sobre la autora
+                  </div>
+                  <h3 className="mt-1 font-display text-[18px] text-ink">
+                    Dra. Estefanía Ortigosa
+                  </h3>
+                </div>
               </div>
-              <h3 className="mt-1 font-display text-[20px] text-ink">
-                Dra. Estefanía Ortigosa
-              </h3>
-              <p className="mt-2 text-[13.5px] text-ink2 leading-relaxed">
+              <p className="mt-3 text-[13px] text-ink2 leading-relaxed flex-1">
                 Médica pediatra titulada, atiende en Pucón y Villarrica. Apasionada por la lactancia y el acompañamiento cercano a las familias del sur de Chile.
               </p>
               <Link
-                to="/reservar"
-                className="mt-4 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-[10px] bg-teal-dark text-white text-[13px] font-semibold hover:opacity-90 transition shadow-[var(--shadow-cta)]"
+                to="/booking"
+                className="mt-4 inline-flex items-center justify-center gap-1.5 w-full px-4 py-2.5 rounded-[10px] bg-teal-dark text-white text-[13px] font-semibold hover:opacity-90 transition shadow-[var(--shadow-cta)]"
               >
                 Reservar consulta con Estefi
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -758,15 +850,28 @@ export default function BlogPostPage() {
                 </svg>
               </Link>
             </div>
+
+            {/* Newsletter mini inline */}
+            <NewsletterMini />
           </div>
 
           {/* Rating + reactions */}
           <div className="mt-8 bg-surface border border-line rounded-[20px] p-6 text-center">
             <h3 className="font-display text-[19px] text-ink">¿Te fue útil este artículo?</h3>
             <div className="mt-3">
-              <StarRating />
+              <StarRating
+                currentRating={engagement.data?.user_rating ?? null}
+                ratingAvg={engagement.data?.rating_avg ?? null}
+                ratingCount={engagement.data?.rating_count ?? 0}
+                onRate={(value) => engagement.submit({ engagement_type: "RATING", value })}
+              />
             </div>
-            <Reactions />
+            <Reactions
+              usefulCount={engagement.data?.useful_count ?? 0}
+              loveCount={engagement.data?.love_count ?? 0}
+              userEngagements={engagement.data?.user_engagements ?? []}
+              onReact={(type) => engagement.submit({ engagement_type: type })}
+            />
           </div>
 
           {/* Share compact */}
@@ -777,20 +882,6 @@ export default function BlogPostPage() {
         <aside className="hidden lg:block">
           <div className="sticky top-[88px] space-y-6">
             <TableOfContents items={tocItems} activeId={activeId} />
-            <NewsletterMini />
-            {/* Reserve CTA */}
-            <div className="bg-surface border border-line rounded-[20px] p-5 shadow-[var(--shadow-card)] text-center">
-              <h3 className="font-display text-[16px] text-ink">¿Tenés dudas sobre tu bebé?</h3>
-              <p className="mt-1.5 text-[12.5px] text-ink2">
-                Agendá una consulta presencial u online.
-              </p>
-              <Link
-                to="/reservar"
-                className="mt-3 inline-flex items-center justify-center gap-1.5 w-full px-4 py-2.5 rounded-[10px] bg-teal-dark text-white text-[13px] font-semibold hover:opacity-90 transition shadow-[var(--shadow-cta)]"
-              >
-                Reservar consulta
-              </Link>
-            </div>
             <SidebarRelated posts={relatedPosts} />
           </div>
         </aside>
