@@ -815,19 +815,23 @@ export default function BlogPostPage() {
           </div>
 
           {/* Author bio + Newsletter side-by-side */}
-          <div className="mt-8 grid sm:grid-cols-2 gap-4">
+          <div className="mt-8 grid sm:grid-cols-[1fr_1fr] gap-4 items-stretch">
             {/* Author bio card */}
             <div
               className="border border-line rounded-[20px] p-6 flex flex-col"
               style={{ background: "linear-gradient(135deg, var(--cream), var(--bg))" }}
             >
               <div className="flex items-start gap-4">
-                <img src="/images/estefi-cutout.png" alt="Dra. Estefanía Ortigosa" className="w-16 h-16 rounded-full object-cover object-top bg-teal/20 shrink-0" />
+                <img
+                  src="/images/estefi-cutout.png"
+                  alt="Dra. Estefanía Ortigosa"
+                  className="w-20 h-20 rounded-full object-cover object-top bg-teal/20 shrink-0 border-2 border-white shadow-sm"
+                />
                 <div>
                   <div className="text-[11px] uppercase tracking-[0.14em] font-bold text-teal-dark">
                     Sobre la autora
                   </div>
-                  <h3 className="mt-1 font-display text-[18px] text-ink">
+                  <h3 className="mt-1 font-display text-[18px] text-ink leading-snug">
                     Dra. Estefanía Ortigosa
                   </h3>
                 </div>
@@ -837,9 +841,9 @@ export default function BlogPostPage() {
               </p>
               <Link
                 to="/booking"
-                className="mt-4 inline-flex items-center justify-center gap-1.5 w-full px-4 py-2.5 rounded-[10px] bg-teal-dark text-white text-[13px] font-semibold hover:opacity-90 transition shadow-[var(--shadow-cta)]"
+                className="mt-4 inline-flex items-center justify-center gap-1.5 w-full px-4 py-2.5 rounded-[10px] bg-teal-dark text-white text-[12.5px] font-semibold hover:opacity-90 transition shadow-[var(--shadow-cta)] whitespace-nowrap"
               >
-                Reservar consulta con Estefi
+                Reservar consulta
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
                 </svg>
