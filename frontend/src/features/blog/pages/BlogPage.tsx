@@ -310,7 +310,24 @@ export default function BlogPage() {
     return () => window.removeEventListener("scroll", handler);
   }, []);
 
-  // Reveal animation via IntersectionObserver
+  // Query
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["blog", activeTag, currentPage],
+    queryFn: async () => {
+      const params: Record<string, string | number> = { page: currentPage };
+      if (activeTag) params.tag = activeTag;
+      const res = await api.get<PaginatedResponse<BlogPost>>("/content/blog/", { params });
+      return res.data;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const posts = data?.results ?? [];
+  const totalCount = data?.count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+
+  // Reveal animation via IntersectionObserver (runs when posts change so
+  // newly rendered DOM elements with [data-reveal] get observed)
   useEffect(() => {
     if (!("IntersectionObserver" in window)) {
       document.querySelectorAll("[data-reveal]").forEach((el) => el.classList.add("in"));
@@ -332,22 +349,6 @@ export default function BlogPage() {
     document.querySelectorAll("[data-reveal]").forEach((el) => io.observe(el));
     return () => io.disconnect();
   }, [posts]);
-
-  // Query
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["blog", activeTag, currentPage],
-    queryFn: async () => {
-      const params: Record<string, string | number> = { page: currentPage };
-      if (activeTag) params.tag = activeTag;
-      const res = await api.get<PaginatedResponse<BlogPost>>("/content/blog/", { params });
-      return res.data;
-    },
-    staleTime: 1000 * 60 * 5,
-  });
-
-  const posts = data?.results ?? [];
-  const totalCount = data?.count ?? 0;
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   // Separate featured (first) from secondary (2nd, 3rd) and grid (rest)
   const featuredPost = posts[0] ?? null;
