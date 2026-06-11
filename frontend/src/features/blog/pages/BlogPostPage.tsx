@@ -815,18 +815,23 @@ export default function BlogPostPage() {
           </div>
 
           {/* Author bio + Newsletter side-by-side */}
-          <div className="mt-8 grid gap-4 items-stretch">
+          <div className="mt-8 grid sm:grid-cols-[1.6fr_1fr] gap-4 items-stretch">
             {/* Author bio card */}
             <div
               className="border border-line rounded-[20px] p-6 flex flex-col sm:flex-row sm:items-center gap-5"
               style={{ background: "linear-gradient(135deg, var(--cream), var(--bg))" }}
             >
-              <div className="flex items-start gap-4 sm:flex-1">
-                <img
-                  src="/images/dra-estefi-consultorio.jpg"
-                  alt="Dra. Estefanía Ortigosa"
-                  className="w-24 h-24 rounded-full object-cover object-top bg-teal/20 shrink-0 border-2 border-white shadow-sm"
-                />
+              <div className="flex items-start gap-4">
+                <div className="w-20 h-20 shrink-0 rounded-full border-2 border-white shadow-sm overflow-hidden bg-teal/20">
+                  <img
+                    src="/images/dra-estefi-consultorio.jpg"
+                    alt="Dra. Estefanía Ortigosa"
+                    width={160}
+                    height={160}
+                    className="w-full h-full object-cover object-top"
+                    style={{ imageRendering: "auto" }}
+                  />
+                </div>
                 <div>
                   <div className="text-[11px] uppercase tracking-[0.14em] font-bold text-teal-dark">
                     Sobre la autora
@@ -841,7 +846,7 @@ export default function BlogPostPage() {
               </p>
               <Link
                 to="/booking"
-                className="mt-4 sm:mt-0 inline-flex items-center justify-center gap-1.5 shrink-0 px-5 py-2.5 rounded-[10px] bg-teal-dark text-[12.5px] font-semibold hover:opacity-90 transition shadow-[var(--shadow-cta)] whitespace-nowrap"
+                className="mt-4 inline-flex items-center justify-center gap-1.5 w-full px-4 py-2.5 rounded-[10px] bg-teal-dark text-[12.5px] font-semibold hover:opacity-90 transition shadow-[var(--shadow-cta)] whitespace-nowrap"
                 style={{ color: "#ffffff" }}
               >
                 Reservar consulta
