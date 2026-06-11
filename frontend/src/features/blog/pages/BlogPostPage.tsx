@@ -167,8 +167,9 @@ function ShareButtonsCompact({ title }: { title: string }) {
     "share-btn w-9 h-9 rounded-full bg-surface border border-line flex items-center justify-center text-ink2 hover:text-teal-dark transition";
 
   return (
-    <div className="mt-8 flex items-center gap-3">
+    <div className="mt-8 flex flex-col items-center gap-3">
       <span className="text-[12.5px] font-semibold text-ink2">Compartir:</span>
+      <div className="flex items-center gap-3">
       <a href={waHref} target="_blank" rel="noreferrer" className={btnCls}>
         <WhatsAppIcon size={15} />
       </a>
@@ -182,6 +183,7 @@ function ShareButtonsCompact({ title }: { title: string }) {
       >
         <LinkIcon size={15} />
       </button>
+      </div>
     </div>
   );
 }
@@ -733,7 +735,8 @@ export default function BlogPostPage() {
               </p>
               <Link
                 to="/booking"
-                className="mt-4 inline-flex items-center justify-center gap-1.5 w-full px-4 py-2.5 rounded-[10px] bg-teal-dark text-white text-[12.5px] font-semibold hover:opacity-90 transition shadow-[var(--shadow-cta)] whitespace-nowrap"
+                className="mt-4 inline-flex items-center justify-center gap-1.5 w-full px-4 py-2.5 rounded-[10px] bg-teal-dark text-[12.5px] font-semibold hover:opacity-90 transition shadow-[var(--shadow-cta)] whitespace-nowrap"
+                style={{ color: "#ffffff" }}
               >
                 Reservar consulta
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
