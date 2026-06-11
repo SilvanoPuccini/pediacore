@@ -645,11 +645,6 @@ export default function BlogPostPage() {
     setTimeout(() => setCopyLabel("Copiar link"), 1600);
   }, []);
 
-  // ── Scroll to top on navigation ──────────────────────────────────────────
-  useEffect(() => {
-    window.scrollTo({ top: 0 });
-  }, [slug]);
-
   // ── Render ───────────────────────────────────────────────────────────────
   if (isLoading) return <BlogPostSkeleton />;
 
