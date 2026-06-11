@@ -534,7 +534,7 @@ export default function BlogPage() {
         {!isLoading && !isError && (
           <>
             {/* Featured + secondary */}
-            {posts.length > 0 ? (
+            {allPosts.length > 0 ? (
               <div className="grid lg:grid-cols-[1.5fr_1fr] gap-6 mb-14">
                 {featuredPost && (
                   <div data-reveal>
