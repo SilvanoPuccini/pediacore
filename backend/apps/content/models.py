@@ -235,3 +235,106 @@ class PostEngagement(BaseModel):
 
     def __str__(self) -> str:
         return f"{self.engagement_type} on '{self.blog_post.title}' ({self.session_key[:8]})"
+
+
+class VideoResource(BaseModel):
+    """Educational video resource for the practice's public videoteca."""
+
+    CATEGORY_CHOICES = [
+        ("URGENCIAS", "Urgencias"),
+        ("LACTANCIA", "Lactancia"),
+        ("ALIMENTACION", "Alimentación"),
+        ("SUENO", "Sueño"),
+        ("PRIMEROS_AUXILIOS", "Primeros auxilios"),
+        ("DESARROLLO", "Desarrollo"),
+        ("CONSEJOS", "Consejos"),
+    ]
+
+    practice = models.ForeignKey(
+        "practice.Practice",
+        on_delete=models.CASCADE,
+        related_name="videos",
+        verbose_name=_("practice"),
+    )
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="videos",
+        verbose_name=_("author"),
+    )
+    title = models.CharField(_("title"), max_length=255)
+    slug = models.SlugField(_("slug"), max_length=255, unique=True)
+    youtube_url = models.URLField(
+        _("YouTube URL"),
+        help_text=_("Full YouTube video URL (e.g. https://www.youtube.com/watch?v=XXXXX)"),
+    )
+    description = models.TextField(_("description"), blank=True)
+    category = models.CharField(_("category"), max_length=20, choices=CATEGORY_CHOICES, db_index=True)
+    duration_seconds = models.PositiveIntegerField(
+        _("duration (seconds)"),
+        default=0,
+        help_text=_("Video duration in seconds"),
+    )
+    chapters = models.JSONField(
+        _("chapters"),
+        default=list,
+        blank=True,
+        help_text=_("List of {time_seconds, label} objects"),
+    )
+    thumbnail = models.ImageField(_("thumbnail"), upload_to="videos/thumbnails/", blank=True)
+    video_number = models.PositiveIntegerField(
+        _("video number"),
+        null=True,
+        blank=True,
+        unique=True,
+        help_text=_("Auto-assigned on first publish."),
+    )
+    is_published = models.BooleanField(_("published"), default=False)
+    published_at = models.DateTimeField(_("published at"), null=True, blank=True)
+    view_count = models.PositiveIntegerField(_("view count"), default=0)
+
+    class Meta:
+        db_table = "video_resources"
+        ordering = ["-published_at", "-created_at"]
+        verbose_name = _("video resource")
+        verbose_name_plural = _("video resources")
+
+    def __str__(self) -> str:
+        return self.title
+
+    def publish(self) -> None:
+        """Mark this video as published. Sets published_at and video_number on first publish."""
+        self.is_published = True
+        if self.published_at is None:
+            self.published_at = timezone.now()
+        if self.video_number is None:
+            last = (
+                VideoResource.objects.filter(video_number__isnull=False)
+                .order_by("-video_number")
+                .values_list("video_number", flat=True)
+                .first()
+            )
+            self.video_number = (last or 0) + 1
+        self.save(update_fields=["is_published", "published_at", "video_number", "updated_at"])
+
+    def unpublish(self) -> None:
+        """Retract this video from public visibility."""
+        self.is_published = False
+        self.save(update_fields=["is_published", "updated_at"])
+
+    @property
+    def youtube_embed_url(self) -> str:
+        """Extract YouTube video ID and return embed URL."""
+        import re
+
+        pattern = r"(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/embed/)([a-zA-Z0-9_-]{11})"
+        match = re.search(pattern, self.youtube_url)
+        if match:
+            return f"https://www.youtube.com/embed/{match.group(1)}"
+        return self.youtube_url
+
+    @property
+    def duration_formatted(self) -> str:
+        """Return duration as M:SS string."""
+        m, s = divmod(self.duration_seconds, 60)
+        return f"{m}:{s:02d}"

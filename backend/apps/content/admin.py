@@ -8,7 +8,7 @@ from django.contrib import admin
 from django_ckeditor_5.widgets import CKEditor5Widget
 from unfold.admin import ModelAdmin
 
-from apps.content.models import FAQ, BlogPost, NewsletterSent, Page, PostEngagement, Subscriber
+from apps.content.models import FAQ, BlogPost, NewsletterSent, Page, PostEngagement, Subscriber, VideoResource
 
 
 class BlogPostAdminForm(admin.options.forms.ModelForm):
@@ -110,3 +110,30 @@ class PostEngagementAdmin(ModelAdmin):
     list_select_related = ["blog_post"]
     search_fields = ["blog_post__title", "session_key"]
     readonly_fields = ["blog_post", "engagement_type", "value", "session_key", "ip_address", "created_at", "updated_at", "deleted_at"]
+
+
+@admin.register(VideoResource)
+class VideoResourceAdmin(ModelAdmin):
+    list_display = ["video_number", "title", "category", "author", "is_published", "view_count", "published_at"]
+    list_filter = ["is_published", "category", "practice"]
+    search_fields = ["title", "description"]
+    prepopulated_fields = {"slug": ("title",)}
+    list_select_related = ["author", "practice"]
+    readonly_fields = ["created_at", "updated_at", "deleted_at", "published_at", "video_number", "view_count"]
+    fieldsets = [
+        (None, {"fields": ["practice", "author", "title", "slug", "category"]}),
+        ("Video", {"fields": ["youtube_url", "description", "duration_seconds", "chapters", "thumbnail"]}),
+        ("Publishing", {"fields": ["is_published", "published_at", "video_number", "view_count"]}),
+        ("Timestamps", {"fields": ["created_at", "updated_at", "deleted_at"], "classes": ["collapse"]}),
+    ]
+    actions = ["publish_videos", "unpublish_videos"]
+
+    @admin.action(description="Publish selected videos")
+    def publish_videos(self, request, queryset):
+        for video in queryset:
+            video.publish()
+
+    @admin.action(description="Unpublish selected videos")
+    def unpublish_videos(self, request, queryset):
+        for video in queryset:
+            video.unpublish()
