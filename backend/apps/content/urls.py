@@ -21,6 +21,7 @@ from apps.content.views import (
     PublicPageDetailView,
     PublicVideoViewSet,
     SubscribeView,
+    SubscriptionStatusView,
     UnsubscribeView,
 )
 
@@ -45,6 +46,7 @@ urlpatterns = [
     path("content/pages/<slug:slug>/", PublicPageDetailView.as_view({"get": "retrieve"}), name="public-page-detail"),
     # Newsletter
     path("content/subscribe/", SubscribeView.as_view(), name="subscribe"),
+    path("content/subscribe/status/", SubscriptionStatusView.as_view(), name="subscribe-status"),
     path("content/unsubscribe/", UnsubscribeView.as_view(), name="unsubscribe"),
     # Engagement
     path("content/blog/<slug:slug>/engage/", PostEngagementView.as_view(), name="post-engage"),

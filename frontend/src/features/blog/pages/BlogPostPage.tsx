@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import DOMPurify from "dompurify";
 import api from "@/lib/api";
+import { useAuthStore } from "@/stores/auth";
 import type { BlogPost, PaginatedResponse } from "@/types/api";
 
 // ─── Tag color map ─────────────────────────────────────────────────────────
@@ -344,19 +345,38 @@ function Reactions({
 
 // ─── Newsletter mini ──────────────────────────────────────────────────────
 function NewsletterMini() {
+  const { user, isAuthenticated } = useAuthStore();
   const [email, setEmail] = useState("");
-  const [state, setState] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [state, setState] = useState<"idle" | "loading" | "done" | "already" | "error">("idle");
+
+  // Check subscription status for logged-in users
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    setEmail(user?.email ?? "");
+    api
+      .get<{ subscribed: boolean }>("/content/subscribe/status/")
+      .then((res) => {
+        if (res.data.subscribed) setState("already");
+      })
+      .catch(() => {});
+  }, [isAuthenticated, user?.email]);
 
   const handleSubscribe = async () => {
-    if (!email) return;
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed) return;
     setState("loading");
     try {
-      await api.post("/content/subscribe/", { email, website: "" });
-      setState("done");
+      const res = await api.post<{ already_subscribed: boolean }>(
+        "/content/subscribe/",
+        { email: trimmed, website: "" }
+      );
+      setState(res.data.already_subscribed ? "already" : "done");
     } catch {
       setState("error");
     }
   };
+
+  const isDone = state === "done" || state === "already";
 
   return (
     <div className="bg-teal-dark rounded-[20px] p-5 text-white">
@@ -368,18 +388,21 @@ function NewsletterMini() {
       </div>
       <h3 className="mt-3 font-display text-[17px]">Recibí los artículos en tu email</h3>
       <p className="mt-1 text-[12px] text-white/80">Sin spam. Cancelá cuando quieras.</p>
-      {state === "done" ? (
+      {isDone ? (
         <p className="mt-3 text-[13px] text-white/90 font-semibold">
-          ¡Gracias! Te sumamos a la lista.
+          {state === "already" ? "Ya estás suscripto/a." : "¡Gracias! Te sumamos a la lista."}
         </p>
       ) : (
         <>
           <input
             type="email"
+            required
+            maxLength={254}
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="tu@email.com"
-            disabled={state === "loading"}
+            disabled={state === "loading" || isAuthenticated}
             className="mt-3 w-full px-3 py-2.5 rounded-[10px] bg-white/15 border border-white/25 text-white placeholder:text-white/60 text-[13px] focus:outline-none focus:ring-2 focus:ring-white/30 transition"
           />
           <button

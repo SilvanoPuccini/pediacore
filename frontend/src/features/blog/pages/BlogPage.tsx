@@ -10,6 +10,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import api from "@/lib/api";
+import { useAuthStore } from "@/stores/auth";
 import type { BlogPost, PaginatedResponse } from "@/types/api";
 
 // ─── Tag config ───────────────────────────────────────────────────────────────
@@ -286,9 +287,22 @@ export default function BlogPage() {
   const [activeTag, setActiveTagState] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
+  const { user, isAuthenticated } = useAuthStore();
   const [showToTop, setShowToTop] = useState(false);
   const [bottomNlEmail, setBottomNlEmail] = useState("");
-  const [bottomNlState, setBottomNlState] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [bottomNlState, setBottomNlState] = useState<"idle" | "loading" | "done" | "already" | "error">("idle");
+
+  // Pre-fill email and check subscription for logged-in users
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    setBottomNlEmail(user?.email ?? "");
+    api
+      .get<{ subscribed: boolean }>("/content/subscribe/status/")
+      .then((res) => {
+        if (res.data.subscribed) setBottomNlState("already");
+      })
+      .catch(() => {});
+  }, [isAuthenticated, user?.email]);
 
   const mainRef = useRef<HTMLElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -763,10 +777,15 @@ export default function BlogPage() {
           <form
             onSubmit={async (e) => {
               e.preventDefault();
+              const trimmed = bottomNlEmail.trim().toLowerCase();
+              if (!trimmed) return;
               setBottomNlState("loading");
               try {
-                await api.post("/content/subscribe/", { email: bottomNlEmail, website: "" });
-                setBottomNlState("done");
+                const res = await api.post<{ already_subscribed: boolean }>(
+                  "/content/subscribe/",
+                  { email: trimmed, website: "" }
+                );
+                setBottomNlState(res.data.already_subscribed ? "already" : "done");
               } catch {
                 setBottomNlState("error");
               }
@@ -776,18 +795,20 @@ export default function BlogPage() {
             <input
               type="email"
               required
+              maxLength={254}
+              autoComplete="email"
               value={bottomNlEmail}
               onChange={(e) => setBottomNlEmail(e.target.value)}
               placeholder="tu@email.com"
-              disabled={bottomNlState === "done" || bottomNlState === "loading"}
+              disabled={bottomNlState === "done" || bottomNlState === "already" || bottomNlState === "loading" || isAuthenticated}
               className="w-full px-4 py-3 rounded-[12px] bg-white/15 border border-white/25 text-white placeholder:text-white/60 text-[14px] focus:outline-none focus:ring-2 focus:ring-white/30 transition"
             />
             <button
               type="submit"
-              disabled={bottomNlState === "done" || bottomNlState === "loading"}
+              disabled={bottomNlState === "done" || bottomNlState === "already" || bottomNlState === "loading"}
               className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-[12px] bg-white text-teal-dark text-[14px] font-bold hover:opacity-90 transition"
             >
-              {bottomNlState === "done" ? "¡Suscripto!" : bottomNlState === "loading" ? "Enviando..." : "Suscribirme"}
+              {bottomNlState === "already" ? "Ya estás suscripto/a" : bottomNlState === "done" ? "¡Suscripto!" : bottomNlState === "loading" ? "Enviando..." : "Suscribirme"}
               {bottomNlState === "idle" && (
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
               )}
