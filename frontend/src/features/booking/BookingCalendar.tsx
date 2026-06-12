@@ -94,7 +94,7 @@ function StepIndicator({ currentStep }: { currentStep: BookingStep }) {
 // ─── Orchestrator ──────────────────────────────────────────────────────────────
 
 export default function BookingCalendar() {
-  const { step, locationId, serviceId, setLocation, setService, setStep, lastActivity, reset } = useBookingStore();
+  const { step, serviceId, setLocation, setService, setStep, lastActivity, reset } = useBookingStore();
   const [searchParams] = useSearchParams();
 
   // Scroll to top on every step change
