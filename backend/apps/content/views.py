@@ -53,6 +53,7 @@ class PublicBlogPostViewSet(viewsets.ReadOnlyModelViewSet):
 
     GET /api/v1/content/blog/           — paginated list with ?search= and ?tag= filters
     GET /api/v1/content/blog/<slug>/    — post detail by slug
+    GET /api/v1/content/blog/popular/   — top 6 posts by engagement count
     """
 
     serializer_class = BlogPostPublicSerializer
@@ -70,6 +71,18 @@ class PublicBlogPostViewSet(viewsets.ReadOnlyModelViewSet):
             qs = qs.filter(tags__icontains=tag)
 
         return qs.order_by("post_number")
+
+    @action(detail=False, methods=["get"])
+    def popular(self, request: Request) -> Response:
+        """Return top 6 published posts ranked by total engagement count."""
+        qs = (
+            BlogPost.objects.filter(is_published=True)
+            .select_related("author", "practice")
+            .annotate(engagement_count=models.Count("engagements"))
+            .order_by("-engagement_count", "-published_at")[:6]
+        )
+        serializer = self.get_serializer(qs, many=True)
+        return Response(serializer.data)
 
 
 class PublicPageDetailView(viewsets.ViewSet):

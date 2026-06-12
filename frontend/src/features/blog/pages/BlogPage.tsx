@@ -58,14 +58,6 @@ const CATEGORIES = [
   { label: "Consejos", value: "Consejos" },
 ];
 
-const MOST_READ_TITLES = [
-  "Lactancia materna en los primeros 6 meses",
-  "Fiebre en niños: cuándo preocuparse",
-  "Calendario de vacunas Chile 2026",
-  "Alimentación complementaria a los 6 meses",
-  "Sueño seguro del bebé: mitos y verdades",
-];
-
 const PAGE_SIZE = 4;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -324,6 +316,16 @@ export default function BlogPage() {
       return res.data;
     },
     staleTime: 1000 * 60 * 5,
+  });
+
+  // Top posts by engagement (for "Artículos más leídos" sidebar)
+  const { data: popularPosts } = useQuery({
+    queryKey: ["blog-popular"],
+    queryFn: async () => {
+      const res = await api.get<BlogPost[]>("/content/blog/popular/");
+      return res.data;
+    },
+    staleTime: 1000 * 60 * 10,
   });
 
   // Sort all posts by post_number descending (highest = most recent)
@@ -648,30 +650,32 @@ export default function BlogPage() {
 
               {/* Sidebar */}
               <aside className="space-y-6">
-                {/* Most read */}
-                <div
-                  className="bg-surface border border-line rounded-[20px] p-5"
-                  style={{ boxShadow: "var(--shadow-card)" }}
-                >
-                  <h3 className="font-display text-[16px] text-ink">Artículos más leídos</h3>
-                  <ol className="mt-4 space-y-3.5">
-                    {MOST_READ_TITLES.map((title, i) => (
-                      <li key={i}>
-                        <Link
-                          to="/blog"
-                          className="flex items-start gap-3 group"
-                        >
-                          <span className="font-display text-[20px] text-teal leading-none w-6 shrink-0">
-                            {i + 1}
-                          </span>
-                          <span className="text-[13px] font-semibold text-ink leading-snug group-hover:text-teal-dark transition">
-                            {title}
-                          </span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ol>
-                </div>
+                {/* Most read — ranked by engagement */}
+                {popularPosts && popularPosts.length > 0 && (
+                  <div
+                    className="bg-surface border border-line rounded-[20px] p-5"
+                    style={{ boxShadow: "var(--shadow-card)" }}
+                  >
+                    <h3 className="font-display text-[16px] text-ink">Artículos más leídos</h3>
+                    <ol className="mt-4 space-y-3.5">
+                      {popularPosts.map((post, i) => (
+                        <li key={post.id}>
+                          <Link
+                            to={`/blog/${post.slug}`}
+                            className="flex items-start gap-3 group"
+                          >
+                            <span className="font-display text-[20px] text-teal leading-none w-6 shrink-0">
+                              {i + 1}
+                            </span>
+                            <span className="text-[13px] font-semibold text-ink leading-snug group-hover:text-teal-dark transition">
+                              {post.title}
+                            </span>
+                          </Link>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
 
                 {/* Author card */}
                 <div
