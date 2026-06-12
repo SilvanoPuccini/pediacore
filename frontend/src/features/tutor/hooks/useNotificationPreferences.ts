@@ -10,6 +10,7 @@ const DEFAULT_PREFERENCES: Omit<NotificationPreference, "id" | "created_at" | "u
   email_appointment_cancelled: true,
   email_waitlist_available: true,
   email_payment_received: true,
+  email_blog_posts: true,
 };
 
 // ─── useNotificationPreferences ───────────────────────────────────────────────
@@ -40,7 +41,7 @@ export function useUpdateNotificationPreferences() {
     mutationFn: async (
       updates: Partial<Omit<NotificationPreference, "id" | "created_at" | "updated_at">>
     ) => {
-      const { data } = await api.put<NotificationPreference>(
+      const { data } = await api.patch<NotificationPreference>(
         "/notification-preferences/",
         updates
       );

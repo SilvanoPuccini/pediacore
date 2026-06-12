@@ -1,15 +1,27 @@
+import base64
+import os
+from pathlib import Path
+
 from django.contrib.auth.tokens import default_token_generator
 from django.core.cache import cache
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from rest_framework import generics, status
+from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from weasyprint import HTML
 
 from apps.users.models import User
 from apps.users.serializers import UserProfileUpdateSerializer, UserRegistrationSerializer, UserSerializer
+
+AVATAR_MAX_SIZE = 5 * 1024 * 1024  # 5 MB
+AVATAR_ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp"}
 
 
 class UserRegistrationView(generics.CreateAPIView):
@@ -190,3 +202,102 @@ class ChangePasswordView(APIView):
             {"detail": "Contraseña actualizada correctamente."},
             status=status.HTTP_200_OK,
         )
+
+
+class ProfileExportPDFView(APIView):
+    """
+    GET /api/v1/profile/export-pdf/
+
+    Generates a PDF with the authenticated tutor's profile data,
+    including linked patients (children) and co-responsibles.
+    Returns the file as an attachment.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request: Request) -> HttpResponse:
+        from apps.patients.models import CoResponsible, TutorPatient
+
+        user = request.user
+
+        # Fetch linked patients via the TutorPatient junction model
+        links = TutorPatient.objects.filter(tutor=user).select_related("patient")
+        patients = [link.patient for link in links]
+
+        # Fetch co-responsibles linked to this tutor
+        coresponsibles = list(CoResponsible.objects.filter(tutor=user))
+
+        # Embed the logo as base64 so WeasyPrint can render it without filesystem access
+        logo_path = Path(__file__).resolve().parents[3] / "frontend" / "public" / "images" / "logofinal.png"
+        logo_b64 = ""
+        if logo_path.exists():
+            logo_b64 = base64.b64encode(logo_path.read_bytes()).decode()
+
+        context = {
+            "user": user,
+            "patients": patients,
+            "coresponsibles": coresponsibles,
+            "logo_b64": logo_b64,
+            "generated_at": timezone.now(),
+        }
+
+        html_string = render_to_string("pdf/profile_export.html", context, request=request)
+        pdf_file = HTML(string=html_string, base_url=request.build_absolute_uri("/")).write_pdf()
+
+        filename = f"mis-datos-{timezone.now().strftime('%Y-%m-%d')}.pdf"
+        response = HttpResponse(pdf_file, content_type="application/pdf")
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
+
+
+class AvatarUploadView(APIView):
+    """
+    POST   /api/v1/profile/avatar/ — upload avatar (multipart/form-data, field: "avatar")
+    DELETE /api/v1/profile/avatar/ — remove avatar
+    """
+
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser]
+
+    def post(self, request: Request) -> Response:
+        file = request.FILES.get("avatar")
+        if not file:
+            return Response(
+                {"detail": "No se envió ninguna imagen."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if file.content_type not in AVATAR_ALLOWED_TYPES:
+            return Response(
+                {"detail": "Formato no permitido. Usá JPEG, PNG o WebP."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if file.size > AVATAR_MAX_SIZE:
+            return Response(
+                {"detail": "La imagen no puede superar los 5 MB."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user = request.user
+        if user.avatar:
+            old_path = user.avatar.path
+            if os.path.isfile(old_path):
+                os.remove(old_path)
+
+        user.avatar = file
+        user.save(update_fields=["avatar"])
+
+        serializer = UserSerializer(user, context={"request": request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def delete(self, request: Request) -> Response:
+        user = request.user
+        if user.avatar:
+            old_path = user.avatar.path
+            if os.path.isfile(old_path):
+                os.remove(old_path)
+            user.avatar = ""
+            user.save(update_fields=["avatar"])
+
+        return Response(status=status.HTTP_204_NO_CONTENT)

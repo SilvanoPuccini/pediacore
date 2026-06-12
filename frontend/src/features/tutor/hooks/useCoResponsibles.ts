@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
-import type { CoResponsible } from "@/types/api";
+import type { CoResponsible, PaginatedResponse } from "@/types/api";
 
 type CoResponsiblePayload = Omit<
   CoResponsible,
@@ -11,8 +11,8 @@ export function useCoResponsibles() {
   return useQuery({
     queryKey: ["co-responsibles"],
     queryFn: async () => {
-      const { data } = await api.get<CoResponsible[]>("/co-responsibles/");
-      return data;
+      const { data } = await api.get<PaginatedResponse<CoResponsible>>("/co-responsibles/");
+      return data.results;
     },
   });
 }

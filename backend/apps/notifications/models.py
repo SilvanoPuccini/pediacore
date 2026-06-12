@@ -241,6 +241,9 @@ class NotificationPreference(BaseModel):
     email_payment_received = models.BooleanField(
         _("email payment received"), default=True
     )
+    email_blog_posts = models.BooleanField(
+        _("email blog posts"), default=True
+    )
     reminder_hours_before = models.PositiveIntegerField(
         _("reminder hours before"),
         default=24,
