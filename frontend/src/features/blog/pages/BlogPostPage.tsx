@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import DOMPurify from "dompurify";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/auth";
+import estefiAvatar from "@/assets/estefi-avatar.png";
 import type { BlogPost, PaginatedResponse } from "@/types/api";
 
 // ─── Tag color map ─────────────────────────────────────────────────────────
@@ -665,7 +666,7 @@ export default function BlogPostPage() {
         <div className="mt-6 flex items-center justify-between flex-wrap gap-4">
           {/* Author */}
           <div className="flex items-center gap-3">
-            <img src="/images/estefi-avatar.png" alt={post.author_name} width={88} height={88} className="w-11 h-11 rounded-full bg-teal/20" />
+            <img src={estefiAvatar} alt={post.author_name} width={88} height={88} className="w-11 h-11 rounded-full bg-teal/20" />
             <div className="leading-tight">
               <div className="text-[14px] font-bold text-ink">{post.author_name}</div>
               <div className="text-[12px] text-ink3">
@@ -739,7 +740,7 @@ export default function BlogPostPage() {
             >
               <div className="flex items-start gap-3">
                 <img
-                  src="/images/estefi-avatar.png"
+                  src={estefiAvatar}
                   alt="Dra. Estefanía Ortigosa"
                   width={160}
                   height={160}
