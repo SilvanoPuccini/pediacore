@@ -160,8 +160,24 @@ function ShareButtonsInline({ title, copyLabel, onCopy }: ShareButtonsInlineProp
   );
 }
 
+// ─── Copy to clipboard helper ─────────────────────────────────────────────
+function copyToClipboard(text: string): Promise<void> {
+  if (navigator.clipboard) return navigator.clipboard.writeText(text);
+  // Fallback for HTTP / older browsers
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand("copy");
+  document.body.removeChild(ta);
+  return Promise.resolve();
+}
+
 // ─── Share buttons — bottom (icon only) ───────────────────────────────────
 function ShareButtonsCompact({ title }: { title: string }) {
+  const [copied, setCopied] = useState(false);
   const url    = typeof window !== "undefined" ? window.location.href : "";
   const waHref = `https://wa.me/?text=${encodeURIComponent(title + " " + url)}`;
   const igHref = "https://www.instagram.com/estefiortigosa.pediatra/";
@@ -178,11 +194,21 @@ function ShareButtonsCompact({ title }: { title: string }) {
         <InstagramIcon size={15} />
       </a>
       <button
-        onClick={() => navigator.clipboard?.writeText(url)}
+        onClick={() => {
+          copyToClipboard(url).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1600);
+          });
+        }}
         className={btnCls}
         aria-label="Copiar link"
+        title={copied ? "¡Copiado!" : "Copiar link"}
       >
-        <LinkIcon size={15} />
+        {copied ? (
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0D9488" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+        ) : (
+          <LinkIcon size={15} />
+        )}
       </button>
     </div>
   );
@@ -557,9 +583,10 @@ export default function BlogPostPage() {
 
   // ── Copy handler ─────────────────────────────────────────────────────────
   const handleCopy = useCallback(() => {
-    navigator.clipboard?.writeText(window.location.href).catch(() => {});
-    setCopyLabel("¡Copiado!");
-    setTimeout(() => setCopyLabel("Copiar link"), 1600);
+    copyToClipboard(window.location.href).then(() => {
+      setCopyLabel("¡Copiado!");
+      setTimeout(() => setCopyLabel("Copiar link"), 1600);
+    });
   }, []);
 
   // ── Render ───────────────────────────────────────────────────────────────
