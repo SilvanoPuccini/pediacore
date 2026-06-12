@@ -478,9 +478,13 @@ export default function VideosPage() {
                     {/* Author + actions row */}
                     <div className="flex items-center justify-between flex-wrap gap-3">
                       <div className="flex items-center gap-2.5">
-                        <span className="w-9 h-9 rounded-full bg-gradient-to-br from-teal to-mustard flex items-center justify-center text-white font-bold text-[13px] shrink-0">
-                          {activeVideo.author_name ? activeVideo.author_name[0].toUpperCase() : "E"}
-                        </span>
+                        <img
+                          src="/images/estefi-avatar.png"
+                          alt={activeVideo.author_name}
+                          width={72}
+                          height={72}
+                          className="w-9 h-9 rounded-full object-cover object-top bg-teal/20 shrink-0"
+                        />
                         <div className="leading-tight">
                           <div className="text-[13px] font-bold text-ink">{activeVideo.author_name}</div>
                           <div className="text-[11px] text-ink3">
@@ -493,23 +497,40 @@ export default function VideosPage() {
                         </div>
                       </div>
 
-                      {/* Share button */}
-                      <button
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] border border-line text-[12.5px] font-semibold text-ink2 hover:bg-bg transition"
-                        onClick={() => {
-                          if (navigator.share) {
-                            navigator.share({ title: activeVideo.title, url: window.location.href });
-                          } else {
-                            navigator.clipboard.writeText(window.location.href);
-                          }
-                        }}
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
-                          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-                        </svg>
-                        Compartir
-                      </button>
+                      {/* Share buttons */}
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={`https://wa.me/?text=${encodeURIComponent(activeVideo.title + " " + window.location.origin + "/videos")}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[10px] bg-surface border border-line text-[12px] font-semibold text-ink2 hover:opacity-80 transition"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="#25D366">
+                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347" />
+                          </svg>
+                          WhatsApp
+                        </a>
+                        <a
+                          href="https://www.instagram.com/estefiortigosa.pediatra/"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[10px] bg-surface border border-line text-[12px] font-semibold text-ink2 hover:opacity-80 transition"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E1306C" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="2" y="2" width="20" height="20" rx="5" /><circle cx="12" cy="12" r="5" /><circle cx="17.5" cy="6.5" r="1.5" fill="#E1306C" stroke="none" />
+                          </svg>
+                          Instagram
+                        </a>
+                        <button
+                          onClick={() => navigator.clipboard?.writeText(window.location.href)}
+                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[10px] bg-surface border border-line text-[12px] font-semibold text-ink2 hover:opacity-80 transition"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0D9488" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                          </svg>
+                          Copiar
+                        </button>
+                      </div>
                     </div>
 
                     {/* Description */}
@@ -593,8 +614,8 @@ export default function VideosPage() {
                   </p>
                   <Link
                     to="/booking"
-                    className="mt-4 inline-flex items-center justify-center gap-1.5 w-full px-4 py-2.5 rounded-[10px] bg-teal-dark text-white text-[13px] font-semibold hover:opacity-90 transition"
-                    style={{ boxShadow: "var(--shadow-cta)" }}
+                    className="mt-4 inline-flex items-center justify-center gap-1.5 w-full px-4 py-2.5 rounded-[10px] bg-teal-dark text-[13px] font-semibold hover:opacity-90 transition"
+                    style={{ boxShadow: "var(--shadow-cta)", color: "#ffffff" }}
                   >
                     Reservar consulta
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
