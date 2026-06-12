@@ -94,7 +94,7 @@ function StepIndicator({ currentStep }: { currentStep: BookingStep }) {
 // ─── Orchestrator ──────────────────────────────────────────────────────────────
 
 export default function BookingCalendar() {
-  const { step, locationId, serviceId, setLocation, setService, lastActivity, reset } = useBookingStore();
+  const { step, locationId, serviceId, setLocation, setService, setStep, lastActivity, reset } = useBookingStore();
   const [searchParams] = useSearchParams();
 
   // Scroll to top on every step change
@@ -114,9 +114,12 @@ export default function BookingCalendar() {
     const urlLocation = searchParams.get("locationId");
     const urlService = searchParams.get("serviceId");
 
-    if (urlLocation && locationId === null) {
+    if (urlLocation) {
+      // Deep-link from landing: reset state, pre-select location, go to service step
+      reset();
       const parsed = urlLocation === "online" ? "online" : Number(urlLocation);
       setLocation(parsed as number | "online");
+      setStep(2);
     }
     if (urlService && serviceId === null) {
       setService(Number(urlService));

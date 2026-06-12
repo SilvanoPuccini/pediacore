@@ -116,7 +116,6 @@ export default function TestimonialsSection() {
         {/* Header */}
         <div className="text-center mb-14">
           <div className="flex items-center justify-center gap-2 mb-4">
-            <span className="w-6 h-[1.5px] bg-teal-dark inline-block" />
             <Eyebrow label="Testimonios" />
           </div>
           <h2 className="font-display text-[36px] lg:text-[48px] leading-[1.05] text-ink tracking-tight mb-4">
