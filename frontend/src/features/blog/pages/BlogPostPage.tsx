@@ -143,18 +143,18 @@ function ShareButtonsInline({ title, copyLabel, onCopy }: ShareButtonsInlineProp
     "share-btn inline-flex items-center gap-1.5 px-3 py-2 rounded-[10px] bg-surface border border-line text-[12px] font-semibold text-ink2 hover:opacity-80 transition";
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 flex-wrap">
       <a href={waHref} target="_blank" rel="noreferrer" className={btnCls}>
         <WhatsAppIcon />
-        WhatsApp
+        <span className="hidden sm:inline">WhatsApp</span>
       </a>
       <a href={igHref} target="_blank" rel="noreferrer" className={btnCls}>
         <InstagramIcon />
-        Instagram
+        <span className="hidden sm:inline">Instagram</span>
       </a>
       <button onClick={onCopy} className={btnCls}>
         <LinkIcon />
-        {copyLabel}
+        <span className="hidden sm:inline">{copyLabel}</span>
       </button>
     </div>
   );
@@ -813,47 +813,47 @@ export default function BlogPostPage() {
       {/* ── Prev / Next navigation ── */}
       {(prevPost || nextPost) && (
         <section className="max-w-[1180px] mx-auto px-6 mt-14">
-          <div className="grid sm:grid-cols-2 gap-px bg-line rounded-[20px] overflow-hidden border border-line">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-line rounded-[20px] overflow-hidden border border-line">
             {prevPost ? (
               <Link
                 to={`/blog/${prevPost.slug}`}
-                className="group bg-surface hover:bg-bg transition p-6 flex items-center gap-4"
+                className="group bg-surface hover:bg-bg transition p-4 sm:p-6 flex items-center gap-3 sm:gap-4"
               >
                 <svg className="text-ink3 group-hover:text-teal-dark transition shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
-                <div className="w-14 h-14 rounded-[10px] shrink-0 overflow-hidden border border-line" style={{
+                <div className="hidden sm:block w-14 h-14 rounded-[10px] shrink-0 overflow-hidden border border-line" style={{
                   background: prevPost.cover_image
                     ? `url(${prevPost.cover_image}) center/cover`
                     : getTagGradient(parseTags(prevPost.tags)[0] ?? ""),
                 }} />
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="text-[11px] font-semibold text-ink3">← Artículo anterior</div>
                   <span className="inline-block mt-1 px-2 py-0.5 rounded text-[9.5px] font-bold uppercase tracking-wider" style={(() => { const tc = getTagColor(parseTags(prevPost.tags)[0] ?? ""); return { background: tc.bg, color: tc.color }; })()}>
                     {parseTags(prevPost.tags)[0] ?? "Blog"}
                   </span>
-                  <div className="text-[13.5px] font-bold text-ink mt-1 leading-snug truncate">{prevPost.title}</div>
+                  <div className="text-[13px] sm:text-[13.5px] font-bold text-ink mt-1 leading-snug line-clamp-2">{prevPost.title}</div>
                 </div>
               </Link>
-            ) : <div className="bg-surface p-6" />}
+            ) : <div className="bg-surface p-4 sm:p-6" />}
             {nextPost ? (
               <Link
                 to={`/blog/${nextPost.slug}`}
-                className="group bg-surface hover:bg-bg transition p-6 flex items-center gap-4 text-right sm:flex-row-reverse"
+                className="group bg-surface hover:bg-bg transition p-4 sm:p-6 flex items-center gap-3 sm:gap-4 sm:text-right sm:flex-row-reverse"
               >
                 <svg className="text-ink3 group-hover:text-teal-dark transition shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
-                <div className="w-14 h-14 rounded-[10px] shrink-0 overflow-hidden border border-line" style={{
+                <div className="hidden sm:block w-14 h-14 rounded-[10px] shrink-0 overflow-hidden border border-line" style={{
                   background: nextPost.cover_image
                     ? `url(${nextPost.cover_image}) center/cover`
                     : getTagGradient(parseTags(nextPost.tags)[0] ?? ""),
                 }} />
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="text-[11px] font-semibold text-ink3">Artículo siguiente →</div>
                   <span className="inline-block mt-1 px-2 py-0.5 rounded text-[9.5px] font-bold uppercase tracking-wider" style={(() => { const tc = getTagColor(parseTags(nextPost.tags)[0] ?? ""); return { background: tc.bg, color: tc.color }; })()}>
                     {parseTags(nextPost.tags)[0] ?? "Blog"}
                   </span>
-                  <div className="text-[13.5px] font-bold text-ink mt-1 leading-snug truncate">{nextPost.title}</div>
+                  <div className="text-[13px] sm:text-[13.5px] font-bold text-ink mt-1 leading-snug line-clamp-2">{nextPost.title}</div>
                 </div>
               </Link>
-            ) : <div className="bg-surface p-6" />}
+            ) : <div className="bg-surface p-4 sm:p-6" />}
           </div>
         </section>
       )}
