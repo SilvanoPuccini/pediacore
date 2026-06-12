@@ -43,7 +43,11 @@ export default function Navbar() {
       >
         <div className="max-w-[1280px] mx-auto px-6 h-16 flex items-center justify-between gap-6">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-3 shrink-0">
+          <Link
+            to="/"
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            className="flex items-center gap-3 shrink-0"
+          >
             <div className="w-12 h-12 rounded-full overflow-hidden bg-white shrink-0">
               <img
                 src="/images/logo.svg"

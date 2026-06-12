@@ -27,11 +27,15 @@ interface SlotProps {
   location: string;
   locationColor: string;
   locationBg: string;
+  locationId: number | "online";
 }
 
-function BookingSlot({ day, time, location, locationColor, locationBg }: SlotProps) {
+function BookingSlot({ day, time, location, locationColor, locationBg, locationId }: SlotProps) {
   return (
-    <div className="flex items-center justify-between py-3 border-b border-line last:border-b-0">
+    <Link
+      to={`/booking?locationId=${locationId}`}
+      className="flex items-center justify-between py-3 border-b border-line last:border-b-0 hover:bg-teal/5 -mx-2 px-2 rounded-lg transition-colors cursor-pointer"
+    >
       <div className="flex items-center gap-3">
         <div className="w-9 h-9 rounded-[10px] bg-teal/10 flex items-center justify-center">
           <CalendarDays size={16} className="text-teal-dark" />
@@ -46,7 +50,7 @@ function BookingSlot({ day, time, location, locationColor, locationBg }: SlotPro
       >
         {location}
       </span>
-    </div>
+    </Link>
   );
 }
 
@@ -57,6 +61,7 @@ interface NextSlot {
   location: string;
   locationColor: string;
   locationBg: string;
+  locationId: number | "online";
 }
 
 const LOCATION_STYLES: Record<string, { color: string; bg: string }> = {
@@ -127,6 +132,7 @@ function useNextSlots() {
                   location: loc.name.replace(/^Sede\s+/i, "").replace(/^Consultorio\s+/i, ""),
                   locationColor: style.color,
                   locationBg: style.bg,
+                  locationId: loc.id,
                 });
                 break; // One slot per location, move to next location
               }
@@ -161,6 +167,7 @@ function useNextSlots() {
                   location: "Online",
                   locationColor: "text-mustard",
                   locationBg: "bg-mustard/15",
+                  locationId: "online",
                 });
                 break;
               }
@@ -223,6 +230,7 @@ function BookingCard() {
               location={slot.location}
               locationColor={slot.locationColor}
               locationBg={slot.locationBg}
+              locationId={slot.locationId}
             />
           ))
         )}
