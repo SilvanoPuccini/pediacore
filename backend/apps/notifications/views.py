@@ -130,6 +130,13 @@ class NotificationPreferenceView(APIView):
         serializer.save()
         return Response(serializer.data)
 
+    def patch(self, request: Request) -> Response:
+        prefs = self._get_or_create_preferences(request)
+        serializer = NotificationPreferenceSerializer(prefs, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
 
 class EmailLogViewSet(viewsets.ReadOnlyModelViewSet):
     """

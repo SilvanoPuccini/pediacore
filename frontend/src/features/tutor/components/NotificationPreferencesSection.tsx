@@ -45,6 +45,11 @@ const TOGGLES: ToggleConfig[] = [
     label: "Pagos confirmados",
     description: "Recibís un email cada vez que se procesa un pago.",
   },
+  {
+    key: "email_blog_posts",
+    label: "Notas del blog",
+    description: "Tips de pediatría escritos por la Dra. Estefi.",
+  },
 ];
 
 // ─── Toggle switch ────────────────────────────────────────────────────────────

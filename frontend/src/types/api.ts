@@ -15,6 +15,7 @@ export interface User {
   is_email_verified: boolean;
   created_at: string;
   last_login: string | null;
+  avatar_url?: string | null;
   profile_completion?: {
     percentage: number;
     missing: string[];
@@ -383,6 +384,7 @@ export interface NotificationPreference {
   email_appointment_cancelled: boolean;
   email_waitlist_available: boolean;
   email_payment_received: boolean;
+  email_blog_posts: boolean;
   created_at: string;
   updated_at: string;
 }

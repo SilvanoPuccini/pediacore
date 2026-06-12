@@ -631,8 +631,8 @@ function VaccinesTab({ patientId }: VaccinesTabProps) {
   const { data, isLoading, isError } = useQuery<VaccineRecord[]>({
     queryKey: ["vaccines", patientId],
     queryFn: async () => {
-      const { data } = await api.get<VaccineRecord[]>(`/vaccinations/?patient=${patientId}`);
-      return data;
+      const { data } = await api.get<PaginatedResponse<VaccineRecord>>(`/vaccinations/?patient=${patientId}`);
+      return data.results;
     },
     retry: false,
   });
@@ -914,8 +914,12 @@ function ChildDetailView({ patient, childIndex, onUnlink }: ChildDetailViewProps
   const { data: growthData = [] } = useQuery<GrowthPoint[]>({
     queryKey: ["growth", patient.id],
     queryFn: async () => {
-      const { data } = await api.get<GrowthPoint[]>(`/growth/?patient=${patient.id}`);
-      return data;
+      try {
+        const { data } = await api.get<GrowthPoint[]>(`/growth/?patient=${patient.id}`);
+        return Array.isArray(data) ? data : [];
+      } catch {
+        return [];
+      }
     },
     retry: false,
   });
@@ -923,8 +927,12 @@ function ChildDetailView({ patient, childIndex, onUnlink }: ChildDetailViewProps
   const { data: vaccinesData } = useQuery<VaccineRecord[]>({
     queryKey: ["vaccines", patient.id],
     queryFn: async () => {
-      const { data } = await api.get<VaccineRecord[]>(`/vaccinations/?patient=${patient.id}`);
-      return data;
+      try {
+        const { data } = await api.get<PaginatedResponse<VaccineRecord>>(`/vaccinations/?patient=${patient.id}`);
+        return data.results ?? [];
+      } catch {
+        return [];
+      }
     },
     retry: false,
   });
@@ -932,10 +940,14 @@ function ChildDetailView({ patient, childIndex, onUnlink }: ChildDetailViewProps
   const { data: encountersData } = useQuery<Encounter[]>({
     queryKey: ["encounters-tutor", patient.id],
     queryFn: async () => {
-      const { data } = await api.get<PaginatedResponse<Encounter>>(
-        `/encounters/?patient=${patient.id}`
-      );
-      return data.results;
+      try {
+        const { data } = await api.get<PaginatedResponse<Encounter>>(
+          `/encounters/?patient=${patient.id}`
+        );
+        return data.results ?? [];
+      } catch {
+        return [];
+      }
     },
     retry: false,
   });

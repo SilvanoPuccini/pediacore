@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Ficha de Datos del Tutor — Dra. Estefi Pediatra</title>
+  <style>
+    /* ── Reset & base ─────────────────────────────────────────────────────────── */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      font-size: 11px;
+      color: #2c2c2c;
+      background: #ffffff;
+      line-height: 1.5;
+    }
+
+    /* ── Page layout ──────────────────────────────────────────────────────────── */
+    @page {
+      size: A4;
+      margin: 18mm 16mm 22mm 16mm;
+    }
+
+    /* ── Header ───────────────────────────────────────────────────────────────── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 14px;
+      border-bottom: 3px solid #4A8590;
+      margin-bottom: 20px;
+    }
+
+    .header-logo {
+      height: 56px;
+      width: auto;
+    }
+
+    .header-text {
+      text-align: right;
+    }
+
+    .header-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #4A8590;
+      letter-spacing: -0.3px;
+    }
+
+    .header-subtitle {
+      font-size: 10px;
+      color: #7a9ea5;
+      margin-top: 2px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .header-contact {
+      font-size: 9px;
+      color: #9aacb0;
+      margin-top: 5px;
+    }
+
+    /* ── Section wrapper ──────────────────────────────────────────────────────── */
+    .section {
+      margin-bottom: 20px;
+      page-break-inside: avoid;
+    }
+
+    .section-title {
+      font-size: 9.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #4A8590;
+      padding: 5px 10px;
+      background-color: #EDF4F5;
+      border-left: 4px solid #4A8590;
+      margin-bottom: 10px;
+      border-radius: 0 4px 4px 0;
+    }
+
+    /* ── Data grid ────────────────────────────────────────────────────────────── */
+    .data-grid {
+      display: table;
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .data-row {
+      display: table-row;
+    }
+
+    .data-label {
+      display: table-cell;
+      width: 30%;
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #7a8e90;
+      padding: 6px 10px 6px 0;
+      vertical-align: top;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .data-value {
+      display: table-cell;
+      width: 70%;
+      font-size: 10.5px;
+      color: #2c2c2c;
+      padding: 6px 0;
+      vertical-align: top;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .data-value.empty {
+      color: #b0b8bc;
+      font-style: italic;
+    }
+
+    /* ── Tables (patients, co-responsibles) ───────────────────────────────────── */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10px;
+    }
+
+    .data-table thead tr {
+      background-color: #4A8590;
+      color: #ffffff;
+    }
+
+    .data-table thead th {
+      padding: 7px 10px;
+      text-align: left;
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+
+    .data-table tbody tr {
+      border-bottom: 1px solid #e8eeef;
+    }
+
+    .data-table tbody tr:nth-child(even) {
+      background-color: #F7F0E5;
+    }
+
+    .data-table tbody tr:nth-child(odd) {
+      background-color: #ffffff;
+    }
+
+    .data-table tbody td {
+      padding: 7px 10px;
+      color: #2c2c2c;
+      vertical-align: middle;
+    }
+
+    .data-table .td-empty {
+      color: #b0b8bc;
+      font-style: italic;
+    }
+
+    /* ── Empty state ──────────────────────────────────────────────────────────── */
+    .empty-state {
+      padding: 14px 12px;
+      background-color: #fafafa;
+      border: 1px dashed #d0dfe2;
+      border-radius: 6px;
+      text-align: center;
+      color: #9aacb0;
+      font-size: 10px;
+      font-style: italic;
+    }
+
+    /* ── Badge ────────────────────────────────────────────────────────────────── */
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 20px;
+      font-size: 8.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .badge-teal {
+      background-color: #EDF4F5;
+      color: #4A8590;
+    }
+
+    .badge-cream {
+      background-color: #F7F0E5;
+      color: #8A6A1F;
+    }
+
+    /* ── Footer ───────────────────────────────────────────────────────────────── */
+    .footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 8px 16mm;
+      border-top: 1px solid #d0dfe2;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer-text {
+      font-size: 8px;
+      color: #9aacb0;
+    }
+
+    .footer-brand {
+      font-size: 8px;
+      font-weight: 700;
+      color: #4A8590;
+    }
+
+    /* ── Watermark strip ──────────────────────────────────────────────────────── */
+    .document-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+      padding: 6px 10px;
+      background-color: #F7F0E5;
+      border-radius: 6px;
+    }
+
+    .document-meta-item {
+      font-size: 9px;
+      color: #6b7c7e;
+    }
+
+    .document-meta-item strong {
+      color: #4A8590;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Header ─────────────────────────────────────────────────────────────── -->
+  <div class="header">
+    {% if logo_b64 %}
+      <img class="header-logo" src="data:image/png;base64,{{ logo_b64 }}" alt="Dra. Estefi Pediatra" />
+    {% endif %}
+    <div class="header-text">
+      <div class="header-title">Dra. Estefi Pediatra</div>
+      <div class="header-subtitle">Ficha de Datos del Tutor</div>
+      <div class="header-contact">estefipediatra.com · Pucón &amp; Villarrica, Chile</div>
+    </div>
+  </div>
+
+  <!-- ── Document meta strip ────────────────────────────────────────────────── -->
+  <div class="document-meta">
+    <div class="document-meta-item">
+      <strong>Titular:</strong> {{ user.full_name|default:"—" }}
+    </div>
+    <div class="document-meta-item">
+      <strong>Fecha de emisión:</strong> {{ generated_at|date:"d/m/Y" }}
+    </div>
+    <div class="document-meta-item">
+      <strong>Rol:</strong>
+      {% if user.role == "TUTOR" %}Tutor/a{% elif user.role == "DOCTOR" %}Doctor/a{% else %}Visitante{% endif %}
+    </div>
+  </div>
+
+  <!-- ── Section 1: Datos del Titular ──────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-title">Datos del Titular</div>
+
+    <div class="data-grid">
+      <div class="data-row">
+        <div class="data-label">Nombre completo</div>
+        <div class="data-value">{{ user.full_name|default:"—" }}</div>
+      </div>
+      <div class="data-row">
+        <div class="data-label">Email</div>
+        <div class="data-value">{{ user.email }}</div>
+      </div>
+      <div class="data-row">
+        <div class="data-label">Teléfono</div>
+        <div class="data-value">
+          {% if user.phone %}
+            {{ user.phone_prefix|default:"+56" }} {{ user.phone }}
+          {% else %}
+            <span class="empty">No registrado</span>
+          {% endif %}
+        </div>
+      </div>
+      {% if user.phone_alt %}
+      <div class="data-row">
+        <div class="data-label">Teléfono alternativo</div>
+        <div class="data-value">{{ user.phone_alt }}</div>
+      </div>
+      {% endif %}
+      <div class="data-row">
+        <div class="data-label">Tipo de documento</div>
+        <div class="data-value">
+          {% if user.document_type == "RUT" %}RUT (cédula chilena)
+          {% elif user.document_type == "DNI" %}DNI (extranjero)
+          {% elif user.document_type == "PASAPORTE" %}Pasaporte
+          {% else %}Otro{% endif %}
+        </div>
+      </div>
+      <div class="data-row">
+        <div class="data-label">RUT / Documento</div>
+        <div class="data-value">{{ user.rut|default:"—" }}</div>
+      </div>
+      <div class="data-row">
+        <div class="data-label">Miembro desde</div>
+        <div class="data-value">{{ user.created_at|date:"d/m/Y" }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Section 2: Hijos / Pacientes ──────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-title">Hijos / Pacientes vinculados ({{ patients|length }})</div>
+
+    {% if patients %}
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Nombre completo</th>
+            <th>Fecha de nacimiento</th>
+            <th>Edad</th>
+            <th>Sexo</th>
+            <th>RUT / Documento</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for patient in patients %}
+          <tr>
+            <td>{{ patient.full_name }}</td>
+            <td>{{ patient.date_of_birth|date:"d/m/Y" }}</td>
+            <td>
+              {% with age=patient.age %}
+                {% if age.years > 0 %}
+                  {{ age.years }} a{% if age.months > 0 %} {{ age.months }} m{% endif %}
+                {% else %}
+                  {{ age.months }} m
+                {% endif %}
+              {% endwith %}
+            </td>
+            <td>
+              {% if patient.sex_at_birth == "M" %}Masculino
+              {% elif patient.sex_at_birth == "F" %}Femenino
+              {% else %}No especifica{% endif %}
+            </td>
+            <td>
+              {% if patient.rut %}
+                <span class="badge badge-teal">{{ patient.document_type }}</span>
+                {{ patient.rut }}
+              {% else %}
+                <span class="td-empty">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div class="empty-state">No hay pacientes vinculados a este titular.</div>
+    {% endif %}
+  </div>
+
+  <!-- ── Section 3: Co-responsables ────────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-title">Co-responsables ({{ coresponsibles|length }})</div>
+
+    {% if coresponsibles %}
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Relación</th>
+            <th>Teléfono</th>
+            <th>Email</th>
+            <th>Puede agendar</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for co in coresponsibles %}
+          <tr>
+            <td>{{ co.name }}</td>
+            <td>{{ co.get_relationship_display }}</td>
+            <td>{% if co.phone %}{{ co.phone }}{% else %}<span class="td-empty">—</span>{% endif %}</td>
+            <td>{% if co.email %}{{ co.email }}{% else %}<span class="td-empty">—</span>{% endif %}</td>
+            <td>
+              {% if co.can_book %}
+                <span class="badge badge-teal">Sí</span>
+              {% else %}
+                <span class="badge badge-cream">No</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div class="empty-state">No hay co-responsables registrados para este titular.</div>
+    {% endif %}
+  </div>
+
+  <!-- ── Footer ─────────────────────────────────────────────────────────────── -->
+  <div class="footer">
+    <div class="footer-text">
+      Documento generado el {{ generated_at|date:"d/m/Y \a \l\a\s H:i" }} h — Confidencial
+    </div>
+    <div class="footer-brand">estefipediatra.com</div>
+  </div>
+
+</body>
+</html>

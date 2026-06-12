@@ -51,6 +51,13 @@ class User(AbstractBaseUser, PermissionsMixin):
         default=RUT,
     )
     rut = models.CharField(_("RUT / document number"), max_length=12, blank=False, help_text=_("Chilean RUT or document number (e.g. 12.345.678-9)"))
+    avatar = models.ImageField(
+        _("avatar"),
+        upload_to="avatars/%Y/%m/",
+        blank=True,
+        default="",
+        help_text=_("Profile photo. Max 5 MB, JPEG/PNG/WebP."),
+    )
     role = models.CharField(
         _("role"),
         max_length=20,

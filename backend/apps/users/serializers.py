@@ -10,6 +10,7 @@ class UserSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(read_only=True)
     is_email_verified = serializers.BooleanField(read_only=True)
     profile_completion = serializers.SerializerMethodField()
+    avatar_url = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -29,8 +30,17 @@ class UserSerializer(serializers.ModelSerializer):
             "created_at",
             "last_login",
             "profile_completion",
+            "avatar_url",
         ]
-        read_only_fields = ["id", "email", "role", "is_email_verified", "created_at", "last_login", "profile_completion"]
+        read_only_fields = ["id", "email", "role", "is_email_verified", "created_at", "last_login", "profile_completion", "avatar_url"]
+
+    def get_avatar_url(self, obj: User) -> str | None:
+        if not obj.avatar:
+            return None
+        request = self.context.get("request")
+        if request:
+            return request.build_absolute_uri(obj.avatar.url)
+        return obj.avatar.url
 
     def get_profile_completion(self, obj: User) -> dict:
         from apps.users.services.profile_completion import compute_tutor_completion
