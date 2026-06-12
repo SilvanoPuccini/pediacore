@@ -312,7 +312,7 @@ export default function VideosPage() {
             <h1 className="mt-4 font-display text-[34px] sm:text-[42px] lg:text-[50px] leading-[1.04] text-ink tracking-tight">
               Aprendé a cuidar a tu hijo{" "}
               <em className="italic" style={{ color: "#4A8590", fontStyle: "italic" }}>
-                en 2 minutos
+                en pocos minutos
               </em>
             </h1>
             <p className="mt-4 text-[15px] sm:text-[16px] text-ink2 leading-relaxed max-w-[520px]">
