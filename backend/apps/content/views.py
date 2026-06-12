@@ -273,6 +273,56 @@ class AdminVideoViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(video)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @action(detail=True, methods=["post"])
+    def autofill(self, request: Request, pk: int | None = None) -> Response:
+        """Auto-generate description, category, and chapters using Gemini AI."""
+        video = self.get_object()
+
+        if not video.youtube_url:
+            return Response(
+                {"detail": "El video necesita una URL de YouTube para auto-completar."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from apps.content.video_ai_service import autofill_video_metadata
+
+        result = autofill_video_metadata(
+            youtube_url=video.youtube_url,
+            title=video.title,
+            duration_seconds=video.duration_seconds,
+        )
+
+        if not result:
+            return Response(
+                {"detail": "No se pudo generar metadata. Verificá la URL o intentá de nuevo."},
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+
+        # Apply suggested fields (only if currently empty)
+        updated_fields = []
+        if result.get("description") and not video.description:
+            video.description = result["description"]
+            updated_fields.append("description")
+        if result.get("category"):
+            video.category = result["category"]
+            updated_fields.append("category")
+        if result.get("chapters") and not video.chapters:
+            video.chapters = result["chapters"]
+            updated_fields.append("chapters")
+
+        if updated_fields:
+            video.save(update_fields=updated_fields + ["updated_at"])
+
+        serializer = self.get_serializer(video)
+        return Response(
+            {
+                "detail": f"Auto-completado: {', '.join(updated_fields)}",
+                "suggestions": result,
+                "video": serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
 
 # ---------------------------------------------------------------------------
 # Newsletter views
