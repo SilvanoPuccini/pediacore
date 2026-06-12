@@ -139,7 +139,7 @@ function ShareButtonsInline({ title, copyLabel, onCopy }: ShareButtonsInlineProp
   const waHref  = `https://wa.me/?text=${encodeURIComponent(title + " " + url)}`;
   const igHref  = "https://www.instagram.com/estefiortigosa.pediatra/";
   const btnCls  =
-    "share-btn inline-flex items-center gap-1.5 px-3 py-2 rounded-[10px] bg-surface border border-line text-[12px] font-semibold text-ink2 hover:text-ink transition";
+    "share-btn inline-flex items-center gap-1.5 px-3 py-2 rounded-[10px] bg-surface border border-line text-[12px] font-semibold text-ink2 hover:opacity-80 transition";
 
   return (
     <div className="flex items-center gap-2">
@@ -165,7 +165,7 @@ function ShareButtonsCompact({ title }: { title: string }) {
   const waHref = `https://wa.me/?text=${encodeURIComponent(title + " " + url)}`;
   const igHref = "https://www.instagram.com/estefiortigosa.pediatra/";
   const btnCls =
-    "share-btn w-9 h-9 rounded-full bg-surface border border-line flex items-center justify-center text-ink2 hover:text-teal-dark transition";
+    "share-btn w-9 h-9 rounded-full bg-surface border border-line flex items-center justify-center hover:opacity-80 transition";
 
   return (
     <div className="mt-8 flex items-center justify-center gap-3">
@@ -190,7 +190,7 @@ function ShareButtonsCompact({ title }: { title: string }) {
 // ─── SVG icons ────────────────────────────────────────────────────────────
 function WhatsAppIcon({ size = 14 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="#25D366">
       <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347" />
     </svg>
   );
@@ -198,17 +198,17 @@ function WhatsAppIcon({ size = 14 }: { size?: number }) {
 
 function InstagramIcon({ size = 14 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#E1306C" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
       <rect x="2" y="2" width="20" height="20" rx="5" />
       <circle cx="12" cy="12" r="5" />
-      <circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="17.5" cy="6.5" r="1.5" fill="#E1306C" stroke="none" />
     </svg>
   );
 }
 
 function LinkIcon({ size = 14 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#0D9488" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
       <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
       <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
     </svg>
@@ -665,7 +665,7 @@ export default function BlogPostPage() {
         <div className="mt-6 flex items-center justify-between flex-wrap gap-4">
           {/* Author */}
           <div className="flex items-center gap-3">
-            <img src="/images/estefi-avatar.png" alt={post.author_name} width={88} height={88} className="w-11 h-11 rounded-full object-cover bg-teal/20" />
+            <img src="/images/estefi-avatar.png" alt={post.author_name} width={88} height={88} className="w-11 h-11 rounded-full object-cover object-top bg-teal/20" />
             <div className="leading-tight">
               <div className="text-[14px] font-bold text-ink">{post.author_name}</div>
               <div className="text-[12px] text-ink3">
@@ -743,7 +743,7 @@ export default function BlogPostPage() {
                   alt="Dra. Estefanía Ortigosa"
                   width={160}
                   height={160}
-                  className="w-16 h-16 rounded-full object-cover bg-teal/20 shrink-0 border-2 border-white shadow-sm"
+                  className="w-16 h-16 rounded-full object-cover object-top bg-teal/20 shrink-0 border-2 border-white shadow-sm"
                 />
                 <div>
                   <div className="text-[11px] uppercase tracking-[0.14em] font-bold text-teal-dark">
