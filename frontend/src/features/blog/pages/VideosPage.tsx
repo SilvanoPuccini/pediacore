@@ -35,6 +35,19 @@ function getCategoryConfig(category: string) {
   return CATEGORIES[category] ?? { label: category, bg: "rgba(123,181,189,0.25)", color: "#3F7079", tint: "linear-gradient(150deg, rgba(123,181,189,0.5), rgba(168,201,168,0.3))" };
 }
 
+function copyToClipboard(text: string): Promise<void> {
+  if (navigator.clipboard) return navigator.clipboard.writeText(text);
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand("copy");
+  document.body.removeChild(ta);
+  return Promise.resolve();
+}
+
 function formatSeconds(seconds: number): string {
   if (!seconds) return "0:00";
   const m = Math.floor(seconds / 60);
@@ -217,6 +230,7 @@ export default function VideosPage() {
   const [activeCategory, setActiveCategory] = useState("");
   const [activeVideo, setActiveVideo] = useState<VideoResource | null>(null);
   const [showToTop, setShowToTop] = useState(false);
+  const [videoCopied, setVideoCopied] = useState(false);
 
   useEffect(() => {
     const handler = () => setShowToTop(window.scrollY > 300);
@@ -523,13 +537,26 @@ export default function VideosPage() {
                           Instagram
                         </a>
                         <button
-                          onClick={() => navigator.clipboard?.writeText(window.location.href)}
+                          onClick={() => {
+                            const url = `${window.location.origin}/videos#${activeVideo.slug}`;
+                            copyToClipboard(url).then(() => {
+                              setVideoCopied(true);
+                              setTimeout(() => setVideoCopied(false), 1600);
+                            });
+                          }}
                           className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[10px] bg-surface border border-line text-[12px] font-semibold text-ink2 hover:opacity-80 transition"
+                          title={videoCopied ? "¡Copiado!" : "Copiar link"}
                         >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0D9488" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                          </svg>
-                          Copiar
+                          {videoCopied ? (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0D9488" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          ) : (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0D9488" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                            </svg>
+                          )}
+                          {videoCopied ? "¡Copiado!" : "Copiar"}
                         </button>
                       </div>
                     </div>
