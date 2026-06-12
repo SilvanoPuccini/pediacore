@@ -31,7 +31,7 @@ CATEGORY_CHOICES = [
 PROMPT_TEMPLATE = """Eres asistente de una pediatra chilena que sube videos educativos a YouTube.
 Dado el título del video, genera metadata en JSON con estos campos exactos:
 
-- "description": texto descriptivo de 2-3 oraciones para mostrar debajo del video (español chileno natural, sin emojis, dirigido a padres)
+- "description": texto descriptivo de 2-3 oraciones para mostrar debajo del video (español neutro latinoamericano, sin emojis, dirigido a padres)
 - "category": UNA de estas opciones exactas: {categories}
 - "chapters": array de 4-6 objetos con "time_seconds" (int, estimado, distribuidos uniformemente en {duration} segundos) y "label" (string corto en español)
 
