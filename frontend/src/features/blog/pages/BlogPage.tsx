@@ -681,7 +681,7 @@ export default function BlogPage() {
                     boxShadow: "var(--shadow-card)",
                   }}
                 >
-                  <img src="/images/estefi-avatar.png" alt="Dra. Estefanía Ortigosa" width={160} height={160} className="w-20 h-20 rounded-full mx-auto object-cover bg-teal/20 border-2 border-white shadow-sm" />
+                  <img src="/images/estefi-avatar.png" alt="Dra. Estefanía Ortigosa" width={160} height={160} className="w-20 h-20 rounded-full mx-auto bg-teal/20 border-2 border-white shadow-sm" />
                   <h3 className="mt-3 font-display text-[17px] text-ink">
                     Dra. Estefanía Ortigosa
                   </h3>
