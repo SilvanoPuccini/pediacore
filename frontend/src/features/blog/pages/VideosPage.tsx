@@ -483,7 +483,7 @@ export default function VideosPage() {
                           alt={activeVideo.author_name}
                           width={72}
                           height={72}
-                          className="w-9 h-9 rounded-full object-cover object-top bg-teal/20 shrink-0"
+                          className="w-9 h-9 rounded-full bg-teal/20 shrink-0"
                         />
                         <div className="leading-tight">
                           <div className="text-[13px] font-bold text-ink">{activeVideo.author_name}</div>
