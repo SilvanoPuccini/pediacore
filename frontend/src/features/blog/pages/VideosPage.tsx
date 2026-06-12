@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Search, Clock, Eye, ChevronUp, Play } from "lucide-react";
 import api from "@/lib/api";
+import estefiAvatar from "@/assets/estefi-avatar.png";
 import type { VideoResource, PaginatedResponse } from "@/types/api";
 
 // ─── Category config ──────────────────────────────────────────────────────────
@@ -479,7 +480,7 @@ export default function VideosPage() {
                     <div className="flex items-center justify-between flex-wrap gap-3">
                       <div className="flex items-center gap-2.5">
                         <img
-                          src="/images/estefi-avatar.png"
+                          src={estefiAvatar}
                           alt={activeVideo.author_name}
                           width={72}
                           height={72}
