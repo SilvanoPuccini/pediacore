@@ -20,7 +20,7 @@ from django.utils.text import slugify
 from django_ratelimit.decorators import ratelimit
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -302,11 +302,28 @@ class SubscribeView(APIView):
             from apps.content.services import send_welcome_email
 
             send_welcome_email(subscriber)
+            return Response(
+                {"detail": "Suscripción confirmada", "already_subscribed": False},
+                status=status.HTTP_201_CREATED,
+            )
 
         return Response(
-            {"detail": "Suscripción confirmada"},
-            status=status.HTTP_201_CREATED,
+            {"detail": "Ya estás suscripto/a", "already_subscribed": True},
+            status=status.HTTP_200_OK,
         )
+
+
+class SubscriptionStatusView(APIView):
+    """Check if the authenticated user's email is already subscribed."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request: Request) -> Response:
+        email = request.user.email.lower()
+        subscribed = Subscriber.objects.filter(
+            email=email, status="ACTIVE"
+        ).exists()
+        return Response({"subscribed": subscribed, "email": email})
 
 
 class UnsubscribeView(APIView):
