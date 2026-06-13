@@ -112,8 +112,12 @@ export default function TutorLayout() {
         <div className="mx-6 mb-4 p-3 rounded-[12px] bg-bg border border-line">
           <div className="flex items-center gap-3">
             <div className="relative shrink-0">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-teal to-mustard text-white font-bold text-[13px] flex items-center justify-center">
-                {initials.charAt(0)}
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-teal to-mustard text-white font-bold text-[13px] flex items-center justify-center overflow-hidden">
+                {user?.avatar_url ? (
+                  <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  initials.charAt(0)
+                )}
               </div>
               <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-sage border-2 border-bg" />
             </div>
@@ -246,8 +250,12 @@ export default function TutorLayout() {
             {/* Right actions */}
             <div className="flex items-center gap-2">
               <NotificationBell />
-              <div className="h-8 w-8 rounded-full bg-teal-dark flex items-center justify-center shrink-0">
-                <span className="text-[12px] font-bold text-white">{initials}</span>
+              <div className="h-8 w-8 rounded-full bg-teal-dark flex items-center justify-center shrink-0 overflow-hidden">
+                {user?.avatar_url ? (
+                  <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-[12px] font-bold text-white">{initials}</span>
+                )}
               </div>
             </div>
           </div>
