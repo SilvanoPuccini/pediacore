@@ -11,8 +11,8 @@ import {
 import ServiceDetailPage from "./ServiceDetailPage";
 import type { ServiceDetailPageProps } from "./ServiceDetailPage";
 
-const ACCENT_BG = "rgba(217,119,6,0.18)";
-const ACCENT_COLOR = "#D97706";
+const ACCENT_BG = "rgba(234,179,8,0.15)";
+const ACCENT_COLOR = "#CA8A04";
 
 const data: ServiceDetailPageProps = {
   title: "Asesoría de",
@@ -25,8 +25,8 @@ const data: ServiceDetailPageProps = {
   heroIcon: HeartHandshake,
   heroIconBg: ACCENT_BG,
   heroIconColor: ACCENT_COLOR,
-  blobColor1: "#FBBF24",
-  blobColor2: "#FDE68A",
+  blobColor1: "#FACC15",
+  blobColor2: "#FEF08A",
   ctaLabel: "Reservar asesoría",
 
   quickFacts: [
@@ -54,7 +54,7 @@ const data: ServiceDetailPageProps = {
   ],
 
   imageGradient:
-    "linear-gradient(135deg, rgba(217,119,6,0.30) 0%, rgba(253,230,138,0.20) 100%)",
+    "linear-gradient(135deg, rgba(234,179,8,0.30) 0%, rgba(254,240,138,0.20) 100%)",
   imageLabel: "foto · asesoría de lactancia",
   priceLabel: "Valor sesión",
   price: "$40.000",

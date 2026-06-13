@@ -18,34 +18,34 @@ import ContentSearchBar from "../components/ContentSearchBar";
 // ─── Tag config ───────────────────────────────────────────────────────────────
 
 const TAG_COLORS: Record<string, { bg: string; color: string }> = {
-  Lactancia:    { bg: "rgba(217,119,6,0.28)",  color: "#D97706" },
+  Lactancia:    { bg: "rgba(234,179,8,0.22)",  color: "#CA8A04" },
   Vacunas:      { bg: "rgba(13,148,136,0.25)", color: "#0D9488" },
   Alimentación: { bg: "rgba(110,231,183,0.30)", color: "#10B981" },
   Sueño:        { bg: "rgba(37,99,235,0.25)",  color: "#2563EB" },
-  Desarrollo:   { bg: "rgba(253,186,116,0.30)", color: "#F97316" },
+  Desarrollo:   { bg: "rgba(249,115,22,0.25)", color: "#EA580C" },
   Enfermedades: { bg: "rgba(249,168,212,0.30)", color: "#EC4899" },
-  Urgencias:    { bg: "rgba(220,38,38,0.25)",  color: "#DC2626" },
+  Urgencias:    { bg: "rgba(185,28,28,0.22)",  color: "#DC2626" },
   Consejos:     { bg: "rgba(124,58,237,0.25)", color: "#7C3AED" },
 };
 
 const TAG_GRADIENTS: Record<string, string> = {
-  Lactancia:    "linear-gradient(150deg, rgba(251,191,36,0.50), rgba(253,230,138,0.30))",
+  Lactancia:    "linear-gradient(150deg, rgba(250,204,21,0.50), rgba(254,240,138,0.30))",
   Vacunas:      "linear-gradient(150deg, rgba(20,184,166,0.50), rgba(94,234,212,0.30))",
   Alimentación: "linear-gradient(150deg, rgba(110,231,183,0.50), rgba(167,243,208,0.30))",
   Sueño:        "linear-gradient(150deg, rgba(96,165,250,0.50), rgba(147,197,253,0.30))",
-  Desarrollo:   "linear-gradient(150deg, rgba(253,186,116,0.50), rgba(254,215,170,0.30))",
+  Desarrollo:   "linear-gradient(150deg, rgba(251,146,60,0.50), rgba(253,186,116,0.30))",
   Enfermedades: "linear-gradient(150deg, rgba(249,168,212,0.50), rgba(251,207,232,0.30))",
-  Urgencias:    "linear-gradient(150deg, rgba(248,113,113,0.50), rgba(252,165,165,0.30))",
+  Urgencias:    "linear-gradient(150deg, rgba(239,68,68,0.50), rgba(254,226,226,0.30))",
   Consejos:     "linear-gradient(150deg, rgba(167,139,250,0.50), rgba(196,181,253,0.30))",
 };
 
 const TAG_DOT_COLORS: Record<string, string> = {
-  Lactancia:    "#FBBF24",
+  Lactancia:    "#FACC15",
   Vacunas:      "#14B8A6",
   Alimentación: "#6EE7B7",
   Sueño:        "#60A5FA",
-  Urgencias:    "#F87171",
-  Desarrollo:   "#FDBA74",
+  Urgencias:    "#EF4444",
+  Desarrollo:   "#FB923C",
 };
 
 const CATEGORIES = [
