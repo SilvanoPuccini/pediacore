@@ -1,14 +1,15 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   CreditCard,
   TrendingUp,
   Receipt,
   Download,
-  Plus,
   ChevronLeft,
   ChevronRight,
-  Trash2,
+  MessageCircle,
+  HelpCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import api from "@/lib/api";
@@ -73,6 +74,32 @@ function SummaryCard({
 
 export default function BillingHistory() {
   const [page, setPage] = useState(1);
+  const navigate = useNavigate();
+
+  const exportCSV = useCallback((payments: PaymentListItem[]) => {
+    const header = "Concepto,Paciente,Monto,Estado,Método,Fecha pago,Fecha creación";
+    const rows = payments.map((p) =>
+      [
+        p.service_name ?? "Consulta",
+        p.patient_name,
+        p.amount,
+        p.status_display,
+        p.payment_method_display,
+        p.paid_at ?? "",
+        p.created_at,
+      ]
+        .map((v) => `"${v}"`)
+        .join(",")
+    );
+    const csv = [header, ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `pagos-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, []);
 
   const { data, isLoading } = useQuery({
     queryKey: ["payments", page],
@@ -160,7 +187,12 @@ export default function BillingHistory() {
                 <p className="font-display text-[20px] font-bold text-ink shrink-0">
                   {formatCLP(payment.amount)}
                 </p>
-                <Btn variant="primary" size="sm" icon="CreditCard">
+                <Btn
+                  variant="primary"
+                  size="sm"
+                  icon="CreditCard"
+                  onClick={() => navigate(`/portal/pagos/${payment.id}`)}
+                >
                   Pagar ahora
                 </Btn>
               </li>
@@ -178,7 +210,12 @@ export default function BillingHistory() {
               <h3 className="text-[15px] font-bold text-ink">Historial de pagos</h3>
               <p className="text-[12px] text-ink3 mt-0.5">Todos tus pagos registrados.</p>
             </div>
-            <Btn variant="ghost" size="sm" icon="Download">
+            <Btn
+              variant="ghost"
+              size="sm"
+              icon="Download"
+              onClick={() => exportCSV(results)}
+            >
               Exportar todo
             </Btn>
           </div>
@@ -229,7 +266,10 @@ export default function BillingHistory() {
                         {formatCLP(payment.amount)}
                       </span>
                       <span className="text-right">
-                        <button className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-teal-dark hover:underline">
+                        <button
+                          onClick={() => navigate(`/portal/pagos/${payment.id}`)}
+                          className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-teal-dark hover:underline"
+                        >
                           <Download size={12} />
                           PDF
                         </button>
@@ -272,22 +312,18 @@ export default function BillingHistory() {
 
         {/* Right sidebar */}
         <div className="space-y-4">
-          {/* Saved payment methods */}
+          {/* Payment method info */}
           <Card>
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-9 h-9 rounded-[10px] bg-teal/15 flex items-center justify-center shrink-0">
+                <CreditCard size={16} className="text-teal-dark" />
+              </div>
               <h4 className="text-[14px] font-bold text-ink">Métodos de pago</h4>
-              <button className="inline-flex items-center gap-1 text-[12px] font-semibold text-teal-dark hover:underline">
-                <Plus size={12} />
-                Agregar
-              </button>
             </div>
-            <p className="text-[12px] text-ink3 mb-4">
-              Tus métodos de pago guardados para futuras consultas.
+            <p className="text-[12px] text-ink2 leading-relaxed">
+              Los pagos se procesan de forma segura a través de MercadoPago al momento de reservar.
+              Podés pagar con tarjeta de débito, crédito o transferencia.
             </p>
-            <div className="space-y-3">
-              <PayMethodCard brand="Visa" last4="4421" expiry="12/27" isDefault />
-              <PayMethodCard brand="Mastercard" last4="7702" expiry="08/26" />
-            </div>
           </Card>
 
           {/* Billing info */}
@@ -296,7 +332,13 @@ export default function BillingHistory() {
             <p className="text-[12px] text-ink2">
               Los comprobantes se emiten a nombre del titular registrado.
             </p>
-            <Btn variant="ghost" size="sm" className="mt-3" icon="Pencil">
+            <Btn
+              variant="ghost"
+              size="sm"
+              className="mt-3"
+              icon="Pencil"
+              onClick={() => navigate("/portal/perfil")}
+            >
               Cambiar datos de facturación
             </Btn>
           </Card>
@@ -307,9 +349,35 @@ export default function BillingHistory() {
             <p className="text-[12px] text-ink2">
               Podés solicitar reembolso a tu isapre con la boleta PDF que emitimos por cada consulta.
             </p>
-            <Btn variant="soft" size="sm" className="mt-3" icon="HelpCircle">
+            <Btn
+              variant="soft"
+              size="sm"
+              className="mt-3"
+              icon="HelpCircle"
+              onClick={() => navigate("/portal/ayuda")}
+            >
               ¿Cómo lo hago?
             </Btn>
+          </Card>
+
+          {/* WhatsApp support */}
+          <Card>
+            <div className="flex items-center gap-3 mb-2">
+              <MessageCircle size={16} className="text-[#25D366]" />
+              <h4 className="text-[14px] font-bold text-ink">¿Problemas con un pago?</h4>
+            </div>
+            <p className="text-[12px] text-ink2 mb-3">
+              Escribinos por WhatsApp y lo resolvemos.
+            </p>
+            <a
+              href="https://wa.me/56958455537?text=Hola%2C%20tengo%20una%20consulta%20sobre%20un%20pago"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-teal-dark hover:gap-2 transition-all"
+            >
+              Abrir WhatsApp
+              <HelpCircle size={12} />
+            </a>
           </Card>
         </div>
       </div>
@@ -317,45 +385,3 @@ export default function BillingHistory() {
   );
 }
 
-// ─── Payment method card ──────────────────────────────────────────────────────
-
-function PayMethodCard({
-  brand,
-  last4,
-  expiry,
-  isDefault = false,
-}: {
-  brand: string;
-  last4: string;
-  expiry: string;
-  isDefault?: boolean;
-}) {
-  return (
-    <div className="flex items-center gap-3 p-3.5 rounded-[12px] border border-line bg-surface">
-      <div className="w-10 h-10 rounded-[10px] bg-teal/15 flex items-center justify-center shrink-0">
-        <CreditCard size={18} className="text-teal-dark" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="text-[13px] font-bold text-ink">
-            {brand} ●●●● {last4}
-          </span>
-          {isDefault && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-teal/20 text-teal-dark">
-              Predeterminada
-            </span>
-          )}
-        </div>
-        <span className="text-[11px] text-ink3">Vence {expiry}</span>
-      </div>
-      {!isDefault && (
-        <Btn variant="quiet" size="sm">
-          Usar
-        </Btn>
-      )}
-      <button className="p-1.5 rounded-[8px] text-ink3 hover:text-[#A85050] hover:bg-destructive/10 transition-colors">
-        <Trash2 size={14} />
-      </button>
-    </div>
-  );
-}
