@@ -11,8 +11,8 @@ import {
 import ServiceDetailPage from "./ServiceDetailPage";
 import type { ServiceDetailPageProps } from "./ServiceDetailPage";
 
-const ACCENT_BG = "rgba(5,150,105,0.15)";
-const ACCENT_COLOR = "#059669";
+const ACCENT_BG = "rgba(110,231,183,0.25)";
+const ACCENT_COLOR = "#6EE7B7";
 
 const data: ServiceDetailPageProps = {
   title: "Alimentación",
@@ -25,8 +25,8 @@ const data: ServiceDetailPageProps = {
   heroIcon: Apple,
   heroIconBg: ACCENT_BG,
   heroIconColor: ACCENT_COLOR,
-  blobColor1: "#34D399",
-  blobColor2: "#6EE7B7",
+  blobColor1: "#A7F3D0",
+  blobColor2: "#D1FAE5",
   ctaLabel: "Reservar consulta",
 
   quickFacts: [
@@ -54,7 +54,7 @@ const data: ServiceDetailPageProps = {
   ],
 
   imageGradient:
-    "linear-gradient(135deg, rgba(5,150,105,0.30) 0%, rgba(110,231,183,0.20) 100%)",
+    "linear-gradient(135deg, rgba(110,231,183,0.30) 0%, rgba(167,243,208,0.20) 100%)",
   imageLabel: "foto · alimentación infantil",
   priceLabel: "Valor consulta",
   price: "$40.000",
