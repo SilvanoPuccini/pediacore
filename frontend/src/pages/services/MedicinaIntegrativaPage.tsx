@@ -10,8 +10,8 @@ import {
 import ServiceDetailPage from "./ServiceDetailPage";
 import type { ServiceDetailPageProps } from "./ServiceDetailPage";
 
-const ACCENT_BG = "rgba(253,186,116,0.25)";
-const ACCENT_COLOR = "#F97316";
+const ACCENT_BG = "rgba(249,115,22,0.18)";
+const ACCENT_COLOR = "#EA580C";
 
 const data: ServiceDetailPageProps = {
   title: "Medicina",
@@ -24,8 +24,8 @@ const data: ServiceDetailPageProps = {
   heroIcon: Leaf,
   heroIconBg: ACCENT_BG,
   heroIconColor: ACCENT_COLOR,
-  blobColor1: "#FED7AA",
-  blobColor2: "#FFEDD5",
+  blobColor1: "#FB923C",
+  blobColor2: "#FDBA74",
   ctaLabel: "Reservar consulta",
 
   quickFacts: [
@@ -53,7 +53,7 @@ const data: ServiceDetailPageProps = {
   ],
 
   imageGradient:
-    "linear-gradient(135deg, rgba(253,186,116,0.30) 0%, rgba(254,215,170,0.20) 100%)",
+    "linear-gradient(135deg, rgba(249,115,22,0.30) 0%, rgba(253,186,116,0.20) 100%)",
   imageLabel: "foto · medicina integrativa",
   priceLabel: "Valor consulta",
   price: "$40.000",

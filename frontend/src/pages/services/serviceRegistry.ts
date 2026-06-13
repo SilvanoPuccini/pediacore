@@ -28,7 +28,7 @@ export interface ServiceMeta {
  * Related-services logic uses this order (circular: next 3 after current).
  *
  * Color palette — 8 hues spaced across the full wheel:
- *   teal · orange · violet · amber · emerald · blue · fuchsia · red
+ *   teal · pink · violet · gold · emerald · blue · orange · red
  */
 export const SERVICE_REGISTRY: ServiceMeta[] = [
   {
@@ -62,10 +62,10 @@ export const SERVICE_REGISTRY: ServiceMeta[] = [
     slug: "asesoria-lactancia",
     title: "Asesoría de lactancia",
     icon: HeartHandshake,
-    color: "#D97706",
-    bg: "rgba(217,119,6,0.18)",
-    blobColor1: "#FBBF24",
-    blobColor2: "#FDE68A",
+    color: "#CA8A04",
+    bg: "rgba(234,179,8,0.15)",
+    blobColor1: "#FACC15",
+    blobColor2: "#FEF08A",
   },
   {
     slug: "alimentacion-infantil",
@@ -89,19 +89,19 @@ export const SERVICE_REGISTRY: ServiceMeta[] = [
     slug: "medicina-integrativa",
     title: "Medicina integrativa",
     icon: Leaf,
-    color: "#F97316",
-    bg: "rgba(253,186,116,0.25)",
-    blobColor1: "#FED7AA",
-    blobColor2: "#FFEDD5",
+    color: "#EA580C",
+    bg: "rgba(249,115,22,0.18)",
+    blobColor1: "#FB923C",
+    blobColor2: "#FDBA74",
   },
   {
     slug: "rcp-infantil",
     title: "RCP infantil",
     icon: Activity,
     color: "#DC2626",
-    bg: "rgba(220,38,38,0.15)",
-    blobColor1: "#F87171",
-    blobColor2: "#FCA5A5",
+    bg: "rgba(185,28,28,0.15)",
+    blobColor1: "#EF4444",
+    blobColor2: "#FEE2E2",
   },
 ];
 

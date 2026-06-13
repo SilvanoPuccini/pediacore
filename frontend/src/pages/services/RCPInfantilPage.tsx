@@ -10,7 +10,7 @@ import {
 import ServiceDetailPage from "./ServiceDetailPage";
 import type { ServiceDetailPageProps } from "./ServiceDetailPage";
 
-const ACCENT_BG = "rgba(220,38,38,0.15)";
+const ACCENT_BG = "rgba(185,28,28,0.15)";
 const ACCENT_COLOR = "#DC2626";
 
 const data: ServiceDetailPageProps = {
@@ -24,8 +24,8 @@ const data: ServiceDetailPageProps = {
   heroIcon: Activity,
   heroIconBg: ACCENT_BG,
   heroIconColor: ACCENT_COLOR,
-  blobColor1: "#F87171",
-  blobColor2: "#FCA5A5",
+  blobColor1: "#EF4444",
+  blobColor2: "#FEE2E2",
   ctaLabel: "Coordinar curso",
 
   quickFacts: [
@@ -53,7 +53,7 @@ const data: ServiceDetailPageProps = {
   ],
 
   imageGradient:
-    "linear-gradient(135deg, rgba(220,38,38,0.30) 0%, rgba(252,165,165,0.20) 100%)",
+    "linear-gradient(135deg, rgba(185,28,28,0.30) 0%, rgba(254,226,226,0.20) 100%)",
   imageLabel: "foto · curso RCP infantil",
   priceLabel: "Valor curso",
   price: "$60.000",
