@@ -18,34 +18,34 @@ import ContentSearchBar from "../components/ContentSearchBar";
 // ─── Tag config ───────────────────────────────────────────────────────────────
 
 const TAG_COLORS: Record<string, { bg: string; color: string }> = {
-  Lactancia:    { bg: "rgba(249,168,212,0.30)", color: "#B05680" },
-  Vacunas:      { bg: "rgba(147,197,253,0.30)", color: "#3B6FA8" },
-  Alimentación: { bg: "rgba(134,239,172,0.30)", color: "#3F8358" },
-  Sueño:        { bg: "rgba(196,181,253,0.32)", color: "#6B569E" },
-  Desarrollo:   { bg: "rgba(252,211,77,0.40)",  color: "#9C7423" },
-  Enfermedades: { bg: "rgba(253,230,138,0.45)", color: "#9C7423" },
-  Urgencias:    { bg: "rgba(252,165,165,0.30)", color: "#B5544F" },
-  Consejos:     { bg: "rgba(94,234,212,0.30)",  color: "#2E7D72" },
+  Lactancia:    { bg: "rgba(217,119,6,0.28)",  color: "#D97706" },
+  Vacunas:      { bg: "rgba(13,148,136,0.25)", color: "#0D9488" },
+  Alimentación: { bg: "rgba(5,150,105,0.25)",  color: "#059669" },
+  Sueño:        { bg: "rgba(37,99,235,0.25)",  color: "#2563EB" },
+  Desarrollo:   { bg: "rgba(192,38,211,0.22)", color: "#A21CAF" },
+  Enfermedades: { bg: "rgba(234,88,12,0.25)",  color: "#EA580C" },
+  Urgencias:    { bg: "rgba(220,38,38,0.25)",  color: "#DC2626" },
+  Consejos:     { bg: "rgba(124,58,237,0.25)", color: "#7C3AED" },
 };
 
 const TAG_GRADIENTS: Record<string, string> = {
-  Lactancia:    "linear-gradient(150deg, rgba(243,168,161,0.55), rgba(123,181,189,0.30))",
-  Vacunas:      "linear-gradient(150deg, rgba(147,197,253,0.55), rgba(123,181,189,0.30))",
-  Alimentación: "linear-gradient(150deg, rgba(134,239,172,0.5), rgba(168,201,168,0.30))",
-  Sueño:        "linear-gradient(150deg, rgba(196,181,253,0.5), rgba(123,181,189,0.28))",
-  Desarrollo:   "linear-gradient(150deg, rgba(229,184,71,0.45), rgba(168,201,168,0.30))",
-  Enfermedades: "linear-gradient(150deg, rgba(253,230,138,0.55), rgba(245,213,193,0.30))",
-  Urgencias:    "linear-gradient(150deg, rgba(252,165,165,0.5), rgba(245,213,193,0.30))",
-  Consejos:     "linear-gradient(150deg, rgba(94,234,212,0.45), rgba(123,181,189,0.30))",
+  Lactancia:    "linear-gradient(150deg, rgba(251,191,36,0.50), rgba(253,230,138,0.30))",
+  Vacunas:      "linear-gradient(150deg, rgba(20,184,166,0.50), rgba(94,234,212,0.30))",
+  Alimentación: "linear-gradient(150deg, rgba(52,211,153,0.50), rgba(110,231,183,0.30))",
+  Sueño:        "linear-gradient(150deg, rgba(96,165,250,0.50), rgba(147,197,253,0.30))",
+  Desarrollo:   "linear-gradient(150deg, rgba(232,121,249,0.45), rgba(240,171,252,0.30))",
+  Enfermedades: "linear-gradient(150deg, rgba(251,146,60,0.50), rgba(253,186,116,0.30))",
+  Urgencias:    "linear-gradient(150deg, rgba(248,113,113,0.50), rgba(252,165,165,0.30))",
+  Consejos:     "linear-gradient(150deg, rgba(167,139,250,0.50), rgba(196,181,253,0.30))",
 };
 
 const TAG_DOT_COLORS: Record<string, string> = {
-  Lactancia:    "#F3A8A1",
-  Vacunas:      "#93C5FD",
-  Alimentación: "#A8C9A8",
-  Sueño:        "#C4B5FD",
-  Urgencias:    "#FCA5A5",
-  Desarrollo:   "#E5B847",
+  Lactancia:    "#FBBF24",
+  Vacunas:      "#14B8A6",
+  Alimentación: "#34D399",
+  Sueño:        "#60A5FA",
+  Urgencias:    "#F87171",
+  Desarrollo:   "#E879F9",
 };
 
 const CATEGORIES = [

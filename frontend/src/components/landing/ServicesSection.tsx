@@ -26,9 +26,9 @@ interface ServiceCard {
 const SERVICES: ServiceCard[] = [
   {
     icon: Baby,
-    iconBg: "bg-[var(--teal)]/15",
-    iconColor: "text-[var(--teal-dark)]",
-    accentColor: "bg-[var(--teal)]/8",
+    iconBg: "bg-[#0D9488]/15",
+    iconColor: "text-[#0D9488]",
+    accentColor: "bg-[#0D9488]/8",
     title: "Control de niño sano",
     description:
       "Seguimiento del crecimiento y desarrollo en cada etapa. Revisión de hitos, vacunas y nutrición adaptada a la edad.",
@@ -36,9 +36,9 @@ const SERVICES: ServiceCard[] = [
   },
   {
     icon: Stethoscope,
-    iconBg: "bg-[var(--coral)]/15",
-    iconColor: "text-[var(--coral)]",
-    accentColor: "bg-[var(--coral)]/8",
+    iconBg: "bg-[#EA580C]/15",
+    iconColor: "text-[#EA580C]",
+    accentColor: "bg-[#EA580C]/8",
     title: "Control por enfermedad",
     description:
       "Atención de enfermedades agudas y crónicas, con diagnóstico detallado y acompañamiento familiar real.",
@@ -46,9 +46,9 @@ const SERVICES: ServiceCard[] = [
   },
   {
     icon: Video,
-    iconBg: "bg-[#C4B5FD]/30",
-    iconColor: "text-[#6B569E]",
-    accentColor: "bg-[#C4B5FD]/10",
+    iconBg: "bg-[#7C3AED]/15",
+    iconColor: "text-[#7C3AED]",
+    accentColor: "bg-[#7C3AED]/8",
     title: "Telemedicina",
     description:
       "Consultas por videollamada para familias en otras regiones o que prefieren la comodidad de su hogar.",
@@ -56,9 +56,9 @@ const SERVICES: ServiceCard[] = [
   },
   {
     icon: HeartHandshake,
-    iconBg: "bg-[#E5B847]/25",
-    iconColor: "text-[#8A6A1F]",
-    accentColor: "bg-[#E5B847]/10",
+    iconBg: "bg-[#D97706]/18",
+    iconColor: "text-[#D97706]",
+    accentColor: "bg-[#D97706]/10",
     title: "Asesoría de lactancia",
     description:
       "Acompañamiento individualizado en lactancia materna: acople, técnica, producción láctea y dudas frecuentes.",
@@ -66,9 +66,9 @@ const SERVICES: ServiceCard[] = [
   },
   {
     icon: Apple,
-    iconBg: "bg-[#86EFAC]/30",
-    iconColor: "text-[#3F8358]",
-    accentColor: "bg-[#86EFAC]/12",
+    iconBg: "bg-[#059669]/15",
+    iconColor: "text-[#059669]",
+    accentColor: "bg-[#059669]/8",
     title: "Alimentación infantil",
     description:
       "Orientación para alimentación complementaria y hábitos saludables desde los primeros meses.",
@@ -76,9 +76,9 @@ const SERVICES: ServiceCard[] = [
   },
   {
     icon: Moon,
-    iconBg: "bg-[#38BDF8]/18",
-    iconColor: "text-[#0369A1]",
-    accentColor: "bg-[#38BDF8]/8",
+    iconBg: "bg-[#2563EB]/15",
+    iconColor: "text-[#2563EB]",
+    accentColor: "bg-[#2563EB]/8",
     title: "Sueño y desarrollo",
     description:
       "Abordaje de trastornos del sueño, cólicos y hitos del desarrollo neuromotor con enfoque integral.",
@@ -86,9 +86,9 @@ const SERVICES: ServiceCard[] = [
   },
   {
     icon: Leaf,
-    iconBg: "bg-[#6366F1]/15",
-    iconColor: "text-[#4F46E5]",
-    accentColor: "bg-[#6366F1]/8",
+    iconBg: "bg-[#A21CAF]/12",
+    iconColor: "text-[#A21CAF]",
+    accentColor: "bg-[#A21CAF]/8",
     title: "Medicina integrativa",
     description:
       "Enfoque funcional que complementa la pediatría clásica: micronutrientes, salud digestiva y plan personalizado.",
@@ -96,9 +96,9 @@ const SERVICES: ServiceCard[] = [
   },
   {
     icon: Activity,
-    iconBg: "bg-[#F43F5E]/15",
-    iconColor: "text-[#BE185D]",
-    accentColor: "bg-[#F43F5E]/8",
+    iconBg: "bg-[#DC2626]/15",
+    iconColor: "text-[#DC2626]",
+    accentColor: "bg-[#DC2626]/8",
     title: "RCP infantil",
     description:
       "Curso práctico de reanimación y primeros auxilios pediátricos para padres y cuidadores.",
@@ -131,18 +131,20 @@ function ServiceCardItem({ service }: { service: ServiceCard }) {
         )}
       />
 
-      {/* Icon */}
-      <div
-        className={cn(
-          "relative z-10 w-12 h-12 rounded-[14px] flex items-center justify-center mb-5",
-          service.iconBg,
-          service.iconColor,
-          "transition-transform duration-300",
-          hovered && "animate-bounce"
-        )}
-      >
-        <Icon size={22} />
-      </div>
+      {/* Icon — clickable */}
+      <Link to={service.href} className="relative z-10 block mb-5" aria-label={service.title}>
+        <div
+          className={cn(
+            "w-12 h-12 rounded-[14px] flex items-center justify-center",
+            service.iconBg,
+            service.iconColor,
+            "transition-transform duration-300",
+            hovered && "animate-bounce"
+          )}
+        >
+          <Icon size={22} />
+        </div>
+      </Link>
 
       {/* Content */}
       <h3 className="relative z-10 text-[16px] font-semibold text-[var(--ink)] mb-2 tracking-tight">

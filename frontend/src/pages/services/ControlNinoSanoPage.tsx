@@ -4,8 +4,6 @@ import {
   Brain,
   Apple,
   ShieldCheck,
-  Stethoscope,
-  Video,
   Clock,
   MapPin,
   Users,
@@ -13,13 +11,9 @@ import {
 import ServiceDetailPage from "./ServiceDetailPage";
 import type { ServiceDetailPageProps } from "./ServiceDetailPage";
 
-// ─── Shared icon bg helpers ───────────────────────────────────────────────────
-const TEAL_BG = "rgba(123,181,189,0.22)";
-const TEAL_COLOR = "#4A8590";
-const PURPLE_BG = "rgba(196,181,253,0.30)";
-const PURPLE_COLOR = "#6B569E";
-const MUSTARD_BG = "rgba(229,184,71,0.30)";
-const MUSTARD_COLOR = "#8A6A1F";
+// ─── Accent colors ────────────────────────────────────────────────────────────
+const ACCENT_BG = "rgba(13,148,136,0.15)";
+const ACCENT_COLOR = "#0D9488";
 
 const data: ServiceDetailPageProps = {
   // Hero
@@ -31,10 +25,10 @@ const data: ServiceDetailPageProps = {
     "Control de niño sano en Pucón y Villarrica con la Dra. Estefanía Ortigosa. Evaluación integral del crecimiento, desarrollo psicomotor, alimentación y vacunas.",
   slug: "control-nino-sano",
   heroIcon: Baby,
-  heroIconBg: TEAL_BG,
-  heroIconColor: TEAL_COLOR,
-  blobColor1: "#7BB5BD",
-  blobColor2: "#A8C9A8",
+  heroIconBg: ACCENT_BG,
+  heroIconColor: ACCENT_COLOR,
+  blobColor1: "#14B8A6",
+  blobColor2: "#5EEAD4",
   ctaLabel: "Reservar control",
 
   quickFacts: [
@@ -42,27 +36,27 @@ const data: ServiceDetailPageProps = {
       icon: Clock,
       label: "45 minutos",
       sub: "Duración del control",
-      bg: TEAL_BG,
-      color: TEAL_COLOR,
+      bg: ACCENT_BG,
+      color: ACCENT_COLOR,
     },
     {
       icon: MapPin,
       label: "Presencial",
       sub: "Pucón & Villarrica",
-      bg: TEAL_BG,
-      color: TEAL_COLOR,
+      bg: ACCENT_BG,
+      color: ACCENT_COLOR,
     },
     {
       icon: Users,
       label: "0 a 18 años",
       sub: "Todas las edades",
-      bg: TEAL_BG,
-      color: TEAL_COLOR,
+      bg: ACCENT_BG,
+      color: ACCENT_COLOR,
     },
   ],
 
   imageGradient:
-    "linear-gradient(135deg, rgba(123,181,189,0.30) 0%, rgba(168,201,168,0.30) 100%)",
+    "linear-gradient(135deg, rgba(13,148,136,0.30) 0%, rgba(94,234,212,0.20) 100%)",
   imageLabel: "foto · control pediátrico",
   priceLabel: "Valor consulta",
   price: "$40.000",
@@ -75,32 +69,32 @@ const data: ServiceDetailPageProps = {
   includes: [
     {
       icon: Ruler,
-      iconBg: TEAL_BG,
-      iconColor: TEAL_COLOR,
+      iconBg: ACCENT_BG,
+      iconColor: ACCENT_COLOR,
       title: "Crecimiento",
       description:
         "Peso, talla, perímetro craneal e IMC graficados en las curvas OMS para seguir la trayectoria.",
     },
     {
       icon: Brain,
-      iconBg: TEAL_BG,
-      iconColor: TEAL_COLOR,
+      iconBg: ACCENT_BG,
+      iconColor: ACCENT_COLOR,
       title: "Desarrollo psicomotor",
       description:
         "Evaluación de hitos según la edad: motricidad, lenguaje, vínculo y socialización.",
     },
     {
       icon: Apple,
-      iconBg: TEAL_BG,
-      iconColor: TEAL_COLOR,
+      iconBg: ACCENT_BG,
+      iconColor: ACCENT_COLOR,
       title: "Alimentación",
       description:
         "Lactancia, alimentación complementaria y hábitos según las pautas MINSAL, sin culpas.",
     },
     {
       icon: ShieldCheck,
-      iconBg: TEAL_BG,
-      iconColor: TEAL_COLOR,
+      iconBg: ACCENT_BG,
+      iconColor: ACCENT_COLOR,
       title: "Vacunas y prevención",
       description:
         "Revisión del calendario MINSAL, indicación de vacunas particulares y consejos de prevención.",
@@ -183,31 +177,6 @@ const data: ServiceDetailPageProps = {
       question: "¿Puedo hacer el control online?",
       answer:
         "El control de niño sano requiere examen físico presencial, por lo que no está disponible por videollamada. Para consultas de seguimiento o dudas puntuales sí podemos usar telemedicina.",
-    },
-  ],
-
-  // Related
-  relatedServices: [
-    {
-      slug: "control-enfermedad",
-      title: "Control por enfermedad",
-      iconBg: "rgba(243,168,161,0.28)",
-      iconColor: "#B5604F",
-      icon: Stethoscope,
-    },
-    {
-      slug: "telemedicina",
-      title: "Telemedicina",
-      iconBg: PURPLE_BG,
-      iconColor: PURPLE_COLOR,
-      icon: Video,
-    },
-    {
-      slug: "asesoria-lactancia",
-      title: "Asesoría de lactancia",
-      iconBg: MUSTARD_BG,
-      iconColor: MUSTARD_COLOR,
-      icon: Baby,
     },
   ],
 

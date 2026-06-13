@@ -4,8 +4,6 @@ import {
   ClipboardList,
   HeartPulse,
   FileText,
-  Baby,
-  Stethoscope,
   Clock,
   Wifi,
   MapPin,
@@ -13,14 +11,8 @@ import {
 import ServiceDetailPage from "./ServiceDetailPage";
 import type { ServiceDetailPageProps } from "./ServiceDetailPage";
 
-const PURPLE_BG = "rgba(196,181,253,0.30)";
-const PURPLE_COLOR = "#6B569E";
-const TEAL_BG = "rgba(123,181,189,0.22)";
-const TEAL_COLOR = "#4A8590";
-const CORAL_BG = "rgba(243,168,161,0.28)";
-const CORAL_COLOR = "#B5604F";
-const MUSTARD_BG = "rgba(229,184,71,0.30)";
-const MUSTARD_COLOR = "#8A6A1F";
+const ACCENT_BG = "rgba(124,58,237,0.15)";
+const ACCENT_COLOR = "#7C3AED";
 
 const data: ServiceDetailPageProps = {
   title: "Consultas por",
@@ -31,9 +23,9 @@ const data: ServiceDetailPageProps = {
     "Consultas pediátricas online con la Dra. Estefanía Ortigosa. Videollamada segura, interpretación de exámenes y recetas digitales para todo Chile.",
   slug: "telemedicina",
   heroIcon: Video,
-  heroIconBg: PURPLE_BG,
-  heroIconColor: PURPLE_COLOR,
-  blobColor1: "#7BB5BD",
+  heroIconBg: ACCENT_BG,
+  heroIconColor: ACCENT_COLOR,
+  blobColor1: "#A78BFA",
   blobColor2: "#C4B5FD",
   ctaLabel: "Reservar online",
 
@@ -42,27 +34,27 @@ const data: ServiceDetailPageProps = {
       icon: Clock,
       label: "30 minutos",
       sub: "Duración de la videollamada",
-      bg: PURPLE_BG,
-      color: PURPLE_COLOR,
+      bg: ACCENT_BG,
+      color: ACCENT_COLOR,
     },
     {
       icon: Wifi,
       label: "100% online",
       sub: "Desde cualquier lugar",
-      bg: PURPLE_BG,
-      color: PURPLE_COLOR,
+      bg: ACCENT_BG,
+      color: ACCENT_COLOR,
     },
     {
       icon: MapPin,
       label: "Todo Chile",
       sub: "Sin importar la región",
-      bg: PURPLE_BG,
-      color: PURPLE_COLOR,
+      bg: ACCENT_BG,
+      color: ACCENT_COLOR,
     },
   ],
 
   imageGradient:
-    "linear-gradient(135deg, rgba(196,181,253,0.40) 0%, rgba(123,181,189,0.22) 100%)",
+    "linear-gradient(135deg, rgba(124,58,237,0.30) 0%, rgba(196,181,253,0.20) 100%)",
   imageLabel: "foto · consulta por videollamada",
   priceLabel: "Valor consulta",
   price: "$35.000",
@@ -74,32 +66,32 @@ const data: ServiceDetailPageProps = {
   includes: [
     {
       icon: ShieldCheck,
-      iconBg: PURPLE_BG,
-      iconColor: PURPLE_COLOR,
+      iconBg: ACCENT_BG,
+      iconColor: ACCENT_COLOR,
       title: "Videollamada segura",
       description:
         "Plataforma privada y encriptada. Te llega el enlace por mensaje, sin instalar nada complicado.",
     },
     {
       icon: ClipboardList,
-      iconBg: PURPLE_BG,
-      iconColor: PURPLE_COLOR,
+      iconBg: ACCENT_BG,
+      iconColor: ACCENT_COLOR,
       title: "Interpretación de exámenes",
       description:
         "Revisamos juntos resultados de laboratorio o imágenes y definimos los próximos pasos.",
     },
     {
       icon: HeartPulse,
-      iconBg: PURPLE_BG,
-      iconColor: PURPLE_COLOR,
+      iconBg: ACCENT_BG,
+      iconColor: ACCENT_COLOR,
       title: "Seguimientos",
       description:
         "Control de tratamientos en curso y evolución de condiciones ya diagnosticadas.",
     },
     {
       icon: FileText,
-      iconBg: PURPLE_BG,
-      iconColor: PURPLE_COLOR,
+      iconBg: ACCENT_BG,
+      iconColor: ACCENT_COLOR,
       title: "Resumen por escrito",
       description:
         "Tras la consulta recibís las indicaciones y recetas digitales por mensaje.",
@@ -177,30 +169,6 @@ const data: ServiceDetailPageProps = {
       question: "¿Cómo se paga?",
       answer:
         "El pago es online al reservar, con tarjeta de crédito, débito o transferencia bancaria. El sistema es seguro y recibirás el comprobante por email.",
-    },
-  ],
-
-  relatedServices: [
-    {
-      slug: "control-nino-sano",
-      title: "Control de niño sano",
-      iconBg: TEAL_BG,
-      iconColor: TEAL_COLOR,
-      icon: Baby,
-    },
-    {
-      slug: "control-enfermedad",
-      title: "Control por enfermedad",
-      iconBg: CORAL_BG,
-      iconColor: CORAL_COLOR,
-      icon: Stethoscope,
-    },
-    {
-      slug: "asesoria-lactancia",
-      title: "Asesoría de lactancia",
-      iconBg: MUSTARD_BG,
-      iconColor: MUSTARD_COLOR,
-      icon: Baby,
     },
   ],
 

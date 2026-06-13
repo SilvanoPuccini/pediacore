@@ -3,9 +3,6 @@ import {
   ShieldPlus,
   Wind,
   BookOpen,
-  Baby,
-  Stethoscope,
-  Video,
   Clock,
   MapPin,
   Users,
@@ -13,14 +10,8 @@ import {
 import ServiceDetailPage from "./ServiceDetailPage";
 import type { ServiceDetailPageProps } from "./ServiceDetailPage";
 
-const ROSE_BG = "rgba(244,63,94,0.18)";
-const ROSE_COLOR = "#BE185D";
-const TEAL_BG = "rgba(123,181,189,0.22)";
-const TEAL_COLOR = "#4A8590";
-const CORAL_BG = "rgba(243,168,161,0.28)";
-const CORAL_COLOR = "#B5604F";
-const INDIGO_BG = "rgba(99,102,241,0.22)";
-const INDIGO_COLOR = "#4F46E5";
+const ACCENT_BG = "rgba(220,38,38,0.15)";
+const ACCENT_COLOR = "#DC2626";
 
 const data: ServiceDetailPageProps = {
   title: "RCP",
@@ -31,10 +22,10 @@ const data: ServiceDetailPageProps = {
     "Curso de RCP infantil con la Dra. Estefanía Ortigosa en Pucón y Villarrica. Reanimación cardiopulmonar, desobstrucción y primeros auxilios para padres y cuidadores.",
   slug: "rcp-infantil",
   heroIcon: Activity,
-  heroIconBg: ROSE_BG,
-  heroIconColor: ROSE_COLOR,
-  blobColor1: "#F43F5E",
-  blobColor2: "#7BB5BD",
+  heroIconBg: ACCENT_BG,
+  heroIconColor: ACCENT_COLOR,
+  blobColor1: "#F87171",
+  blobColor2: "#FCA5A5",
   ctaLabel: "Coordinar curso",
 
   quickFacts: [
@@ -42,27 +33,27 @@ const data: ServiceDetailPageProps = {
       icon: Clock,
       label: "2 horas",
       sub: "Duración del curso",
-      bg: ROSE_BG,
-      color: ROSE_COLOR,
+      bg: ACCENT_BG,
+      color: ACCENT_COLOR,
     },
     {
       icon: MapPin,
       label: "Presencial",
       sub: "Pucón & Villarrica",
-      bg: ROSE_BG,
-      color: ROSE_COLOR,
+      bg: ACCENT_BG,
+      color: ACCENT_COLOR,
     },
     {
       icon: Users,
       label: "Padres y cuidadores",
       sub: "Grupos reducidos",
-      bg: ROSE_BG,
-      color: ROSE_COLOR,
+      bg: ACCENT_BG,
+      color: ACCENT_COLOR,
     },
   ],
 
   imageGradient:
-    "linear-gradient(135deg, rgba(244,63,94,0.30) 0%, rgba(243,168,161,0.22) 100%)",
+    "linear-gradient(135deg, rgba(220,38,38,0.30) 0%, rgba(252,165,165,0.20) 100%)",
   imageLabel: "foto · curso RCP infantil",
   priceLabel: "Valor curso",
   price: "$60.000",
@@ -74,32 +65,32 @@ const data: ServiceDetailPageProps = {
   includes: [
     {
       icon: Activity,
-      iconBg: ROSE_BG,
-      iconColor: ROSE_COLOR,
+      iconBg: ACCENT_BG,
+      iconColor: ACCENT_COLOR,
       title: "RCP básica",
       description:
         "Técnica de reanimación cardiopulmonar en lactantes y niños, paso a paso.",
     },
     {
       icon: Wind,
-      iconBg: ROSE_BG,
-      iconColor: ROSE_COLOR,
+      iconBg: ACCENT_BG,
+      iconColor: ACCENT_COLOR,
       title: "Desobstrucción de vía aérea",
       description:
         "Maniobra de Heimlich y manejo de atragantamiento según la edad del niño.",
     },
     {
       icon: ShieldPlus,
-      iconBg: ROSE_BG,
-      iconColor: ROSE_COLOR,
+      iconBg: ACCENT_BG,
+      iconColor: ACCENT_COLOR,
       title: "Primeros auxilios",
       description:
         "Manejo de convulsiones febriles, quemaduras, caídas y signos de alarma.",
     },
     {
       icon: BookOpen,
-      iconBg: ROSE_BG,
-      iconColor: ROSE_COLOR,
+      iconBg: ACCENT_BG,
+      iconColor: ACCENT_COLOR,
       title: "Material de apoyo",
       description:
         "Guía impresa con los pasos clave para tener en casa como referencia rápida.",
@@ -183,30 +174,6 @@ const data: ServiceDetailPageProps = {
       question: "¿Cada cuánto hay cursos?",
       answer:
         "Armamos grupos por demanda. Escribinos por WhatsApp y te avisamos cuando se abra el próximo cupo en Pucón o Villarrica.",
-    },
-  ],
-
-  relatedServices: [
-    {
-      slug: "control-nino-sano",
-      title: "Control de niño sano",
-      iconBg: TEAL_BG,
-      iconColor: TEAL_COLOR,
-      icon: Baby,
-    },
-    {
-      slug: "control-enfermedad",
-      title: "Control por enfermedad",
-      iconBg: CORAL_BG,
-      iconColor: CORAL_COLOR,
-      icon: Stethoscope,
-    },
-    {
-      slug: "medicina-integrativa",
-      title: "Medicina integrativa",
-      iconBg: INDIGO_BG,
-      iconColor: INDIGO_COLOR,
-      icon: Video,
     },
   ],
 

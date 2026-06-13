@@ -10,13 +10,13 @@ import ContentSearchBar from "../components/ContentSearchBar";
 // ─── Category config ──────────────────────────────────────────────────────────
 
 const CATEGORIES: Record<string, { label: string; bg: string; color: string; tint: string }> = {
-  URGENCIAS:         { label: "Urgencias",         bg: "rgba(252,165,165,0.28)", color: "#B5544F", tint: "linear-gradient(150deg, rgba(252,165,165,0.55), rgba(245,213,193,0.3))" },
-  LACTANCIA:         { label: "Lactancia",         bg: "rgba(249,168,212,0.28)", color: "#B05680", tint: "linear-gradient(150deg, rgba(249,168,212,0.5), rgba(243,168,161,0.3))" },
-  ALIMENTACION:      { label: "Alimentación",      bg: "rgba(134,239,172,0.3)",  color: "#3F8358", tint: "linear-gradient(150deg, rgba(134,239,172,0.5), rgba(168,201,168,0.3))" },
-  SUENO:             { label: "Sueño",             bg: "rgba(196,181,253,0.3)",  color: "#6B569E", tint: "linear-gradient(150deg, rgba(196,181,253,0.5), rgba(123,181,189,0.3))" },
-  PRIMEROS_AUXILIOS: { label: "Primeros auxilios", bg: "rgba(123,181,189,0.25)", color: "#3F7079", tint: "linear-gradient(150deg, rgba(123,181,189,0.55), rgba(229,184,71,0.25))" },
-  DESARROLLO:        { label: "Desarrollo",        bg: "rgba(252,211,77,0.40)",  color: "#9C7423", tint: "linear-gradient(150deg, rgba(229,184,71,0.45), rgba(168,201,168,0.3))" },
-  CONSEJOS:          { label: "Consejos",          bg: "rgba(94,234,212,0.30)",  color: "#2E7D72", tint: "linear-gradient(150deg, rgba(94,234,212,0.45), rgba(123,181,189,0.3))" },
+  URGENCIAS:         { label: "Urgencias",         bg: "rgba(220,38,38,0.25)",   color: "#DC2626", tint: "linear-gradient(150deg, rgba(248,113,113,0.50), rgba(252,165,165,0.30))" },
+  LACTANCIA:         { label: "Lactancia",         bg: "rgba(217,119,6,0.28)",   color: "#D97706", tint: "linear-gradient(150deg, rgba(251,191,36,0.50), rgba(253,230,138,0.30))" },
+  ALIMENTACION:      { label: "Alimentación",      bg: "rgba(5,150,105,0.25)",   color: "#059669", tint: "linear-gradient(150deg, rgba(52,211,153,0.50), rgba(110,231,183,0.30))" },
+  SUENO:             { label: "Sueño",             bg: "rgba(37,99,235,0.25)",   color: "#2563EB", tint: "linear-gradient(150deg, rgba(96,165,250,0.50), rgba(147,197,253,0.30))" },
+  PRIMEROS_AUXILIOS: { label: "Primeros auxilios", bg: "rgba(220,38,38,0.25)",   color: "#DC2626", tint: "linear-gradient(150deg, rgba(248,113,113,0.50), rgba(252,165,165,0.30))" },
+  DESARROLLO:        { label: "Desarrollo",        bg: "rgba(192,38,211,0.22)",  color: "#A21CAF", tint: "linear-gradient(150deg, rgba(232,121,249,0.45), rgba(240,171,252,0.30))" },
+  CONSEJOS:          { label: "Consejos",          bg: "rgba(124,58,237,0.25)",  color: "#7C3AED", tint: "linear-gradient(150deg, rgba(167,139,250,0.50), rgba(196,181,253,0.30))" },
 };
 
 const CATEGORY_FILTERS = [
