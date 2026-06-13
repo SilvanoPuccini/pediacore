@@ -28,7 +28,7 @@ const SERVICES: ServiceCard[] = [
     icon: Baby,
     iconBg: "bg-[#0D9488]/15",
     iconColor: "text-[#0D9488]",
-    accentColor: "bg-[#0D9488]/8",
+    accentColor: "bg-[#0D9488]/15",
     title: "Control de niño sano",
     description:
       "Seguimiento del crecimiento y desarrollo en cada etapa. Revisión de hitos, vacunas y nutrición adaptada a la edad.",
@@ -38,7 +38,7 @@ const SERVICES: ServiceCard[] = [
     icon: Stethoscope,
     iconBg: "bg-[#F9A8D4]/25",
     iconColor: "text-[#F9A8D4]",
-    accentColor: "bg-[#F9A8D4]/15",
+    accentColor: "bg-[#F9A8D4]/25",
     title: "Control por enfermedad",
     description:
       "Atención de enfermedades agudas y crónicas, con diagnóstico detallado y acompañamiento familiar real.",
@@ -48,7 +48,7 @@ const SERVICES: ServiceCard[] = [
     icon: Video,
     iconBg: "bg-[#7C3AED]/15",
     iconColor: "text-[#7C3AED]",
-    accentColor: "bg-[#7C3AED]/8",
+    accentColor: "bg-[#7C3AED]/15",
     title: "Telemedicina",
     description:
       "Consultas por videollamada para familias en otras regiones o que prefieren la comodidad de su hogar.",
@@ -58,7 +58,7 @@ const SERVICES: ServiceCard[] = [
     icon: HeartHandshake,
     iconBg: "bg-[#D97706]/18",
     iconColor: "text-[#D97706]",
-    accentColor: "bg-[#D97706]/10",
+    accentColor: "bg-[#D97706]/18",
     title: "Asesoría de lactancia",
     description:
       "Acompañamiento individualizado en lactancia materna: acople, técnica, producción láctea y dudas frecuentes.",
@@ -68,7 +68,7 @@ const SERVICES: ServiceCard[] = [
     icon: Apple,
     iconBg: "bg-[#6EE7B7]/25",
     iconColor: "text-[#6EE7B7]",
-    accentColor: "bg-[#6EE7B7]/15",
+    accentColor: "bg-[#6EE7B7]/25",
     title: "Alimentación infantil",
     description:
       "Orientación para alimentación complementaria y hábitos saludables desde los primeros meses.",
@@ -78,7 +78,7 @@ const SERVICES: ServiceCard[] = [
     icon: Moon,
     iconBg: "bg-[#2563EB]/15",
     iconColor: "text-[#2563EB]",
-    accentColor: "bg-[#2563EB]/8",
+    accentColor: "bg-[#2563EB]/15",
     title: "Sueño y desarrollo",
     description:
       "Abordaje de trastornos del sueño, cólicos y hitos del desarrollo neuromotor con enfoque integral.",
@@ -88,7 +88,7 @@ const SERVICES: ServiceCard[] = [
     icon: Leaf,
     iconBg: "bg-[#FDBA74]/25",
     iconColor: "text-[#FDBA74]",
-    accentColor: "bg-[#FDBA74]/15",
+    accentColor: "bg-[#FDBA74]/25",
     title: "Medicina integrativa",
     description:
       "Enfoque funcional que complementa la pediatría clásica: micronutrientes, salud digestiva y plan personalizado.",
@@ -98,7 +98,7 @@ const SERVICES: ServiceCard[] = [
     icon: Activity,
     iconBg: "bg-[#DC2626]/15",
     iconColor: "text-[#DC2626]",
-    accentColor: "bg-[#DC2626]/8",
+    accentColor: "bg-[#DC2626]/15",
     title: "RCP infantil",
     description:
       "Curso práctico de reanimación y primeros auxilios pediátricos para padres y cuidadores.",
