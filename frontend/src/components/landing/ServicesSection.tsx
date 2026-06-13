@@ -4,9 +4,11 @@ import {
   Stethoscope,
   Baby,
   Video,
-  Milk,
+  HeartHandshake,
   Apple,
   Moon,
+  Leaf,
+  Activity,
   ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -53,7 +55,7 @@ const SERVICES: ServiceCard[] = [
     href: "/servicios/telemedicina",
   },
   {
-    icon: Milk,
+    icon: HeartHandshake,
     iconBg: "bg-[var(--sage)]/25",
     iconColor: "text-[var(--sage)]",
     accentColor: "bg-[var(--sage)]/10",
@@ -81,6 +83,26 @@ const SERVICES: ServiceCard[] = [
     description:
       "Abordaje de trastornos del sueño, cólicos y hitos del desarrollo neuromotor con enfoque integral.",
     href: "/servicios/sueno-desarrollo",
+  },
+  {
+    icon: Leaf,
+    iconBg: "bg-[#6366F1]/15",
+    iconColor: "text-[#4F46E5]",
+    accentColor: "bg-[#6366F1]/8",
+    title: "Medicina integrativa",
+    description:
+      "Enfoque funcional que complementa la pediatría clásica: micronutrientes, salud digestiva y plan personalizado.",
+    href: "/servicios/medicina-integrativa",
+  },
+  {
+    icon: Activity,
+    iconBg: "bg-[#F43F5E]/15",
+    iconColor: "text-[#BE185D]",
+    accentColor: "bg-[#F43F5E]/8",
+    title: "RCP infantil",
+    description:
+      "Curso práctico de reanimación y primeros auxilios pediátricos para padres y cuidadores.",
+    href: "/servicios/rcp-infantil",
   },
 ];
 
@@ -170,7 +192,7 @@ export default function ServicesSection() {
         </div>
 
         {/* Cards grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
           {SERVICES.map((service) => (
             <ServiceCardItem key={service.title} service={service} />
           ))}

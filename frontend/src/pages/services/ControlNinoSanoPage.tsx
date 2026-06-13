@@ -18,8 +18,6 @@ const TEAL_BG = "rgba(123,181,189,0.22)";
 const TEAL_COLOR = "#4A8590";
 const PURPLE_BG = "rgba(196,181,253,0.30)";
 const PURPLE_COLOR = "#6B569E";
-const GREEN_BG = "rgba(134,239,172,0.30)";
-const GREEN_COLOR = "#3F8358";
 const MUSTARD_BG = "rgba(229,184,71,0.30)";
 const MUSTARD_COLOR = "#8A6A1F";
 
@@ -85,24 +83,24 @@ const data: ServiceDetailPageProps = {
     },
     {
       icon: Brain,
-      iconBg: PURPLE_BG,
-      iconColor: PURPLE_COLOR,
+      iconBg: TEAL_BG,
+      iconColor: TEAL_COLOR,
       title: "Desarrollo psicomotor",
       description:
         "Evaluación de hitos según la edad: motricidad, lenguaje, vínculo y socialización.",
     },
     {
       icon: Apple,
-      iconBg: GREEN_BG,
-      iconColor: GREEN_COLOR,
+      iconBg: TEAL_BG,
+      iconColor: TEAL_COLOR,
       title: "Alimentación",
       description:
         "Lactancia, alimentación complementaria y hábitos según las pautas MINSAL, sin culpas.",
     },
     {
       icon: ShieldCheck,
-      iconBg: MUSTARD_BG,
-      iconColor: MUSTARD_COLOR,
+      iconBg: TEAL_BG,
+      iconColor: TEAL_COLOR,
       title: "Vacunas y prevención",
       description:
         "Revisión del calendario MINSAL, indicación de vacunas particulares y consejos de prevención.",

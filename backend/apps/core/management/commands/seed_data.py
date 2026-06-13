@@ -308,19 +308,60 @@ class Command(BaseCommand):
                 "display_order": 6,
                 "locations": [location_pucon, location_villarrica],
             },
+            # ── Specialty services ──────────────────────────────────────
+            {
+                "name": "Alimentación Infantil",
+                "slug": "alimentacion-infantil",
+                "description": (
+                    "Orientación para alimentación complementaria y hábitos "
+                    "saludables desde los primeros meses. Con base en evidencia "
+                    "y adaptada a tu familia."
+                ),
+                "duration_minutes": 45,
+                "price_clp": 40000,
+                "modality": "PRESENCIAL_Y_ONLINE",
+                "display_order": 7,
+                "locations": [location_pucon, location_villarrica],
+            },
+            {
+                "name": "Sueño y Desarrollo",
+                "slug": "sueno-desarrollo",
+                "description": (
+                    "Abordaje de trastornos del sueño, cólicos y hitos del "
+                    "desarrollo neuromotor con enfoque integral."
+                ),
+                "duration_minutes": 45,
+                "price_clp": 40000,
+                "modality": "PRESENCIAL_Y_ONLINE",
+                "display_order": 8,
+                "locations": [location_pucon, location_villarrica],
+            },
+            {
+                "name": "Medicina Integrativa",
+                "slug": "medicina-integrativa",
+                "description": (
+                    "Enfoque funcional e integrativo que complementa la pediatría "
+                    "tradicional. Evaluamos al niño como un todo: alimentación, "
+                    "sueño, ambiente y micronutrientes."
+                ),
+                "duration_minutes": 45,
+                "price_clp": 40000,
+                "modality": "PRESENCIAL",
+                "display_order": 9,
+                "locations": [location_pucon, location_villarrica],
+            },
             {
                 "name": "Curso RCP Infantil",
-                "slug": "curso-rcp-infantil",
+                "slug": "rcp-infantil",
                 "description": (
-                    "Capacitación práctica en primeros auxilios y reanimación "
-                    "cardiopulmonar en niños. Coordinar día y horario directamente "
-                    "con el centro."
+                    "Capacitación práctica en reanimación cardiopulmonar y "
+                    "primeros auxilios pediátricos para padres y cuidadores."
                 ),
                 "duration_minutes": 120,
                 "price_clp": 60000,
                 "modality": "PRESENCIAL",
                 "requires_manual_coordination": True,
-                "display_order": 7,
+                "display_order": 10,
                 "locations": [location_pucon, location_villarrica],
             },
         ]
