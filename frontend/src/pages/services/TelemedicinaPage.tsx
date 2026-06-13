@@ -65,7 +65,7 @@ const data: ServiceDetailPageProps = {
     "linear-gradient(135deg, rgba(196,181,253,0.40) 0%, rgba(123,181,189,0.22) 100%)",
   imageLabel: "foto · consulta por videollamada",
   priceLabel: "Valor consulta",
-  price: "$40.000",
+  price: "$35.000",
   priceSub: "Pago seguro online",
 
   includesTitle: "La misma atención, desde tu casa.",

@@ -1,5 +1,5 @@
 import {
-  Milk,
+  HeartHandshake,
   HandHeart,
   Droplets,
   HeartPulse,
@@ -31,7 +31,7 @@ const data: ServiceDetailPageProps = {
   metaDescription:
     "Asesoría de lactancia materna con la Dra. Estefanía Ortigosa en Pucón y Villarrica. Acople, técnica, producción láctea y acompañamiento personalizado.",
   slug: "asesoria-lactancia",
-  heroIcon: Milk,
+  heroIcon: HeartHandshake,
   heroIconBg: MUSTARD_BG,
   heroIconColor: MUSTARD_COLOR,
   blobColor1: "#7BB5BD",

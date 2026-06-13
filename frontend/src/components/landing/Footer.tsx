@@ -110,6 +110,8 @@ export default function Footer() {
             <FooterLink href="/servicios/asesoria-lactancia">Asesoría de lactancia</FooterLink>
             <FooterLink href="/servicios/alimentacion-infantil">Alimentación infantil</FooterLink>
             <FooterLink href="/servicios/sueno-desarrollo">Sueño y desarrollo</FooterLink>
+            <FooterLink href="/servicios/medicina-integrativa">Medicina integrativa</FooterLink>
+            <FooterLink href="/servicios/rcp-infantil">RCP infantil</FooterLink>
           </FooterColumn>
 
           {/* Conocer */}

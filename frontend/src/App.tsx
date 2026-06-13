@@ -72,6 +72,8 @@ const TelemedicinaPage = lazy(() => import("@/pages/services/TelemedicinaPage"))
 const AsesoriaLactanciaPage = lazy(() => import("@/pages/services/AsesoriaLactanciaPage"));
 const AlimentacionInfantilPage = lazy(() => import("@/pages/services/AlimentacionInfantilPage"));
 const SuenoDesarrolloPage = lazy(() => import("@/pages/services/SuenoDesarrolloPage"));
+const MedicinaIntegrativaPage = lazy(() => import("@/pages/services/MedicinaIntegrativaPage"));
+const RCPInfantilPage = lazy(() => import("@/pages/services/RCPInfantilPage"));
 const BlogPage = lazy(() => import("@/features/blog/pages/BlogPage"));
 const BlogPostPage = lazy(() => import("@/features/blog/pages/BlogPostPage"));
 const VideosPage = lazy(() => import("@/features/blog/pages/VideosPage"));
@@ -232,6 +234,22 @@ function AppRoutes() {
           element={
             <PublicLayout>
               <SuenoDesarrolloPage />
+            </PublicLayout>
+          }
+        />
+        <Route
+          path="/servicios/medicina-integrativa"
+          element={
+            <PublicLayout>
+              <MedicinaIntegrativaPage />
+            </PublicLayout>
+          }
+        />
+        <Route
+          path="/servicios/rcp-infantil"
+          element={
+            <PublicLayout>
+              <RCPInfantilPage />
             </PublicLayout>
           }
         />

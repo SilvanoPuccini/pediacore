@@ -296,28 +296,27 @@ export default function ServiceDetailPage({
                 <div className="flex flex-wrap gap-3 mb-10">
                   <Link
                     to="/booking"
-                    className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-[14px] font-semibold text-white transition-all hover:opacity-90 shadow-[var(--shadow-cta)]"
-                    style={{ backgroundColor: "var(--teal-dark)" }}
+                    className="inline-flex items-center gap-2 rounded-[14px] px-6 py-3 text-[14px] font-semibold text-white bg-[var(--teal-dark)] shadow-[var(--shadow-cta)] transition-all duration-200 hover:opacity-90 hover:-translate-y-0.5"
                   >
                     {ctaLabel}
                     <ArrowRight size={15} />
                   </Link>
                   <button
                     onClick={scrollToDetail}
-                    className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-[14px] font-semibold border border-[var(--line)] text-[var(--ink2)] hover:text-[var(--teal-dark)] hover:border-[var(--teal)] transition-all bg-[var(--surface)]"
+                    className="inline-flex items-center gap-2 rounded-[14px] px-6 py-3 text-[14px] font-semibold border border-[var(--line)] text-[var(--ink)] bg-[var(--surface)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-soft)]"
                   >
                     Ver qué incluye
                   </button>
                 </div>
 
                 {/* Quick facts */}
-                <div className="flex flex-wrap gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {quickFacts.map((fact, i) => {
                     const FactIcon = fact.icon;
                     return (
                       <div
                         key={i}
-                        className="flex items-center gap-2.5 px-4 py-2.5 rounded-[14px] border border-[var(--line)] bg-[var(--surface)] shadow-[var(--shadow-card)]"
+                        className="flex items-center gap-2.5 px-3 py-2.5 rounded-[14px] border border-[var(--line)] bg-[var(--surface)] shadow-[var(--shadow-card)]"
                       >
                         <div
                           className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0"
@@ -648,7 +647,7 @@ export default function ServiceDetailPage({
             <div className="flex flex-wrap items-center justify-center gap-4">
               <Link
                 to="/booking"
-                className="inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-[14px] font-semibold bg-white transition-all hover:opacity-90 shadow-[0_4px_20px_rgba(0,0,0,0.20)]"
+                className="inline-flex items-center gap-2 rounded-[14px] px-7 py-3.5 text-[14px] font-semibold bg-white transition-all duration-200 hover:opacity-90 hover:-translate-y-0.5 shadow-[0_4px_20px_rgba(0,0,0,0.20)]"
                 style={{ color: "var(--teal-dark)" }}
               >
                 {ctaButtonLabel}
@@ -659,7 +658,7 @@ export default function ServiceDetailPage({
                 href="https://wa.me/56958455537"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-[14px] font-semibold text-white border border-white/40 hover:border-white/70 transition-all"
+                className="inline-flex items-center gap-2 rounded-[14px] px-7 py-3.5 text-[14px] font-semibold text-white border border-white/40 hover:border-white/70 transition-all duration-200 hover:-translate-y-0.5"
               >
                 <WhatsAppIcon size={16} />
                 WhatsApp
