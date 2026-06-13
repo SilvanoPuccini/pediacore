@@ -5,7 +5,7 @@ import {
   Baby,
   Video,
   Milk,
-  UtensilsCrossed,
+  Apple,
   Moon,
   ArrowRight,
 } from "lucide-react";
@@ -63,7 +63,7 @@ const SERVICES: ServiceCard[] = [
     href: "/servicios/asesoria-lactancia",
   },
   {
-    icon: UtensilsCrossed,
+    icon: Apple,
     iconBg: "bg-[var(--peach)]/30",
     iconColor: "text-[var(--coral)]",
     accentColor: "bg-[var(--peach)]/15",
