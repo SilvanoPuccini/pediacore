@@ -234,33 +234,6 @@ export default function MyProfile() {
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex items-center gap-2 shrink-0">
-            <Btn
-              variant="ghost"
-              size="sm"
-              icon="Lock"
-              onClick={() => securityRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-            >
-              Cambiar contraseña
-            </Btn>
-            <Btn
-              variant={editing ? "primary" : "soft"}
-              size="sm"
-              icon={editing ? "Check" : "Pencil"}
-              onClick={() => {
-                if (editing) {
-                  // trigger form submit
-                  const formEl = document.getElementById("profile-form") as HTMLFormElement;
-                  formEl?.requestSubmit();
-                } else {
-                  setEditing(true);
-                }
-              }}
-            >
-              {editing ? "Guardar cambios" : "Editar perfil"}
-            </Btn>
-          </div>
         </div>
       </Card>
 
@@ -351,8 +324,10 @@ export default function MyProfile() {
                     onChange={handleChange}
                     disabled={!editing}
                     className={cn(
-                      "w-[80px] shrink-0",
-                      editing ? INPUT_CLS : INPUT_DISABLED_CLS
+                      "w-[80px] shrink-0 px-2 py-2.5 rounded-[10px] text-[13.5px] border border-line transition",
+                      editing
+                        ? "bg-bg text-ink focus:outline-none focus:border-teal focus:ring-2 focus:ring-teal/20"
+                        : "bg-cream text-ink3 cursor-not-allowed"
                     )}
                   >
                     {PHONE_PREFIXES.map((p) => (
