@@ -9,6 +9,7 @@ import {
   Home,
   Receipt,
   HelpCircle,
+  Bell,
   Plus,
   ExternalLink,
   Search,
@@ -169,6 +170,14 @@ export default function TutorLayout() {
           >
             <HelpCircle size={16} strokeWidth={1.6} className="shrink-0" />
             Ayuda
+          </Link>
+          <Link
+            to="/portal/notificaciones"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-[13px] font-medium text-ink2 hover:bg-bg hover:text-ink transition-colors"
+            onClick={() => setSidebarOpen(false)}
+          >
+            <Bell size={16} strokeWidth={1.6} className="shrink-0" />
+            Notificaciones
           </Link>
         </nav>
 
