@@ -8,8 +8,6 @@ import {
   Download,
   ChevronLeft,
   ChevronRight,
-  MessageCircle,
-  HelpCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import api from "@/lib/api";
@@ -329,55 +327,20 @@ export default function BillingHistory() {
           {/* Billing info */}
           <Card>
             <h4 className="text-[14px] font-bold text-ink mb-2">Facturación</h4>
-            <p className="text-[12px] text-ink2">
+            <p className="text-[12px] text-ink2 leading-relaxed">
               Los comprobantes se emiten a nombre del titular registrado.
+              Si necesitás una boleta o factura para reembolso, podrás
+              solicitarla el día de tu atención en la recepción.
             </p>
-            <Btn
-              variant="ghost"
-              size="sm"
-              className="mt-3"
-              icon="Pencil"
-              onClick={() => navigate("/portal/perfil")}
-            >
-              Cambiar datos de facturación
-            </Btn>
           </Card>
 
           {/* Reembolso */}
           <Card>
             <h4 className="text-[14px] font-bold text-ink mb-2">Reembolso isapre</h4>
-            <p className="text-[12px] text-ink2">
-              Podés solicitar reembolso a tu isapre con la boleta PDF que emitimos por cada consulta.
+            <p className="text-[12px] text-ink2 leading-relaxed">
+              Podés solicitar reembolso a tu isapre con la boleta que te
+              entregamos en la consulta. Presentala directo en tu isapre.
             </p>
-            <Btn
-              variant="soft"
-              size="sm"
-              className="mt-3"
-              icon="HelpCircle"
-              onClick={() => navigate("/portal/ayuda")}
-            >
-              ¿Cómo lo hago?
-            </Btn>
-          </Card>
-
-          {/* WhatsApp support */}
-          <Card>
-            <div className="flex items-center gap-3 mb-2">
-              <MessageCircle size={16} className="text-[#25D366]" />
-              <h4 className="text-[14px] font-bold text-ink">¿Problemas con un pago?</h4>
-            </div>
-            <p className="text-[12px] text-ink2 mb-3">
-              Escribinos por WhatsApp y lo resolvemos.
-            </p>
-            <a
-              href="https://wa.me/56958455537?text=Hola%2C%20tengo%20una%20consulta%20sobre%20un%20pago"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-teal-dark hover:gap-2 transition-all"
-            >
-              Abrir WhatsApp
-              <HelpCircle size={12} />
-            </a>
           </Card>
         </div>
       </div>
