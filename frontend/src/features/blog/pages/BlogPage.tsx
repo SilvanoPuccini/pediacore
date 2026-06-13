@@ -13,6 +13,7 @@ import api from "@/lib/api";
 import { useAuthStore } from "@/stores/auth";
 import estefiAvatar from "@/assets/estefi-avatar.png";
 import type { BlogPost, PaginatedResponse } from "@/types/api";
+import ContentSearchBar from "../components/ContentSearchBar";
 
 // ─── Tag config ───────────────────────────────────────────────────────────────
 
@@ -279,6 +280,7 @@ function CardSkeleton() {
 export default function BlogPage() {
   const [activeTag, setActiveTagState] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { user, isAuthenticated } = useAuthStore();
   const [showToTop, setShowToTop] = useState(false);
@@ -328,6 +330,21 @@ export default function BlogPage() {
     },
     staleTime: 1000 * 60 * 10,
   });
+
+  // Search query — only runs when searchQuery is non-empty
+  const { data: searchData, isLoading: isSearchLoading } = useQuery({
+    queryKey: ["blog-search", searchQuery],
+    queryFn: async () => {
+      const res = await api.get<PaginatedResponse<BlogPost>>("/content/blog/", {
+        params: { search: searchQuery, page_size: 20 },
+      });
+      return res.data;
+    },
+    enabled: searchQuery.trim().length > 0,
+    staleTime: 1000 * 60 * 2,
+  });
+
+  const searchResults = searchData?.results ?? [];
 
   // Sort all posts by post_number descending (highest = most recent)
   const allPosts = [...(data?.results ?? [])].sort(
@@ -505,6 +522,15 @@ export default function BlogPage() {
       {/* ── Main content ── */}
       <main id="contenido" ref={mainRef} className="max-w-[1280px] mx-auto px-6 py-12 lg:py-16">
 
+        {/* Search bar — always visible */}
+        <div className="max-w-2xl mx-auto mb-10">
+          <ContentSearchBar
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Buscar artículos por tema, título o etiqueta..."
+          />
+        </div>
+
         {/* Loading state */}
         {isLoading && (
           <div className="grid lg:grid-cols-[1.5fr_1fr] gap-6 mb-14">
@@ -527,8 +553,48 @@ export default function BlogPage() {
           </div>
         )}
 
+        {/* Search results — shown when searchQuery is active */}
+        {!isLoading && !isError && searchQuery.trim().length > 0 && (
+          <div>
+            {/* Results header */}
+            <div className="mb-6 flex items-baseline gap-2">
+              <h2 className="font-display text-[22px] text-ink">
+                {isSearchLoading
+                  ? "Buscando..."
+                  : searchResults.length > 0
+                  ? `${searchResults.length} resultado${searchResults.length !== 1 ? "s" : ""} para "${searchQuery}"`
+                  : `Sin resultados para "${searchQuery}"`}
+              </h2>
+            </div>
+
+            {/* Results grid */}
+            {!isSearchLoading && searchResults.length > 0 && (
+              <div className="grid sm:grid-cols-2 gap-6">
+                {searchResults.map((post) => (
+                  <PostCard key={post.id} post={post} />
+                ))}
+              </div>
+            )}
+
+            {/* Empty state */}
+            {!isSearchLoading && searchResults.length === 0 && (
+              <div className="text-center py-16">
+                <div className="mx-auto w-14 h-14 rounded-full bg-bg flex items-center justify-center mb-3">
+                  <Search size={22} color="#A0A0A0" />
+                </div>
+                <div className="text-[14px] font-bold text-ink">
+                  No encontramos artículos para "{searchQuery}"
+                </div>
+                <div className="text-[12.5px] text-ink3 mt-1">
+                  Probá con otras palabras o revisá las categorías.
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Content */}
-        {!isLoading && !isError && (
+        {!isLoading && !isError && searchQuery.trim().length === 0 && (
           <>
             {/* Featured + secondary */}
             {allPosts.length > 0 ? (
