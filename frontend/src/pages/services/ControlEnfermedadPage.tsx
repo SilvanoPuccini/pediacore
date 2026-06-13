@@ -12,7 +12,7 @@ import ServiceDetailPage from "./ServiceDetailPage";
 import type { ServiceDetailPageProps } from "./ServiceDetailPage";
 
 const ACCENT_BG = "rgba(249,168,212,0.25)";
-const ACCENT_COLOR = "#F9A8D4";
+const ACCENT_COLOR = "#EC4899";
 
 const data: ServiceDetailPageProps = {
   title: "Control por",

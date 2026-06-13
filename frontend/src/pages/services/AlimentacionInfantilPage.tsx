@@ -12,7 +12,7 @@ import ServiceDetailPage from "./ServiceDetailPage";
 import type { ServiceDetailPageProps } from "./ServiceDetailPage";
 
 const ACCENT_BG = "rgba(110,231,183,0.25)";
-const ACCENT_COLOR = "#6EE7B7";
+const ACCENT_COLOR = "#10B981";
 
 const data: ServiceDetailPageProps = {
   title: "Alimentación",
