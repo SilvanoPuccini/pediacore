@@ -48,6 +48,7 @@ function usePageTitle(pathname: string): { title: string; crumb: string } {
   if (pathname.startsWith("/portal/pagos")) return { title: "Pagos", crumb: "Pagos" };
   if (pathname.startsWith("/portal/perfil")) return { title: "Mi perfil", crumb: "Mi perfil" };
   if (pathname.startsWith("/portal/notificaciones")) return { title: "Notificaciones", crumb: "Notificaciones" };
+  if (pathname.startsWith("/portal/ayuda")) return { title: "Ayuda", crumb: "Ayuda" };
   return { title: "Portal", crumb: "Portal" };
 }
 
@@ -162,7 +163,7 @@ export default function TutorLayout() {
           {/* Divider + secondary nav */}
           <div className="mx-2 h-px bg-line my-4" />
           <Link
-            to="/portal/notificaciones"
+            to="/portal/ayuda"
             className="flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-[13px] font-medium text-ink2 hover:bg-bg hover:text-ink transition-colors"
             onClick={() => setSidebarOpen(false)}
           >
