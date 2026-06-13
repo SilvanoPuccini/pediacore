@@ -53,7 +53,7 @@ export default function ContentSearchBar({
         </span>
 
         <input
-          type="search"
+          type="text"
           value={localValue}
           onChange={handleChange}
           placeholder={placeholder}
