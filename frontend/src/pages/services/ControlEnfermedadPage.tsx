@@ -11,8 +11,8 @@ import {
 import ServiceDetailPage from "./ServiceDetailPage";
 import type { ServiceDetailPageProps } from "./ServiceDetailPage";
 
-const ACCENT_BG = "rgba(234,88,12,0.15)";
-const ACCENT_COLOR = "#EA580C";
+const ACCENT_BG = "rgba(249,168,212,0.25)";
+const ACCENT_COLOR = "#F9A8D4";
 
 const data: ServiceDetailPageProps = {
   title: "Control por",
@@ -25,8 +25,8 @@ const data: ServiceDetailPageProps = {
   heroIcon: Stethoscope,
   heroIconBg: ACCENT_BG,
   heroIconColor: ACCENT_COLOR,
-  blobColor1: "#FB923C",
-  blobColor2: "#FDBA74",
+  blobColor1: "#FBCFE8",
+  blobColor2: "#FCE7F3",
   ctaLabel: "Reservar consulta",
 
   quickFacts: [
@@ -54,7 +54,7 @@ const data: ServiceDetailPageProps = {
   ],
 
   imageGradient:
-    "linear-gradient(135deg, rgba(234,88,12,0.30) 0%, rgba(253,186,116,0.20) 100%)",
+    "linear-gradient(135deg, rgba(249,168,212,0.30) 0%, rgba(251,207,232,0.20) 100%)",
   imageLabel: "foto · consulta pediátrica",
   priceLabel: "Valor consulta",
   price: "$40.000",

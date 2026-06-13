@@ -36,9 +36,9 @@ const SERVICES: ServiceCard[] = [
   },
   {
     icon: Stethoscope,
-    iconBg: "bg-[#EA580C]/15",
-    iconColor: "text-[#EA580C]",
-    accentColor: "bg-[#EA580C]/8",
+    iconBg: "bg-[#F9A8D4]/25",
+    iconColor: "text-[#F9A8D4]",
+    accentColor: "bg-[#F9A8D4]/15",
     title: "Control por enfermedad",
     description:
       "Atención de enfermedades agudas y crónicas, con diagnóstico detallado y acompañamiento familiar real.",
@@ -66,9 +66,9 @@ const SERVICES: ServiceCard[] = [
   },
   {
     icon: Apple,
-    iconBg: "bg-[#059669]/15",
-    iconColor: "text-[#059669]",
-    accentColor: "bg-[#059669]/8",
+    iconBg: "bg-[#6EE7B7]/25",
+    iconColor: "text-[#6EE7B7]",
+    accentColor: "bg-[#6EE7B7]/15",
     title: "Alimentación infantil",
     description:
       "Orientación para alimentación complementaria y hábitos saludables desde los primeros meses.",
@@ -86,9 +86,9 @@ const SERVICES: ServiceCard[] = [
   },
   {
     icon: Leaf,
-    iconBg: "bg-[#A21CAF]/12",
-    iconColor: "text-[#A21CAF]",
-    accentColor: "bg-[#A21CAF]/8",
+    iconBg: "bg-[#FDBA74]/25",
+    iconColor: "text-[#FDBA74]",
+    accentColor: "bg-[#FDBA74]/15",
     title: "Medicina integrativa",
     description:
       "Enfoque funcional que complementa la pediatría clásica: micronutrientes, salud digestiva y plan personalizado.",
