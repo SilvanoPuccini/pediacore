@@ -61,7 +61,7 @@ class PublicBlogPostViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [AllowAny]
     lookup_field = "slug"
     filter_backends = [filters.SearchFilter]
-    search_fields = ["title", "content", "excerpt"]
+    search_fields = ["title", "content", "excerpt", "tags"]
 
     def get_queryset(self) -> QuerySet[BlogPost]:
         qs = BlogPost.objects.filter(is_published=True).select_related("author", "practice")

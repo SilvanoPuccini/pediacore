@@ -5,6 +5,7 @@ import { Search, Clock, Eye, ChevronUp, Play } from "lucide-react";
 import api from "@/lib/api";
 import estefiAvatar from "@/assets/estefi-avatar.png";
 import type { VideoResource, PaginatedResponse } from "@/types/api";
+import ContentSearchBar from "../components/ContentSearchBar";
 
 // ─── Category config ──────────────────────────────────────────────────────────
 
@@ -228,6 +229,7 @@ function PlaylistSkeleton() {
 
 export default function VideosPage() {
   const [activeCategory, setActiveCategory] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [activeVideo, setActiveVideo] = useState<VideoResource | null>(null);
   const [showToTop, setShowToTop] = useState(false);
   const [videoCopied, setVideoCopied] = useState(false);
@@ -239,10 +241,11 @@ export default function VideosPage() {
   }, []);
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["videos", activeCategory],
+    queryKey: ["videos", activeCategory, searchQuery],
     queryFn: async () => {
       const params: Record<string, string> = {};
       if (activeCategory) params.category = activeCategory;
+      if (searchQuery.trim()) params.search = searchQuery.trim();
       const res = await api.get<PaginatedResponse<VideoResource>>("/content/videos/", { params });
       return res.data;
     },
@@ -263,10 +266,10 @@ export default function VideosPage() {
     }
   }, [videos, activeVideo]);
 
-  // Reset active video when category changes
+  // Reset active video when category or search changes
   useEffect(() => {
     setActiveVideo(null);
-  }, [activeCategory]);
+  }, [activeCategory, searchQuery]);
 
   function selectVideo(video: VideoResource) {
     setActiveVideo(video);
@@ -339,6 +342,15 @@ export default function VideosPage() {
       {/* ── Main content ── */}
       <main id="videos-content" className="max-w-[1280px] mx-auto px-6 py-12 lg:py-16">
 
+        {/* Search bar */}
+        <div className="max-w-2xl mx-auto mb-8">
+          <ContentSearchBar
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Buscar videos por título o tema..."
+          />
+        </div>
+
         {/* Category filter pills */}
         <div className="filter-scroll overflow-x-auto -mx-6 px-6 mb-10">
           <div className="flex items-center gap-2 w-max pb-1">
@@ -399,18 +411,22 @@ export default function VideosPage() {
               </svg>
             </div>
             <div className="text-[16px] font-bold text-ink">
-              {activeCategory
+              {searchQuery.trim()
+                ? `Sin resultados para "${searchQuery}"`
+                : activeCategory
                 ? "No hay videos en esta categoría todavía"
                 : "Pronto van a estar disponibles los videos"}
             </div>
             <div className="text-[13px] text-ink3 mt-2 max-w-[340px] mx-auto">
-              {activeCategory
+              {searchQuery.trim()
+                ? "Probá con otras palabras o combiná con una categoría diferente."
+                : activeCategory
                 ? "Probá con otra categoría o mirá todos los videos disponibles."
                 : "La Dra. Estefanía está preparando el contenido. Volvé pronto."}
             </div>
-            {activeCategory && (
+            {(activeCategory || searchQuery.trim()) && (
               <button
-                onClick={() => setActiveCategory("")}
+                onClick={() => { setActiveCategory(""); setSearchQuery(""); }}
                 className="mt-5 inline-flex items-center gap-1.5 px-5 py-2.5 rounded-[10px] bg-teal-dark text-white text-[13px] font-semibold hover:opacity-90 transition"
               >
                 Ver todos los videos
