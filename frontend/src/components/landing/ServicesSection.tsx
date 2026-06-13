@@ -1,111 +1,33 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  Stethoscope,
-  Baby,
-  Video,
-  HeartHandshake,
-  Apple,
-  Moon,
-  Leaf,
-  Activity,
-  ArrowRight,
-} from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SERVICE_REGISTRY } from "@/pages/services/serviceRegistry";
 
-interface ServiceCard {
-  icon: React.ElementType;
-  iconBg: string;
-  iconColor: string;
-  title: string;
-  description: string;
-  href: string;
-}
+const DESCRIPTIONS: Record<string, string> = {
+  "control-nino-sano":
+    "Seguimiento del crecimiento y desarrollo en cada etapa. Revisión de hitos, vacunas y nutrición adaptada a la edad.",
+  "control-enfermedad":
+    "Atención de enfermedades agudas y crónicas, con diagnóstico detallado y acompañamiento familiar real.",
+  telemedicina:
+    "Consultas por videollamada para familias en otras regiones o que prefieren la comodidad de su hogar.",
+  "asesoria-lactancia":
+    "Acompañamiento individualizado en lactancia materna: acople, técnica, producción láctea y dudas frecuentes.",
+  "alimentacion-infantil":
+    "Orientación para alimentación complementaria y hábitos saludables desde los primeros meses.",
+  "sueno-desarrollo":
+    "Abordaje de trastornos del sueño, cólicos y hitos del desarrollo neuromotor con enfoque integral.",
+  "medicina-integrativa":
+    "Enfoque funcional que complementa la pediatría clásica: micronutrientes, salud digestiva y plan personalizado.",
+  "rcp-infantil":
+    "Curso práctico de reanimación y primeros auxilios pediátricos para padres y cuidadores.",
+};
 
-const SERVICES: ServiceCard[] = [
-  {
-    icon: Baby,
-    iconBg: "bg-[#0D9488]/15",
-    iconColor: "text-[#0D9488]",
-
-    title: "Control de niño sano",
-    description:
-      "Seguimiento del crecimiento y desarrollo en cada etapa. Revisión de hitos, vacunas y nutrición adaptada a la edad.",
-    href: "/servicios/control-nino-sano",
-  },
-  {
-    icon: Stethoscope,
-    iconBg: "bg-[#F9A8D4]/25",
-    iconColor: "text-[#EC4899]",
-
-    title: "Control por enfermedad",
-    description:
-      "Atención de enfermedades agudas y crónicas, con diagnóstico detallado y acompañamiento familiar real.",
-    href: "/servicios/control-enfermedad",
-  },
-  {
-    icon: Video,
-    iconBg: "bg-[#7C3AED]/15",
-    iconColor: "text-[#7C3AED]",
-
-    title: "Telemedicina",
-    description:
-      "Consultas por videollamada para familias en otras regiones o que prefieren la comodidad de su hogar.",
-    href: "/servicios/telemedicina",
-  },
-  {
-    icon: HeartHandshake,
-    iconBg: "bg-[#D97706]/18",
-    iconColor: "text-[#D97706]",
-
-    title: "Asesoría de lactancia",
-    description:
-      "Acompañamiento individualizado en lactancia materna: acople, técnica, producción láctea y dudas frecuentes.",
-    href: "/servicios/asesoria-lactancia",
-  },
-  {
-    icon: Apple,
-    iconBg: "bg-[#6EE7B7]/25",
-    iconColor: "text-[#10B981]",
-
-    title: "Alimentación infantil",
-    description:
-      "Orientación para alimentación complementaria y hábitos saludables desde los primeros meses.",
-    href: "/servicios/alimentacion-infantil",
-  },
-  {
-    icon: Moon,
-    iconBg: "bg-[#2563EB]/15",
-    iconColor: "text-[#2563EB]",
-
-    title: "Sueño y desarrollo",
-    description:
-      "Abordaje de trastornos del sueño, cólicos y hitos del desarrollo neuromotor con enfoque integral.",
-    href: "/servicios/sueno-desarrollo",
-  },
-  {
-    icon: Leaf,
-    iconBg: "bg-[#FDBA74]/25",
-    iconColor: "text-[#F97316]",
-
-    title: "Medicina integrativa",
-    description:
-      "Enfoque funcional que complementa la pediatría clásica: micronutrientes, salud digestiva y plan personalizado.",
-    href: "/servicios/medicina-integrativa",
-  },
-  {
-    icon: Activity,
-    iconBg: "bg-[#DC2626]/15",
-    iconColor: "text-[#DC2626]",
-
-    title: "RCP infantil",
-    description:
-      "Curso práctico de reanimación y primeros auxilios pediátricos para padres y cuidadores.",
-    href: "/servicios/rcp-infantil",
-  },
-];
-
-function ServiceCardItem({ service }: { service: ServiceCard }) {
+function ServiceCardItem({
+  service,
+}: {
+  service: (typeof SERVICE_REGISTRY)[number];
+}) {
   const [hovered, setHovered] = useState(false);
   const Icon = service.icon;
 
@@ -125,21 +47,24 @@ function ServiceCardItem({ service }: { service: ServiceCard }) {
         aria-hidden="true"
         className={cn(
           "absolute -top-8 -right-8 w-32 h-32 rounded-full transition-transform duration-300",
-          service.iconBg,
           hovered && "scale-110"
         )}
+        style={{ backgroundColor: service.bg }}
       />
 
       {/* Icon — clickable */}
-      <Link to={service.href} className="relative z-10 block mb-5" aria-label={service.title}>
+      <Link
+        to={`/servicios/${service.slug}`}
+        className="relative z-10 block mb-5"
+        aria-label={service.title}
+      >
         <div
           className={cn(
             "w-12 h-12 rounded-[14px] flex items-center justify-center",
-            service.iconBg,
-            service.iconColor,
             "transition-transform duration-300",
             hovered && "animate-bounce"
           )}
+          style={{ backgroundColor: service.bg, color: service.color }}
         >
           <Icon size={22} />
         </div>
@@ -150,12 +75,12 @@ function ServiceCardItem({ service }: { service: ServiceCard }) {
         {service.title}
       </h3>
       <p className="relative z-10 text-[13.5px] text-[var(--ink2)] leading-relaxed mb-5">
-        {service.description}
+        {DESCRIPTIONS[service.slug] ?? ""}
       </p>
 
       {/* Link */}
       <Link
-        to={service.href}
+        to={`/servicios/${service.slug}`}
         className={cn(
           "relative z-10 inline-flex items-center gap-1.5 text-[12.5px] font-semibold",
           "text-[var(--teal-dark)] hover:gap-2.5 transition-all duration-200"
@@ -194,8 +119,8 @@ export default function ServicesSection() {
 
         {/* Cards grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
-          {SERVICES.map((service) => (
-            <ServiceCardItem key={service.title} service={service} />
+          {SERVICE_REGISTRY.map((service) => (
+            <ServiceCardItem key={service.slug} service={service} />
           ))}
         </div>
       </div>
