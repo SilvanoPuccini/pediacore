@@ -46,9 +46,9 @@ const SERVICES: ServiceCard[] = [
   },
   {
     icon: Video,
-    iconBg: "bg-[var(--mustard)]/20",
-    iconColor: "text-[var(--mustard)]",
-    accentColor: "bg-[var(--mustard)]/8",
+    iconBg: "bg-[#C4B5FD]/30",
+    iconColor: "text-[#6B569E]",
+    accentColor: "bg-[#C4B5FD]/10",
     title: "Telemedicina",
     description:
       "Consultas por videollamada para familias en otras regiones o que prefieren la comodidad de su hogar.",
@@ -56,9 +56,9 @@ const SERVICES: ServiceCard[] = [
   },
   {
     icon: HeartHandshake,
-    iconBg: "bg-[var(--sage)]/25",
-    iconColor: "text-[var(--sage)]",
-    accentColor: "bg-[var(--sage)]/10",
+    iconBg: "bg-[#E5B847]/25",
+    iconColor: "text-[#8A6A1F]",
+    accentColor: "bg-[#E5B847]/10",
     title: "Asesoría de lactancia",
     description:
       "Acompañamiento individualizado en lactancia materna: acople, técnica, producción láctea y dudas frecuentes.",
@@ -66,9 +66,9 @@ const SERVICES: ServiceCard[] = [
   },
   {
     icon: Apple,
-    iconBg: "bg-[var(--peach)]/30",
-    iconColor: "text-[var(--coral)]",
-    accentColor: "bg-[var(--peach)]/15",
+    iconBg: "bg-[#86EFAC]/30",
+    iconColor: "text-[#3F8358]",
+    accentColor: "bg-[#86EFAC]/12",
     title: "Alimentación infantil",
     description:
       "Orientación para alimentación complementaria y hábitos saludables desde los primeros meses.",
@@ -76,9 +76,9 @@ const SERVICES: ServiceCard[] = [
   },
   {
     icon: Moon,
-    iconBg: "bg-[var(--teal)]/15",
-    iconColor: "text-[var(--teal-dark)]",
-    accentColor: "bg-[var(--teal)]/8",
+    iconBg: "bg-[#38BDF8]/18",
+    iconColor: "text-[#0369A1]",
+    accentColor: "bg-[#38BDF8]/8",
     title: "Sueño y desarrollo",
     description:
       "Abordaje de trastornos del sueño, cólicos y hitos del desarrollo neuromotor con enfoque integral.",

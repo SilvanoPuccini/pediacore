@@ -13,8 +13,8 @@ import {
 import ServiceDetailPage from "./ServiceDetailPage";
 import type { ServiceDetailPageProps } from "./ServiceDetailPage";
 
-const TEAL2_BG = "rgba(123,181,189,0.28)";
-const TEAL2_COLOR = "#3F7079";
+const SKY_BG = "rgba(56,189,248,0.20)";
+const SKY_COLOR = "#0369A1";
 const TEAL_BG = "rgba(123,181,189,0.22)";
 const TEAL_COLOR = "#4A8590";
 const CORAL_BG = "rgba(243,168,161,0.28)";
@@ -31,10 +31,10 @@ const data: ServiceDetailPageProps = {
     "Consulta de sueño y desarrollo infantil con la Dra. Estefanía Ortigosa. Trastornos del sueño, cólicos y evaluación de hitos del desarrollo neuromotor.",
   slug: "sueno-desarrollo",
   heroIcon: Moon,
-  heroIconBg: TEAL2_BG,
-  heroIconColor: TEAL2_COLOR,
-  blobColor1: "#7BB5BD",
-  blobColor2: "#7BB5BD",
+  heroIconBg: SKY_BG,
+  heroIconColor: SKY_COLOR,
+  blobColor1: "#38BDF8",
+  blobColor2: "#7DD3FC",
   ctaLabel: "Reservar consulta",
 
   quickFacts: [
@@ -42,22 +42,22 @@ const data: ServiceDetailPageProps = {
       icon: Clock,
       label: "45 minutos",
       sub: "Duración de la consulta",
-      bg: TEAL2_BG,
-      color: TEAL2_COLOR,
+      bg: SKY_BG,
+      color: SKY_COLOR,
     },
     {
       icon: MapPin,
       label: "Presencial u online",
       sub: "Vos elegís",
-      bg: TEAL2_BG,
-      color: TEAL2_COLOR,
+      bg: SKY_BG,
+      color: SKY_COLOR,
     },
     {
       icon: Users,
       label: "0 a 6 años",
       sub: "Foco en primeros años",
-      bg: TEAL2_BG,
-      color: TEAL2_COLOR,
+      bg: SKY_BG,
+      color: SKY_COLOR,
     },
   ],
 
@@ -74,32 +74,32 @@ const data: ServiceDetailPageProps = {
   includes: [
     {
       icon: MoonStar,
-      iconBg: TEAL2_BG,
-      iconColor: TEAL2_COLOR,
+      iconBg: SKY_BG,
+      iconColor: SKY_COLOR,
       title: "Trastornos del sueño",
       description:
         "Despertares frecuentes, dificultad para dormir y rutinas según la edad del niño.",
     },
     {
       icon: Baby,
-      iconBg: TEAL2_BG,
-      iconColor: TEAL2_COLOR,
+      iconBg: SKY_BG,
+      iconColor: SKY_COLOR,
       title: "Cólicos del lactante",
       description:
         "Orientación y manejo del llanto y los cólicos en los primeros meses.",
     },
     {
       icon: Brain,
-      iconBg: TEAL2_BG,
-      iconColor: TEAL2_COLOR,
+      iconBg: SKY_BG,
+      iconColor: SKY_COLOR,
       title: "Hitos del desarrollo",
       description:
         "Evaluación del desarrollo neuromotor y derivación oportuna si es necesario.",
     },
     {
       icon: Puzzle,
-      iconBg: TEAL2_BG,
-      iconColor: TEAL2_COLOR,
+      iconBg: SKY_BG,
+      iconColor: SKY_COLOR,
       title: "Enfoque integral",
       description:
         "Miramos el conjunto: sueño, alimentación, vínculo y rutina familiar.",
