@@ -20,10 +20,10 @@ import ContentSearchBar from "../components/ContentSearchBar";
 const TAG_COLORS: Record<string, { bg: string; color: string }> = {
   Lactancia:    { bg: "rgba(217,119,6,0.28)",  color: "#D97706" },
   Vacunas:      { bg: "rgba(13,148,136,0.25)", color: "#0D9488" },
-  Alimentación: { bg: "rgba(110,231,183,0.30)", color: "#6EE7B7" },
+  Alimentación: { bg: "rgba(110,231,183,0.30)", color: "#10B981" },
   Sueño:        { bg: "rgba(37,99,235,0.25)",  color: "#2563EB" },
-  Desarrollo:   { bg: "rgba(253,186,116,0.30)", color: "#FDBA74" },
-  Enfermedades: { bg: "rgba(249,168,212,0.30)", color: "#F9A8D4" },
+  Desarrollo:   { bg: "rgba(253,186,116,0.30)", color: "#F97316" },
+  Enfermedades: { bg: "rgba(249,168,212,0.30)", color: "#EC4899" },
   Urgencias:    { bg: "rgba(220,38,38,0.25)",  color: "#DC2626" },
   Consejos:     { bg: "rgba(124,58,237,0.25)", color: "#7C3AED" },
 };

@@ -11,7 +11,7 @@ import ServiceDetailPage from "./ServiceDetailPage";
 import type { ServiceDetailPageProps } from "./ServiceDetailPage";
 
 const ACCENT_BG = "rgba(253,186,116,0.25)";
-const ACCENT_COLOR = "#FDBA74";
+const ACCENT_COLOR = "#F97316";
 
 const data: ServiceDetailPageProps = {
   title: "Medicina",

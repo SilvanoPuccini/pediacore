@@ -36,7 +36,7 @@ const SERVICES: ServiceCard[] = [
   {
     icon: Stethoscope,
     iconBg: "bg-[#F9A8D4]/25",
-    iconColor: "text-[#F9A8D4]",
+    iconColor: "text-[#EC4899]",
 
     title: "Control por enfermedad",
     description:
@@ -66,7 +66,7 @@ const SERVICES: ServiceCard[] = [
   {
     icon: Apple,
     iconBg: "bg-[#6EE7B7]/25",
-    iconColor: "text-[#6EE7B7]",
+    iconColor: "text-[#10B981]",
 
     title: "Alimentación infantil",
     description:
@@ -86,7 +86,7 @@ const SERVICES: ServiceCard[] = [
   {
     icon: Leaf,
     iconBg: "bg-[#FDBA74]/25",
-    iconColor: "text-[#FDBA74]",
+    iconColor: "text-[#F97316]",
 
     title: "Medicina integrativa",
     description:
