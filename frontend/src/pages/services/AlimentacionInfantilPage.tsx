@@ -4,9 +4,6 @@ import {
   Sprout,
   Wheat,
   TrendingUp,
-  Baby,
-  Stethoscope,
-  Video,
   Clock,
   MapPin,
   Users,
@@ -14,14 +11,8 @@ import {
 import ServiceDetailPage from "./ServiceDetailPage";
 import type { ServiceDetailPageProps } from "./ServiceDetailPage";
 
-const GREEN_BG = "rgba(134,239,172,0.32)";
-const GREEN_COLOR = "#3F8358";
-const TEAL_BG = "rgba(123,181,189,0.22)";
-const TEAL_COLOR = "#4A8590";
-const CORAL_BG = "rgba(243,168,161,0.28)";
-const CORAL_COLOR = "#B5604F";
-const PURPLE_BG = "rgba(196,181,253,0.30)";
-const PURPLE_COLOR = "#6B569E";
+const ACCENT_BG = "rgba(5,150,105,0.15)";
+const ACCENT_COLOR = "#059669";
 
 const data: ServiceDetailPageProps = {
   title: "Alimentación",
@@ -32,10 +23,10 @@ const data: ServiceDetailPageProps = {
     "Consulta de alimentación infantil con la Dra. Estefanía Ortigosa. Alimentación complementaria, hábitos saludables y abordaje de selectividad desde los 6 meses.",
   slug: "alimentacion-infantil",
   heroIcon: Apple,
-  heroIconBg: GREEN_BG,
-  heroIconColor: GREEN_COLOR,
-  blobColor1: "#7BB5BD",
-  blobColor2: "#86EFAC",
+  heroIconBg: ACCENT_BG,
+  heroIconColor: ACCENT_COLOR,
+  blobColor1: "#34D399",
+  blobColor2: "#6EE7B7",
   ctaLabel: "Reservar consulta",
 
   quickFacts: [
@@ -43,27 +34,27 @@ const data: ServiceDetailPageProps = {
       icon: Clock,
       label: "45 minutos",
       sub: "Duración de la consulta",
-      bg: GREEN_BG,
-      color: GREEN_COLOR,
+      bg: ACCENT_BG,
+      color: ACCENT_COLOR,
     },
     {
       icon: MapPin,
       label: "Presencial u online",
       sub: "Vos elegís",
-      bg: GREEN_BG,
-      color: GREEN_COLOR,
+      bg: ACCENT_BG,
+      color: ACCENT_COLOR,
     },
     {
       icon: Users,
       label: "Desde 4–6 m",
       sub: "Inicio de sólidos",
-      bg: GREEN_BG,
-      color: GREEN_COLOR,
+      bg: ACCENT_BG,
+      color: ACCENT_COLOR,
     },
   ],
 
   imageGradient:
-    "linear-gradient(135deg, rgba(134,239,172,0.40) 0%, rgba(168,201,168,0.25) 100%)",
+    "linear-gradient(135deg, rgba(5,150,105,0.30) 0%, rgba(110,231,183,0.20) 100%)",
   imageLabel: "foto · alimentación infantil",
   priceLabel: "Valor consulta",
   price: "$40.000",
@@ -75,32 +66,32 @@ const data: ServiceDetailPageProps = {
   includes: [
     {
       icon: CookingPot,
-      iconBg: GREEN_BG,
-      iconColor: GREEN_COLOR,
+      iconBg: ACCENT_BG,
+      iconColor: ACCENT_COLOR,
       title: "Alimentación complementaria",
       description:
         "Cuándo y cómo empezar a los 6 meses: texturas, porciones y prevención de atragantamientos.",
     },
     {
       icon: Sprout,
-      iconBg: GREEN_BG,
-      iconColor: GREEN_COLOR,
+      iconBg: ACCENT_BG,
+      iconColor: ACCENT_COLOR,
       title: "Hábitos saludables",
       description:
         "Cómo armar una alimentación variada y equilibrada según la edad de tu hijo.",
     },
     {
       icon: Wheat,
-      iconBg: GREEN_BG,
-      iconColor: GREEN_COLOR,
+      iconBg: ACCENT_BG,
+      iconColor: ACCENT_COLOR,
       title: "Selectividad y rechazos",
       description:
         "Estrategias sin presión para el niño que 'no come' o solo acepta ciertos alimentos.",
     },
     {
       icon: TrendingUp,
-      iconBg: GREEN_BG,
-      iconColor: GREEN_COLOR,
+      iconBg: ACCENT_BG,
+      iconColor: ACCENT_COLOR,
       title: "Crecimiento adecuado",
       description:
         "Vinculamos la alimentación con la curva de crecimiento para ajustar lo necesario.",
@@ -178,30 +169,6 @@ const data: ServiceDetailPageProps = {
       question: "¿Puede ser online?",
       answer:
         "Sí, esta orientación funciona muy bien por videollamada. Te preparamos el plan, compartimos recursos y hacemos seguimiento sin que tengas que moverte.",
-    },
-  ],
-
-  relatedServices: [
-    {
-      slug: "control-nino-sano",
-      title: "Control de niño sano",
-      iconBg: TEAL_BG,
-      iconColor: TEAL_COLOR,
-      icon: Baby,
-    },
-    {
-      slug: "control-enfermedad",
-      title: "Control por enfermedad",
-      iconBg: CORAL_BG,
-      iconColor: CORAL_COLOR,
-      icon: Stethoscope,
-    },
-    {
-      slug: "telemedicina",
-      title: "Telemedicina",
-      iconBg: PURPLE_BG,
-      iconColor: PURPLE_COLOR,
-      icon: Video,
     },
   ],
 

@@ -4,8 +4,6 @@ import {
   Baby,
   Brain,
   Puzzle,
-  Stethoscope,
-  Video,
   Clock,
   MapPin,
   Users,
@@ -13,14 +11,8 @@ import {
 import ServiceDetailPage from "./ServiceDetailPage";
 import type { ServiceDetailPageProps } from "./ServiceDetailPage";
 
-const SKY_BG = "rgba(56,189,248,0.20)";
-const SKY_COLOR = "#0369A1";
-const TEAL_BG = "rgba(123,181,189,0.22)";
-const TEAL_COLOR = "#4A8590";
-const CORAL_BG = "rgba(243,168,161,0.28)";
-const CORAL_COLOR = "#B5604F";
-const PURPLE_BG = "rgba(196,181,253,0.30)";
-const PURPLE_COLOR = "#6B569E";
+const ACCENT_BG = "rgba(37,99,235,0.15)";
+const ACCENT_COLOR = "#2563EB";
 
 const data: ServiceDetailPageProps = {
   title: "Sueño y",
@@ -31,10 +23,10 @@ const data: ServiceDetailPageProps = {
     "Consulta de sueño y desarrollo infantil con la Dra. Estefanía Ortigosa. Trastornos del sueño, cólicos y evaluación de hitos del desarrollo neuromotor.",
   slug: "sueno-desarrollo",
   heroIcon: Moon,
-  heroIconBg: SKY_BG,
-  heroIconColor: SKY_COLOR,
-  blobColor1: "#38BDF8",
-  blobColor2: "#7DD3FC",
+  heroIconBg: ACCENT_BG,
+  heroIconColor: ACCENT_COLOR,
+  blobColor1: "#60A5FA",
+  blobColor2: "#93C5FD",
   ctaLabel: "Reservar consulta",
 
   quickFacts: [
@@ -42,27 +34,27 @@ const data: ServiceDetailPageProps = {
       icon: Clock,
       label: "45 minutos",
       sub: "Duración de la consulta",
-      bg: SKY_BG,
-      color: SKY_COLOR,
+      bg: ACCENT_BG,
+      color: ACCENT_COLOR,
     },
     {
       icon: MapPin,
       label: "Presencial u online",
       sub: "Vos elegís",
-      bg: SKY_BG,
-      color: SKY_COLOR,
+      bg: ACCENT_BG,
+      color: ACCENT_COLOR,
     },
     {
       icon: Users,
       label: "0 a 6 años",
       sub: "Foco en primeros años",
-      bg: SKY_BG,
-      color: SKY_COLOR,
+      bg: ACCENT_BG,
+      color: ACCENT_COLOR,
     },
   ],
 
   imageGradient:
-    "linear-gradient(135deg, rgba(123,181,189,0.40) 0%, rgba(168,201,168,0.22) 100%)",
+    "linear-gradient(135deg, rgba(37,99,235,0.30) 0%, rgba(147,197,253,0.20) 100%)",
   imageLabel: "foto · sueño y desarrollo infantil",
   priceLabel: "Valor consulta",
   price: "$40.000",
@@ -74,32 +66,32 @@ const data: ServiceDetailPageProps = {
   includes: [
     {
       icon: MoonStar,
-      iconBg: SKY_BG,
-      iconColor: SKY_COLOR,
+      iconBg: ACCENT_BG,
+      iconColor: ACCENT_COLOR,
       title: "Trastornos del sueño",
       description:
         "Despertares frecuentes, dificultad para dormir y rutinas según la edad del niño.",
     },
     {
       icon: Baby,
-      iconBg: SKY_BG,
-      iconColor: SKY_COLOR,
+      iconBg: ACCENT_BG,
+      iconColor: ACCENT_COLOR,
       title: "Cólicos del lactante",
       description:
         "Orientación y manejo del llanto y los cólicos en los primeros meses.",
     },
     {
       icon: Brain,
-      iconBg: SKY_BG,
-      iconColor: SKY_COLOR,
+      iconBg: ACCENT_BG,
+      iconColor: ACCENT_COLOR,
       title: "Hitos del desarrollo",
       description:
         "Evaluación del desarrollo neuromotor y derivación oportuna si es necesario.",
     },
     {
       icon: Puzzle,
-      iconBg: SKY_BG,
-      iconColor: SKY_COLOR,
+      iconBg: ACCENT_BG,
+      iconColor: ACCENT_COLOR,
       title: "Enfoque integral",
       description:
         "Miramos el conjunto: sueño, alimentación, vínculo y rutina familiar.",
@@ -181,30 +173,6 @@ const data: ServiceDetailPageProps = {
       question: "¿Puede ser online?",
       answer:
         "Sí, esta consulta funciona muy bien por videollamada. Conversamos, evaluamos y armamos el plan sin que tengas que salir de casa con el bebé.",
-    },
-  ],
-
-  relatedServices: [
-    {
-      slug: "control-nino-sano",
-      title: "Control de niño sano",
-      iconBg: TEAL_BG,
-      iconColor: TEAL_COLOR,
-      icon: Baby,
-    },
-    {
-      slug: "control-enfermedad",
-      title: "Control por enfermedad",
-      iconBg: CORAL_BG,
-      iconColor: CORAL_COLOR,
-      icon: Stethoscope,
-    },
-    {
-      slug: "telemedicina",
-      title: "Telemedicina",
-      iconBg: PURPLE_BG,
-      iconColor: PURPLE_COLOR,
-      icon: Video,
     },
   ],
 

@@ -4,8 +4,6 @@ import {
   HeartPulse,
   ClipboardList,
   FileText,
-  Baby,
-  Video,
   Clock,
   MapPin,
   Users,
@@ -13,14 +11,8 @@ import {
 import ServiceDetailPage from "./ServiceDetailPage";
 import type { ServiceDetailPageProps } from "./ServiceDetailPage";
 
-const CORAL_BG = "rgba(243,168,161,0.28)";
-const CORAL_COLOR = "#B5604F";
-const PURPLE_BG = "rgba(196,181,253,0.30)";
-const PURPLE_COLOR = "#6B569E";
-const MUSTARD_BG = "rgba(229,184,71,0.30)";
-const MUSTARD_COLOR = "#8A6A1F";
-const TEAL_BG = "rgba(123,181,189,0.22)";
-const TEAL_COLOR = "#4A8590";
+const ACCENT_BG = "rgba(234,88,12,0.15)";
+const ACCENT_COLOR = "#EA580C";
 
 const data: ServiceDetailPageProps = {
   title: "Control por",
@@ -31,10 +23,10 @@ const data: ServiceDetailPageProps = {
     "Control por enfermedad pediátrica en Pucón y Villarrica. Diagnóstico detallado, tratamiento y acompañamiento para enfermedades agudas y crónicas en niños.",
   slug: "control-enfermedad",
   heroIcon: Stethoscope,
-  heroIconBg: CORAL_BG,
-  heroIconColor: CORAL_COLOR,
-  blobColor1: "#7BB5BD",
-  blobColor2: "#F3A8A1",
+  heroIconBg: ACCENT_BG,
+  heroIconColor: ACCENT_COLOR,
+  blobColor1: "#FB923C",
+  blobColor2: "#FDBA74",
   ctaLabel: "Reservar consulta",
 
   quickFacts: [
@@ -42,27 +34,27 @@ const data: ServiceDetailPageProps = {
       icon: Clock,
       label: "45 minutos",
       sub: "Duración de la consulta",
-      bg: CORAL_BG,
-      color: CORAL_COLOR,
+      bg: ACCENT_BG,
+      color: ACCENT_COLOR,
     },
     {
       icon: MapPin,
       label: "Presencial",
       sub: "Pucón & Villarrica",
-      bg: CORAL_BG,
-      color: CORAL_COLOR,
+      bg: ACCENT_BG,
+      color: ACCENT_COLOR,
     },
     {
       icon: Users,
       label: "0 a 18 años",
       sub: "Todas las edades",
-      bg: CORAL_BG,
-      color: CORAL_COLOR,
+      bg: ACCENT_BG,
+      color: ACCENT_COLOR,
     },
   ],
 
   imageGradient:
-    "linear-gradient(135deg, rgba(243,168,161,0.40) 0%, rgba(229,184,71,0.22) 100%)",
+    "linear-gradient(135deg, rgba(234,88,12,0.30) 0%, rgba(253,186,116,0.20) 100%)",
   imageLabel: "foto · consulta pediátrica",
   priceLabel: "Valor consulta",
   price: "$40.000",
@@ -74,32 +66,32 @@ const data: ServiceDetailPageProps = {
   includes: [
     {
       icon: Thermometer,
-      iconBg: CORAL_BG,
-      iconColor: CORAL_COLOR,
+      iconBg: ACCENT_BG,
+      iconColor: ACCENT_COLOR,
       title: "Cuadros agudos",
       description:
         "Fiebre, infecciones respiratorias, gastrointestinales, dermatitis y más, con diagnóstico preciso.",
     },
     {
       icon: HeartPulse,
-      iconBg: CORAL_BG,
-      iconColor: CORAL_COLOR,
+      iconBg: ACCENT_BG,
+      iconColor: ACCENT_COLOR,
       title: "Condiciones crónicas",
       description:
         "Seguimiento de asma, alergias, dermatitis atópica y otras condiciones del desarrollo.",
     },
     {
       icon: ClipboardList,
-      iconBg: CORAL_BG,
-      iconColor: CORAL_COLOR,
+      iconBg: ACCENT_BG,
+      iconColor: ACCENT_COLOR,
       title: "Revisión de exámenes",
       description:
         "Si se requieren exámenes, su interpretación queda incluida en la misma consulta.",
     },
     {
       icon: FileText,
-      iconBg: CORAL_BG,
-      iconColor: CORAL_COLOR,
+      iconBg: ACCENT_BG,
+      iconColor: ACCENT_COLOR,
       title: "Plan y seguimiento",
       description:
         "Indicaciones por escrito y seguimiento posterior por mensaje ante dudas.",
@@ -181,30 +173,6 @@ const data: ServiceDetailPageProps = {
       question: "¿Puede ser online?",
       answer:
         "Para cuadros que requieren examen físico, la consulta debe ser presencial. Si el cuadro lo permite (seguimiento, revisión de exámenes), podemos evaluar la opción de telemedicina.",
-    },
-  ],
-
-  relatedServices: [
-    {
-      slug: "control-nino-sano",
-      title: "Control de niño sano",
-      iconBg: TEAL_BG,
-      iconColor: TEAL_COLOR,
-      icon: Baby,
-    },
-    {
-      slug: "telemedicina",
-      title: "Telemedicina",
-      iconBg: PURPLE_BG,
-      iconColor: PURPLE_COLOR,
-      icon: Video,
-    },
-    {
-      slug: "asesoria-lactancia",
-      title: "Asesoría de lactancia",
-      iconBg: MUSTARD_BG,
-      iconColor: MUSTARD_COLOR,
-      icon: Baby,
     },
   ],
 

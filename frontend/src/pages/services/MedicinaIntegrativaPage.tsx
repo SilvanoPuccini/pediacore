@@ -3,9 +3,6 @@ import {
   Microscope,
   Pill,
   FlaskConical,
-  Baby,
-  Stethoscope,
-  Video,
   Clock,
   MapPin,
   Users,
@@ -13,14 +10,8 @@ import {
 import ServiceDetailPage from "./ServiceDetailPage";
 import type { ServiceDetailPageProps } from "./ServiceDetailPage";
 
-const INDIGO_BG = "rgba(99,102,241,0.22)";
-const INDIGO_COLOR = "#4F46E5";
-const TEAL_BG = "rgba(123,181,189,0.22)";
-const TEAL_COLOR = "#4A8590";
-const CORAL_BG = "rgba(243,168,161,0.28)";
-const CORAL_COLOR = "#B5604F";
-const PURPLE_BG = "rgba(196,181,253,0.30)";
-const PURPLE_COLOR = "#6B569E";
+const ACCENT_BG = "rgba(192,38,211,0.12)";
+const ACCENT_COLOR = "#A21CAF";
 
 const data: ServiceDetailPageProps = {
   title: "Medicina",
@@ -31,10 +22,10 @@ const data: ServiceDetailPageProps = {
     "Consulta de medicina integrativa pediátrica con la Dra. Estefanía Ortigosa. Enfoque funcional, micronutrientes, salud digestiva y plan personalizado.",
   slug: "medicina-integrativa",
   heroIcon: Leaf,
-  heroIconBg: INDIGO_BG,
-  heroIconColor: INDIGO_COLOR,
-  blobColor1: "#7BB5BD",
-  blobColor2: "#6366F1",
+  heroIconBg: ACCENT_BG,
+  heroIconColor: ACCENT_COLOR,
+  blobColor1: "#E879F9",
+  blobColor2: "#F0ABFC",
   ctaLabel: "Reservar consulta",
 
   quickFacts: [
@@ -42,27 +33,27 @@ const data: ServiceDetailPageProps = {
       icon: Clock,
       label: "45 minutos",
       sub: "Duración de la consulta",
-      bg: INDIGO_BG,
-      color: INDIGO_COLOR,
+      bg: ACCENT_BG,
+      color: ACCENT_COLOR,
     },
     {
       icon: MapPin,
       label: "Presencial",
       sub: "Pucón & Villarrica",
-      bg: INDIGO_BG,
-      color: INDIGO_COLOR,
+      bg: ACCENT_BG,
+      color: ACCENT_COLOR,
     },
     {
       icon: Users,
       label: "0 a 18 años",
       sub: "Todas las edades",
-      bg: INDIGO_BG,
-      color: INDIGO_COLOR,
+      bg: ACCENT_BG,
+      color: ACCENT_COLOR,
     },
   ],
 
   imageGradient:
-    "linear-gradient(135deg, rgba(99,102,241,0.30) 0%, rgba(123,181,189,0.22) 100%)",
+    "linear-gradient(135deg, rgba(192,38,211,0.25) 0%, rgba(240,171,252,0.18) 100%)",
   imageLabel: "foto · medicina integrativa",
   priceLabel: "Valor consulta",
   price: "$40.000",
@@ -74,32 +65,32 @@ const data: ServiceDetailPageProps = {
   includes: [
     {
       icon: Microscope,
-      iconBg: INDIGO_BG,
-      iconColor: INDIGO_COLOR,
+      iconBg: ACCENT_BG,
+      iconColor: ACCENT_COLOR,
       title: "Evaluación funcional",
       description:
         "Análisis integral del niño: alimentación, sueño, tóxicos ambientales y antecedentes familiares.",
     },
     {
       icon: Pill,
-      iconBg: INDIGO_BG,
-      iconColor: INDIGO_COLOR,
+      iconBg: ACCENT_BG,
+      iconColor: ACCENT_COLOR,
       title: "Micronutrientes",
       description:
         "Suplementación basada en evidencia: hierro, zinc, vitamina D, omega-3 según la necesidad real.",
     },
     {
       icon: FlaskConical,
-      iconBg: INDIGO_BG,
-      iconColor: INDIGO_COLOR,
+      iconBg: ACCENT_BG,
+      iconColor: ACCENT_COLOR,
       title: "Salud digestiva",
       description:
         "Evaluación del eje intestino-cerebro, probióticos y manejo de intolerancias.",
     },
     {
       icon: Leaf,
-      iconBg: INDIGO_BG,
-      iconColor: INDIGO_COLOR,
+      iconBg: ACCENT_BG,
+      iconColor: ACCENT_COLOR,
       title: "Plan integrativo",
       description:
         "Indicaciones que combinan lo convencional con lo complementario, adaptadas a tu familia.",
@@ -181,30 +172,6 @@ const data: ServiceDetailPageProps = {
       question: "¿Puede ser online?",
       answer:
         "La primera consulta integrativa requiere examen físico presencial. Los seguimientos sí pueden ser por videollamada.",
-    },
-  ],
-
-  relatedServices: [
-    {
-      slug: "control-nino-sano",
-      title: "Control de niño sano",
-      iconBg: TEAL_BG,
-      iconColor: TEAL_COLOR,
-      icon: Baby,
-    },
-    {
-      slug: "control-enfermedad",
-      title: "Control por enfermedad",
-      iconBg: CORAL_BG,
-      iconColor: CORAL_COLOR,
-      icon: Stethoscope,
-    },
-    {
-      slug: "telemedicina",
-      title: "Telemedicina",
-      iconBg: PURPLE_BG,
-      iconColor: PURPLE_COLOR,
-      icon: Video,
     },
   ],
 

@@ -5,12 +5,10 @@ import {
   ArrowRight,
   Check,
   Info,
-  Clock,
-  MapPin,
-  Wifi,
   ChevronRight,
 } from "lucide-react";
 import SEOHead from "@/components/seo/SEOHead";
+import { getRelatedServices } from "./serviceRegistry";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -97,7 +95,7 @@ export interface ServiceDetailPageProps {
   // FAQ
   faqs: FaqItem[];
   // Related
-  relatedServices: RelatedService[];
+  relatedServices?: RelatedService[];
   // CTA banner
   ctaHeading: string;
   ctaDescription: string;
@@ -197,6 +195,14 @@ export default function ServiceDetailPage({
   ctaButtonLabel,
 }: ServiceDetailPageProps) {
   const pageRef = useReveal();
+
+  const computedRelated = relatedServices ?? getRelatedServices(slug).map((s) => ({
+    slug: s.slug,
+    title: s.title,
+    iconBg: s.bg,
+    iconColor: s.color,
+    icon: s.icon,
+  }));
 
   function scrollToDetail(e: React.MouseEvent) {
     e.preventDefault();
@@ -581,7 +587,7 @@ export default function ServiceDetailPage({
             </div>
 
             <div className="grid sm:grid-cols-3 gap-5">
-              {relatedServices.map((svc, i) => {
+              {computedRelated.map((svc, i) => {
                 const SvcIcon = svc.icon;
                 return (
                   <div
@@ -671,5 +677,3 @@ export default function ServiceDetailPage({
   );
 }
 
-// Re-export icon helpers so page files can import from one place
-export { Clock, MapPin, Wifi };

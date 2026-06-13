@@ -4,9 +4,6 @@ import {
   Droplets,
   HeartPulse,
   FileText,
-  Baby,
-  Stethoscope,
-  Video,
   Clock,
   MapPin,
   Users,
@@ -14,14 +11,8 @@ import {
 import ServiceDetailPage from "./ServiceDetailPage";
 import type { ServiceDetailPageProps } from "./ServiceDetailPage";
 
-const MUSTARD_BG = "rgba(229,184,71,0.30)";
-const MUSTARD_COLOR = "#8A6A1F";
-const TEAL_BG = "rgba(123,181,189,0.22)";
-const TEAL_COLOR = "#4A8590";
-const CORAL_BG = "rgba(243,168,161,0.28)";
-const CORAL_COLOR = "#B5604F";
-const PURPLE_BG = "rgba(196,181,253,0.30)";
-const PURPLE_COLOR = "#6B569E";
+const ACCENT_BG = "rgba(217,119,6,0.18)";
+const ACCENT_COLOR = "#D97706";
 
 const data: ServiceDetailPageProps = {
   title: "Asesoría de",
@@ -32,10 +23,10 @@ const data: ServiceDetailPageProps = {
     "Asesoría de lactancia materna con la Dra. Estefanía Ortigosa en Pucón y Villarrica. Acople, técnica, producción láctea y acompañamiento personalizado.",
   slug: "asesoria-lactancia",
   heroIcon: HeartHandshake,
-  heroIconBg: MUSTARD_BG,
-  heroIconColor: MUSTARD_COLOR,
-  blobColor1: "#7BB5BD",
-  blobColor2: "#E5B847",
+  heroIconBg: ACCENT_BG,
+  heroIconColor: ACCENT_COLOR,
+  blobColor1: "#FBBF24",
+  blobColor2: "#FDE68A",
   ctaLabel: "Reservar asesoría",
 
   quickFacts: [
@@ -43,27 +34,27 @@ const data: ServiceDetailPageProps = {
       icon: Clock,
       label: "45 minutos",
       sub: "Duración de la sesión",
-      bg: MUSTARD_BG,
-      color: MUSTARD_COLOR,
+      bg: ACCENT_BG,
+      color: ACCENT_COLOR,
     },
     {
       icon: MapPin,
       label: "Presencial u online",
       sub: "Vos elegís",
-      bg: MUSTARD_BG,
-      color: MUSTARD_COLOR,
+      bg: ACCENT_BG,
+      color: ACCENT_COLOR,
     },
     {
       icon: Users,
       label: "Embarazo +",
       sub: "Desde antes de nacer",
-      bg: MUSTARD_BG,
-      color: MUSTARD_COLOR,
+      bg: ACCENT_BG,
+      color: ACCENT_COLOR,
     },
   ],
 
   imageGradient:
-    "linear-gradient(135deg, rgba(229,184,71,0.40) 0%, rgba(243,168,161,0.22) 100%)",
+    "linear-gradient(135deg, rgba(217,119,6,0.30) 0%, rgba(253,230,138,0.20) 100%)",
   imageLabel: "foto · asesoría de lactancia",
   priceLabel: "Valor sesión",
   price: "$40.000",
@@ -75,32 +66,32 @@ const data: ServiceDetailPageProps = {
   includes: [
     {
       icon: HandHeart,
-      iconBg: MUSTARD_BG,
-      iconColor: MUSTARD_COLOR,
+      iconBg: ACCENT_BG,
+      iconColor: ACCENT_COLOR,
       title: "Acople y técnica",
       description:
         "Evaluamos posiciones y agarre para prevenir grietas y dolor, y mejorar la transferencia de leche.",
     },
     {
       icon: Droplets,
-      iconBg: MUSTARD_BG,
-      iconColor: MUSTARD_COLOR,
+      iconBg: ACCENT_BG,
+      iconColor: ACCENT_COLOR,
       title: "Producción láctea",
       description:
         "Estrategias para aumentar o regular la producción según las necesidades de tu bebé.",
     },
     {
       icon: HeartPulse,
-      iconBg: MUSTARD_BG,
-      iconColor: MUSTARD_COLOR,
+      iconBg: ACCENT_BG,
+      iconColor: ACCENT_COLOR,
       title: "Dificultades comunes",
       description:
         "Grietas, mastitis, baja de peso, confusión tetina-pezón y rechazo del pecho.",
     },
     {
       icon: FileText,
-      iconBg: MUSTARD_BG,
-      iconColor: MUSTARD_COLOR,
+      iconBg: ACCENT_BG,
+      iconColor: ACCENT_COLOR,
       title: "Plan y contención",
       description:
         "Un plan claro y realista, con seguimiento por mensaje y mucho apoyo emocional.",
@@ -181,30 +172,6 @@ const data: ServiceDetailPageProps = {
       question: "¿Incluye seguimiento?",
       answer:
         "Sí, tras la sesión te acompaño por mensaje para resolver dudas del proceso y ajustar lo que sea necesario.",
-    },
-  ],
-
-  relatedServices: [
-    {
-      slug: "control-nino-sano",
-      title: "Control de niño sano",
-      iconBg: TEAL_BG,
-      iconColor: TEAL_COLOR,
-      icon: Baby,
-    },
-    {
-      slug: "control-enfermedad",
-      title: "Control por enfermedad",
-      iconBg: CORAL_BG,
-      iconColor: CORAL_COLOR,
-      icon: Stethoscope,
-    },
-    {
-      slug: "telemedicina",
-      title: "Telemedicina",
-      iconBg: PURPLE_BG,
-      iconColor: PURPLE_COLOR,
-      icon: Video,
     },
   ],
 
