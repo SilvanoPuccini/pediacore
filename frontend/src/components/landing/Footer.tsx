@@ -118,6 +118,7 @@ export default function Footer() {
           <FooterColumn title="Conocer">
             <FooterLink href="/#dra-estefi">Sobre Estefi</FooterLink>
             <FooterLink href="/blog">Blog</FooterLink>
+            <FooterLink href="/videos">Videos</FooterLink>
             <FooterLink href="/#sedes">Sedes</FooterLink>
             <FooterLink href="/#faq">Preguntas frecuentes</FooterLink>
             <FooterLink href="/#testimonios">Testimonios</FooterLink>
