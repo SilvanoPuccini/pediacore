@@ -84,6 +84,9 @@ export default function BillingHistory() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payments"] });
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["appointments-count"] });
+      queryClient.invalidateQueries({ queryKey: ["appointments", "dashboard-upcoming"] });
+      queryClient.invalidateQueries({ queryKey: ["my-payments"] });
       setCancelTarget(null);
     },
   });
@@ -375,7 +378,10 @@ export default function BillingHistory() {
           className="absolute inset-0 bg-ink/40 backdrop-blur-sm"
           onClick={() => setCancelTarget(null)}
         />
-        <div className="relative bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)] p-6 w-full max-w-[380px]">
+        <div
+          className="relative z-10 bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)] p-6 w-full max-w-[380px]"
+          onClick={(e) => e.stopPropagation()}
+        >
           <button
             onClick={() => setCancelTarget(null)}
             className="absolute top-4 right-4 text-ink3 hover:text-ink transition-colors"
@@ -398,6 +404,14 @@ export default function BillingHistory() {
           <p className="text-[13px] text-ink2 leading-relaxed mb-6">
             Se cancelará el pago pendiente y el turno asociado. Esta acción no se puede deshacer.
           </p>
+
+          {cancelMutation.isError && (
+            <div className="bg-coral/10 border border-coral/30 rounded-[10px] px-3 py-2 mb-4">
+              <p className="text-[12px] text-coral font-semibold">
+                No se pudo cancelar. Intentá de nuevo.
+              </p>
+            </div>
+          )}
 
           <div className="flex gap-3">
             <button

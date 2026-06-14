@@ -413,14 +413,14 @@ export default function Dashboard() {
               />
               <QuickAction
                 label="Ver vacunas"
-                to="/portal/vacunas"
+                to="/portal/hijos"
                 icon={<Syringe size={18} />}
                 iconBg="rgba(229,184,71,0.22)"
                 iconColor="#8A6A1F"
               />
               <QuickAction
                 label="Resúmenes"
-                to="/portal/documentos"
+                to="/portal/hijos"
                 icon={<FileText size={18} />}
                 iconBg="rgba(168,201,168,0.28)"
                 iconColor="#3F7059"

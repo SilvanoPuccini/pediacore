@@ -344,6 +344,8 @@ export default function MyAppointments() {
       setCancelTarget(null);
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
       queryClient.invalidateQueries({ queryKey: ["appointments-count"] });
+      queryClient.invalidateQueries({ queryKey: ["appointments", "dashboard-upcoming"] });
+      queryClient.invalidateQueries({ queryKey: ["payments"] });
     },
   });
 
