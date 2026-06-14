@@ -1,15 +1,21 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Download,
   AlertTriangle,
   AlertCircle,
+  XCircle,
 } from "lucide-react";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/stores/auth";
 import type { PaymentDetail } from "@/types/api";
+
+// Lazy-load PaymentBrick only when needed (it pulls in the MP SDK)
+import PaymentBrick from "@/features/booking/components/WalletBrick";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -89,6 +95,166 @@ function LoadingSkeleton() {
   );
 }
 
+// ─── Pending Payment View ────────────────────────────────────────────────────
+
+function PendingPaymentView({ payment }: { payment: PaymentDetail }) {
+  const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const [paymentApproved, setPaymentApproved] = useState(false);
+  const [cardError, setCardError] = useState<string | null>(null);
+
+  const amount = parseFloat(payment.amount);
+
+  if (paymentApproved) {
+    return (
+      <div className="max-w-2xl mx-auto p-6">
+        <div className="bg-green-50 border border-green-200 rounded-[16px] px-6 py-8 text-center">
+          <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-7 h-7 text-green-600" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+            </svg>
+          </div>
+          <h2 className="font-display text-[20px] font-semibold text-ink mb-1">
+            Pago confirmado
+          </h2>
+          <p className="text-[14px] text-ink2">
+            Tu pago fue procesado correctamente.
+          </p>
+          <button
+            onClick={() => navigate("/portal/pagos")}
+            className="mt-4 text-[13px] text-teal-dark font-semibold hover:underline"
+          >
+            Volver a pagos
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (payment.payment_method !== "MERCADOPAGO") {
+    return (
+      <div className="max-w-2xl mx-auto p-6">
+        <Link
+          to="/portal/pagos"
+          className="inline-flex items-center gap-1.5 text-[13px] text-ink3 hover:text-ink transition-colors mb-6"
+        >
+          <ArrowLeft size={14} />
+          Volver a pagos
+        </Link>
+        <div className="bg-amber-50 border border-amber-200 rounded-[20px] p-8 text-center shadow-[var(--shadow-soft)]">
+          <AlertTriangle className="w-8 h-8 text-amber-600 mx-auto mb-3" />
+          <p className="text-[14px] text-amber-700 font-semibold mb-1">
+            Pago pendiente — {payment.payment_method_display}
+          </p>
+          <p className="text-[12px] text-ink3 mt-2 leading-relaxed">
+            Este pago requiere confirmación manual.
+            <br />
+            Comunicate con la consulta para completar el proceso.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-2xl mx-auto p-6">
+      <Link
+        to="/portal/pagos"
+        className="inline-flex items-center gap-1.5 text-[13px] text-ink3 hover:text-ink transition-colors mb-6"
+      >
+        <ArrowLeft size={14} />
+        Volver a pagos
+      </Link>
+
+      <div className="space-y-5">
+        {/* Payment summary */}
+        <div className="bg-surface border border-line rounded-[16px] p-5 shadow-[var(--shadow-soft)]">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-display text-[18px] font-semibold text-ink">
+              Completar pago
+            </h2>
+            <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+              Pendiente
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-3 text-[13px]">
+            <div>
+              <p className="text-ink3 text-[11px] font-medium">Servicio</p>
+              <p className="text-ink font-semibold">{payment.service_name ?? "Consulta"}</p>
+            </div>
+            <div>
+              <p className="text-ink3 text-[11px] font-medium">Paciente</p>
+              <p className="text-ink font-semibold">{payment.patient_name}</p>
+            </div>
+            <div>
+              <p className="text-ink3 text-[11px] font-medium">Fecha</p>
+              <p className="text-ink font-semibold">{formatScheduledDate(payment.scheduled_date)}</p>
+            </div>
+            <div>
+              <p className="text-ink3 text-[11px] font-medium">Monto</p>
+              <p className="text-ink font-bold text-[16px]">{formatCLP(payment.amount)}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Card error */}
+        {cardError && (
+          <div className="bg-coral/10 border border-coral/30 rounded-[12px] px-4 py-3">
+            <p className="text-[13px] text-ink font-semibold">
+              No se pudo procesar el pago
+            </p>
+            <p className="text-[12px] text-ink2 mt-0.5">{cardError}</p>
+          </div>
+        )}
+
+        {/* Card payment form */}
+        {amount > 0 ? (
+          <PaymentBrick
+            paymentId={payment.id}
+            amount={amount}
+            payerEmail={user?.email ?? payment.paid_by_email ?? ""}
+            onApproved={() => setPaymentApproved(true)}
+            onError={(msg) => setCardError(msg)}
+          />
+        ) : (
+          <div className="bg-coral/10 border border-coral/30 rounded-[12px] px-4 py-3 text-center">
+            <p className="text-[13px] text-ink font-semibold">
+              No se pudo cargar el método de pago
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Failed Payment View ─────────────────────────────────────────────────────
+
+function FailedPaymentView({ payment }: { payment: PaymentDetail }) {
+  return (
+    <div className="max-w-2xl mx-auto p-6">
+      <Link
+        to="/portal/pagos"
+        className="inline-flex items-center gap-1.5 text-[13px] text-ink3 hover:text-ink transition-colors mb-6"
+      >
+        <ArrowLeft size={14} />
+        Volver a pagos
+      </Link>
+      <div className="bg-surface border border-line rounded-[20px] p-8 text-center shadow-[var(--shadow-soft)]">
+        <XCircle className="w-8 h-8 text-coral mx-auto mb-3" />
+        <p className="text-[14px] text-coral font-semibold mb-1">
+          Pago fallido
+        </p>
+        <p className="text-[12px] text-ink3 mt-2 leading-relaxed">
+          Este pago no pudo ser procesado.
+          <br />
+          Si necesitás asistencia, comunicate con la consulta.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function PaymentReceipt() {
@@ -127,6 +293,16 @@ export default function PaymentReceipt() {
     );
   }
 
+  // ── Route by payment status ──────────────────────────────────────────────
+  if (payment.status === "PENDING") {
+    return <PendingPaymentView payment={payment} />;
+  }
+
+  if (payment.status === "FAILED") {
+    return <FailedPaymentView payment={payment} />;
+  }
+
+  // ── Receipt view (COMPLETED / REFUNDED / PROCESSING) ────────────────────
   const displayDate = payment.paid_at ?? payment.created_at;
   const statusLabel = PAYMENT_STATUS_LABELS[payment.status] ?? payment.status;
   const statusStyle = STATUS_STYLES[payment.status] ?? STATUS_STYLES.REFUNDED;

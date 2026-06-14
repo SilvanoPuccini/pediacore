@@ -1,10 +1,36 @@
 from __future__ import annotations
 
 from django.contrib import admin
+from django.db import transaction
+from django.utils import timezone
 from unfold.admin import ModelAdmin
 
 from apps.billing.models import Invoice, MonthlyExpense, Payment, PaymentProvider
 from apps.core.admin_actions import export_to_xlsx, generate_monthly_report
+
+
+@admin.action(description="Cancel selected pending payments")
+def cancel_pending_payments(modeladmin, request, queryset):
+    """Transition selected PENDING payments to FAILED and cancel linked appointments."""
+    from apps.scheduling.models import Appointment
+
+    pending = queryset.filter(status=Payment.PENDING)
+    count = 0
+
+    with transaction.atomic():
+        for payment in pending.select_for_update():
+            payment.status = Payment.FAILED
+            payment.save(update_fields=["status", "updated_at"])
+
+            if payment.appointment_id:
+                Appointment.objects.filter(
+                    pk=payment.appointment_id,
+                    status__in=[Appointment.HOLD, Appointment.PENDING],
+                ).update(status=Appointment.CANCELLED, updated_at=timezone.now())
+
+            count += 1
+
+    modeladmin.message_user(request, f"{count} pending payment(s) cancelled.")
 
 
 @admin.register(Payment)
@@ -22,7 +48,7 @@ class PaymentAdmin(ModelAdmin):
     list_filter = ["status", "payment_method", "currency", "appointment__location"]
     search_fields = ["patient__first_name", "patient__last_name", "external_id", "notes"]
     list_select_related = ["patient"]
-    actions = [export_to_xlsx, generate_monthly_report]
+    actions = [export_to_xlsx, generate_monthly_report, cancel_pending_payments]
     readonly_fields = [
         "external_id",
         "external_status",
