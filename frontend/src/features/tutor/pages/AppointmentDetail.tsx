@@ -16,6 +16,7 @@ import {
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { AppointmentDetail as AppointmentDetailType } from "@/types/api";
+import { CreditCard } from "lucide-react";
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
 
@@ -276,6 +277,7 @@ export default function AppointmentDetail() {
   }
 
   const isConfirmed = appointment.status === "CONFIRMED";
+  const isUnpaid = appointment.status === "HOLD" || appointment.status === "PENDING";
   const canCancel = appointment.status === "CONFIRMED" || appointment.status === "HOLD" || appointment.status === "PENDING";
   const isCancelled = appointment.status === "CANCELLED";
 
@@ -366,8 +368,21 @@ export default function AppointmentDetail() {
         </div>
 
         {/* Actions */}
-        {canCancel && (
+        {(canCancel || isUnpaid) && (
           <div className="flex flex-col gap-3">
+            {isUnpaid && appointment.payment_id && (
+              <button
+                onClick={() => navigate(`/portal/pagos/${appointment.payment_id}`)}
+                className={cn(
+                  "w-full h-11 rounded-[12px] bg-teal-dark text-[13px] font-semibold text-white",
+                  "hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                )}
+              >
+                <CreditCard size={15} />
+                Pagar ahora
+              </button>
+            )}
+
             {isConfirmed && !appointment.attendance_confirmed && (
               <button
                 onClick={() => confirmAttendanceMutation.mutate()}
@@ -383,15 +398,17 @@ export default function AppointmentDetail() {
               </button>
             )}
 
-            <button
-              onClick={() => setShowCancelModal(true)}
-              className={cn(
-                "w-full h-11 rounded-[12px] border border-coral/40 bg-coral/5 text-[13px] font-semibold text-coral",
-                "hover:bg-coral/10 transition-colors"
-              )}
-            >
-              Cancelar turno
-            </button>
+            {canCancel && (
+              <button
+                onClick={() => setShowCancelModal(true)}
+                className={cn(
+                  "w-full h-11 rounded-[12px] border border-coral/40 bg-coral/5 text-[13px] font-semibold text-coral",
+                  "hover:bg-coral/10 transition-colors"
+                )}
+              >
+                Cancelar turno
+              </button>
+            )}
           </div>
         )}
       </div>
