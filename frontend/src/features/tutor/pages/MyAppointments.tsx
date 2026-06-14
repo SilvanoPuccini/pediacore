@@ -249,7 +249,7 @@ function ApptRow({
               variant="ghost"
               size="sm"
               icon="RefreshCw"
-              onClick={() => navigate(`/portal/turnos/${appointment.id}`)}
+              onClick={() => navigate(`/portal/turnos/${appointment.id}/reagendar`)}
             >
               Reagendar
             </Btn>

@@ -68,6 +68,7 @@ const NotificationsPage = lazy(() => import("@/features/tutor/pages/Notification
 const HelpPage = lazy(() => import("@/features/tutor/pages/HelpPage"));
 const PatientPrivacy = lazy(() => import("@/features/tutor/pages/PatientPrivacy"));
 const CalendarView = lazy(() => import("@/features/tutor/pages/CalendarView"));
+const RescheduleAppointment = lazy(() => import("@/features/tutor/pages/RescheduleAppointment"));
 const ControlNinoSanoPage = lazy(() => import("@/pages/services/ControlNinoSanoPage"));
 const ControlEnfermedadPage = lazy(() => import("@/pages/services/ControlEnfermedadPage"));
 const TelemedicinaPage = lazy(() => import("@/pages/services/TelemedicinaPage"));
@@ -266,6 +267,7 @@ function AppRoutes() {
           <Route index element={<TutorDashboard />} />
           <Route path="turnos" element={<MyAppointments />} />
           <Route path="turnos/:id" element={<AppointmentDetail />} />
+          <Route path="turnos/:id/reagendar" element={<RescheduleAppointment />} />
           <Route path="calendario" element={<CalendarView />} />
           <Route path="hijos" element={<MyChildren />} />
           <Route path="hijos/:id" element={<ChildDetail />} />
