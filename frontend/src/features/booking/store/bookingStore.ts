@@ -36,11 +36,9 @@ interface BookingState {
   // Step 7 — payment method selection
   paymentMethod: "MERCADOPAGO" | "TRANSFER";
   // Post-submit (step 8)
-  checkoutUrl: string | null;
   holdExpiresAt: string | null;      // ISO UTC string from backend
   appointmentId: number | null;
   paymentId: number | null;
-  preferenceId: string | null;       // MP preference ID for Wallet Brick
   bankDetails: BankDetails | null;   // Transfer bank account info
   transferExpiresAt: string | null;  // ISO UTC — 48h window for transfer
   receiptUploaded: boolean;           // Transfer: receipt was uploaded
@@ -83,11 +81,9 @@ const initialState: BookingState = {
   acceptedPolicy: false,
   acceptedTerms: true,
   paymentMethod: "MERCADOPAGO",
-  checkoutUrl: null,
   holdExpiresAt: null,
   appointmentId: null,
   paymentId: null,
-  preferenceId: null,
   bankDetails: null,
   transferExpiresAt: null,
   receiptUploaded: false,
@@ -130,11 +126,9 @@ export const useBookingStore = create<BookingStore>()(
 
       setBookingResult: (result) =>
         set({
-          checkoutUrl: result.checkout_url ?? null,
           holdExpiresAt: result.hold_expires_at ?? null,
           appointmentId: result.appointment_id,
           paymentId: result.payment_id,
-          preferenceId: result.preference_id ?? null,
           bankDetails: result.bank_details ?? null,
           transferExpiresAt: result.transfer_expires_at ?? null,
           lastActivity: Date.now(),
@@ -152,9 +146,7 @@ export const useBookingStore = create<BookingStore>()(
         patientId: state.patientId,
         appointmentId: state.appointmentId,
         paymentId: state.paymentId,
-        checkoutUrl: state.checkoutUrl,
         holdExpiresAt: state.holdExpiresAt,
-        preferenceId: state.preferenceId,
         paymentMethod: state.paymentMethod,
         bankDetails: state.bankDetails,
         transferExpiresAt: state.transferExpiresAt,

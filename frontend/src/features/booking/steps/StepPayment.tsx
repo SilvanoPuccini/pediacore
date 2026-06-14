@@ -82,9 +82,7 @@ export default function StepPayment() {
     useBookingStore.setState({
       appointmentId: null,
       paymentId: null,
-      preferenceId: null,
       bankDetails: null,
-      checkoutUrl: null,
       holdExpiresAt: null,
       transferExpiresAt: null,
       receiptUploaded: false,
