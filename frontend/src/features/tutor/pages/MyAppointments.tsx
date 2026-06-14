@@ -336,7 +336,6 @@ export default function MyAppointments() {
   const [pastPage, setPastPage] = useState(1);
   const [cancelTarget, setCancelTarget] = useState<number | null>(null);
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
 
   const cancelMutation = useMutation({
     mutationFn: (appointmentId: number) =>
