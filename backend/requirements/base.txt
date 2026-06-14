@@ -30,7 +30,7 @@ WeasyPrint==63.1
 django-q2==1.10.0
 
 # Payment processing
-mercadopago>=2.2.0
+mercadopago==3.1.1
 
 # Monitoring
 sentry-sdk[django]==2.19.2
