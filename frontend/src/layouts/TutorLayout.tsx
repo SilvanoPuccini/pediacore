@@ -12,7 +12,6 @@ import {
   Bell,
   Plus,
   ExternalLink,
-  Search,
   ChevronRight,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -191,13 +190,21 @@ export default function TutorLayout() {
             <Plus size={14} />
             Reservar consulta
           </Link>
-          <a
-            href="/"
-            className="flex items-center justify-center gap-1.5 text-[11.5px] text-ink3 hover:text-ink2 transition-colors"
-          >
-            <ExternalLink size={11} />
-            Volver al sitio
-          </a>
+          <div className="flex items-center justify-between">
+            <a
+              href="/"
+              className="flex items-center gap-1.5 text-[11.5px] text-ink3 hover:text-ink2 transition-colors"
+            >
+              <ExternalLink size={11} />
+              Volver al sitio
+            </a>
+            <button
+              onClick={() => setLogoutOpen(true)}
+              className="flex items-center gap-1.5 text-[11.5px] text-ink3 hover:text-coral transition-colors"
+            >
+              Cerrar sesión
+            </button>
+          </div>
         </div>
 
         <ConfirmDialog
@@ -247,26 +254,20 @@ export default function TutorLayout() {
               </h1>
             </div>
 
-            {/* Search */}
-            <div className="hidden md:block relative w-[280px]">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink3" />
-              <input
-                type="text"
-                placeholder="Buscar..."
-                className="w-full rounded-[10px] bg-surface border border-line pl-9 pr-3 py-2 text-[12.5px] text-ink placeholder:text-ink3 focus:outline-none focus:border-teal focus:ring-2 focus:ring-teal/20 transition"
-              />
-            </div>
-
             {/* Right actions */}
             <div className="flex items-center gap-2">
               <NotificationBell />
-              <div className="h-8 w-8 rounded-full bg-teal-dark flex items-center justify-center shrink-0 overflow-hidden">
+              <Link
+                to="/portal/perfil"
+                className="h-8 w-8 rounded-full bg-teal-dark flex items-center justify-center shrink-0 overflow-hidden hover:ring-2 hover:ring-teal/30 transition"
+                title="Mi perfil"
+              >
                 {user?.avatar_url ? (
                   <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-[12px] font-bold text-white">{initials}</span>
                 )}
-              </div>
+              </Link>
             </div>
           </div>
         </header>

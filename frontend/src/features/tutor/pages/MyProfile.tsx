@@ -343,16 +343,6 @@ export default function MyProfile() {
                   />
                 </div>
               </FieldBlock>
-              <FieldBlock label="Sede preferida">
-                <select
-                  disabled={!editing}
-                  className={editing ? INPUT_CLS : INPUT_DISABLED_CLS}
-                >
-                  <option>Pucón</option>
-                  <option>Villarrica</option>
-                  <option>Online</option>
-                </select>
-              </FieldBlock>
             </div>
 
             {editing && (

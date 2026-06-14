@@ -1,7 +1,9 @@
-import { Bell } from "lucide-react";
-import { useNotifications, useMarkAllRead } from "../hooks/useNotifications";
-import { CheckCheck } from "lucide-react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Bell, CheckCheck, ChevronLeft, ChevronRight } from "lucide-react";
+import { useNotifications, useMarkAllRead, useMarkRead } from "../hooks/useNotifications";
 import { cn } from "@/lib/utils";
+import type { Notification } from "@/types/api";
 
 // ─── Relative time helper ─────────────────────────────────────────────────────
 
@@ -21,14 +23,39 @@ function relativeTime(isoString: string): string {
   });
 }
 
+function notificationLink(n: Notification): string | null {
+  if (!n.related_id) return null;
+  switch (n.related_type) {
+    case "appointment":
+      return `/portal/turnos/${n.related_id}`;
+    case "payment":
+      return `/portal/pagos/${n.related_id}`;
+    case "patient":
+      return `/portal/hijos/${n.related_id}`;
+    default:
+      return null;
+  }
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function NotificationsPage() {
-  const { data, isLoading } = useNotifications(1);
+  const [page, setPage] = useState(1);
+  const { data, isLoading } = useNotifications(page);
   const markAllRead = useMarkAllRead();
+  const markRead = useMarkRead();
+  const navigate = useNavigate();
 
   const notifications = data?.results ?? [];
+  const totalCount = data?.count ?? 0;
+  const totalPages = Math.ceil(totalCount / 5);
   const hasUnread = notifications.some((n) => !n.is_read);
+
+  function handleClick(n: Notification) {
+    if (!n.is_read) markRead.mutate(n.id);
+    const link = notificationLink(n);
+    if (link) navigate(link);
+  }
 
   return (
     <div className="max-w-2xl">
@@ -74,38 +101,73 @@ export default function NotificationsPage() {
           </div>
         </div>
       ) : (
-        <div className="bg-surface border border-line rounded-[20px] shadow-[var(--shadow-soft)] divide-y divide-line overflow-hidden">
-          {notifications.map((n) => (
-            <div
-              key={n.id}
-              className={cn(
-                "flex items-start gap-3 px-5 py-4",
-                !n.is_read && "bg-teal/5"
-              )}
-            >
-              <span
-                className={cn(
-                  "mt-2 shrink-0 h-2 w-2 rounded-full",
-                  n.is_read ? "bg-transparent" : "bg-teal-dark"
-                )}
-              />
-              <div className="flex-1 min-w-0">
-                <p
+        <>
+          <div className="bg-surface border border-line rounded-[20px] shadow-[var(--shadow-soft)] divide-y divide-line overflow-hidden">
+            {notifications.map((n) => {
+              const link = notificationLink(n);
+              return (
+                <button
+                  key={n.id}
+                  onClick={() => handleClick(n)}
                   className={cn(
-                    "text-[13px] leading-snug",
-                    n.is_read ? "text-ink2 font-normal" : "text-ink font-semibold"
+                    "w-full flex items-start gap-3 px-5 py-4 text-left transition-colors",
+                    !n.is_read && "bg-teal/5",
+                    link ? "hover:bg-bg cursor-pointer" : "cursor-default"
                   )}
                 >
-                  {n.title}
-                </p>
-                <p className="text-[12px] text-ink3 mt-0.5">{n.message}</p>
-                <p className="text-[11px] text-ink3 mt-1">
-                  {relativeTime(n.created_at)}
-                </p>
-              </div>
+                  <span
+                    className={cn(
+                      "mt-2 shrink-0 h-2 w-2 rounded-full",
+                      n.is_read ? "bg-transparent" : "bg-teal-dark"
+                    )}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p
+                      className={cn(
+                        "text-[13px] leading-snug",
+                        n.is_read ? "text-ink2 font-normal" : "text-ink font-semibold"
+                      )}
+                    >
+                      {n.title}
+                    </p>
+                    <p className="text-[12px] text-ink3 mt-0.5">{n.message}</p>
+                    <p className="text-[11px] text-ink3 mt-1">
+                      {relativeTime(n.created_at)}
+                    </p>
+                  </div>
+                  {link && (
+                    <ChevronRight size={14} className="text-ink3 mt-1.5 shrink-0" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="flex items-center gap-1 text-[13px] font-semibold text-ink2 hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft size={14} />
+                Anterior
+              </button>
+              <span className="text-[12px] text-ink3">
+                Página {page} de {totalPages}
+              </span>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="flex items-center gap-1 text-[13px] font-semibold text-ink2 hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                Siguiente
+                <ChevronRight size={14} />
+              </button>
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
     </div>
   );

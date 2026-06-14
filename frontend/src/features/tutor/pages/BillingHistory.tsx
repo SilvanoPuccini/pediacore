@@ -126,15 +126,37 @@ export default function BillingHistory() {
         .then((r) => r.data),
   });
 
+  // Separate queries for accurate summary totals (independent of pagination)
+  const { data: pendingSummary } = useQuery({
+    queryKey: ["payments-summary", "pending"],
+    queryFn: () =>
+      api
+        .get<PaginatedResponse<PaymentListItem>>("/payments/", {
+          params: { status: "PENDING,TRANSFER_PENDING", page_size: 100 },
+        })
+        .then((r) => r.data),
+  });
+
+  const { data: paidSummary } = useQuery({
+    queryKey: ["payments-summary", "completed"],
+    queryFn: () =>
+      api
+        .get<PaginatedResponse<PaymentListItem>>("/payments/", {
+          params: { status: "COMPLETED", page_size: 100 },
+        })
+        .then((r) => r.data),
+  });
+
   const results = data?.results ?? [];
   const totalCount = data?.count ?? 0;
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
-  // Compute summary stats
-  const pending = results.filter((p) => p.status === "PENDING");
-  const paid = results.filter((p) => p.status === "COMPLETED");
-  const pendingTotal = pending.reduce((s, p) => s + parseFloat(String(p.amount)), 0);
-  const paidTotal = paid.reduce((s, p) => s + parseFloat(String(p.amount)), 0);
+  // Summary stats from dedicated queries (not limited to current page)
+  const pending = results.filter((p) => p.status === "PENDING" || p.status === "TRANSFER_PENDING");
+  const allPending = pendingSummary?.results ?? [];
+  const allPaid = paidSummary?.results ?? [];
+  const pendingTotal = allPending.reduce((s, p) => s + parseFloat(String(p.amount)), 0);
+  const paidTotal = allPaid.reduce((s, p) => s + parseFloat(String(p.amount)), 0);
 
   if (isLoading) {
     return (
@@ -152,7 +174,7 @@ export default function BillingHistory() {
         <SummaryCard
           label="Por pagar"
           amount={formatCLP(pendingTotal)}
-          subtitle={`${pending.length} pago${pending.length !== 1 ? "s" : ""} pendiente${pending.length !== 1 ? "s" : ""}`}
+          subtitle={`${allPending.length} pago${allPending.length !== 1 ? "s" : ""} pendiente${allPending.length !== 1 ? "s" : ""}`}
           icon={CreditCard}
           iconBg="rgba(243,168,161,0.25)"
           iconClassName="text-[#B5604F]"
@@ -160,14 +182,14 @@ export default function BillingHistory() {
         <SummaryCard
           label="Pagado este año"
           amount={formatCLP(paidTotal)}
-          subtitle={`${paid.length} pago${paid.length !== 1 ? "s" : ""} completado${paid.length !== 1 ? "s" : ""}`}
+          subtitle={`${allPaid.length} pago${allPaid.length !== 1 ? "s" : ""} completado${allPaid.length !== 1 ? "s" : ""}`}
           icon={TrendingUp}
           iconBg="rgba(123,181,189,0.20)"
           iconClassName="text-[#4A8590]"
         />
         <SummaryCard
           label="Boletas"
-          amount={String(paid.length)}
+          amount={String(allPaid.length)}
           subtitle="disponibles para reembolso"
           icon={Receipt}
           iconBg="rgba(229,184,71,0.30)"
