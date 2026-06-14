@@ -23,7 +23,7 @@ import {
   Card,
   Btn,
   clp,
-  childPalette,
+  sexPalette,
 } from "@/features/tutor/components/portal-ui";
 import type { Appointment, Patient, PaginatedResponse, PaymentListItem } from "@/types/api";
 
@@ -141,13 +141,13 @@ interface ChildMiniCardProps {
 }
 
 function ChildMiniCard({ patient, index }: ChildMiniCardProps) {
-  const pal = childPalette(index);
+  const pal = sexPalette(patient.sex_at_birth, index);
   return (
     <Link
       to={`/portal/hijos/${patient.id}`}
       className="flex items-center gap-3 py-2.5 rounded-[12px] hover:bg-bg transition-colors px-1 -mx-1 group"
     >
-      <Avatar name={patient.first_name} childIndex={index} size={36} />
+      <Avatar name={patient.first_name} sex={patient.sex_at_birth} childIndex={index} size={36} />
       <div className="flex-1 min-w-0">
         <p className="text-[13px] font-semibold text-ink truncate">
           {patient.full_name}
@@ -214,7 +214,7 @@ interface GrowthSnapshotCardProps {
 }
 
 function GrowthSnapshotCard({ patient, index }: GrowthSnapshotCardProps) {
-  const pal = childPalette(index);
+  const pal = sexPalette(patient.sex_at_birth, index);
 
   const { data: growthData } = useQuery({
     queryKey: ["growth-history", patient.id],
@@ -251,7 +251,7 @@ function GrowthSnapshotCard({ patient, index }: GrowthSnapshotCardProps) {
     <Card className="flex flex-col gap-4">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Avatar name={patient.first_name} childIndex={index} size={40} />
+        <Avatar name={patient.first_name} sex={patient.sex_at_birth} childIndex={index} size={40} />
         <div className="flex-1 min-w-0">
           <p className="text-[13.5px] font-semibold text-ink truncate">
             {patient.full_name}

@@ -32,7 +32,7 @@ import {
   Chip,
   Btn,
   EmptyState,
-  childPalette,
+  sexPalette,
 } from "@/features/tutor/components/portal-ui";
 import InlinePatientForm from "@/features/booking/components/InlinePatientForm";
 import type { Patient, PaginatedResponse, Encounter, GrowthPoint } from "@/types/api";
@@ -220,7 +220,7 @@ function ChildSwitcher({ patients, activeId, onSelect, onAdd }: ChildSwitcherPro
   return (
     <div className="flex items-center gap-2 flex-wrap">
       {patients.map((p, idx) => {
-        const pal = childPalette(idx);
+        const pal = sexPalette(p.sex_at_birth, idx);
         const isActive = p.id === activeId;
         return (
           <button
@@ -234,7 +234,7 @@ function ChildSwitcher({ patients, activeId, onSelect, onAdd }: ChildSwitcherPro
             )}
             style={isActive ? { backgroundColor: pal.bg } : undefined}
           >
-            <Avatar name={p.first_name} childIndex={idx} size={26} />
+            <Avatar name={p.first_name} sex={p.sex_at_birth} childIndex={idx} size={26} />
             <span>{p.first_name}</span>
             <span className={cn("text-[11px] font-normal", isActive ? "text-teal-dark/70" : "text-ink3")}>
               {calcAgeShort(p.date_of_birth)}
@@ -263,7 +263,7 @@ interface ChildHeaderCardProps {
 }
 
 function ChildHeaderCard({ patient, childIndex, onSchedule, onUnlink }: ChildHeaderCardProps) {
-  const pal = childPalette(childIndex);
+  const pal = sexPalette(patient.sex_at_birth, childIndex);
   const age = calcAgeFull(patient.date_of_birth);
   const isMale = patient.sex_at_birth === "M";
   const isFemale = patient.sex_at_birth === "F";
@@ -281,7 +281,7 @@ function ChildHeaderCard({ patient, childIndex, onSchedule, onUnlink }: ChildHea
       <div className="relative">
         {/* Top row: avatar + identity + unlink */}
         <div className="flex items-start gap-4 mb-5">
-          <Avatar name={patient.first_name} childIndex={childIndex} size={64} />
+          <Avatar name={patient.first_name} sex={patient.sex_at_birth} childIndex={childIndex} size={64} />
           <div className="flex-1 min-w-0">
             <h2 className="font-display text-[24px] font-semibold text-ink leading-tight truncate">
               {patient.full_name}
