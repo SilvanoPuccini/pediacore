@@ -505,9 +505,15 @@ class PaymentViewSet(viewsets.ModelViewSet):
                 "process_card: MP rejected Payment #%s — status=%s response=%s",
                 payment.pk, mp_status_code, mp_result,
             )
+            # Upstream MP failure (5xx) → 502; client-side rejection → 400
+            http_status = (
+                status.HTTP_502_BAD_GATEWAY
+                if mp_status_code >= 500
+                else status.HTTP_400_BAD_REQUEST
+            )
             return Response(
                 {"detail": error_message, "mp_status": mp_payment_status},
-                status=status.HTTP_400_BAD_REQUEST,
+                status=http_status,
             )
 
         # Payment approved — update records

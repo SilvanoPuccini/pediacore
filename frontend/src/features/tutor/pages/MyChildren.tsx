@@ -52,7 +52,7 @@ interface VaccineRecord {
 // Values are weight in kg at each age in months.
 // Columns: P3, P15, P50, P85, P97
 
-const OMS_PERCENTILES: Array<{
+const OMS_PERCENTILES_BOYS: Array<{
   age: number;
   p3: number;
   p15: number;
@@ -83,6 +83,41 @@ const OMS_PERCENTILES: Array<{
   { age: 48, p3: 12.7, p15: 14.3, p50: 16.3, p85: 18.4, p97: 20.4 },
   { age: 54, p3: 13.3, p15: 15.0, p50: 17.1, p85: 19.5, p97: 21.7 },
   { age: 60, p3: 14.0, p15: 15.8, p50: 18.0, p85: 20.5, p97: 22.9 },
+];
+
+// ─── OMS Weight-for-age percentiles (girls, 0–60 months) ─────────────────────
+
+const OMS_PERCENTILES_GIRLS: Array<{
+  age: number;
+  p3: number;
+  p15: number;
+  p50: number;
+  p85: number;
+  p97: number;
+}> = [
+  { age: 0,  p3: 2.4,  p15: 2.8,  p50: 3.2,  p85: 3.7,  p97: 4.2  },
+  { age: 1,  p3: 3.2,  p15: 3.6,  p50: 4.2,  p85: 4.8,  p97: 5.4  },
+  { age: 2,  p3: 3.9,  p15: 4.4,  p50: 5.1,  p85: 5.8,  p97: 6.5  },
+  { age: 3,  p3: 4.5,  p15: 5.1,  p50: 5.8,  p85: 6.6,  p97: 7.4  },
+  { age: 4,  p3: 5.0,  p15: 5.6,  p50: 6.4,  p85: 7.3,  p97: 8.1  },
+  { age: 5,  p3: 5.4,  p15: 6.1,  p50: 6.9,  p85: 7.8,  p97: 8.7  },
+  { age: 6,  p3: 5.8,  p15: 6.5,  p50: 7.3,  p85: 8.3,  p97: 9.2  },
+  { age: 7,  p3: 6.1,  p15: 6.8,  p50: 7.6,  p85: 8.6,  p97: 9.6  },
+  { age: 8,  p3: 6.3,  p15: 7.1,  p50: 8.0,  p85: 9.0,  p97: 10.0 },
+  { age: 9,  p3: 6.6,  p15: 7.3,  p50: 8.2,  p85: 9.3,  p97: 10.4 },
+  { age: 10, p3: 6.8,  p15: 7.5,  p50: 8.5,  p85: 9.6,  p97: 10.7 },
+  { age: 11, p3: 7.0,  p15: 7.7,  p50: 8.7,  p85: 9.9,  p97: 11.0 },
+  { age: 12, p3: 7.1,  p15: 7.9,  p50: 8.9,  p85: 10.1, p97: 11.3 },
+  { age: 15, p3: 7.6,  p15: 8.5,  p50: 9.6,  p85: 10.9, p97: 12.2 },
+  { age: 18, p3: 8.1,  p15: 9.1,  p50: 10.2, p85: 11.6, p97: 13.0 },
+  { age: 21, p3: 8.6,  p15: 9.6,  p50: 10.9, p85: 12.4, p97: 13.9 },
+  { age: 24, p3: 9.0,  p15: 10.2, p50: 11.5, p85: 13.1, p97: 14.7 },
+  { age: 30, p3: 9.9,  p15: 11.1, p50: 12.7, p85: 14.4, p97: 16.2 },
+  { age: 36, p3: 10.8, p15: 12.1, p50: 13.9, p85: 15.8, p97: 17.8 },
+  { age: 42, p3: 11.5, p15: 13.0, p50: 15.0, p85: 17.2, p97: 19.4 },
+  { age: 48, p3: 12.3, p15: 13.9, p50: 16.1, p85: 18.5, p97: 21.0 },
+  { age: 54, p3: 12.9, p15: 14.7, p50: 17.1, p85: 19.8, p97: 22.5 },
+  { age: 60, p3: 13.7, p15: 15.5, p50: 18.2, p85: 21.2, p97: 24.1 },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -126,6 +161,15 @@ function formatDate(isoDate: string | null | undefined): string {
     month: "short",
     year: "numeric",
   });
+}
+
+function nutritionalLabel(weightPercentile: number | null | undefined): string {
+  if (weightPercentile == null) return "—";
+  if (weightPercentile < 3) return "Desnutrido";
+  if (weightPercentile < 15) return "Riesgo";
+  if (weightPercentile <= 85) return "Eutrófico";
+  if (weightPercentile <= 97) return "Sobrepeso";
+  return "Obesidad";
 }
 
 const SEX_LABEL: Record<string, string> = {
@@ -260,9 +304,10 @@ interface ChildHeaderCardProps {
   childIndex: number;
   onSchedule: () => void;
   onUnlink: () => void;
+  nutritionalStatus?: string;
 }
 
-function ChildHeaderCard({ patient, childIndex, onSchedule, onUnlink }: ChildHeaderCardProps) {
+function ChildHeaderCard({ patient, childIndex, onSchedule, onUnlink, nutritionalStatus }: ChildHeaderCardProps) {
   const pal = sexPalette(patient.sex_at_birth, childIndex);
   const age = calcAgeFull(patient.date_of_birth);
   const isMale = patient.sex_at_birth === "M";
@@ -340,16 +385,13 @@ function ChildHeaderCard({ patient, childIndex, onSchedule, onUnlink }: ChildHea
           />
           <StatCell
             label="Clasificación"
-            value={patient.insurance || "—"}
+            value={nutritionalStatus ?? "—"}
             icon={<Activity size={14} className="text-ink3" />}
           />
         </div>
 
         {/* Actions */}
         <div className="flex gap-3">
-          <Btn variant="ghost" icon="Bell" size="sm">
-            Recordatorio
-          </Btn>
           <Btn variant="primary" icon="CalendarDays" size="sm" onClick={onSchedule}>
             Agendar control
           </Btn>
@@ -428,6 +470,8 @@ interface GrowthTabProps {
 }
 
 function GrowthTab({ patient, growthData }: GrowthTabProps) {
+  const omsData = patient.sex_at_birth === "F" ? OMS_PERCENTILES_GIRLS : OMS_PERCENTILES_BOYS;
+
   // Merge OMS bands with patient measurements
   const patientPoints = growthData
     .filter((g) => g.age_months !== null && g.weight_kg)
@@ -439,13 +483,13 @@ function GrowthTab({ patient, growthData }: GrowthTabProps) {
   // Build chart data: merge OMS percentile ages + patient measurement ages
   const allAges = Array.from(
     new Set([
-      ...OMS_PERCENTILES.map((o) => o.age),
+      ...omsData.map((o) => o.age),
       ...patientPoints.map((p) => p.age),
     ])
   ).sort((a, b) => a - b);
 
   const chartData = allAges.map((age) => {
-    const oms = OMS_PERCENTILES.find((o) => o.age === age);
+    const oms = omsData.find((o) => o.age === age);
     const pt = patientPoints.find((p) => p.age === age);
     return {
       age,
@@ -628,6 +672,7 @@ interface VaccinesTabProps {
 }
 
 function VaccinesTab({ patientId }: VaccinesTabProps) {
+  const navigate = useNavigate();
   const { data, isLoading, isError } = useQuery<VaccineRecord[]>({
     queryKey: ["vaccines", patientId],
     queryFn: async () => {
@@ -662,9 +707,6 @@ function VaccinesTab({ patientId }: VaccinesTabProps) {
             {done} de {total} aplicadas
           </p>
         </div>
-        <Btn variant="ghost" icon="FileText" size="sm">
-          Carnet PDF
-        </Btn>
       </div>
 
       {data.length === 0 ? (
@@ -672,7 +714,7 @@ function VaccinesTab({ patientId }: VaccinesTabProps) {
       ) : (
         <ul className="divide-y divide-line">
           {data.map((vaccine) => (
-            <VaccineRow key={vaccine.id} vaccine={vaccine} />
+            <VaccineRow key={vaccine.id} vaccine={vaccine} onBook={() => navigate("/booking")} />
           ))}
         </ul>
       )}
@@ -680,7 +722,7 @@ function VaccinesTab({ patientId }: VaccinesTabProps) {
   );
 }
 
-function VaccineRow({ vaccine }: { vaccine: VaccineRecord }) {
+function VaccineRow({ vaccine, onBook }: { vaccine: VaccineRecord; onBook: () => void }) {
   const icons = {
     done: <Check size={15} className="text-sage-700" />,
     pending: <Clock size={15} className="text-mustard" style={{ color: "#8A6A1F" }} />,
@@ -724,7 +766,7 @@ function VaccineRow({ vaccine }: { vaccine: VaccineRecord }) {
 
       {/* Action */}
       {vaccine.status !== "done" && (
-        <Btn variant="ghost" size="sm">
+        <Btn variant="ghost" size="sm" onClick={onBook}>
           Agendar
         </Btn>
       )}
@@ -919,7 +961,6 @@ function DataTab({ patient }: DataTabProps) {
             label="Condiciones crónicas"
             value={patient.chronic_conditions || "—"}
           />
-          <DataRow label="Notas clínicas" value={patient.notes || "—"} />
           {patient.birth_weight_grams && (
             <DataRow label="Peso al nacer" value={`${(patient.birth_weight_grams / 1000).toFixed(2)} kg`} />
           )}
@@ -929,16 +970,32 @@ function DataTab({ patient }: DataTabProps) {
           {patient.gestational_weeks && (
             <DataRow label="Semanas gestacionales" value={`${patient.gestational_weeks} sem`} />
           )}
+          {patient.birth_type && (
+            <DataRow
+              label="Tipo de parto"
+              value={{
+                VAGINAL: "Parto vaginal",
+                CESAREAN: "Cesárea",
+                FORCEPS: "Fórceps",
+                VACUUM: "Ventosa",
+              }[patient.birth_type] ?? patient.birth_type}
+            />
+          )}
+          {patient.feeding_type && (
+            <DataRow
+              label="Alimentación"
+              value={{
+                EXCLUSIVE_BREASTFEEDING: "Lactancia materna exclusiva",
+                MIXED: "Mixta",
+                FORMULA: "Fórmula",
+                COMPLEMENTARY: "Alimentación complementaria",
+                SOLID: "Sólidos",
+              }[patient.feeding_type] ?? patient.feeding_type}
+            />
+          )}
         </dl>
         <div className="mt-4 pt-4 border-t border-line">
-          <Btn
-            variant="ghost"
-            size="sm"
-            icon="ExternalLink"
-            onClick={() => navigate(`/portal/hijos/${patient.id}`)}
-          >
-            Actualizar
-          </Btn>
+          <p className="text-[12px] text-ink3">Estos datos son actualizados por la doctora.</p>
         </div>
       </Card>
     </div>
@@ -967,11 +1024,17 @@ function ChildDetailView({ patient, childIndex, onUnlink, initialTab }: ChildDet
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabId>(initialTab ?? "growth");
 
+  const { data: clinicalSummary } = useQuery({
+    queryKey: ["clinical-summary", patient.id],
+    queryFn: () => api.get(`/patients/${patient.id}/clinical-summary/`).then(r => r.data),
+    retry: false,
+  });
+
   const { data: growthData = [] } = useQuery<GrowthPoint[]>({
-    queryKey: ["growth", patient.id],
+    queryKey: ["growth-history", patient.id],
     queryFn: async () => {
       try {
-        const { data } = await api.get<GrowthPoint[]>(`/growth/?patient=${patient.id}`);
+        const { data } = await api.get<GrowthPoint[]>(`/patients/${patient.id}/growth-history/`);
         return Array.isArray(data) ? data : [];
       } catch {
         return [];
@@ -1020,6 +1083,7 @@ function ChildDetailView({ patient, childIndex, onUnlink, initialTab }: ChildDet
         childIndex={childIndex}
         onSchedule={() => navigate("/booking")}
         onUnlink={onUnlink}
+        nutritionalStatus={nutritionalLabel(clinicalSummary?.last_anthropometry?.weight_percentile)}
       />
 
       <Card padding={false}>
