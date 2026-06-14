@@ -10,7 +10,6 @@ const mockSlot: AvailableSlot = {
 
 const mockBookingResponse: BookingResponse = {
   appointment_id: 42,
-  checkout_url: "https://mp.com/checkout/123",
   hold_expires_at: "2026-05-30T10:00:00Z",
   payment_id: 99,
 };
@@ -30,7 +29,6 @@ describe("bookingStore", () => {
     expect(state.notes).toBe("");
     expect(state.acceptedPolicy).toBe(false);
     expect(state.acceptedTerms).toBe(false);
-    expect(state.checkoutUrl).toBeNull();
     expect(state.holdExpiresAt).toBeNull();
     expect(state.appointmentId).toBeNull();
     expect(state.step).toBe(1);
@@ -93,7 +91,6 @@ describe("bookingStore", () => {
     useBookingStore.getState().setBookingResult(mockBookingResponse);
     const state = useBookingStore.getState();
     expect(state.appointmentId).toBe(42);
-    expect(state.checkoutUrl).toBe("https://mp.com/checkout/123");
     expect(state.holdExpiresAt).toBe("2026-05-30T10:00:00Z");
   });
 

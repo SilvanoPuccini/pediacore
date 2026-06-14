@@ -479,7 +479,7 @@ class BookingView(APIView):
         payment_method: str = data.get("payment_method", "MERCADOPAGO")
 
         try:
-            appointment, payment, init_point, preference_id = hold_appointment(
+            appointment, payment = hold_appointment(
                 user=request.user,
                 practice=data["practice"],
                 service=data["service"],
@@ -540,13 +540,11 @@ class BookingView(APIView):
                 status=status.HTTP_201_CREATED,
             )
 
-        # MERCADOPAGO (default)
+        # MERCADOPAGO (default) — payment collected via CardPayment Brick
         return Response(
             {
                 "appointment_id": appointment.pk,
                 "payment_id": payment.pk,
-                "checkout_url": init_point,
-                "preference_id": preference_id,
                 "hold_expires_at": appointment.hold_expires_at,
                 "payment_method": payment_method,
             },

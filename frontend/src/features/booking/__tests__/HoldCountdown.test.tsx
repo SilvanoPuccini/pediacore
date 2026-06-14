@@ -12,10 +12,6 @@ const mockReset = vi.fn();
 beforeEach(() => {
   vi.clearAllMocks();
   (useBookingStore as unknown as ReturnType<typeof vi.fn>).mockReturnValue(mockReset);
-  Object.defineProperty(window, "location", {
-    value: { href: "" },
-    writable: true,
-  });
 });
 
 function futureDate(seconds: number): string {
@@ -27,32 +23,18 @@ function pastDate(): string {
 }
 
 describe("HoldCountdown", () => {
-  it("renders countdown with correct seconds", () => {
-    render(
-      <HoldCountdown holdExpiresAt={futureDate(30)} checkoutUrl="https://pay.example.com" />
-    );
-    expect(screen.getByText(/30/)).toBeInTheDocument();
+  it("renders countdown with correct time format", () => {
+    render(<HoldCountdown holdExpiresAt={futureDate(30)} />);
+    expect(screen.getByText(/0:30/)).toBeInTheDocument();
   });
 
   it("renders heading 'Reserva registrada'", () => {
-    render(
-      <HoldCountdown holdExpiresAt={futureDate(30)} checkoutUrl="https://pay.example.com" />
-    );
+    render(<HoldCountdown holdExpiresAt={futureDate(30)} />);
     expect(screen.getByRole("heading", { name: /Reserva registrada/i })).toBeInTheDocument();
   });
 
-  it("shows 'Ir al pago ahora' link pointing to checkoutUrl", () => {
-    const url = "https://pay.example.com/checkout";
-    render(<HoldCountdown holdExpiresAt={futureDate(30)} checkoutUrl={url} />);
-    const link = screen.getByRole("link", { name: /Ir al pago ahora/i });
-    expect(link).toHaveAttribute("href", url);
-  });
-
-  it("redirects to checkoutUrl when holdExpiresAt is in the past", () => {
-    render(
-      <HoldCountdown holdExpiresAt={pastDate()} checkoutUrl="https://pay.example.com/expired" />
-    );
-    expect(window.location.href).toBe("https://pay.example.com/expired");
+  it("calls reset when holdExpiresAt is in the past", () => {
+    render(<HoldCountdown holdExpiresAt={pastDate()} />);
     expect(mockReset).toHaveBeenCalledOnce();
   });
 });

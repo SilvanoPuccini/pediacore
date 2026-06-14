@@ -3,13 +3,13 @@ TDD integration tests for BookingView (Phase 2).
 
 RED → GREEN cycle:
   - Tests written first (RED), view implementation follows.
-  - MercadoPago SDK is always mocked — no real network calls.
+  - hold_appointment() creates Appointment + Payment atomically.
+  - Payment is collected later via the CardPayment Brick (process-card endpoint).
 """
 
 from __future__ import annotations
 
 import datetime
-from unittest.mock import MagicMock, patch
 
 import pytest
 from django.urls import reverse
@@ -24,22 +24,6 @@ from tests.factories.users import DoctorFactory, UserFactory, VisitorFactory
 
 
 # ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-MP_INIT_POINT = "https://www.mercadopago.cl/checkout/v1/redirect?pref_id=test-view-123"
-MP_PREFERENCE_ID = "test-view-123"
-
-
-def mp_strategy_mock():
-    """Patch MercadoPago so no real HTTP calls are made during view tests."""
-    return patch(
-        "apps.scheduling.services.booking_service.MercadoPagoStrategy.create_preference",
-        return_value={"init_point": MP_INIT_POINT, "preference_id": MP_PREFERENCE_ID},
-    )
-
-
-# ---------------------------------------------------------------------------
 # 2.4 Happy path — presential booking returns 201
 # ---------------------------------------------------------------------------
 
@@ -48,8 +32,8 @@ def mp_strategy_mock():
 class TestBookPresential201:
     def test_book_presential_201(self):
         """
-        RED → GREEN: authenticated TUTOR can book a presential slot.
-        Response: 201 with appointment_id, payment_id, checkout_url, hold_expires_at.
+        Authenticated TUTOR can book a presential slot.
+        Response: 201 with appointment_id, payment_id, hold_expires_at.
         """
         practice = PracticeFactory()
         location = LocationFactory(practice=practice)
@@ -72,16 +56,14 @@ class TestBookPresential201:
             "is_online": False,
         }
 
-        with mp_strategy_mock():
-            response = client.post(url, payload, format="json")
+        response = client.post(url, payload, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED
         data = response.data
         assert "appointment_id" in data
         assert "payment_id" in data
-        assert "checkout_url" in data
         assert "hold_expires_at" in data
-        assert data["checkout_url"] == MP_INIT_POINT
+        assert "payment_method" in data
 
         # Verify DB state
         appointment = Appointment.objects.get(pk=data["appointment_id"])
@@ -102,7 +84,7 @@ class TestBookPresential201:
 class TestBookOnlineNoLocation201:
     def test_book_online_no_location_201(self):
         """
-        RED → GREEN: TUTOR can book an online service without providing location_id.
+        TUTOR can book an online service without providing location_id.
         Response: 201.
         """
         from apps.practice.models import Service as ServiceModel
@@ -132,8 +114,7 @@ class TestBookOnlineNoLocation201:
             "is_online": True,
         }
 
-        with mp_strategy_mock():
-            response = client.post(url, payload, format="json")
+        response = client.post(url, payload, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED
         data = response.data
@@ -227,7 +208,6 @@ class TestBookPermissions:
         patient = PatientFactory(practice=practice)
         TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
 
-        # Create a blocking appointment
         from tests.factories.scheduling import AppointmentFactory
 
         AppointmentFactory(
@@ -253,8 +233,7 @@ class TestBookPermissions:
             "start_time": "09:00",
             "is_online": False,
         }
-        with mp_strategy_mock():
-            response = client.post(url, payload, format="json")
+        response = client.post(url, payload, format="json")
         assert response.status_code == status.HTTP_409_CONFLICT
 
     def test_book_inactive_service_400(self):
@@ -291,10 +270,7 @@ class TestBookPermissions:
 @pytest.mark.django_db
 class TestConfirmActionAcceptsHold:
     def test_doctor_can_confirm_hold_appointment(self):
-        """
-        RED → GREEN: DOCTOR can confirm an appointment in HOLD status.
-        Previously confirm() only accepted PENDING.
-        """
+        """DOCTOR can confirm an appointment in HOLD status."""
         from tests.factories.scheduling import AppointmentFactory
 
         doctor = DoctorFactory()
@@ -341,115 +317,6 @@ class TestConfirmActionAcceptsHold:
         response = client.post(url)
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
-
-
-# ---------------------------------------------------------------------------
-# T-01: preference_id in BookingView response
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.django_db
-class TestBookingResponsePreferenceId:
-    def test_booking_response_includes_preference_id(self):
-        """
-        RED → GREEN: BookingView response must include a non-null preference_id string
-        when payment method is MERCADOPAGO.
-        """
-        practice = PracticeFactory()
-        location = LocationFactory(practice=practice)
-        service = ServiceFactory(practice=practice, duration_minutes=30, price_clp=20000, is_active=True)
-        tutor = UserFactory()
-        patient = PatientFactory(practice=practice)
-        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
-
-        client = APIClient()
-        client.force_authenticate(user=tutor)
-
-        url = reverse("scheduling:book")
-        payload = {
-            "practice": practice.pk,
-            "service": service.pk,
-            "location": location.pk,
-            "patient": patient.pk,
-            "scheduled_date": "2026-09-01",
-            "start_time": "09:00",
-            "is_online": False,
-        }
-
-        with mp_strategy_mock():
-            response = client.post(url, payload, format="json")
-
-        assert response.status_code == status.HTTP_201_CREATED
-        data = response.data
-        assert "preference_id" in data
-        assert data["preference_id"] is not None
-        assert isinstance(data["preference_id"], str)
-        assert len(data["preference_id"]) > 0
-
-    def test_booking_response_preference_id_matches_mp_strategy_result(self):
-        """
-        RED → GREEN: preference_id in the response must match the value returned
-        by MercadoPagoStrategy.create_preference() (i.e., MP_PREFERENCE_ID from the mock).
-        """
-        practice = PracticeFactory()
-        location = LocationFactory(practice=practice)
-        service = ServiceFactory(practice=practice, duration_minutes=30, price_clp=20000, is_active=True)
-        tutor = UserFactory()
-        patient = PatientFactory(practice=practice)
-        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
-
-        client = APIClient()
-        client.force_authenticate(user=tutor)
-
-        url = reverse("scheduling:book")
-        payload = {
-            "practice": practice.pk,
-            "service": service.pk,
-            "location": location.pk,
-            "patient": patient.pk,
-            "scheduled_date": "2026-09-02",
-            "start_time": "10:00",
-            "is_online": False,
-        }
-
-        with mp_strategy_mock():
-            response = client.post(url, payload, format="json")
-
-        assert response.status_code == status.HTTP_201_CREATED
-        data = response.data
-        # preference_id in response must exactly match what the MP strategy returned
-        assert data["preference_id"] == MP_PREFERENCE_ID
-
-    def test_booking_response_still_includes_checkout_url(self):
-        """
-        Backward compatibility: checkout_url must still be present in the response.
-        """
-        practice = PracticeFactory()
-        location = LocationFactory(practice=practice)
-        service = ServiceFactory(practice=practice, duration_minutes=30, price_clp=20000, is_active=True)
-        tutor = UserFactory()
-        patient = PatientFactory(practice=practice)
-        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
-
-        client = APIClient()
-        client.force_authenticate(user=tutor)
-
-        url = reverse("scheduling:book")
-        payload = {
-            "practice": practice.pk,
-            "service": service.pk,
-            "location": location.pk,
-            "patient": patient.pk,
-            "scheduled_date": "2026-09-03",
-            "start_time": "11:00",
-            "is_online": False,
-        }
-
-        with mp_strategy_mock():
-            response = client.post(url, payload, format="json")
-
-        assert response.status_code == status.HTTP_201_CREATED
-        assert "checkout_url" in response.data
 
 
 # ---------------------------------------------------------------------------
@@ -505,19 +372,6 @@ class TestBookingViewTransferPaymentMethod:
         assert bd["bank_name"] == "Banco prepago Tenpo"
         assert bd["account_number"] == "111128625096"
 
-    def test_booking_view_transfer_response_no_preference_id(self):
-        """TRANSFER response must NOT contain preference_id."""
-        practice, location, service, tutor, patient = self._setup()
-        client = APIClient()
-        client.force_authenticate(user=tutor)
-
-        payload = self._payload(practice, location, service, patient, "2026-10-02", "09:00")
-        payload["payment_method"] = "TRANSFER"
-
-        response = client.post(reverse("scheduling:book"), payload, format="json")
-        assert response.status_code == status.HTTP_201_CREATED
-        assert "preference_id" not in response.json()
-
     def test_booking_view_transfer_response_has_transfer_expires_at(self):
         """TRANSFER response includes transfer_expires_at."""
         practice, location, service, tutor, patient = self._setup()
@@ -542,8 +396,7 @@ class TestBookingViewTransferPaymentMethod:
         payload = self._payload(practice, location, service, patient, "2026-10-04", "09:00")
         payload["payment_method"] = "MERCADOPAGO"
 
-        with mp_strategy_mock():
-            response = client.post(reverse("scheduling:book"), payload, format="json")
+        response = client.post(reverse("scheduling:book"), payload, format="json")
         assert response.status_code == status.HTTP_201_CREATED
         assert "bank_details" not in response.json()
 
@@ -554,14 +407,12 @@ class TestBookingViewTransferPaymentMethod:
         client.force_authenticate(user=tutor)
 
         payload = self._payload(practice, location, service, patient, "2026-10-05", "09:00")
-        # No payment_method key
 
-        with mp_strategy_mock():
-            response = client.post(reverse("scheduling:book"), payload, format="json")
+        response = client.post(reverse("scheduling:book"), payload, format="json")
         assert response.status_code == status.HTTP_201_CREATED
         data = response.json()
-        assert "checkout_url" in data
-        assert "preference_id" in data
+        assert data["payment_method"] == "MERCADOPAGO"
+        assert "hold_expires_at" in data
 
     def test_booking_view_invalid_payment_method_returns_400(self):
         """Posting an invalid payment_method value returns 400."""

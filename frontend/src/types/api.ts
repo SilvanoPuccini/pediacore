@@ -161,8 +161,6 @@ export interface BankDetails {
 export interface BookingResponse {
   appointment_id: number;
   payment_id: number;
-  checkout_url?: string;
-  preference_id?: string;
   payment_method?: string;
   bank_details?: BankDetails;
   transfer_expires_at?: string;

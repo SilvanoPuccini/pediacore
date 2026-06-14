@@ -3,44 +3,24 @@ TDD tests for BookingService (Phase 2).
 
 RED → GREEN cycle:
   - Tests written first (RED), implementation follows.
-  - MercadoPago SDK is always mocked — no real network calls.
+  - hold_appointment() creates Appointment + Payment atomically.
+  - Payment is collected later via the CardPayment Brick (process-card endpoint).
 """
 
 from __future__ import annotations
 
 import datetime
 from decimal import Decimal
-from unittest.mock import MagicMock, patch
 
 import pytest
 from django.utils import timezone
 
 from apps.billing.models import Payment
 from apps.scheduling.models import Appointment
-from tests.factories.billing import PaymentFactory
 from tests.factories.patients import PatientFactory, TutorPatientFactory
 from tests.factories.practice import LocationFactory, PracticeFactory, ServiceFactory
 from tests.factories.scheduling import AppointmentFactory
-from tests.factories.users import DoctorFactory, UserFactory
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-MP_INIT_POINT = "https://www.mercadopago.cl/checkout/v1/redirect?pref_id=test-pref-123"
-MP_PREFERENCE_ID = "test-pref-123"
-
-MOCK_MP_RESPONSE = {
-    "init_point": MP_INIT_POINT,
-    "preference_id": MP_PREFERENCE_ID,
-}
-
-
-def _make_create_preference_mock(init_point=MP_INIT_POINT, preference_id=MP_PREFERENCE_ID):
-    """Return a mock that mimics MercadoPagoStrategy.create_preference()."""
-    mock = MagicMock(return_value={"init_point": init_point, "preference_id": preference_id})
-    return mock
+from tests.factories.users import UserFactory
 
 
 # ---------------------------------------------------------------------------
@@ -52,8 +32,8 @@ def _make_create_preference_mock(init_point=MP_INIT_POINT, preference_id=MP_PREF
 class TestHoldAppointmentHappyPath:
     def test_hold_appointment_happy_path(self):
         """
-        RED → GREEN: hold_appointment() creates Appointment(HOLD) + Payment(PENDING),
-        calls MP strategy once, and returns (appointment, payment, init_point).
+        hold_appointment() creates Appointment(HOLD) + Payment(PENDING)
+        and returns (appointment, payment).
         """
         from apps.scheduling.services.booking_service import hold_appointment
 
@@ -68,21 +48,17 @@ class TestHoldAppointmentHappyPath:
         scheduled_date = datetime.date(2026, 7, 1)
         start_time = datetime.time(9, 0)
 
-        with patch(
-            "apps.scheduling.services.booking_service.MercadoPagoStrategy.create_preference",
-            side_effect=_make_create_preference_mock(),
-        ):
-            appointment, payment, init_point, preference_id = hold_appointment(
-                user=tutor,
-                practice=practice,
-                service=service,
-                location=location,
-                patient=patient,
-                scheduled_date=scheduled_date,
-                start_time=start_time,
-                is_online=False,
-                notes="",
-            )
+        appointment, payment = hold_appointment(
+            user=tutor,
+            practice=practice,
+            service=service,
+            location=location,
+            patient=patient,
+            scheduled_date=scheduled_date,
+            start_time=start_time,
+            is_online=False,
+            notes="",
+        )
 
         # Appointment assertions
         assert appointment.pk is not None
@@ -104,41 +80,6 @@ class TestHoldAppointmentHappyPath:
         assert payment.patient == patient
         assert payment.amount == Decimal("25000")
 
-        # Return values
-        assert init_point == MP_INIT_POINT
-        assert preference_id == MP_PREFERENCE_ID
-
-    def test_hold_appointment_stores_preference_id_in_metadata(self):
-        """Payment.metadata must contain the MP preference_id."""
-        from apps.scheduling.services.booking_service import hold_appointment
-
-        practice = PracticeFactory()
-        location = LocationFactory(practice=practice)
-        service = ServiceFactory(practice=practice, duration_minutes=30, price_clp=15000, is_active=True)
-        tutor = UserFactory()
-        patient = PatientFactory(practice=practice)
-        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
-
-        with patch(
-            "apps.scheduling.services.booking_service.MercadoPagoStrategy.create_preference",
-            side_effect=_make_create_preference_mock(),
-        ):
-            appointment, payment, init_point, preference_id = hold_appointment(
-                user=tutor,
-                practice=practice,
-                service=service,
-                location=location,
-                patient=patient,
-                scheduled_date=datetime.date(2026, 7, 2),
-                start_time=datetime.time(10, 0),
-                is_online=False,
-            )
-
-        # preference_id returned as 4th element of the tuple
-        assert preference_id == MP_PREFERENCE_ID
-        # external_id must stay empty until webhook fires
-        assert payment.external_id == ""
-
     def test_hold_appointment_sets_hold_expires_at_from_settings(self):
         """hold_expires_at must be approximately now + BOOKING_HOLD_MINUTES."""
         from django.conf import settings
@@ -154,20 +95,16 @@ class TestHoldAppointmentHappyPath:
 
         before = timezone.now()
 
-        with patch(
-            "apps.scheduling.services.booking_service.MercadoPagoStrategy.create_preference",
-            side_effect=_make_create_preference_mock(),
-        ):
-            appointment, payment, _, _pref_id = hold_appointment(
-                user=tutor,
-                practice=practice,
-                service=service,
-                location=location,
-                patient=patient,
-                scheduled_date=datetime.date(2026, 7, 3),
-                start_time=datetime.time(11, 0),
-                is_online=False,
-            )
+        appointment, payment = hold_appointment(
+            user=tutor,
+            practice=practice,
+            service=service,
+            location=location,
+            patient=patient,
+            scheduled_date=datetime.date(2026, 7, 3),
+            start_time=datetime.time(11, 0),
+            is_online=False,
+        )
 
         after = timezone.now()
         hold_minutes = getattr(settings, "BOOKING_HOLD_MINUTES", 10)
@@ -189,7 +126,7 @@ class TestHoldAppointmentHappyPath:
 class TestHoldAppointmentSlotUnavailable:
     def test_hold_appointment_slot_unavailable(self):
         """
-        RED → GREEN: when another appointment already blocks the slot,
+        When another appointment already blocks the slot,
         SlotUnavailableError must be raised (→ HTTP 409).
         """
         from apps.scheduling.services.booking_service import SlotUnavailableError, hold_appointment
@@ -216,20 +153,16 @@ class TestHoldAppointmentSlotUnavailable:
         )
 
         with pytest.raises(SlotUnavailableError):
-            with patch(
-                "apps.scheduling.services.booking_service.MercadoPagoStrategy.create_preference",
-                side_effect=_make_create_preference_mock(),
-            ):
-                hold_appointment(
-                    user=tutor,
-                    practice=practice,
-                    service=service,
-                    location=location,
-                    patient=patient,
-                    scheduled_date=scheduled_date,
-                    start_time=start_time,
-                    is_online=False,
-                )
+            hold_appointment(
+                user=tutor,
+                practice=practice,
+                service=service,
+                location=location,
+                patient=patient,
+                scheduled_date=scheduled_date,
+                start_time=start_time,
+                is_online=False,
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -241,7 +174,7 @@ class TestHoldAppointmentSlotUnavailable:
 class TestHoldAppointmentPatientNotOwned:
     def test_hold_appointment_patient_not_owned(self):
         """
-        RED → GREEN: when the patient belongs to a different tutor,
+        When the patient belongs to a different tutor,
         PermissionError must be raised (→ HTTP 403).
         """
         from apps.scheduling.services.booking_service import hold_appointment
@@ -281,7 +214,7 @@ class TestHoldAppointmentPatientNotOwned:
 class TestHoldAppointmentServiceInactive:
     def test_hold_appointment_service_inactive(self):
         """
-        RED → GREEN: when service.is_active is False,
+        When service.is_active is False,
         ValidationError must be raised (→ HTTP 400).
         """
         from django.core.exceptions import ValidationError
@@ -306,54 +239,6 @@ class TestHoldAppointmentServiceInactive:
                 start_time=datetime.time(9, 0),
                 is_online=False,
             )
-
-
-# ---------------------------------------------------------------------------
-# 1.7 MercadoPago SDK failure → rollback
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.django_db
-class TestHoldAppointmentMpFailureRollback:
-    def test_hold_appointment_mp_failure_rollback(self):
-        """
-        RED → GREEN: when MP SDK raises an exception, the transaction must be
-        rolled back — no Appointment or Payment in DB.
-        """
-        from apps.scheduling.services.booking_service import hold_appointment
-
-        practice = PracticeFactory()
-        location = LocationFactory(practice=practice)
-        service = ServiceFactory(practice=practice, duration_minutes=30, price_clp=20000, is_active=True)
-        tutor = UserFactory()
-        patient = PatientFactory(practice=practice)
-        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
-
-        scheduled_date = datetime.date(2026, 7, 7)
-        start_time = datetime.time(10, 0)
-
-        initial_appointment_count = Appointment.objects.count()
-        initial_payment_count = Payment.objects.count()
-
-        with pytest.raises(Exception):
-            with patch(
-                "apps.scheduling.services.booking_service.MercadoPagoStrategy.create_preference",
-                side_effect=Exception("MP SDK connection error"),
-            ):
-                hold_appointment(
-                    user=tutor,
-                    practice=practice,
-                    service=service,
-                    location=location,
-                    patient=patient,
-                    scheduled_date=scheduled_date,
-                    start_time=start_time,
-                    is_online=False,
-                )
-
-        # Transaction must have rolled back
-        assert Appointment.objects.count() == initial_appointment_count
-        assert Payment.objects.count() == initial_payment_count
 
 
 # ---------------------------------------------------------------------------
@@ -385,7 +270,7 @@ class TestHoldAppointmentTransferPath:
 
         practice, location, service, tutor, patient = self._setup()
 
-        appointment, payment, init_point, preference_id = hold_appointment(
+        appointment, payment = hold_appointment(
             user=tutor,
             practice=practice,
             service=service,
@@ -404,7 +289,7 @@ class TestHoldAppointmentTransferPath:
 
         practice, location, service, tutor, patient = self._setup()
 
-        appointment, payment, init_point, preference_id = hold_appointment(
+        appointment, payment = hold_appointment(
             user=tutor,
             practice=practice,
             service=service,
@@ -430,7 +315,7 @@ class TestHoldAppointmentTransferPath:
         practice, location, service, tutor, patient = self._setup()
 
         before = timezone.now()
-        appointment, payment, init_point, preference_id = hold_appointment(
+        appointment, payment = hold_appointment(
             user=tutor,
             practice=practice,
             service=service,
@@ -446,72 +331,3 @@ class TestHoldAppointmentTransferPath:
         expected_min = before + dt.timedelta(hours=TRANSFER_EXPIRY_HOURS - 1)
         expected_max = after + dt.timedelta(hours=TRANSFER_EXPIRY_HOURS + 1)
         assert expected_min <= payment.transfer_expires_at <= expected_max
-
-    def test_hold_appointment_transfer_no_mp_api_call(self):
-        """TRANSFER path does NOT call MercadoPagoStrategy.create_preference."""
-        from unittest.mock import patch
-
-        from apps.scheduling.services.booking_service import hold_appointment
-
-        practice, location, service, tutor, patient = self._setup()
-
-        with patch(
-            "apps.scheduling.services.booking_service.MercadoPagoStrategy.create_preference",
-        ) as mock_mp:
-            hold_appointment(
-                user=tutor,
-                practice=practice,
-                service=service,
-                location=location,
-                patient=patient,
-                scheduled_date=datetime.date(2026, 8, 4),
-                start_time=datetime.time(10, 0),
-                payment_method="TRANSFER",
-            )
-            mock_mp.assert_not_called()
-
-    def test_hold_appointment_transfer_returns_empty_init_point_and_preference_id(self):
-        """TRANSFER path returns empty strings for init_point and preference_id."""
-        from apps.scheduling.services.booking_service import hold_appointment
-
-        practice, location, service, tutor, patient = self._setup()
-
-        appointment, payment, init_point, preference_id = hold_appointment(
-            user=tutor,
-            practice=practice,
-            service=service,
-            location=location,
-            patient=patient,
-            scheduled_date=datetime.date(2026, 8, 5),
-            start_time=datetime.time(10, 0),
-            payment_method="TRANSFER",
-        )
-
-        assert init_point == ""
-        assert preference_id == ""
-
-    def test_hold_appointment_mercadopago_unchanged(self):
-        """Regression: MERCADOPAGO default path still works as before."""
-        from apps.scheduling.services.booking_service import hold_appointment
-
-        practice, location, service, tutor, patient = self._setup()
-
-        with patch(
-            "apps.scheduling.services.booking_service.MercadoPagoStrategy.create_preference",
-            return_value={"init_point": MP_INIT_POINT, "preference_id": MP_PREFERENCE_ID},
-        ):
-            appointment, payment, init_point, preference_id = hold_appointment(
-                user=tutor,
-                practice=practice,
-                service=service,
-                location=location,
-                patient=patient,
-                scheduled_date=datetime.date(2026, 8, 6),
-                start_time=datetime.time(10, 0),
-                payment_method="MERCADOPAGO",
-            )
-
-        assert appointment.status == Appointment.HOLD
-        assert payment.payment_method == Payment.MERCADOPAGO
-        assert init_point == MP_INIT_POINT
-        assert preference_id == MP_PREFERENCE_ID

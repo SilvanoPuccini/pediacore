@@ -6,10 +6,9 @@ Handles the atomic slot reservation flow:
   2. Validate service is active (ValidationError)
   3. Acquire row-level lock and check for overlapping appointments
   4. Create Appointment + Payment (status and method depend on payment_method param)
-  5. For MERCADOPAGO: call MP strategy to obtain checkout URL
-     For TRANSFER: set transfer_expires_at, skip MP
-  6. Return (appointment, payment, init_point, preference_id)
-     TRANSFER path returns ("", "") for init_point and preference_id.
+  5. Return (appointment, payment)
+
+Payment is processed later via the CardPayment Brick (process-card endpoint).
 
 If any step fails the entire transaction is rolled back.
 """
@@ -26,7 +25,6 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.billing.models import Payment
-from apps.billing.services.payment_strategy import MercadoPagoStrategy
 from apps.scheduling.models import Appointment
 
 if TYPE_CHECKING:
@@ -55,23 +53,19 @@ def hold_appointment(
     call_platform: str = "",
     notes: str = "",
     payment_method: str = Payment.MERCADOPAGO,
-) -> tuple[Appointment, Payment, str, str]:
+) -> tuple[Appointment, Payment]:
     """
-    Reserve a slot atomically and initiate the payment flow.
+    Reserve a slot atomically and create a pending payment.
 
-    For MERCADOPAGO: creates Appointment(HOLD) and calls MP to get an init_point.
-    For TRANSFER: creates Appointment(PENDING) and sets transfer_expires_at = now + 48h.
+    For MERCADOPAGO: creates Appointment(HOLD) + Payment(PENDING).
+    For TRANSFER: creates Appointment(PENDING) + Payment(PENDING) with transfer_expires_at.
 
-    Returns:
-        (appointment, payment, init_point, preference_id)
-        - MERCADOPAGO: init_point is the MP checkout URL, preference_id is the MP preference ID.
-        - TRANSFER: both init_point and preference_id are empty strings.
+    Payment is collected later via the CardPayment Brick (process-card endpoint).
 
     Raises:
         PermissionError: patient does not belong to the requesting tutor.
         ValidationError: service is inactive or payment_method is invalid.
         SlotUnavailableError: the slot is already taken.
-        Exception: MP SDK failure (MERCADOPAGO only) — transaction is rolled back.
     """
     from apps.patients.models import TutorPatient
 
@@ -149,25 +143,13 @@ def hold_appointment(
                 payment_method=Payment.MERCADOPAGO,
             )
 
-            # Call MercadoPago strategy
-            access_token = getattr(settings, "MERCADOPAGO_ACCESS_TOKEN", "")
-            strategy = MercadoPagoStrategy(access_token=access_token)
-            result = strategy.create_preference(payment)
-
-            init_point: str = result["init_point"]
-            preference_id: str = result.get("preference_id", "")
-
-            # create_preference() already saved metadata with provider + preference_id
-            # and set external_id = "". No need to overwrite here.
-
             logger.info(
-                "Booking hold created (MP): appointment=%s payment=%s preference=%s",
+                "Booking hold created (MP): appointment=%s payment=%s",
                 appointment.pk,
                 payment.pk,
-                preference_id,
             )
 
-            return appointment, payment, init_point, preference_id
+            return appointment, payment
 
         else:
             # ── 5b. TRANSFER path ────────────────────────────────────────────
@@ -208,4 +190,4 @@ def hold_appointment(
                 transfer_expires_at.isoformat(),
             )
 
-            return appointment, payment, "", ""
+            return appointment, payment
