@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   CreditCard,
   TrendingUp,
@@ -8,6 +8,8 @@ import {
   Download,
   ChevronLeft,
   ChevronRight,
+  X,
+  AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import api from "@/lib/api";
@@ -72,7 +74,19 @@ function SummaryCard({
 
 export default function BillingHistory() {
   const [page, setPage] = useState(1);
+  const [cancelTarget, setCancelTarget] = useState<PaymentListItem | null>(null);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const cancelMutation = useMutation({
+    mutationFn: (appointmentId: number) =>
+      api.post(`/appointments/${appointmentId}/cancel/`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["payments"] });
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      setCancelTarget(null);
+    },
+  });
 
   const exportCSV = useCallback((payments: PaymentListItem[]) => {
     const header = "Concepto,Paciente,Monto,Estado,Método,Fecha pago,Fecha creación";
@@ -128,6 +142,7 @@ export default function BillingHistory() {
   }
 
   return (
+    <>
     <div className="space-y-6">
       {/* Summary cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -193,6 +208,13 @@ export default function BillingHistory() {
                 >
                   Pagar ahora
                 </Btn>
+                <button
+                  onClick={() => setCancelTarget(payment)}
+                  className="w-8 h-8 rounded-[8px] border border-coral/30 bg-coral/5 flex items-center justify-center text-coral hover:bg-coral/10 transition-colors shrink-0"
+                  title="Cancelar pago"
+                >
+                  <X size={14} />
+                </button>
               </li>
             ))}
           </ul>
@@ -345,6 +367,64 @@ export default function BillingHistory() {
         </div>
       </div>
     </div>
+
+    {/* Cancel confirmation modal */}
+    {cancelTarget && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div
+          className="absolute inset-0 bg-ink/40 backdrop-blur-sm"
+          onClick={() => setCancelTarget(null)}
+        />
+        <div className="relative bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)] p-6 w-full max-w-[380px]">
+          <button
+            onClick={() => setCancelTarget(null)}
+            className="absolute top-4 right-4 text-ink3 hover:text-ink transition-colors"
+            aria-label="Cerrar"
+          >
+            <X size={18} />
+          </button>
+
+          <div className="h-12 w-12 rounded-full bg-coral/10 flex items-center justify-center mb-4">
+            <AlertCircle size={22} className="text-coral" />
+          </div>
+
+          <h2 className="font-display text-[20px] font-semibold text-ink mb-2">
+            Cancelar este pago?
+          </h2>
+          <p className="text-[13px] text-ink2 leading-relaxed mb-1">
+            <span className="font-semibold text-ink">{cancelTarget.service_name ?? "Consulta"}</span>
+            {" — "}{cancelTarget.patient_name}
+          </p>
+          <p className="text-[13px] text-ink2 leading-relaxed mb-6">
+            Se cancelará el pago pendiente y el turno asociado. Esta acción no se puede deshacer.
+          </p>
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => setCancelTarget(null)}
+              disabled={cancelMutation.isPending}
+              className={cn(
+                "flex-1 h-10 rounded-[12px] border border-line text-[13px] font-semibold text-ink2",
+                "hover:bg-cream transition-colors disabled:opacity-50"
+              )}
+            >
+              Volver
+            </button>
+            <button
+              onClick={() => cancelMutation.mutate(cancelTarget.appointment)}
+              disabled={cancelMutation.isPending}
+              className={cn(
+                "flex-1 h-10 rounded-[12px] bg-coral text-[13px] font-semibold text-white",
+                "hover:opacity-90 transition-opacity disabled:opacity-50"
+              )}
+            >
+              {cancelMutation.isPending ? "Cancelando..." : "Cancelar pago"}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
 

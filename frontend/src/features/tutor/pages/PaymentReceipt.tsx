@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Download,
@@ -99,6 +99,7 @@ function LoadingSkeleton() {
 
 function PendingPaymentView({ payment }: { payment: PaymentDetail }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user } = useAuthStore();
   const [paymentApproved, setPaymentApproved] = useState(false);
   const [cardError, setCardError] = useState<string | null>(null);
@@ -213,7 +214,11 @@ function PendingPaymentView({ payment }: { payment: PaymentDetail }) {
             paymentId={payment.id}
             amount={amount}
             payerEmail={user?.email ?? payment.paid_by_email ?? ""}
-            onApproved={() => setPaymentApproved(true)}
+            onApproved={() => {
+              setPaymentApproved(true);
+              queryClient.invalidateQueries({ queryKey: ["payments"] });
+              queryClient.invalidateQueries({ queryKey: ["appointments"] });
+            }}
             onError={(msg) => setCardError(msg)}
           />
         ) : (
