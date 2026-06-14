@@ -460,11 +460,18 @@ class PaymentViewSet(viewsets.ModelViewSet):
             "description": service_name,
             "installments": int(data.get("installments", 1)),
             "payment_method_id": data.get("payment_method_id", ""),
-            "issuer_id": data.get("issuer_id", ""),
             "payer": {
                 "email": payer_email,
             },
         }
+
+        # issuer_id must be an integer for MP API — omit if empty/missing
+        raw_issuer = data.get("issuer_id")
+        if raw_issuer:
+            try:
+                payment_data["issuer_id"] = int(raw_issuer)
+            except (ValueError, TypeError):
+                pass
 
         # Add identification if provided
         if identification.get("type") and identification.get("number"):
@@ -476,6 +483,12 @@ class PaymentViewSet(viewsets.ModelViewSet):
         # Call MercadoPago API to create the payment
         access_token = getattr(settings, "MERCADOPAGO_ACCESS_TOKEN", "")
         sdk = mercadopago.SDK(access_token)
+
+        logger.info(
+            "process_card: sending to MP for Payment #%s — payload=%s",
+            payment.pk,
+            {k: v for k, v in payment_data.items() if k != "token"},
+        )
 
         try:
             mp_response = sdk.payment().create(payment_data)
