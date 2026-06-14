@@ -240,6 +240,9 @@ export default function AppointmentDetail() {
     mutationFn: () => api.post(`/appointments/${id}/cancel/`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["appointments-count"] });
+      queryClient.invalidateQueries({ queryKey: ["appointments", "dashboard-upcoming"] });
+      queryClient.invalidateQueries({ queryKey: ["payments"] });
       navigate("/portal/turnos");
     },
   });
@@ -249,6 +252,7 @@ export default function AppointmentDetail() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["appointments", id] });
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["appointments", "dashboard-upcoming"] });
     },
   });
 

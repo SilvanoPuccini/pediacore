@@ -962,7 +962,7 @@ function ChildDetailView({ patient, childIndex, onUnlink }: ChildDetailViewProps
       <ChildHeaderCard
         patient={patient}
         childIndex={childIndex}
-        onSchedule={() => navigate("/portal/reserva")}
+        onSchedule={() => navigate("/booking")}
         onUnlink={onUnlink}
       />
 
