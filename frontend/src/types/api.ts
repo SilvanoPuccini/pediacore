@@ -252,6 +252,7 @@ export interface Appointment {
   hold_expires_at: string | null;
   meeting_link: string;
   attendance_confirmed: boolean;
+  payment_id: number | null;
   notes: string;
   created_at: string;
   updated_at: string;
@@ -264,7 +265,6 @@ export interface AppointmentDetail extends Appointment {
   confirmed_at: string | null;
   rescheduled_from: number | null;
   rescheduled_at: string | null;
-  payment_id: number | null;
 }
 
 export interface Payment {

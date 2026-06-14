@@ -20,6 +20,7 @@ class AppointmentListSerializer(serializers.ModelSerializer):
     service_name = serializers.CharField(source="service.name", read_only=True)
     location_name = serializers.SerializerMethodField()
     status_display = serializers.CharField(source="get_status_display", read_only=True)
+    payment_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Appointment
@@ -41,6 +42,7 @@ class AppointmentListSerializer(serializers.ModelSerializer):
             "call_platform",
             "meeting_link",
             "attendance_confirmed",
+            "payment_id",
             "created_at",
             "updated_at",
         ]
@@ -50,6 +52,7 @@ class AppointmentListSerializer(serializers.ModelSerializer):
             "patient_name",
             "service_name",
             "location_name",
+            "payment_id",
         ]
 
     def get_patient_name(self, obj: Appointment) -> str:
@@ -59,6 +62,10 @@ class AppointmentListSerializer(serializers.ModelSerializer):
         if obj.is_online:
             return "Consulta Online"
         return obj.location.name if obj.location else ""
+
+    def get_payment_id(self, obj: Appointment) -> int | None:
+        payment = getattr(obj, "payment", None)
+        return payment.pk if payment is not None else None
 
 
 class AppointmentDetailSerializer(AppointmentListSerializer):

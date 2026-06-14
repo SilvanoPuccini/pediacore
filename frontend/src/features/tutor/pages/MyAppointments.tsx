@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Stethoscope,
   MapPin,
@@ -8,7 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { Appointment, PaginatedResponse } from "@/types/api";
@@ -136,15 +136,19 @@ function TabButton({
 function ApptRow({
   appointment,
   isPast,
+  onCancel,
 }: {
   appointment: Appointment;
   isPast: boolean;
+  onCancel: (id: number) => void;
 }) {
+  const navigate = useNavigate();
   const duration = calcDurationMinutes(appointment.start_time, appointment.end_time);
   const mappedStatus = mapStatus(appointment.status, appointment.attendance_confirmed);
 
   // Determine action buttons
   const isUnpaid = appointment.status === "HOLD" || appointment.status === "PENDING";
+  const canCancel = ["CONFIRMED", "HOLD", "PENDING"].includes(appointment.status);
   const isOnlineConfirmed =
     appointment.is_online &&
     appointment.status === "CONFIRMED" &&
@@ -156,7 +160,10 @@ function ApptRow({
   return (
     <li className="grid grid-cols-1 md:grid-cols-[100px_1fr_auto] gap-4 items-center px-5 py-4 hover:bg-bg transition-colors">
       {/* Date column */}
-      <div className="text-center px-3 py-2 rounded-[10px] bg-bg border border-line self-start md:self-center w-fit md:w-auto mx-auto md:mx-0">
+      <Link
+        to={`/portal/turnos/${appointment.id}`}
+        className="text-center px-3 py-2 rounded-[10px] bg-bg border border-line self-start md:self-center w-fit md:w-auto mx-auto md:mx-0 hover:border-teal/40 transition-colors"
+      >
         <p className="text-[10px] uppercase tracking-wider font-bold text-teal-dark leading-none">
           {formatDayOfWeek(appointment.scheduled_date)}
         </p>
@@ -166,10 +173,10 @@ function ApptRow({
         <p className="text-[10px] text-ink2 font-medium leading-none mt-0.5">
           {formatMonth(appointment.scheduled_date)}
         </p>
-      </div>
+      </Link>
 
       {/* Info column */}
-      <div className="flex flex-col gap-2 min-w-0">
+      <Link to={`/portal/turnos/${appointment.id}`} className="flex flex-col gap-2 min-w-0">
         {/* Time + duration + status */}
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-display text-[18px] font-medium text-ink leading-none">
@@ -209,19 +216,16 @@ function ApptRow({
             )}
           </div>
         </div>
-      </div>
+      </Link>
 
       {/* Actions column */}
       <div className="flex items-center gap-1.5 justify-end">
         {isPast ? (
-          <>
+          <Link to={`/portal/turnos/${appointment.id}`}>
             <Btn variant="ghost" size="sm" icon="FileText">
-              Resumen
+              Ver detalle
             </Btn>
-            <Btn variant="soft" size="sm" icon="RefreshCw">
-              Repetir
-            </Btn>
-          </>
+          </Link>
         ) : (
           <>
             {isOnlineConfirmed && (
@@ -231,20 +235,33 @@ function ApptRow({
                 </Btn>
               </a>
             )}
-            {isUnpaid && (
-              <Btn variant="soft" size="sm" icon="CreditCard">
+            {isUnpaid && appointment.payment_id && (
+              <Btn
+                variant="soft"
+                size="sm"
+                icon="CreditCard"
+                onClick={() => navigate(`/portal/pagos/${appointment.payment_id}`)}
+              >
                 Pagar
               </Btn>
             )}
-            <Btn variant="ghost" size="sm" icon="RefreshCw">
+            <Btn
+              variant="ghost"
+              size="sm"
+              icon="RefreshCw"
+              onClick={() => navigate(`/portal/turnos/${appointment.id}`)}
+            >
               Reagendar
             </Btn>
-            <button
-              aria-label="Cancelar turno"
-              className="p-1.5 rounded-[8px] text-ink3 hover:text-[#A85050] hover:bg-destructive/10 transition-colors"
-            >
-              <X size={15} />
-            </button>
+            {canCancel && (
+              <button
+                onClick={() => onCancel(appointment.id)}
+                aria-label="Cancelar turno"
+                className="p-1.5 rounded-[8px] text-ink3 hover:text-[#A85050] hover:bg-destructive/10 transition-colors"
+              >
+                <X size={15} />
+              </button>
+            )}
           </>
         )}
       </div>
@@ -317,6 +334,19 @@ export default function MyAppointments() {
   const [activeTab, setActiveTab] = useState<"upcoming" | "past">("upcoming");
   const [upcomingPage, setUpcomingPage] = useState(1);
   const [pastPage, setPastPage] = useState(1);
+  const [cancelTarget, setCancelTarget] = useState<number | null>(null);
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
+  const cancelMutation = useMutation({
+    mutationFn: (appointmentId: number) =>
+      api.post(`/appointments/${appointmentId}/cancel/`),
+    onSuccess: () => {
+      setCancelTarget(null);
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["appointments-count"] });
+    },
+  });
 
   const isPast = activeTab === "past";
   const page = isPast ? pastPage : upcomingPage;
@@ -452,6 +482,7 @@ export default function MyAppointments() {
                   key={appointment.id}
                   appointment={appointment}
                   isPast={isPast}
+                  onCancel={(id) => setCancelTarget(id)}
                 />
               ))}
             </ul>
@@ -480,6 +511,60 @@ export default function MyAppointments() {
             </div>
           )}
         </>
+      )}
+
+      {/* Cancel confirmation dialog */}
+      {cancelTarget !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-ink/40 backdrop-blur-sm"
+            onClick={() => setCancelTarget(null)}
+          />
+          <div className="relative bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)] p-6 w-full max-w-[380px]">
+            <button
+              onClick={() => setCancelTarget(null)}
+              className="absolute top-4 right-4 text-ink3 hover:text-ink transition-colors"
+              aria-label="Cerrar"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="h-12 w-12 rounded-full bg-coral/10 flex items-center justify-center mb-4">
+              <X size={22} className="text-coral" />
+            </div>
+
+            <h2 className="font-display text-[20px] font-semibold text-ink mb-2">
+              Cancelar este turno?
+            </h2>
+            <p className="text-[13px] text-ink2 leading-relaxed mb-6">
+              Esta acción no se puede deshacer. El turno quedará cancelado y se
+              aplicará la política de cancelación vigente.
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setCancelTarget(null)}
+                disabled={cancelMutation.isPending}
+                className={cn(
+                  "flex-1 h-10 rounded-[12px] border border-line text-[13px] font-semibold text-ink2",
+                  "hover:bg-cream transition-colors disabled:opacity-50"
+                )}
+              >
+                Volver
+              </button>
+              <button
+                onClick={() => cancelMutation.mutate(cancelTarget)}
+                disabled={cancelMutation.isPending}
+                className={cn(
+                  "flex-1 h-10 rounded-[12px] bg-coral text-[13px] font-semibold text-white",
+                  "hover:opacity-90 transition-opacity disabled:opacity-50"
+                )}
+              >
+                {cancelMutation.isPending ? "Cancelando..." : "Cancelar turno"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
