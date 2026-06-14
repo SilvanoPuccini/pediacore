@@ -19,6 +19,13 @@ export function childPalette(childIndex: number) {
   return PALETTES[childIndex % PALETTES.length];
 }
 
+/** Sex-aware palette: pink for F, blue for M, rotates by index for unknown. */
+export function sexPalette(sex: string | undefined | null, fallbackIndex = 0) {
+  if (sex === "F") return PALETTES[1]; // coral / pink
+  if (sex === "M") return PALETTES[0]; // teal / blue
+  return PALETTES[fallbackIndex % PALETTES.length];
+}
+
 // ─── CLP formatter ────────────────────────────────────────────────────────────
 
 export function clp(n: number): string {
@@ -30,12 +37,13 @@ export function clp(n: number): string {
 interface AvatarProps {
   name: string;
   childIndex?: number;
+  sex?: string | null;
   size?: number;
   className?: string;
 }
 
-export function Avatar({ name, childIndex = 0, size = 40, className }: AvatarProps) {
-  const pal = childPalette(childIndex);
+export function Avatar({ name, childIndex = 0, sex, size = 40, className }: AvatarProps) {
+  const pal = sex ? sexPalette(sex, childIndex) : childPalette(childIndex);
   return (
     <div
       className={cn("rounded-full flex items-center justify-center shrink-0 font-bold", className)}
