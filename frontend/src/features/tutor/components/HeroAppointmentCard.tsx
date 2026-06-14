@@ -35,10 +35,10 @@ function daysUntil(dateStr: string): number {
   return Math.ceil((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-function mapStatus(status: string): string {
+function mapStatus(status: string, attendanceConfirmed?: boolean): string {
+  if (status === "CONFIRMED" && attendanceConfirmed) return "asistencia";
   const MAP: Record<string, string> = {
     CONFIRMED: "confirmado",
-    CONFIRMED_ATTENDANCE: "asistencia",
     COMPLETED: "realizado",
     CANCELLED: "cancelado",
     HOLD: "pendiente",
@@ -135,7 +135,7 @@ export default function HeroAppointmentCard({ appointment, loading }: Props) {
               </span>
             </div>
             <div className="flex items-center gap-3">
-              <StatusBadge status={mapStatus(appointment.status)} />
+              <StatusBadge status={mapStatus(appointment.status, appointment.attendance_confirmed)} />
               {remaining > 0 && (
                 <span className="text-[11px] text-ink3 font-medium">
                   En {remaining} día{remaining !== 1 ? "s" : ""}
@@ -216,7 +216,7 @@ export default function HeroAppointmentCard({ appointment, loading }: Props) {
             variant="ghost"
             size="sm"
             icon="RefreshCw"
-            onClick={() => navigate(`/portal/turnos/${appointment.id}`)}
+            onClick={() => navigate(`/portal/turnos/${appointment.id}/reagendar`)}
           >
             Reagendar
           </Btn>

@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
@@ -786,29 +786,84 @@ function EncountersTab({ patientId }: EncountersTabProps) {
 }
 
 function EncounterRow({ encounter }: { encounter: Encounter }) {
-  return (
-    <li className="flex items-start gap-4 px-5 py-4 hover:bg-bg/60 transition-colors">
-      {/* Icon */}
-      <div className="w-8 h-8 rounded-[10px] bg-teal/10 flex items-center justify-center shrink-0 mt-0.5">
-        <Stethoscope size={15} className="text-teal-dark" />
-      </div>
+  const [expanded, setExpanded] = useState(false);
+  const soap = encounter.soap_note;
+  const hasSoap = soap && (soap.subjective || soap.objective || soap.assessment || soap.plan);
 
-      {/* Content */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap mb-1">
-          <p className="text-[13px] font-semibold text-ink">{encounter.reason_for_visit || "Consulta"}</p>
-          <Chip color="neutral">{encounter.encounter_type_display}</Chip>
+  return (
+    <li className="px-5 py-4 hover:bg-bg/60 transition-colors">
+      <div className="flex items-start gap-4">
+        {/* Icon */}
+        <div className="w-8 h-8 rounded-[10px] bg-teal/10 flex items-center justify-center shrink-0 mt-0.5">
+          <Stethoscope size={15} className="text-teal-dark" />
         </div>
-        <p className="text-[11px] text-ink3 mb-1.5">{formatDate(encounter.scheduled_at.split("T")[0])}</p>
-        {encounter.soap_note?.plan && (
-          <p className="text-[12px] text-ink2 line-clamp-2">{encounter.soap_note.plan}</p>
+
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            <p className="text-[13px] font-semibold text-ink">{encounter.reason_for_visit || "Consulta"}</p>
+            <Chip color="neutral">{encounter.encounter_type_display}</Chip>
+          </div>
+          <p className="text-[11px] text-ink3 mb-1.5">{formatDate(encounter.scheduled_at.split("T")[0])}</p>
+          {!expanded && soap?.plan && (
+            <p className="text-[12px] text-ink2 line-clamp-2">{soap.plan}</p>
+          )}
+        </div>
+
+        {/* Action */}
+        {hasSoap && (
+          <Btn
+            variant="ghost"
+            size="sm"
+            iconRight={expanded ? "ChevronUp" : "ChevronDown"}
+            onClick={() => setExpanded(!expanded)}
+          >
+            Resumen
+          </Btn>
         )}
       </div>
 
-      {/* Action */}
-      <Btn variant="ghost" size="sm" iconRight="ChevronRight">
-        Resumen
-      </Btn>
+      {/* Expanded SOAP note */}
+      {expanded && hasSoap && (
+        <div className="ml-12 mt-3 bg-bg rounded-[12px] border border-line p-4 space-y-3">
+          {soap.subjective && (
+            <div>
+              <p className="text-[10px] uppercase tracking-wider font-bold text-ink3 mb-0.5">Motivo de consulta</p>
+              <p className="text-[12.5px] text-ink leading-relaxed">{soap.subjective}</p>
+            </div>
+          )}
+          {soap.objective && (
+            <div>
+              <p className="text-[10px] uppercase tracking-wider font-bold text-ink3 mb-0.5">Examen</p>
+              <p className="text-[12.5px] text-ink leading-relaxed">{soap.objective}</p>
+            </div>
+          )}
+          {soap.assessment && (
+            <div>
+              <p className="text-[10px] uppercase tracking-wider font-bold text-ink3 mb-0.5">Evaluación</p>
+              <p className="text-[12.5px] text-ink leading-relaxed">{soap.assessment}</p>
+            </div>
+          )}
+          {soap.plan && (
+            <div>
+              <p className="text-[10px] uppercase tracking-wider font-bold text-ink3 mb-0.5">Plan</p>
+              <p className="text-[12.5px] text-ink leading-relaxed">{soap.plan}</p>
+            </div>
+          )}
+          {encounter.diagnoses && encounter.diagnoses.length > 0 && (
+            <div>
+              <p className="text-[10px] uppercase tracking-wider font-bold text-ink3 mb-0.5">Diagnósticos</p>
+              <div className="flex flex-wrap gap-1.5">
+                {encounter.diagnoses.map((d) => (
+                  <span key={d.id} className="text-[11px] px-2 py-0.5 rounded-full bg-teal/10 text-teal-dark font-medium">
+                    {d.code} — {d.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </li>
   );
 }
@@ -905,11 +960,12 @@ interface ChildDetailViewProps {
   patient: Patient;
   childIndex: number;
   onUnlink: () => void;
+  initialTab?: TabId;
 }
 
-function ChildDetailView({ patient, childIndex, onUnlink }: ChildDetailViewProps) {
+function ChildDetailView({ patient, childIndex, onUnlink, initialTab }: ChildDetailViewProps) {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<TabId>("growth");
+  const [activeTab, setActiveTab] = useState<TabId>(initialTab ?? "growth");
 
   const { data: growthData = [] } = useQuery<GrowthPoint[]>({
     queryKey: ["growth", patient.id],
@@ -988,8 +1044,13 @@ function ChildDetailView({ patient, childIndex, onUnlink }: ChildDetailViewProps
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+const VALID_TABS: TabId[] = ["growth", "vaccines", "encounters", "data"];
+
 export default function MyChildren() {
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab") as TabId | null;
+  const initialTab = tabParam && VALID_TABS.includes(tabParam) ? tabParam : undefined;
   const [showForm, setShowForm] = useState(false);
   const [activeChildId, setActiveChildId] = useState<number | null>(null);
   const [pendingUnlink, setPendingUnlink] = useState<Patient | null>(null);
@@ -1084,6 +1145,7 @@ export default function MyChildren() {
                 patient={activePatient}
                 childIndex={activeIndex}
                 onUnlink={() => setPendingUnlink(activePatient)}
+                initialTab={initialTab}
               />
             )}
           </>

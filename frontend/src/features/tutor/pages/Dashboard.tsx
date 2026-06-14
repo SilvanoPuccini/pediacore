@@ -201,6 +201,13 @@ function QuickAction({ label, to, icon, iconBg, iconColor }: QuickActionProps) {
 
 // ─── GrowthSnapshotCard ────────────────────────────────────────────────────────
 
+interface GrowthPoint {
+  weight_kg: string | null;
+  height_cm: string | null;
+  weight_for_age_percentile: number | null;
+  age_months: number | null;
+}
+
 interface GrowthSnapshotCardProps {
   patient: Patient;
   index: number;
@@ -208,6 +215,37 @@ interface GrowthSnapshotCardProps {
 
 function GrowthSnapshotCard({ patient, index }: GrowthSnapshotCardProps) {
   const pal = childPalette(index);
+
+  const { data: growthData } = useQuery({
+    queryKey: ["growth-history", patient.id],
+    queryFn: () =>
+      api
+        .get<GrowthPoint[]>(`/patients/${patient.id}/growth-history/`)
+        .then((r) => r.data),
+  });
+
+  const latest = growthData?.length ? growthData[growthData.length - 1] : null;
+  const peso = latest?.weight_kg ? `${parseFloat(latest.weight_kg).toFixed(1)} kg` : "—";
+  const talla = latest?.height_cm ? `${parseFloat(latest.height_cm).toFixed(0)} cm` : "—";
+  const percentil = latest?.weight_for_age_percentile != null
+    ? `P${Math.round(latest.weight_for_age_percentile)}`
+    : "—";
+
+  // Build sparkline points from weight data (normalised 0–1)
+  const sparkPoints: [number, number][] | undefined = (() => {
+    if (!growthData || growthData.length < 2) return undefined;
+    const pts = growthData
+      .filter((g) => g.weight_kg != null)
+      .map((g) => parseFloat(g.weight_kg!));
+    if (pts.length < 2) return undefined;
+    const min = Math.min(...pts);
+    const max = Math.max(...pts);
+    const range = max - min || 1;
+    return pts.map((w, i) => [
+      i / (pts.length - 1),
+      (w - min) / range,
+    ] as [number, number]);
+  })();
 
   return (
     <Card className="flex flex-col gap-4">
@@ -233,7 +271,7 @@ function GrowthSnapshotCard({ patient, index }: GrowthSnapshotCardProps) {
 
       {/* Sparkline */}
       <div className="flex justify-center">
-        <GrowthMini color={pal.solid} />
+        <GrowthMini color={pal.solid} points={sparkPoints} />
       </div>
 
       {/* Stat boxes */}
@@ -246,7 +284,7 @@ function GrowthSnapshotCard({ patient, index }: GrowthSnapshotCardProps) {
           <Scale size={13} style={{ color: pal.fg }} className="mx-auto mb-1" />
           <p className="text-[11px] text-ink3 mb-0.5">Peso</p>
           <p className="text-[13px] font-bold" style={{ color: pal.fg }}>
-            —
+            {peso}
           </p>
         </div>
 
@@ -258,7 +296,7 @@ function GrowthSnapshotCard({ patient, index }: GrowthSnapshotCardProps) {
           <Ruler size={13} style={{ color: pal.fg }} className="mx-auto mb-1" />
           <p className="text-[11px] text-ink3 mb-0.5">Talla</p>
           <p className="text-[13px] font-bold" style={{ color: pal.fg }}>
-            —
+            {talla}
           </p>
         </div>
 
@@ -274,7 +312,7 @@ function GrowthSnapshotCard({ patient, index }: GrowthSnapshotCardProps) {
           />
           <p className="text-[11px] text-ink3 mb-0.5">Percentil</p>
           <p className="text-[13px] font-bold" style={{ color: pal.fg }}>
-            —
+            {percentil}
           </p>
         </div>
       </div>
@@ -413,14 +451,14 @@ export default function Dashboard() {
               />
               <QuickAction
                 label="Ver vacunas"
-                to="/portal/hijos"
+                to="/portal/hijos?tab=vaccines"
                 icon={<Syringe size={18} />}
                 iconBg="rgba(229,184,71,0.22)"
                 iconColor="#8A6A1F"
               />
               <QuickAction
                 label="Resúmenes"
-                to="/portal/hijos"
+                to="/portal/hijos?tab=encounters"
                 icon={<FileText size={18} />}
                 iconBg="rgba(168,201,168,0.28)"
                 iconColor="#3F7059"
