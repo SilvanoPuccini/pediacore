@@ -152,10 +152,14 @@ class AppointmentViewSet(viewsets.ModelViewSet):
     def cancel(self, request: Request, pk=None) -> Response:
         appointment = self.get_object()
 
-        if appointment.status == Appointment.CANCELLED:
+        if appointment.status in (Appointment.CANCELLED, Appointment.EXPIRED):
+            # Appointment already terminal — clean up any orphaned pending payment
+            payment = getattr(appointment, "payment", None)
+            if payment is not None and payment.status in ("PENDING", "TRANSFER_PENDING"):
+                payment.status = "FAILED"
+                payment.save(update_fields=["status", "updated_at"])
             return Response(
-                {"detail": "Appointment is already cancelled.", "code": "APPOINTMENT_ALREADY_CANCELLED"},
-                status=status.HTTP_400_BAD_REQUEST,
+                {"detail": "Appointment cancelled.", "status": appointment.status},
             )
 
         serializer = CancelAppointmentSerializer(data=request.data)
