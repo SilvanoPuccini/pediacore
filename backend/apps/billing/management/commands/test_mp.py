@@ -61,23 +61,31 @@ class Command(BaseCommand):
         )
         self.stdout.write(f"   {r2.get('response')}")
 
-        # 4. Check collector_id (must match frontend 41688188)
-        me_url = "https://api.mercadopago.com/users/me"
-        me_resp = requests.get(
-            me_url,
-            headers={
-                "Authorization": "Bearer " + token,
-            },
-            timeout=10,
+        # 4. Check collector_id
+        me_url = (
+            "https://api.mercadopago.com"
+            "/users/me"
         )
-        self.stdout.write(
-            f"\n4. Backend collector_id: "
-            f"{me_resp.json().get('id')}"
-        )
-        self.stdout.write(
-            "   Frontend shows: 41688188"
-        )
-        match = me_resp.json().get("id") == 41688188
-        self.stdout.write(
-            f"   MATCH: {match}"
-        )
+        try:
+            me_resp = requests.get(
+                me_url,
+                headers={
+                    "Authorization": "Bearer " + token,
+                },
+                timeout=10,
+            )
+            data = me_resp.json()
+            cid = data.get("id", "UNKNOWN")
+            self.stdout.write(
+                f"\n4. Backend collector_id: {cid}"
+            )
+            self.stdout.write(
+                "   Frontend shows: 41688188"
+            )
+            self.stdout.write(
+                f"   MATCH: {cid == 41688188}"
+            )
+        except Exception as e:
+            self.stdout.write(
+                f"\n4. ERROR: {e}"
+            )
