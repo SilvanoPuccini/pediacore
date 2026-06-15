@@ -14,9 +14,11 @@ class ContentSecurityPolicyMiddleware:
     """
 
     # Standard CSP for the public site and API
+    # NOTE: 'unsafe-inline' intentionally omitted from script-src.
+    # The React SPA is served as bundled files and does not require inline scripts.
     CSP_DIRECTIVES = [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' *.mercadopago.com *.mercadolibre.com",
+        "script-src 'self' *.mercadopago.com *.mercadolibre.com",
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data: https:",
         "frame-src 'self' *.mercadopago.com *.mercadolibre.com",

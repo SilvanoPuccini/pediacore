@@ -2,8 +2,13 @@ import base64
 import os
 from pathlib import Path
 
+from django.conf import settings
+from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
 from django.core.cache import cache
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.utils.decorators import method_decorator
+from django_ratelimit.decorators import ratelimit
 from django.http import HttpResponse
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -24,11 +29,13 @@ AVATAR_MAX_SIZE = 5 * 1024 * 1024  # 5 MB
 AVATAR_ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp"}
 
 
+@method_decorator(ratelimit(key="ip", rate="15/h", method="POST", block=True), name="post")
 class UserRegistrationView(generics.CreateAPIView):
     """
     POST /api/v1/register/
 
     Registers a new user with TUTOR role. No authentication required.
+    Rate limited to 15 registrations per hour per IP.
     """
 
     queryset = User.objects.all()
@@ -95,7 +102,7 @@ class PasswordResetRequestView(APIView):
 
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = default_token_generator.make_token(user)
-        base_url = "https://estefipediatra.com"
+        base_url = settings.FRONTEND_URL
         reset_url = f"{base_url}/reset-password/{uid}/{token}"
 
         try:
@@ -141,6 +148,14 @@ class PasswordResetConfirmView(APIView):
         if not default_token_generator.check_token(user, token):
             return invalid_response
 
+        try:
+            validate_password(new_password, user)
+        except DjangoValidationError as exc:
+            return Response(
+                {"detail": list(exc.messages)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         user.set_password(new_password)
         user.save(update_fields=["password"])
 
@@ -177,16 +192,18 @@ class ChangePasswordView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if len(new_password) < 8:
-            return Response(
-                {"detail": "La nueva contraseña debe tener al menos 8 caracteres."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
         user = request.user
         if not user.check_password(current_password):
             return Response(
                 {"detail": "La contraseña actual es incorrecta."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            validate_password(new_password, user)
+        except DjangoValidationError as exc:
+            return Response(
+                {"detail": list(exc.messages)},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

@@ -151,6 +151,32 @@ class PaymentViewSet(viewsets.ModelViewSet):
 
         return qs
 
+    def perform_create(self, serializer):
+        """
+        Inject the payment amount from the appointment's service price for
+        TUTOR requests, so tutors cannot specify an arbitrary amount.
+        DOCTOR requests may include amount directly (e.g. manual cash payments
+        without an appointment).
+        """
+        from rest_framework.exceptions import ValidationError
+
+        request = self.request
+        appointment = serializer.validated_data.get("appointment")
+
+        if request.user.role == User.TUTOR:
+            if not appointment or not appointment.service:
+                raise ValidationError(
+                    {"appointment": "Tutors must provide a valid appointment to create a payment."}
+                )
+            amount = appointment.service.price_clp
+            serializer.save(amount=amount)
+        else:
+            # DOCTOR: amount must be present (either from appointment or explicit input)
+            if not serializer.validated_data.get("amount") and appointment and appointment.service:
+                serializer.save(amount=appointment.service.price_clp)
+            else:
+                serializer.save()
+
     @action(detail=True, methods=["post"], url_path="create-preference")
     def create_preference(self, request: Request, pk=None) -> Response:
         """
@@ -775,13 +801,11 @@ class MercadoPagoWebhookView(APIView):
                 secret=webhook_secret,
             )
             if not sig_valid:
-                # HMAC failed — log but proceed. Payment authenticity is verified
-                # in step 3 by fetching the payment directly from MP's API.
                 logger.warning(
-                    "MercadoPago webhook: HMAC signature failed for data_id=%s — "
-                    "proceeding with API verification",
+                    "MercadoPago webhook: HMAC signature failed for data_id=%s — rejecting request",
                     data_id,
                 )
+                return Response({"detail": "Invalid signature."}, status=status.HTTP_403_FORBIDDEN)
         else:
             logger.info("MercadoPago webhook: MERCADOPAGO_WEBHOOK_SECRET not set, skipping signature validation")
 

@@ -20,6 +20,9 @@ services:
       context: ./backend
       args:
         REQUIREMENTS_FILE: production.txt
+    # user: "0:0" is required so the startup command can run migrate, collectstatic,
+    # and chown the shared volumes. Gunicorn itself drops to the unprivileged 'django'
+    # user via 'exec su -s /bin/sh django -c gunicorn ...' at the end of the command.
     user: "0:0"
     restart: always
     env_file: ./backend/.env

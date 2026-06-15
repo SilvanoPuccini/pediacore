@@ -13,6 +13,7 @@ from django.db import models
 from django.db.models import Count, QuerySet
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.mixins import ListModelMixin, RetrieveModelMixin
 from rest_framework.permissions import IsAuthenticated
@@ -504,6 +505,8 @@ class VaccinationViewSet(ModelViewSet):
         patient_id = self.request.query_params.get("patient_id")
         if patient_id:
             qs = qs.filter(patient_id=patient_id)
+        if self.request.user.role == "TUTOR":
+            qs = qs.filter(patient__tutor_patients__tutor=self.request.user)
         return qs
 
     def perform_create(self, serializer: VaccinationCreateSerializer) -> None:
@@ -552,6 +555,14 @@ class VaccinationViewSet(ModelViewSet):
                 {"detail": "Patient not found."},
                 status=status.HTTP_404_NOT_FOUND,
             )
+
+        if request.user.role == "TUTOR":
+            from apps.patients.models import TutorPatient
+
+            if not TutorPatient.objects.filter(
+                tutor=request.user, patient=patient, deleted_at__isnull=True
+            ).exists():
+                raise PermissionDenied("You do not have access to this patient.")
 
         # Calculate patient age in months
         from datetime import date

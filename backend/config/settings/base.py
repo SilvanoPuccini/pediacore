@@ -496,7 +496,7 @@ UNFOLD = {
 }
 
 # ─── CKEditor 5 ──────────────────────────────────────────────────────────────
-CK_EDITOR_5_UPLOAD_FILE_TYPES = ["jpeg", "jpg", "png", "gif", "webp", "svg"]
+CK_EDITOR_5_UPLOAD_FILE_TYPES = ["jpeg", "jpg", "png", "gif", "webp"]
 CK_EDITOR_5_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
 
 CKEDITOR_5_CONFIGS = {

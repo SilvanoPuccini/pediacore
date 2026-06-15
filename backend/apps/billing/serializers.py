@@ -177,7 +177,18 @@ class PaymentDetailSerializer(PaymentListSerializer):
 
 
 class PaymentCreateSerializer(serializers.ModelSerializer):
-    """Serializer for creating a new payment."""
+    """Serializer for creating a new payment.
+
+    ``amount`` is optional at serialization level. For TUTOR requests the
+    viewset's ``perform_create`` always overrides it with the appointment's
+    service price (``price_clp``), so tutors cannot specify an arbitrary amount.
+    For DOCTOR requests, amount may be provided explicitly (manual/cash payments
+    without an appointment) or derived from the appointment's service price.
+    """
+
+    amount = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, allow_null=False
+    )
 
     class Meta:
         model = Payment
@@ -301,7 +312,7 @@ class ReceiptUploadSerializer(serializers.Serializer):
         ext = os.path.splitext(value.name)[1].lower()
         content_type = getattr(value, "content_type", "")
 
-        if ext not in allowed_extensions and content_type not in allowed_content_types:
+        if ext not in allowed_extensions or content_type not in allowed_content_types:
             raise serializers.ValidationError(
                 "Only PDF, JPG, JPEG, and PNG files are accepted."
             )

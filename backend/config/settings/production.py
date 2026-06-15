@@ -3,6 +3,8 @@ Production settings for PEDIACORE.
 Security hardening and performance optimizations.
 """
 
+from django.core.exceptions import ImproperlyConfigured
+
 from decouple import config
 
 from .base import *  # noqa: F401, F403
@@ -83,3 +85,15 @@ REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {  # noqa: F405
     "anon": "500/hour",
     "user": "3000/hour",
 }
+
+# Disable DRF browsable API in production — JSON only
+REST_FRAMEWORK["DEFAULT_RENDERER_CLASSES"] = [  # noqa: F405
+    "rest_framework.renderers.JSONRenderer",
+]
+
+# MercadoPago webhook secret is mandatory in production to prevent HMAC bypass
+if not MERCADOPAGO_WEBHOOK_SECRET:  # noqa: F405
+    raise ImproperlyConfigured(
+        "MERCADOPAGO_WEBHOOK_SECRET must be set in production. "
+        "Set it in your .env file."
+    )

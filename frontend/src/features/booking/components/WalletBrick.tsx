@@ -7,8 +7,6 @@ import api from "@/lib/api";
 const MP_PUBLIC_KEY = import.meta.env.VITE_MP_PUBLIC_KEY as string;
 if (!MP_PUBLIC_KEY) {
   console.error("[PaymentBrick] VITE_MP_PUBLIC_KEY is EMPTY — card payments will fail");
-} else {
-  console.info("[PaymentBrick] MP public key:", MP_PUBLIC_KEY.slice(0, 25) + "...");
 }
 initMercadoPago(MP_PUBLIC_KEY, { locale: "es-CL" });
 
@@ -59,7 +57,7 @@ export default memo(function PaymentBrick({
     [paymentId, onApproved, onError]
   );
 
-  const onReady = useCallback(() => console.log("PaymentBrick ready"), []);
+  const onReady = useCallback(() => {}, []);
   const onBrickError = useCallback((err: unknown) => console.error("PaymentBrick error:", err), []);
 
   return (
