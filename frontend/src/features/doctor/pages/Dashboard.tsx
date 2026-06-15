@@ -46,7 +46,7 @@ function formatCurrency(amount: string): string {
 
 function greetingText(): string {
   const h = new Date().getHours();
-  if (h < 12) return "Buenos dias";
+  if (h < 12) return "Buenos días";
   if (h < 19) return "Buenas tardes";
   return "Buenas noches";
 }
@@ -230,7 +230,10 @@ export default function Dashboard() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] text-[13px] font-semibold text-ink2 border border-line hover:bg-bg transition-colors">
+          <button
+            onClick={() => window.open("/gestion-9f3a/scheduling/appointment/?export=csv", "_blank")}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] text-[13px] font-semibold text-ink2 border border-line hover:bg-bg transition-colors"
+          >
             <Download size={14} />
             Exportar
           </button>

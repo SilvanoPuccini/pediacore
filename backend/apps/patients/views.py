@@ -319,8 +319,14 @@ class PatientFileViewSet(ModelViewSet):
         return super().list(request, *args, **kwargs)
 
     def perform_create(self, serializer: PatientFileUploadSerializer) -> None:
+        from rest_framework.exceptions import PermissionDenied
+
         patient_pk = self.kwargs.get("patient_pk")
         patient = Patient.objects.get(pk=patient_pk)
+        if self.request.user.role == User.TUTOR and not TutorPatient.objects.filter(
+            tutor=self.request.user, patient=patient, deleted_at__isnull=True
+        ).exists():
+            raise PermissionDenied("You do not have access to this patient.")
         serializer.save(
             patient=patient,
             practice=patient.practice,

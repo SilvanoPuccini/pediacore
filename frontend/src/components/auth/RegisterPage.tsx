@@ -28,7 +28,8 @@ const INITIAL_FORM: FormFields = {
 export default function RegisterPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const redirectTo = searchParams.get("redirect") || "/";
+  const rawRedirect = searchParams.get("redirect");
+  const redirectTo = rawRedirect?.startsWith("/") ? rawRedirect : "/";
   const register = useAuthStore((s) => s.register);
 
   const [form, setForm] = useState<FormFields>(INITIAL_FORM);

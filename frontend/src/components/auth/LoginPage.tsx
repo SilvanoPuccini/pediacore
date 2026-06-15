@@ -6,7 +6,8 @@ import { useAuthStore } from "@/stores/auth";
 export default function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const redirectTo = searchParams.get("redirect") || "/";
+  const rawRedirect = searchParams.get("redirect");
+  const redirectTo = rawRedirect?.startsWith("/") ? rawRedirect : "/";
   const login = useAuthStore((s) => s.login);
 
   const [email, setEmail] = useState("");

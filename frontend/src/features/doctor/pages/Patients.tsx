@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, ChevronRight, Filter, Plus } from "lucide-react";
+import { Search, ChevronRight, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -160,11 +160,10 @@ export default function Patients() {
             )}
           />
         </div>
-        <button className="px-4 py-3 rounded-[10px] bg-surface border border-line text-[13px] font-semibold text-ink2 flex items-center gap-2">
-          <Filter size={14} />
-          Más filtros
-        </button>
-        <button className="px-4 py-3 rounded-[10px] bg-teal-dark text-white text-[13px] font-semibold shadow-soft flex items-center gap-2">
+        <button
+          onClick={() => window.open("/gestion-9f3a/patients/patient/add/", "_blank")}
+          className="px-4 py-3 rounded-[10px] bg-teal-dark text-white text-[13px] font-semibold shadow-soft flex items-center gap-2"
+        >
           <Plus size={14} />
           Nuevo paciente
         </button>
