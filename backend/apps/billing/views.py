@@ -485,8 +485,12 @@ class PaymentViewSet(viewsets.ModelViewSet):
         sdk = mercadopago.SDK(access_token)
 
         logger.info(
-            "process_card: sending to MP for Payment #%s — payload=%s",
+            "process_card: Payment #%s — token=%s...%s access_token=%s...%s payload=%s",
             payment.pk,
+            token[:8] if token else "EMPTY",
+            token[-4:] if token and len(token) > 8 else "",
+            access_token[:20] if access_token else "EMPTY",
+            access_token[-10:] if access_token else "",
             {k: v for k, v in payment_data.items() if k != "token"},
         )
 
@@ -514,9 +518,9 @@ class PaymentViewSet(viewsets.ModelViewSet):
 
         if mp_status_code not in (200, 201):
             error_message = mp_result.get("message", "Payment was rejected.")
-            logger.warning(
-                "process_card: MP rejected Payment #%s — status=%s response=%s",
-                payment.pk, mp_status_code, mp_result,
+            logger.error(
+                "process_card: MP REJECTED Payment #%s — http=%s cause=%s full_response=%s",
+                payment.pk, mp_status_code, mp_result.get("cause", []), mp_response,
             )
             # Upstream MP failure (5xx) → 502; client-side rejection → 400
             http_status = (

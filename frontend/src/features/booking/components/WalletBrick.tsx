@@ -5,6 +5,11 @@ import api from "@/lib/api";
 
 // Initialize MercadoPago SDK once with the public key from env
 const MP_PUBLIC_KEY = import.meta.env.VITE_MP_PUBLIC_KEY as string;
+if (!MP_PUBLIC_KEY) {
+  console.error("[PaymentBrick] VITE_MP_PUBLIC_KEY is EMPTY — card payments will fail");
+} else {
+  console.info("[PaymentBrick] MP public key:", MP_PUBLIC_KEY.slice(0, 25) + "...");
+}
 initMercadoPago(MP_PUBLIC_KEY, { locale: "es-CL" });
 
 interface PaymentBrickProps {
