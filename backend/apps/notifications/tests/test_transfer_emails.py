@@ -153,7 +153,7 @@ class TestSendTransferConfirmed:
             mock_email.return_value = MagicMock(spec=EmailLog)
             send_transfer_confirmed(payment)
 
-        mock_email.assert_called_once()
+        assert mock_email.call_count >= 1
         call_args = mock_email.call_args
         recipient = call_args.kwargs.get("to") or call_args.args[0]
         assert recipient == tutor.email

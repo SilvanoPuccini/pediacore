@@ -44,6 +44,7 @@ class TestAvailabilityService:
             day_of_week=WorkingHours.MONDAY,
             start_time=datetime.time(9, 0),
             end_time=datetime.time(11, 0),
+            slot_duration_minutes=30,
         )
 
         slots = get_available_slots(location.id, service.id, date)
@@ -74,6 +75,7 @@ class TestAvailabilityService:
             day_of_week=WorkingHours.MONDAY,
             start_time=datetime.time(9, 0),
             end_time=datetime.time(11, 0),
+            slot_duration_minutes=30,
         )
         block_start = timezone.make_aware(datetime.datetime(2026, 6, 1, 9, 0))
         block_end = timezone.make_aware(datetime.datetime(2026, 6, 1, 10, 0))

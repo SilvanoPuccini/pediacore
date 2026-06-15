@@ -43,6 +43,7 @@ class TestUserRegistrationView:
             "password_confirm": "strongpass123",
             "first_name": "Maria",
             "last_name": "Lopez",
+            "rut": "12345678-5",
         }
         response = api_client.post(self.url, payload, format="json")
         assert response.status_code == status.HTTP_201_CREATED
@@ -52,6 +53,7 @@ class TestUserRegistrationView:
             "email": "tutor@example.com",
             "password": "strongpass123",
             "password_confirm": "strongpass123",
+            "rut": "12345678-5",
         }
         api_client.post(self.url, payload, format="json")
         user = User.objects.get(email="tutor@example.com")
@@ -62,6 +64,7 @@ class TestUserRegistrationView:
             "email": "mismatch@example.com",
             "password": "strongpass123",
             "password_confirm": "differentpass456",
+            "rut": "12345678-5",
         }
         response = api_client.post(self.url, payload, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -72,6 +75,7 @@ class TestUserRegistrationView:
             "email": registered_user.email,
             "password": "strongpass123",
             "password_confirm": "strongpass123",
+            "rut": "12345678-5",
         }
         response = api_client.post(self.url, payload, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST

@@ -93,9 +93,6 @@ class TestAnalyzeReceiptWithGemini:
             "banco_origen": "Banco Santander",
         })
 
-        with patch("apps.billing.services.ocr_service.genai", None):
-            pass  # dummy — we patch via importlib below
-
         mock_genai = _gemini_mock(gemini_json)
 
         with patch.dict("sys.modules", {"google.generativeai": mock_genai}):
@@ -350,11 +347,6 @@ class TestUploadReceiptEnqueuesOcrTask:
         pdf_content = b"%PDF-1.4 fake" + b"x" * 100
         receipt = SimpleUploadedFile("receipt.pdf", pdf_content, content_type="application/pdf")
 
-        with patch("apps.billing.views.async_task") as mock_async:
-            # async_task is imported inside the view conditionally; patch the module-level import
-            pass
-
-        # Patch at import point inside the view function
         with patch("django_q.tasks.async_task") as mock_async:
             response = client.post(
                 f"/api/v1/payments/{payment.id}/upload-receipt/",

@@ -62,14 +62,14 @@ def tutor_appointment():
 
 @pytest.mark.django_db
 class TestTokenResolveView:
-    """GET /a/{token}/ — public, no auth required."""
+    """GET /api/v1/appointments/resolve/{token}/ — public, no auth required."""
 
     def test_valid_token_returns_200_with_appointment_details(self, api_client, confirmed_appointment):
         token = AppointmentTokenFactory(
             appointment=confirmed_appointment,
             action=AppointmentToken.CONFIRM,
         )
-        url = f"/a/{token.token}/"
+        url = f"/api/v1/appointments/resolve/{token.token}/"
         response = api_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
@@ -87,7 +87,7 @@ class TestTokenResolveView:
             appointment=confirmed_appointment,
             action=AppointmentToken.CONFIRM,
         )
-        url = f"/a/{token.token}/"
+        url = f"/api/v1/appointments/resolve/{token.token}/"
         response = api_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
@@ -98,7 +98,7 @@ class TestTokenResolveView:
             appointment=confirmed_appointment,
             action=AppointmentToken.RESCHEDULE,
         )
-        url = f"/a/{token.token}/"
+        url = f"/api/v1/appointments/resolve/{token.token}/"
         response = api_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
@@ -110,7 +110,7 @@ class TestTokenResolveView:
             appointment=confirmed_appointment,
             expires_at=past,
         )
-        url = f"/a/{token.token}/"
+        url = f"/api/v1/appointments/resolve/{token.token}/"
         response = api_client.get(url)
 
         assert response.status_code == status.HTTP_410_GONE
@@ -120,13 +120,13 @@ class TestTokenResolveView:
             appointment=confirmed_appointment,
             used_at=timezone.now() - datetime.timedelta(hours=1),
         )
-        url = f"/a/{token.token}/"
+        url = f"/api/v1/appointments/resolve/{token.token}/"
         response = api_client.get(url)
 
         assert response.status_code == status.HTTP_410_GONE
 
     def test_nonexistent_token_returns_404(self, api_client):
-        url = "/a/nonexistenttoken123456789abcdef/"
+        url = "/api/v1/appointments/resolve/nonexistenttoken123456789abcdef/"
         response = api_client.get(url)
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
@@ -134,7 +134,7 @@ class TestTokenResolveView:
     def test_no_auth_required(self, api_client, confirmed_appointment):
         """Public endpoint — unauthenticated request should work fine."""
         token = AppointmentTokenFactory(appointment=confirmed_appointment)
-        url = f"/a/{token.token}/"
+        url = f"/api/v1/appointments/resolve/{token.token}/"
         response = api_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK

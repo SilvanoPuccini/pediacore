@@ -28,6 +28,7 @@ def _make_user(**kwargs) -> User:
         "first_name": "Ana",
         "last_name": "García",
         "phone": "+56912345678",
+        "rut": "12345678-5",
         "email_verified_at": timezone.now(),
     }
     defaults.update(kwargs)
@@ -44,13 +45,14 @@ class TestComputeTutorCompletion:
     """Unit tests for compute_tutor_completion pure service function."""
 
     def test_all_fields_filled_returns_100(self) -> None:
-        """All four fields present → 100% with empty missing list."""
+        """All five fields present → 100% with empty missing list."""
         from apps.users.services.profile_completion import compute_tutor_completion
 
         user = _make_user(
             first_name="Ana",
             last_name="García",
             phone="+56912345678",
+            rut="12345678-5",
             email_verified_at=timezone.now(),
         )
         result = compute_tutor_completion(user)
@@ -59,63 +61,67 @@ class TestComputeTutorCompletion:
         assert result["missing"] == []
 
     def test_all_fields_missing_returns_0(self) -> None:
-        """All four fields blank/None → 0% with all four in missing list."""
+        """All five fields blank/None → 0% with all five in missing list."""
         from apps.users.services.profile_completion import compute_tutor_completion
 
         user = _make_user(
             first_name="",
             last_name="",
             phone="",
+            rut="",
             email_verified_at=None,
         )
         result = compute_tutor_completion(user)
 
         assert result["percentage"] == 0
-        assert set(result["missing"]) == {"first_name", "last_name", "phone", "email_verified"}
+        assert set(result["missing"]) == {"first_name", "last_name", "phone", "rut", "email_verified"}
 
-    def test_email_verified_missing_returns_75(self) -> None:
-        """Name and phone present but email not verified → 75%."""
+    def test_email_verified_missing_returns_80(self) -> None:
+        """Name, phone, and rut present but email not verified → 80%."""
         from apps.users.services.profile_completion import compute_tutor_completion
 
         user = _make_user(
             first_name="Ana",
             last_name="García",
             phone="+56912345678",
+            rut="12345678-5",
             email_verified_at=None,
         )
         result = compute_tutor_completion(user)
 
-        assert result["percentage"] == 75
+        assert result["percentage"] == 80
         assert result["missing"] == ["email_verified"]
 
-    def test_phone_missing_returns_75(self) -> None:
-        """Name and email verified but no phone → 75%."""
+    def test_phone_missing_returns_80(self) -> None:
+        """Name, rut, and email verified but no phone → 80%."""
         from apps.users.services.profile_completion import compute_tutor_completion
 
         user = _make_user(
             first_name="Ana",
             last_name="García",
             phone="",
+            rut="12345678-5",
             email_verified_at=timezone.now(),
         )
         result = compute_tutor_completion(user)
 
-        assert result["percentage"] == 75
+        assert result["percentage"] == 80
         assert result["missing"] == ["phone"]
 
-    def test_first_and_last_name_missing_returns_50(self) -> None:
-        """Phone and email verified but both name fields blank → 50%."""
+    def test_first_and_last_name_missing_returns_60(self) -> None:
+        """Phone, rut, and email verified but both name fields blank → 60%."""
         from apps.users.services.profile_completion import compute_tutor_completion
 
         user = _make_user(
             first_name="",
             last_name="",
             phone="+56912345678",
+            rut="12345678-5",
             email_verified_at=timezone.now(),
         )
         result = compute_tutor_completion(user)
 
-        assert result["percentage"] == 50
+        assert result["percentage"] == 60
         assert set(result["missing"]) == {"first_name", "last_name"}
 
     def test_whitespace_only_first_name_counts_as_missing(self) -> None:
@@ -126,11 +132,12 @@ class TestComputeTutorCompletion:
             first_name="   ",
             last_name="García",
             phone="+56912345678",
+            rut="12345678-5",
             email_verified_at=timezone.now(),
         )
         result = compute_tutor_completion(user)
 
-        assert result["percentage"] == 75
+        assert result["percentage"] == 80
         assert "first_name" in result["missing"]
 
     def test_email_verified_at_none_counts_as_missing_regardless_of_email(self) -> None:
@@ -146,7 +153,7 @@ class TestComputeTutorCompletion:
         result = compute_tutor_completion(user)
 
         assert "email_verified" in result["missing"]
-        assert result["percentage"] <= 75
+        assert result["percentage"] <= 80
 
 
 # ---------------------------------------------------------------------------
