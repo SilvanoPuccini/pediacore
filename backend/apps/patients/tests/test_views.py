@@ -96,6 +96,7 @@ class TestPatientCreate:
             "last_name": "Torres",
             "date_of_birth": "2022-03-10",
             "sex_at_birth": "M",
+            "rut": "12345678-5",
         }
 
     def test_doctor_can_create_patient(self, doctor_client, practice) -> None:

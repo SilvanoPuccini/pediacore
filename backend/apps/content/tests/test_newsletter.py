@@ -38,7 +38,7 @@ class TestSubscribe:
     def test_subscribe_duplicate_active(self, api_client: APIClient) -> None:
         SubscriberFactory(email="dup@example.com", status="ACTIVE")
         response = api_client.post(SUBSCRIBE_URL, {"email": "dup@example.com"})
-        assert response.status_code == status.HTTP_201_CREATED
+        assert response.status_code == status.HTTP_200_OK
         assert Subscriber.objects.filter(email="dup@example.com").count() == 1
 
     def test_subscribe_reactivate(self, api_client: APIClient) -> None:
@@ -61,7 +61,8 @@ class TestSubscribe:
         response = api_client.post(SUBSCRIBE_URL, {"email": "not-an-email"})
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    def test_subscribe_email_normalized_lowercase(self, api_client: APIClient) -> None:
+    def test_subscribe_email_normalized_lowercase(self, api_client: APIClient, settings) -> None:
+        settings.RATELIMIT_ENABLE = False
         response = api_client.post(SUBSCRIBE_URL, {"email": "Test@Example.COM"})
         assert response.status_code == status.HTTP_201_CREATED
         assert Subscriber.objects.filter(email="test@example.com").exists()

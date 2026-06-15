@@ -70,7 +70,7 @@ class TestExpirePendingTransfers:
         )
 
         with patch(
-            "apps.billing.services.transfer_expiry.send_transfer_expired"
+            "apps.notifications.services.email_service.send_transfer_expired"
         ):
             count = expire_pending_transfers()
 
@@ -94,7 +94,7 @@ class TestExpirePendingTransfers:
             practice, patient, appointment, transfer_expires_at=_future()
         )
 
-        with patch("apps.billing.services.transfer_expiry.send_transfer_expired"):
+        with patch("apps.notifications.services.email_service.send_transfer_expired"):
             expire_pending_transfers()
 
         payment.refresh_from_db()
@@ -124,7 +124,7 @@ class TestExpirePendingTransfers:
             receipt_uploaded_at=timezone.now() - datetime.timedelta(hours=5),
         )
 
-        with patch("apps.billing.services.transfer_expiry.send_transfer_expired"):
+        with patch("apps.notifications.services.email_service.send_transfer_expired"):
             count = expire_pending_transfers()
 
         payment.refresh_from_db()
@@ -145,7 +145,7 @@ class TestExpirePendingTransfers:
         )
 
         with patch(
-            "apps.billing.services.transfer_expiry.send_transfer_expired"
+            "apps.notifications.services.email_service.send_transfer_expired"
         ) as mock_email:
             expire_pending_transfers()
 
@@ -172,7 +172,7 @@ class TestExpirePendingTransfers:
             transfer_expires_at=_past(),
         )
 
-        with patch("apps.billing.services.transfer_expiry.send_transfer_expired"):
+        with patch("apps.notifications.services.email_service.send_transfer_expired"):
             expire_pending_transfers()
 
         mp_payment.refresh_from_db()
@@ -191,7 +191,7 @@ class TestExpirePendingTransfers:
             )
             make_transfer_payment(practice, patient, appt, transfer_expires_at=_past())
 
-        with patch("apps.billing.services.transfer_expiry.send_transfer_expired"):
+        with patch("apps.notifications.services.email_service.send_transfer_expired"):
             count = expire_pending_transfers()
 
         assert count >= 3
@@ -207,7 +207,7 @@ class TestExpirePendingTransfers:
         )
         make_transfer_payment(practice, patient, appointment, transfer_expires_at=_past())
 
-        with patch("apps.billing.services.transfer_expiry.send_transfer_expired"):
+        with patch("apps.notifications.services.email_service.send_transfer_expired"):
             first = expire_pending_transfers()
             second = expire_pending_transfers()
 

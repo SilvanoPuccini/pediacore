@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import factory
+from decimal import Decimal
 from django.utils import timezone
 
 from apps.billing.models import Invoice, Payment, PaymentProvider
@@ -60,9 +61,9 @@ class InvoiceFactory(factory.django.DjangoModelFactory):
     )
     patient_rut = ""
     service_description = "Consulta pediátrica"
-    subtotal = factory.LazyAttribute(lambda obj: obj.payment.amount)
-    tax_amount = "0.00"
-    total = factory.LazyAttribute(lambda obj: obj.payment.amount)
+    subtotal = factory.LazyAttribute(lambda obj: Decimal(str(obj.payment.amount)))
+    tax_amount = Decimal("0.00")
+    total = factory.LazyAttribute(lambda obj: Decimal(str(obj.payment.amount)))
 
 
 class PaymentProviderFactory(factory.django.DjangoModelFactory):

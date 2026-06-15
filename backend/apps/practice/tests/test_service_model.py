@@ -88,7 +88,7 @@ class TestServiceModel:
         service = ServiceFactory(modality=Service.PRESENCIAL_Y_ONLINE)
         data = ServiceSerializer(service).data
         assert "modality_display" in data
-        assert data["modality_display"] == "In-person and online"
+        assert data["modality_display"] == "Presencial y online"
 
     def test_new_flags_default_false(self) -> None:
         """requires_fonasa_validation and requires_manual_coordination default to False."""

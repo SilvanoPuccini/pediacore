@@ -16,7 +16,8 @@ from tests.factories.billing import (
     PaymentProviderFactory,
 )
 from tests.factories.patients import PatientFactory, TutorPatientFactory
-from tests.factories.practice import PracticeFactory
+from tests.factories.practice import PracticeFactory, ServiceFactory
+from tests.factories.scheduling import AppointmentFactory
 from tests.factories.users import DoctorFactory, UserFactory
 
 
@@ -92,7 +93,30 @@ class TestPaymentCreateView:
         response = client.post("/api/v1/payments/", payload, format="json")
         assert response.status_code == status.HTTP_201_CREATED
 
-    def test_tutor_can_create_payment(self) -> None:
+    def test_tutor_payment_amount_derived_from_appointment(self) -> None:
+        """Tutors cannot specify an arbitrary amount — it must come from the appointment's service."""
+        doctor = DoctorFactory()
+        practice = PracticeFactory(owner=doctor)
+        tutor = UserFactory()
+        patient = PatientFactory(practice=practice)
+        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
+        service = ServiceFactory(practice=practice, price_clp=25000)
+        appointment = AppointmentFactory(practice=practice, patient=patient, service=service)
+
+        client = auth_client(tutor)
+        payload = {
+            "practice": practice.pk,
+            "patient": patient.pk,
+            "appointment": appointment.pk,
+            # amount deliberately omitted — must be derived server-side
+            "payment_method": Payment.MERCADOPAGO,
+        }
+        response = client.post("/api/v1/payments/", payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert str(response.data["amount"]) == "25000.00"
+
+    def test_tutor_cannot_create_payment_without_appointment(self) -> None:
+        """Tutors are rejected if they try to create a payment without an appointment."""
         doctor = DoctorFactory()
         practice = PracticeFactory(owner=doctor)
         tutor = UserFactory()
@@ -103,11 +127,10 @@ class TestPaymentCreateView:
         payload = {
             "practice": practice.pk,
             "patient": patient.pk,
-            "amount": "25000.00",
             "payment_method": Payment.MERCADOPAGO,
         }
         response = client.post("/api/v1/payments/", payload, format="json")
-        assert response.status_code == status.HTTP_201_CREATED
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 @pytest.mark.django_db
