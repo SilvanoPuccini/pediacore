@@ -192,6 +192,7 @@ export interface TutorPatientLink {
 
 export interface Patient {
   id: number;
+  practice: number;
   first_name: string;
   last_name: string;
   full_name: string;

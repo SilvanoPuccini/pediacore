@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Droplets, AlertCircle, FileText, TrendingUp,
   Paperclip, Syringe, ClipboardList, Download, Baby, Users,
-  Scale, Ruler, CircleUser, Activity, CalendarPlus, ChevronRight,
+  Scale, Ruler, CircleUser, Activity, ChevronRight,
   X, Pencil, Plus, Check, Stethoscope, Video, Thermometer,
   Calendar, Phone, Mail, MapPin, Pill, Trash2, Clock, User,
   FileCheck, Folder,
@@ -312,13 +312,13 @@ function DataRow({ label, value, half }: { label: string; value: string; half?: 
   );
 }
 
-function EditRow({ label, value, onChange, half }: {
-  label: string; value: string; onChange: (v: string) => void; half?: boolean;
+function EditRow({ label, value, onChange, half, placeholder }: {
+  label: string; value: string; onChange: (v: string) => void; half?: boolean; placeholder?: string;
 }) {
   return (
     <div className={half ? "" : "col-span-2"}>
       <div className="text-[11px] text-ink3 font-medium mb-1">{label}</div>
-      <input value={value} onChange={(e) => onChange(e.target.value)}
+      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
         className="w-full px-3 py-2 rounded-[9px] bg-bg border border-line text-[13px] text-ink focus:outline-none focus:border-teal focus:ring-2 focus:ring-teal/20 transition" />
     </div>
   );
@@ -1251,7 +1251,7 @@ export default function PatientFicha() {
     quirurgicos: [],
     familiares: [],
     pesoNacer: patient?.birth_weight_grams ? (patient.birth_weight_grams / 1000).toFixed(2) : "",
-    tallaNacer: patient?.birth_length_cm ?? "",
+    tallaNacer: patient?.birth_length_cm?.toString() ?? "",
     semanas: patient?.gestational_weeks?.toString() ?? "",
     tipoParto: patient?.birth_type ?? "",
     apgar1: patient?.apgar_1min?.toString() ?? "",
