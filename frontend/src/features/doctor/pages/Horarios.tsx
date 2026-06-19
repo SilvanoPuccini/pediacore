@@ -53,7 +53,7 @@ function minutesBetween(a: string, b: string): number {
 function emptySedeSchedule(): SedeSchedule {
   return Object.fromEntries(
     HOR_DAYS.map((d) => [d, { enabled: false, blocks: [] }])
-  ) as SedeSchedule;
+  ) as unknown as SedeSchedule;
 }
 
 function buildScheduleFromApi(

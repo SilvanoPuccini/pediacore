@@ -898,7 +898,7 @@ function EncounterRow({ encounter }: { encounter: Encounter }) {
               <div className="flex flex-wrap gap-1.5">
                 {encounter.diagnoses.map((d) => (
                   <span key={d.id} className="text-[11px] px-2 py-0.5 rounded-full bg-teal/10 text-teal-dark font-medium">
-                    {d.code} — {d.name}
+                    {d.code} — {d.description}
                   </span>
                 ))}
               </div>
