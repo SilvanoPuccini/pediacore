@@ -1,47 +1,86 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useMemo, useCallback, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Calendar,
-  CalendarRange,
-  TrendingUp,
-  AlertCircle,
-  AlertTriangle,
-  Info,
+  Clock,
+  Stethoscope,
+  Check,
   Sun,
-  CheckCircle,
-  MapPin,
-  ChevronRight,
-  Sparkles,
-  Download,
   Plus,
+  FileText,
+  FileCheck,
+  MessageCircle,
   Syringe,
-  Mail,
+  AlertCircle,
+  CreditCard,
+  ChevronRight,
+  Inbox,
+  MapPin,
 } from "lucide-react";
-import { Link } from "react-router-dom";
 import { useAuthStore } from "@/stores/auth";
 import { useSedeStore } from "../stores/useSedeStore";
-import { useDashboardMetrics } from "../hooks/useDashboardMetrics";
-import { useRevenueChart } from "../hooks/useRevenueChart";
-import { useReminders } from "../hooks/useReminders";
-import MetricCard from "../components/MetricCard";
-import RevenueChart from "../components/RevenueChart";
-import PendingTransfersSection from "../components/PendingTransfersSection";
-import api from "@/lib/api";
-import { cn } from "@/lib/utils";
-import type { Appointment, PaginatedResponse, DashboardAlert } from "@/types/api";
 
-// ─── helpers ────────────────────────────────────────────────────────────────────
+// ─── Types ───────────────────────────────────────────────────────────────────
 
-function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
+type FlowState = "confirmado" | "espera" | "consulta" | "atendido";
+type PagoState = "pagado" | "pendiente";
+type TaskKind = "lab" | "receta" | "mensaje" | "vacuna";
+
+interface Turn {
+  id: string;
+  time: string;
+  patientId: number;
+  name: string;
+  age: string;
+  tutor: string;
+  type: "Control sano" | "Consulta" | "Online";
+  sede: string;
+  reason: string;
+  state: FlowState;
+  pago: PagoState;
 }
 
-function formatTime(time: string): string {
-  return time.slice(0, 5);
+interface ClinicalTask {
+  id: string;
+  kind: TaskKind;
+  icon: string;
+  patientId: number;
+  patient: string;
+  title: string;
+  detail: string;
+  action: string;
+  urgent: boolean;
 }
 
-function formatCurrency(amount: string): string {
-  const n = parseFloat(amount);
-  return new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP" }).format(n);
+// ─── Demo data ────────────────────────────────────────────────────────────────
+
+const TODAY_AGENDA: Turn[] = [
+  { id: "t1", time: "09:00", patientId: 1, name: "Mateo González",  age: "3 años",  tutor: "Carolina González", type: "Control sano", sede: "Pucón",      reason: "Control 41 meses",          state: "atendido",   pago: "pagado"   },
+  { id: "t2", time: "09:45", patientId: 2, name: "Sofía Pérez",     age: "6 meses", tutor: "Daniela Pérez",     type: "Control sano", sede: "Pucón",      reason: "Control 6 meses + vacuna",  state: "atendido",   pago: "pagado"   },
+  { id: "t3", time: "10:30", patientId: 3, name: "Lucas Martínez",  age: "5 años",  tutor: "Andrés Martínez",   type: "Consulta",     sede: "Pucón",      reason: "Tos y fiebre 48h",          state: "consulta",   pago: "pendiente"},
+  { id: "t4", time: "11:30", patientId: 4, name: "Catalina Rojas",  age: "2 años",  tutor: "Javiera Rojas",     type: "Online",       sede: "Online",     reason: "Erupción en la piel",       state: "espera",     pago: "pagado"   },
+  { id: "t5", time: "15:00", patientId: 5, name: "Tomás Silva",     age: "8 años",  tutor: "Rocío Silva",       type: "Consulta",     sede: "Villarrica", reason: "Control asma",              state: "confirmado", pago: "pagado"   },
+  { id: "t6", time: "16:15", patientId: 6, name: "Antonia Vidal",   age: "14 años", tutor: "Patricia Vidal",    type: "Control sano", sede: "Villarrica", reason: "Control adolescente",       state: "confirmado", pago: "pendiente"},
+];
+
+const CLINICAL_TASKS: ClinicalTask[] = [
+  { id: "c1", kind: "lab",     icon: "FileText",      patientId: 5, patient: "Tomás Silva",    title: "Hemograma por revisar",  detail: "Resultado cargado hoy 08:15",           action: "Revisar",   urgent: true  },
+  { id: "c2", kind: "receta",  icon: "FileCheck",     patientId: 3, patient: "Lucas Martínez", title: "Receta por firmar",      detail: "Amoxicilina 250 mg/5 ml · 7 días",     action: "Firmar",    urgent: false },
+  { id: "c3", kind: "mensaje", icon: "MessageCircle", patientId: 2, patient: "Daniela Pérez",  title: "Mensaje de tutora",      detail: '"¿Sofía puede bañarse tras la vacuna?"', action: "Responder", urgent: false },
+  { id: "c4", kind: "vacuna",  icon: "Syringe",       patientId: 2, patient: "Sofía Pérez",    title: "Vacuna pendiente",       detail: "Pentavalente 6m · vence en 3 días",     action: "Agendar",   urgent: true  },
+  { id: "c5", kind: "mensaje", icon: "MessageCircle", patientId: 4, patient: "Javiera Rojas",  title: "Mensaje de tutora",      detail: '"Adjunto foto de la erupción"',          action: "Responder", urgent: false },
+];
+
+const PRICE_BY_TYPE: Record<string, number> = {
+  "Control sano": 40000,
+  "Consulta":     40000,
+  "Online":       35000,
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function dashCLP(n: number): string {
+  return "$" + n.toLocaleString("es-CL");
 }
 
 function greetingText(): string {
@@ -60,408 +99,699 @@ function todayFormatted(): string {
   });
 }
 
-// ─── status chip ────────────────────────────────────────────────────────────────
+function patientInitial(name: string): string {
+  return name.charAt(0).toUpperCase();
+}
 
-const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  Confirmado:     { bg: "rgba(168, 213, 181, 0.30)", text: "#3F8358" },
-  "Pendiente pago": { bg: "rgba(245, 212, 160, 0.45)", text: "#9C7423" },
-  Cancelado:      { bg: "rgba(232, 160, 160, 0.30)", text: "#A85050" },
-  CONFIRMED:      { bg: "rgba(168, 213, 181, 0.30)", text: "#3F8358" },
-  PENDING:        { bg: "rgba(245, 212, 160, 0.45)", text: "#9C7423" },
-  CANCELLED:      { bg: "rgba(232, 160, 160, 0.30)", text: "#A85050" },
-  COMPLETED:      { bg: "rgba(168, 213, 181, 0.30)", text: "#3F8358" },
+type AvatarColors = { fg: string; bg: string };
+
+function avatarColor(name: string): AvatarColors {
+  const palettes: AvatarColors[] = [
+    { fg: "#F4A89A", bg: "#FFE2D9" },
+    { fg: "#7DD3C0", bg: "#D6F1EA" },
+    { fg: "#C7B8E8", bg: "#EDE4FF" },
+    { fg: "#A8D5B5", bg: "#DAEFE0" },
+    { fg: "#F5D4A0", bg: "#FCEACB" },
+  ];
+  return palettes[name.charCodeAt(0) % palettes.length];
+}
+
+// ─── Static metadata ──────────────────────────────────────────────────────────
+
+const FLOW_ORDER: FlowState[] = ["confirmado", "espera", "consulta", "atendido"];
+
+const STATE_META: Record<FlowState, {
+  label: string;
+  short: string;
+  color: string;
+  bg: string;
+  dot: string;
+  Icon: React.ElementType;
+}> = {
+  confirmado: { label: "Confirmado",  short: "Confirmados", color: "#6B569E", bg: "rgba(199, 184, 232, 0.30)", dot: "#C7B8E8", Icon: Calendar    },
+  espera:     { label: "En sala",     short: "En sala",     color: "#9C7423", bg: "rgba(245, 212, 160, 0.45)", dot: "#F5D4A0", Icon: Clock        },
+  consulta:   { label: "En consulta", short: "En consulta", color: "#3E8E7C", bg: "rgba(125, 211, 192, 0.28)", dot: "#7DD3C0", Icon: Stethoscope  },
+  atendido:   { label: "Atendido",    short: "Atendidos",   color: "#3F8358", bg: "rgba(168, 213, 181, 0.35)", dot: "#A8D5B5", Icon: Check        },
 };
 
-function StatusChip({ status, label }: { status: string; label?: string }) {
-  const s = STATUS_COLORS[status] ?? STATUS_COLORS.CONFIRMED;
+const NEXT_ACTION: Partial<Record<FlowState, { label: string; Icon: React.ElementType }>> = {
+  confirmado: { label: "Marcar llegada",   Icon: Check       },
+  espera:     { label: "Iniciar consulta", Icon: Stethoscope },
+  consulta:   { label: "Finalizar",        Icon: Check       },
+};
+
+const TASK_ICON_MAP: Record<string, React.ElementType> = {
+  FileText,
+  FileCheck,
+  MessageCircle,
+  Syringe,
+};
+
+const TASK_KIND_COLORS: Record<TaskKind, { bg: string; text: string }> = {
+  lab:     { bg: "rgba(244, 168, 154, 0.25)", text: "#B5604F" },
+  receta:  { bg: "rgba(125, 211, 192, 0.20)", text: "#3E8E7C" },
+  mensaje: { bg: "rgba(199, 184, 232, 0.28)", text: "#6B569E" },
+  vacuna:  { bg: "rgba(245, 212, 160, 0.45)", text: "#9C7423" },
+};
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function TypeChip({ type }: { type: string }) {
+  const map: Record<string, { bg: string; text: string }> = {
+    "Control sano": { bg: "rgba(125, 211, 192, 0.20)", text: "#3E8E7C" },
+    "Consulta":     { bg: "rgba(199, 184, 232, 0.30)", text: "#6B569E" },
+    "Online":       { bg: "rgba(244, 168, 154, 0.25)", text: "#B5604F" },
+  };
+  const s = map[type] ?? map["Consulta"];
   return (
     <span
-      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold"
+      className="px-2 py-0.5 rounded-md text-[10.5px] font-semibold"
       style={{ background: s.bg, color: s.text }}
     >
-      <span className="w-1.5 h-1.5 rounded-full" style={{ background: s.text }} />
-      {label ?? status}
+      {type}
     </span>
   );
 }
 
-// ─── type chip ──────────────────────────────────────────────────────────────────
-
-const TYPE_COLORS: Record<string, { bg: string; text: string }> = {
-  "Control sano": { bg: "rgba(125, 211, 192, 0.20)", text: "#3E8E7C" },
-  "Consulta":     { bg: "rgba(199, 184, 232, 0.30)", text: "#6B569E" },
-  "Online":       { bg: "rgba(244, 168, 154, 0.25)", text: "#B5604F" },
-};
-
-function TypeChip({ label }: { label: string }) {
-  const colors = TYPE_COLORS[label] ?? { bg: "rgba(199, 184, 232, 0.30)", text: "#6B569E" };
+function StateBadge({ state }: { state: FlowState }) {
+  const m = STATE_META[state];
   return (
     <span
-      className="inline-flex items-center px-2 py-0.5 rounded-md text-[10.5px] font-semibold"
-      style={{ background: colors.bg, color: colors.text }}
+      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap"
+      style={{ background: m.bg, color: m.color }}
     >
-      {label}
+      <span className="w-1.5 h-1.5 rounded-full" style={{ background: m.dot }} />
+      {m.label}
     </span>
   );
 }
 
-// ─── agenda item ────────────────────────────────────────────────────────────────
-
-function AgendaItem({
-  appointment,
-  onConfirm,
-  confirmPending,
+function StageCard({
+  stateKey,
+  count,
+  active,
+  onClick,
 }: {
-  appointment: Appointment;
-  onConfirm: (id: number) => void;
-  confirmPending: boolean;
+  stateKey: FlowState;
+  count: number;
+  active: boolean;
+  onClick: () => void;
 }) {
+  const m = STATE_META[stateKey];
+  const IconComp = m.Icon;
   return (
-    <div className="group flex items-stretch gap-4 px-4 py-3.5 rounded-[12px] hover:bg-bg transition-colors cursor-pointer">
-      <div className="w-14 shrink-0 text-teal-dark font-bold text-[15px] leading-tight pt-0.5">
-        {formatTime(appointment.start_time)}
+    <button
+      onClick={onClick}
+      className={[
+        "text-left bg-surface border rounded-[14px] p-4 shadow-[var(--shadow-card)] transition focus-ring",
+        active
+          ? "border-teal-dark ring-2 ring-teal/25"
+          : "border-line hover:shadow-[var(--shadow-soft)]",
+      ].join(" ")}
+    >
+      <div className="flex items-center justify-between">
+        <div
+          className="w-8 h-8 rounded-[9px] flex items-center justify-center"
+          style={{ background: m.bg, color: m.color }}
+        >
+          <IconComp size={15} />
+        </div>
+        <span className="text-[28px] font-bold text-ink leading-none tracking-tight">
+          {count}
+        </span>
       </div>
-      <div className="w-px bg-line shrink-0" />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[13.5px] font-semibold text-ink">{appointment.patient_name}</span>
-          {appointment.service_name && <TypeChip label={appointment.service_name} />}
+      <div className="mt-2.5 text-[12.5px] font-semibold text-ink2">{m.short}</div>
+    </button>
+  );
+}
+
+function FocusCard({
+  turn,
+  onAdvance,
+  onOpenFicha,
+}: {
+  turn: Turn | null;
+  onAdvance: (id: string) => void;
+  onOpenFicha: (patientId: number) => void;
+}) {
+  if (!turn) {
+    return (
+      <div className="bg-surface border border-line rounded-[16px] shadow-[var(--shadow-card)] p-6 flex items-center gap-4">
+        <div
+          className="w-11 h-11 rounded-full flex items-center justify-center"
+          style={{ background: "rgba(168, 213, 181, 0.30)", color: "#3F8358" }}
+        >
+          <Check size={20} />
+        </div>
+        <div>
+          <h3 className="text-[15px] font-bold text-ink">Día al día</h3>
+          <p className="text-[12.5px] text-ink2 mt-0.5">
+            No hay pacientes en sala ni en consulta ahora mismo.
+          </p>
         </div>
       </div>
-      <div className="flex flex-col items-end justify-between shrink-0 gap-2">
-        {appointment.location_name && (
-          <div className="flex items-center gap-1 text-[11px] text-ink3">
-            <MapPin size={11} />
-            {appointment.location_name}
+    );
+  }
+
+  const m = STATE_META[turn.state];
+  const av = avatarColor(turn.name);
+  const inConsult = turn.state === "consulta";
+  const act = NEXT_ACTION[turn.state];
+
+  return (
+    <div
+      className="rounded-[16px] shadow-[var(--shadow-card)] p-5 border"
+      style={{
+        borderColor: inConsult ? "rgba(125,211,192,0.5)" : "#E8E6E1",
+        background: inConsult
+          ? "linear-gradient(135deg, rgba(125,211,192,0.12), rgba(199,184,232,0.06))"
+          : "#fff",
+      }}
+    >
+      <div className="flex items-center justify-between">
+        <span
+          className="text-[11px] uppercase tracking-[0.14em] font-bold"
+          style={{ color: m.color }}
+        >
+          {inConsult
+            ? "● Ahora en consulta"
+            : turn.state === "espera"
+            ? "Siguiente · en sala"
+            : "Siguiente paciente"}
+        </span>
+        <span className="text-[12px] font-bold text-teal-dark">{turn.time}</span>
+      </div>
+
+      <div className="mt-3 flex items-center gap-3">
+        <button
+          onClick={() => onOpenFicha(turn.patientId)}
+          className="w-12 h-12 rounded-full flex items-center justify-center text-[16px] font-bold shrink-0 focus-ring"
+          style={{ background: av.bg, color: av.fg }}
+        >
+          {patientInitial(turn.name)}
+        </button>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => onOpenFicha(turn.patientId)}
+              className="text-[16px] font-bold text-ink hover:text-teal-dark transition text-left focus-ring"
+            >
+              {turn.name}
+            </button>
+            <span className="text-[12px] text-ink3">· {turn.age}</span>
           </div>
+          <div className="mt-0.5 flex items-center gap-2 flex-wrap text-[12px] text-ink2">
+            <TypeChip type={turn.type} />
+            <span className="inline-flex items-center gap-1">
+              <MapPin size={11} className="text-ink3" />
+              {turn.sede}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-3 px-3 py-2 rounded-[10px] text-[12.5px] text-ink2" style={{ background: "rgba(250, 250, 247, 0.70)" }}>
+        <span className="font-semibold text-ink">Motivo:</span> {turn.reason}
+        {turn.pago === "pendiente" && (
+          <span className="ml-2 inline-flex items-center gap-1 text-[11px] font-semibold text-[#9C7423]">
+            <AlertCircle size={11} /> Pago pendiente
+          </span>
         )}
-        <StatusChip status={appointment.status} label={appointment.status_display} />
-        {appointment.status === "PENDING" && (
+      </div>
+
+      <div className="mt-4 flex items-center gap-2">
+        {act && (
           <button
-            onClick={() => onConfirm(appointment.id)}
-            disabled={confirmPending}
-            className={cn(
-              "text-[11px] font-semibold px-2.5 py-1 rounded-[8px] transition-colors",
-              "bg-teal/15 text-teal-dark hover:bg-teal/25",
-              confirmPending && "opacity-50"
-            )}
+            onClick={() => onAdvance(turn.id)}
+            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-[10px] text-white text-[13px] font-semibold hover:opacity-90 transition shadow-[var(--shadow-soft)] focus-ring"
+            style={{ background: "#5CB8A4" }}
           >
-            <CheckCircle size={12} className="inline mr-1 -mt-px" />
-            Confirmar
+            <act.Icon size={15} />
+            {act.label}
           </button>
+        )}
+        <button
+          onClick={() => onOpenFicha(turn.patientId)}
+          className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-[10px] bg-surface border border-line text-[13px] font-semibold text-ink2 hover:bg-bg transition focus-ring"
+        >
+          <FileText size={15} />
+          Ficha
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AgendaRow({
+  turn,
+  onAdvance,
+  onCobrar,
+  onOpenFicha,
+}: {
+  turn: Turn;
+  onAdvance: (id: string) => void;
+  onCobrar: (id: string) => void;
+  onOpenFicha: (patientId: number) => void;
+}) {
+  const av = avatarColor(turn.name);
+  const act = NEXT_ACTION[turn.state];
+  const done = turn.state === "atendido";
+
+  return (
+    <div
+      className={[
+        "group flex items-center gap-4 px-4 py-3 rounded-[12px] transition",
+        done ? "opacity-70" : "hover:bg-bg",
+      ].join(" ")}
+    >
+      <div className="w-12 shrink-0 text-teal-dark font-bold text-[14px] leading-tight">
+        {turn.time}
+      </div>
+      <div className="w-px self-stretch bg-line shrink-0" />
+      <button
+        onClick={() => onOpenFicha(turn.patientId)}
+        className="w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-bold shrink-0 focus-ring"
+        style={{ background: av.bg, color: av.fg }}
+      >
+        {patientInitial(turn.name)}
+      </button>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => onOpenFicha(turn.patientId)}
+            className="text-[13.5px] font-semibold text-ink hover:text-teal-dark transition text-left focus-ring"
+          >
+            {turn.name}
+          </button>
+          <span className="text-[11px] text-ink3">· {turn.age}</span>
+          <TypeChip type={turn.type} />
+        </div>
+        <div className="mt-0.5 text-[11.5px] text-ink2 truncate">{turn.reason}</div>
+      </div>
+      <div className="hidden sm:flex flex-col items-end gap-1.5 shrink-0">
+        <StateBadge state={turn.state} />
+        {turn.pago === "pendiente" && (
+          <span className="text-[10.5px] font-semibold text-[#9C7423] inline-flex items-center gap-1">
+            <CreditCard size={10} /> Por cobrar
+          </span>
+        )}
+      </div>
+      <div className="flex items-center gap-1.5 shrink-0 w-[150px] justify-end">
+        {turn.pago === "pendiente" && !done && (
+          <button
+            onClick={() => onCobrar(turn.id)}
+            className="inline-flex items-center gap-1 px-2.5 py-2 rounded-[9px] text-[11.5px] font-semibold transition focus-ring"
+            style={{ background: "rgba(245, 212, 160, 0.40)", color: "#9C7423" }}
+            title="Registrar pago"
+          >
+            <CreditCard size={13} />
+            Cobrar
+          </button>
+        )}
+        {act ? (
+          <button
+            onClick={() => onAdvance(turn.id)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[9px] text-white text-[11.5px] font-semibold hover:opacity-90 transition focus-ring whitespace-nowrap"
+            style={{ background: "#5CB8A4" }}
+          >
+            <act.Icon size={13} />
+            {act.label}
+          </button>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 px-3 py-2 text-[11.5px] font-semibold text-[#3F8358]">
+            <Check size={14} /> Listo
+          </span>
         )}
       </div>
     </div>
   );
 }
 
-// ─── Dashboard page ─────────────────────────────────────────────────────────────
-
-export default function Dashboard() {
-  const queryClient = useQueryClient();
-  const user = useAuthStore((s) => s.user);
-  const sedeId = useSedeStore((s) => s.sedeId);
-  const today = todayISO();
-
-  // Data hooks
-  const metricsQ = useDashboardMetrics();
-  const revenueQ = useRevenueChart();
-  const remindersQ = useReminders();
-
-  // Today's agenda
-  const agendaQ = useQuery<PaginatedResponse<Appointment>>({
-    queryKey: ["appointments", "today", today, sedeId],
-    queryFn: async () => {
-      const params = new URLSearchParams({ date: today, page_size: "100" });
-      if (sedeId) params.set("location_id", String(sedeId));
-      const { data } = await api.get<PaginatedResponse<Appointment>>(
-        `/appointments/?${params}`
-      );
-      return data;
-    },
-    staleTime: 1000 * 60 * 2,
-  });
-
-  const confirmMutation = useMutation({
-    mutationFn: async (id: number) => {
-      await api.post(`/appointments/${id}/confirm/`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["appointments"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] });
-    },
-  });
-
-  const agenda = [...(agendaQ.data?.results ?? [])].sort((a, b) =>
-    a.start_time.localeCompare(b.start_time)
-  );
-
-  const metrics = metricsQ.data;
-  const revenue = revenueQ.data ?? [];
-  const reminders = remindersQ.data ?? [];
-  const loading = metricsQ.isLoading;
-  const firstName = user?.first_name ?? "Doctora";
-
-  const totalRevenue = metrics
-    ? formatCurrency(metrics.month_revenue)
-    : "...";
+function TaskRow({
+  task,
+  onResolve,
+  onOpenFicha,
+}: {
+  task: ClinicalTask;
+  onResolve: (id: string) => void;
+  onOpenFicha: (patientId: number) => void;
+}) {
+  const colors = TASK_KIND_COLORS[task.kind] ?? { bg: "#F2F1EC", text: "#6B6B6B" };
+  const IconComp = TASK_ICON_MAP[task.icon] ?? FileText;
 
   return (
-    <div className="space-y-7 max-w-[1200px]">
-      {/* Pending transfers */}
-      <PendingTransfersSection />
+    <div className="group flex items-start gap-3 px-4 py-3 hover:bg-bg transition">
+      <div
+        className="w-8 h-8 rounded-[9px] flex items-center justify-center shrink-0"
+        style={{ background: colors.bg, color: colors.text }}
+      >
+        <IconComp size={15} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[12.5px] font-semibold text-ink leading-tight">
+            {task.title}
+          </span>
+          {task.urgent && (
+            <span
+              className="w-1.5 h-1.5 rounded-full shrink-0"
+              style={{ background: "#F4A89A" }}
+              title="Urgente"
+            />
+          )}
+        </div>
+        <button
+          onClick={() => onOpenFicha(task.patientId)}
+          className="text-[11px] font-medium hover:underline focus-ring"
+          style={{ color: "#5CB8A4" }}
+        >
+          {task.patient}
+        </button>
+        <div className="text-[11.5px] text-ink2 mt-0.5 leading-snug">{task.detail}</div>
+      </div>
+      <button
+        onClick={() => onResolve(task.id)}
+        className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-[8px] bg-surface border border-line text-[11.5px] font-semibold text-ink2 hover:bg-teal/10 hover:text-teal-dark hover:border-teal/40 transition focus-ring"
+      >
+        {task.action}
+      </button>
+    </div>
+  );
+}
 
+// ─── Toast ────────────────────────────────────────────────────────────────────
+
+function Toast({ message }: { message: string | null }) {
+  if (!message) return null;
+  return (
+    <div className="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-[12px] text-white text-[12.5px] font-semibold shadow-[var(--shadow-pop)] flex items-center gap-2" style={{ background: "#2C2C2C" }}>
+      <Check size={14} style={{ color: "#7DD3C0" }} />
+      {message}
+    </div>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
+export default function Dashboard() {
+  const navigate = useNavigate();
+  const user = useAuthStore((s) => s.user);
+  const sedeName = useSedeStore((s) => s.sedeName);
+
+  const [flow, setFlow] = useState<Turn[]>(() => TODAY_AGENDA.map((t) => ({ ...t })));
+  const [tasks, setTasks] = useState<ClinicalTask[]>(() => CLINICAL_TASKS.map((t) => ({ ...t })));
+  const [filter, setFilter] = useState<FlowState | null>(null);
+  const [resolved, setResolved] = useState(0);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const firstName = user?.first_name ?? "Estefi";
+
+  // Flash toast
+  const flash = useCallback((msg: string) => {
+    setToast(msg);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 2200);
+  }, []);
+
+  // Sede filter: "Todas" shows everything; a named sede shows that sede + online turns
+  const inSede = useCallback(
+    (t: Turn) => sedeName === "Todas" || t.sede === sedeName || t.sede === "Online",
+    [sedeName]
+  );
+
+  const sedeFlow = useMemo(() => flow.filter(inSede), [flow, inSede]);
+
+  const counts = useMemo(() => {
+    const c: Record<FlowState, number> = { confirmado: 0, espera: 0, consulta: 0, atendido: 0 };
+    sedeFlow.forEach((t) => { c[t.state]++; });
+    return c;
+  }, [sedeFlow]);
+
+  // Focus: patient in consulta → espera → first confirmado → null
+  const focus = useMemo(
+    () =>
+      sedeFlow.find((t) => t.state === "consulta") ??
+      sedeFlow.find((t) => t.state === "espera") ??
+      sedeFlow.find((t) => t.state === "confirmado") ??
+      null,
+    [sedeFlow]
+  );
+
+  const shown = useMemo(
+    () => (filter ? sedeFlow.filter((t) => t.state === filter) : sedeFlow),
+    [filter, sedeFlow]
+  );
+
+  // Money
+  const ingresosHoy = useMemo(
+    () => sedeFlow.filter((t) => t.state === "atendido" && t.pago === "pagado").reduce((s, t) => s + (PRICE_BY_TYPE[t.type] ?? 40000), 0),
+    [sedeFlow]
+  );
+  const porCobrar = useMemo(
+    () => sedeFlow.filter((t) => t.pago === "pendiente").reduce((s, t) => s + (PRICE_BY_TYPE[t.type] ?? 40000), 0),
+    [sedeFlow]
+  );
+
+  // Actions
+  const advance = useCallback(
+    (id: string) => {
+      setFlow((prev) =>
+        prev.map((t) => {
+          if (t.id !== id) return t;
+          const idx = FLOW_ORDER.indexOf(t.state);
+          const next = FLOW_ORDER[Math.min(idx + 1, FLOW_ORDER.length - 1)];
+          const labels: Partial<Record<FlowState, string>> = {
+            espera:   "en sala de espera",
+            consulta: "en consulta",
+            atendido: "atendido",
+          };
+          flash(`${t.name} → ${labels[next] ?? next}`);
+          return { ...t, state: next };
+        })
+      );
+    },
+    [flash]
+  );
+
+  const cobrar = useCallback(
+    (id: string) => {
+      setFlow((prev) =>
+        prev.map((t) => {
+          if (t.id !== id) return t;
+          flash(`Pago de ${t.name} registrado · ${dashCLP(PRICE_BY_TYPE[t.type] ?? 40000)}`);
+          return { ...t, pago: "pagado" };
+        })
+      );
+    },
+    [flash]
+  );
+
+  const resolveTask = useCallback(
+    (id: string) => {
+      setTasks((prev) => prev.filter((t) => t.id !== id));
+      setResolved((r) => r + 1);
+      flash("Tarea resuelta");
+    },
+    [flash]
+  );
+
+  const openFicha = useCallback(
+    (patientId: number) => navigate(`/dashboard/pacientes/${patientId}`),
+    [navigate]
+  );
+
+  const goCalendar = useCallback(
+    () => navigate("/dashboard/calendario"),
+    [navigate]
+  );
+
+  return (
+    <div className="space-y-6">
       {/* Greeting */}
       <div className="flex items-end justify-between flex-wrap gap-4">
         <div>
           <div className="flex items-center gap-2 text-[12.5px] text-ink3 font-medium">
-            <Sun size={14} className="text-coral" />
-            {todayFormatted()}
+            <Sun size={14} style={{ color: "#F4A89A" }} />
+            {todayFormatted()} · {sedeName === "Todas" ? "Todas las sedes" : sedeName}
           </div>
           <h1 className="mt-1.5 text-[28px] font-bold text-ink tracking-tight">
             {greetingText()}, {firstName}
           </h1>
           <p className="mt-1 text-[13.5px] text-ink2">
-            Hoy tenes <span className="font-semibold text-ink">{metrics?.today_count ?? "..."} turnos</span>
-            {(metrics?.pending_count ?? 0) > 0 && (
-              <> y <span className="font-semibold text-ink">{metrics?.pending_count} pendientes</span> por confirmar</>
-            )}
-            .
+            {counts.atendido} de {sedeFlow.length} atendidos ·{" "}
+            <span className="font-semibold text-ink">{counts.consulta + counts.espera}</span> en curso ·{" "}
+            <span className="font-semibold text-ink">{tasks.length}</span> tareas clínicas
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => window.open("/gestion-9f3a/scheduling/appointment/?export=csv", "_blank")}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] text-[13px] font-semibold text-ink2 border border-line hover:bg-bg transition-colors"
+            onClick={goCalendar}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[10px] bg-surface border border-line text-[13px] font-semibold text-ink2 hover:bg-bg transition focus-ring"
           >
-            <Download size={14} />
-            Exportar
+            <Calendar size={15} />
+            Ver agenda
           </button>
-          <Link
-            to="/dashboard/calendario"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] text-[13px] font-semibold text-white transition-colors"
-            style={{ background: "#3E8E7C" }}
+          <button
+            onClick={goCalendar}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[10px] text-white text-[13px] font-semibold hover:opacity-90 transition shadow-[var(--shadow-soft)] focus-ring"
+            style={{ background: "#5CB8A4" }}
           >
-            <Plus size={14} />
+            <Plus size={15} />
             Nuevo turno
-          </Link>
+          </button>
         </div>
       </div>
 
-      {/* Metric cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <MetricCard icon={Calendar} iconBg="rgba(125, 211, 192, 0.20)" iconColor="#3E8E7C" value={metrics?.today_count ?? 0} label="Turnos hoy" loading={loading} />
-        <MetricCard icon={CalendarRange} iconBg="rgba(199, 184, 232, 0.28)" iconColor="#6B569E" value={metrics?.week_count ?? 0} label="Esta semana" loading={loading} />
-        <MetricCard icon={TrendingUp} iconBg="rgba(244, 168, 154, 0.25)" iconColor="#B5604F" value={loading ? "..." : totalRevenue} label="Ingresos del mes" loading={loading} />
-        <MetricCard icon={AlertCircle} iconBg="rgba(245, 212, 160, 0.40)" iconColor="#9C7423" value={loading ? "..." : `${(parseFloat(metrics?.no_show_rate ?? "0") * 100).toFixed(1)}%`} label="Tasa de no-show" loading={loading} />
-      </div>
-
-      {/* Two-column: Agenda + Revenue/Reminders */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-        {/* Agenda */}
-        <div className="xl:col-span-2 bg-surface border border-line rounded-[14px] shadow-card overflow-hidden">
-          <div className="flex items-center justify-between px-5 pt-5 pb-3">
-            <div>
-              <h3 className="text-[15px] font-bold text-ink">Agenda de hoy</h3>
-              <p className="text-[11.5px] text-ink3 mt-0.5">
-                {agenda.length} turno{agenda.length !== 1 ? "s" : ""}
-              </p>
-            </div>
-            <Link
-              to="/dashboard/calendario"
-              className="text-[12px] font-semibold text-teal-dark hover:underline inline-flex items-center gap-1"
+      {/* Flow pipeline */}
+      <div>
+        <div className="flex items-center justify-between mb-2.5">
+          <h2 className="text-[13px] font-bold text-ink">Flujo del día</h2>
+          {filter && (
+            <button
+              onClick={() => setFilter(null)}
+              className="text-[11.5px] font-semibold hover:underline focus-ring"
+              style={{ color: "#5CB8A4" }}
             >
-              Ver semana <ChevronRight size={13} />
-            </Link>
-          </div>
-          <div className="px-2 pb-3">
-            {agendaQ.isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="h-5 w-5 rounded-full border-2 border-line border-t-teal animate-spin" />
+              Ver todos
+            </button>
+          )}
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {FLOW_ORDER.map((s) => (
+            <StageCard
+              key={s}
+              stateKey={s}
+              count={counts[s]}
+              active={filter === s}
+              onClick={() => setFilter(filter === s ? null : s)}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Two-column layout */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+        {/* Left: focus card + agenda */}
+        <div className="xl:col-span-2 space-y-5">
+          {/* Focus card */}
+          <FocusCard turn={focus} onAdvance={advance} onOpenFicha={openFicha} />
+
+          {/* Agenda de hoy */}
+          <div className="bg-surface border border-line rounded-[14px] shadow-[var(--shadow-card)] overflow-hidden">
+            <div className="flex items-center justify-between px-5 pt-5 pb-3">
+              <div>
+                <h3 className="text-[15px] font-bold text-ink">Agenda de hoy</h3>
+                <p className="text-[11.5px] text-ink3 mt-0.5">
+                  {filter
+                    ? `Filtrando: ${STATE_META[filter].short}`
+                    : `${sedeFlow.length} ${sedeFlow.length === 1 ? "turno" : "turnos"} · ${sedeName === "Todas" ? "Pucón y Villarrica" : sedeName}`}
+                </p>
               </div>
-            ) : agenda.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 gap-2 text-ink3">
-                <Calendar size={32} className="opacity-40" />
-                <p className="text-[14px]">Sin turnos hoy</p>
-              </div>
-            ) : (
-              agenda.map((a, i) => (
-                <div key={a.id}>
-                  <AgendaItem
-                    appointment={a}
-                    onConfirm={(id) => confirmMutation.mutate(id)}
-                    confirmPending={confirmMutation.isPending}
-                  />
-                  {i < agenda.length - 1 && <div className="ml-[88px] h-px bg-line/70" />}
+              <button
+                onClick={goCalendar}
+                className="text-[12px] font-semibold hover:underline inline-flex items-center gap-1 focus-ring"
+                style={{ color: "#5CB8A4" }}
+              >
+                Ver semana <ChevronRight size={13} />
+              </button>
+            </div>
+            <div className="px-2 pb-3">
+              {shown.length > 0 ? (
+                shown.map((t, i) => (
+                  <div key={t.id}>
+                    <AgendaRow
+                      turn={t}
+                      onAdvance={advance}
+                      onCobrar={cobrar}
+                      onOpenFicha={openFicha}
+                    />
+                    {i < shown.length - 1 && (
+                      <div className="ml-[68px] h-px bg-line/70" />
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="px-4 py-10 text-center text-[12.5px] text-ink3">
+                  Sin turnos en este estado.
                 </div>
-              ))
-            )}
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Revenue + Reminders */}
+        {/* Right: clinical inbox + caja */}
         <div className="space-y-5">
-          {/* Revenue chart */}
-          <div className="bg-surface border border-line rounded-[14px] shadow-card p-5">
-            <div className="flex items-start justify-between">
+          {/* Bandeja clínica */}
+          <div className="bg-surface border border-line rounded-[14px] shadow-[var(--shadow-card)] overflow-hidden">
+            <div className="flex items-center justify-between px-5 pt-5 pb-3">
               <div>
-                <h3 className="text-[14px] font-bold text-ink">Ingresos · 30 dias</h3>
-                <div className="mt-1 flex items-baseline gap-2">
-                  <span className="text-[22px] font-bold text-ink tracking-tight">{totalRevenue}</span>
-                </div>
+                <h3 className="text-[15px] font-bold text-ink">Bandeja clínica</h3>
+                <p className="text-[11.5px] text-ink3 mt-0.5">
+                  {tasks.length > 0 ? `${tasks.length} pendientes` : "Todo al día"}
+                  {resolved > 0 && ` · ${resolved} resueltas hoy`}
+                </p>
               </div>
-              <div className="flex items-center gap-1 text-[11px] text-ink3">
-                <span className="w-2 h-2 rounded-full bg-teal" />
-                CLP
+              <div
+                className="w-8 h-8 rounded-[9px] flex items-center justify-center"
+                style={{ background: "rgba(125, 211, 192, 0.15)", color: "#5CB8A4" }}
+              >
+                <Inbox size={16} />
               </div>
             </div>
-            <div className="mt-3 -ml-2">
-              <RevenueChart data={revenue} loading={revenueQ.isLoading} />
+            <div className="pb-2">
+              {tasks.length > 0 ? (
+                tasks.map((t, i) => (
+                  <div key={t.id}>
+                    <TaskRow task={t} onResolve={resolveTask} onOpenFicha={openFicha} />
+                    {i < tasks.length - 1 && (
+                      <div className="mx-4 h-px bg-line/60" />
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="px-5 py-10 text-center">
+                  <div
+                    className="mx-auto w-12 h-12 rounded-full flex items-center justify-center mb-3"
+                    style={{ background: "rgba(168, 213, 181, 0.25)", color: "#3F8358" }}
+                  >
+                    <Check size={20} />
+                  </div>
+                  <div className="text-[13px] font-bold text-ink">Bandeja vacía</div>
+                  <div className="text-[11.5px] text-ink3 mt-1">
+                    Resolviste todas las tareas.
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Reminders */}
-          <div className="bg-surface border border-line rounded-[14px] shadow-card p-5">
-            <h3 className="text-[14px] font-bold text-ink">Recordatorios</h3>
-            {reminders.length === 0 ? (
-              <p className="mt-4 text-[12px] text-ink3">Sin recordatorios esta semana</p>
-            ) : (
-              <ul className="mt-4 space-y-3">
-                {reminders.map((r, i) => {
-                  const rtype = r.type as string;
-                  const iconProps =
-                    rtype === "vaccine"
-                      ? { Icon: Syringe, bg: "rgba(199,184,232,0.30)", color: "#6B569E" }
-                      : rtype === "email"
-                      ? { Icon: Mail, bg: "rgba(244,168,154,0.25)", color: "#B5604F" }
-                      : { Icon: Sparkles, bg: "rgba(125,211,192,0.20)", color: "#3E8E7C" };
-                  return (
-                    <li key={i} className="flex items-start gap-3">
-                      <div
-                        className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
-                        style={{ background: iconProps.bg }}
-                      >
-                        <iconProps.Icon size={13} style={{ color: iconProps.color }} />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-[12.5px] font-semibold text-ink leading-tight">{r.title}</div>
-                        <div className="text-[11.5px] text-ink2 mt-0.5">{r.detail}</div>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
+          {/* Caja de hoy */}
+          <div className="bg-surface border border-line rounded-[14px] shadow-[var(--shadow-card)] p-5">
+            <h3 className="text-[14px] font-bold text-ink">Caja de hoy</h3>
+            <div className="mt-4 flex items-stretch gap-3">
+              <div className="flex-1 rounded-[12px] p-3.5" style={{ background: "rgba(168, 213, 181, 0.15)" }}>
+                <div className="text-[11px] font-semibold text-[#3F8358]">Cobrado</div>
+                <div className="mt-1 text-[20px] font-bold text-ink leading-none tracking-tight">
+                  {dashCLP(ingresosHoy)}
+                </div>
+              </div>
+              <div className="flex-1 rounded-[12px] p-3.5" style={{ background: "rgba(245, 212, 160, 0.25)" }}>
+                <div className="text-[11px] font-semibold text-[#9C7423]">Por cobrar</div>
+                <div className="mt-1 text-[20px] font-bold text-ink leading-none tracking-tight">
+                  {dashCLP(porCobrar)}
+                </div>
+              </div>
+            </div>
+            <p className="mt-3 text-[11px] text-ink3">
+              Registrá los pagos pendientes desde la agenda con el botón "Cobrar".
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Desglose rápido */}
-      {!loading && metrics && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          {/* Top servicios */}
-          <div className="bg-surface border border-line rounded-[14px] shadow-card p-5">
-            <h3 className="text-[14px] font-bold text-ink mb-3">Top servicios del mes</h3>
-            {metrics.top_services.length === 0 ? (
-              <p className="text-[12px] text-ink3">Sin datos este mes</p>
-            ) : (
-              <table className="w-full text-[12px]">
-                <thead>
-                  <tr className="text-ink3 text-left border-b border-line">
-                    <th className="pb-2 font-medium">Servicio</th>
-                    <th className="pb-2 font-medium text-right">Turnos</th>
-                    <th className="pb-2 font-medium text-right">Ingresos</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {metrics.top_services.map((s, i) => (
-                    <tr key={i} className="border-b border-line/50 last:border-0">
-                      <td className="py-2 text-ink font-medium truncate max-w-[140px]">{s.name}</td>
-                      <td className="py-2 text-ink2 text-right">{s.count}</td>
-                      <td className="py-2 text-ink font-semibold text-right">
-                        {formatCurrency(s.revenue)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-
-          {/* Método de pago */}
-          <div className="bg-surface border border-line rounded-[14px] shadow-card p-5">
-            <h3 className="text-[14px] font-bold text-ink mb-3">Método de pago</h3>
-            {metrics.by_payment_method.length === 0 ? (
-              <p className="text-[12px] text-ink3">Sin datos este mes</p>
-            ) : (
-              <ul className="space-y-3">
-                {(() => {
-                  const grandTotal = metrics.by_payment_method.reduce(
-                    (sum, m) => sum + parseFloat(m.total),
-                    0
-                  );
-                  return metrics.by_payment_method.map((m, i) => {
-                    const pct = grandTotal > 0
-                      ? Math.round((parseFloat(m.total) / grandTotal) * 100)
-                      : 0;
-                    return (
-                      <li key={i}>
-                        <div className="flex items-center justify-between text-[12px] mb-1">
-                          <span className="text-ink font-medium">{m.method}</span>
-                          <span className="text-ink2">{pct}% · {m.count} pago{m.count !== 1 ? "s" : ""}</span>
-                        </div>
-                        <div className="h-1.5 w-full bg-line rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-teal rounded-full transition-all"
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
-                      </li>
-                    );
-                  });
-                })()}
-              </ul>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Alertas */}
-      {!loading && metrics && metrics.alerts.length > 0 && (
-        <div className="bg-surface border border-line rounded-[14px] shadow-card p-5">
-          <h3 className="text-[14px] font-bold text-ink mb-3">Alertas</h3>
-          <ul className="space-y-2">
-            {metrics.alerts.map((alert: DashboardAlert, i: number) => (
-              <li
-                key={i}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-[12.5px]",
-                  alert.severity === "warning"
-                    ? "bg-[rgba(245,212,160,0.25)] text-[#9C7423]"
-                    : "bg-[rgba(168,210,255,0.20)] text-[#2E6EA6]"
-                )}
-              >
-                {alert.severity === "warning" ? (
-                  <AlertTriangle size={15} className="shrink-0" />
-                ) : (
-                  <Info size={15} className="shrink-0" />
-                )}
-                <span className="flex-1 font-medium">{alert.message}</span>
-                <span
-                  className={cn(
-                    "shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-full",
-                    alert.severity === "warning"
-                      ? "bg-[rgba(245,212,160,0.50)] text-[#9C7423]"
-                      : "bg-[rgba(168,210,255,0.40)] text-[#2E6EA6]"
-                  )}
-                >
-                  {alert.count}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {/* Toast */}
+      <Toast message={toast} />
     </div>
   );
 }

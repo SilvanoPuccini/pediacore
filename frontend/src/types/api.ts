@@ -184,6 +184,7 @@ export interface TutorPatientLink {
   tutor: number;
   tutor_email: string;
   tutor_full_name: string;
+  tutor_phone: string;
   relationship: string;
   is_primary: boolean;
   created_at: string;
@@ -462,8 +463,25 @@ export interface SOAPNote {
 export interface Diagnosis {
   id: number;
   code: string;
-  name: string;
-  type: string;
+  description: string;
+  is_primary: boolean;
+  notes: string;
+}
+
+export interface Anthropometry {
+  id: number;
+  weight_kg: string;
+  height_cm: string;
+  head_circumference_cm: string | null;
+  bmi: string | null;
+  weight_for_age_z: number | null;
+  height_for_age_z: number | null;
+  head_circumference_for_age_z: number | null;
+  bmi_for_age_z: number | null;
+  weight_for_age_percentile: number | null;
+  height_for_age_percentile: number | null;
+  head_circumference_for_age_percentile: number | null;
+  bmi_for_age_percentile: number | null;
 }
 
 export interface Encounter {
@@ -481,6 +499,7 @@ export interface Encounter {
   created_at: string;
   soap_note?: SOAPNote | null;
   diagnoses?: Diagnosis[];
+  anthropometry?: Anthropometry | null;
 }
 
 export interface GrowthPoint {
