@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
-import type { Mock } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
 
 // ─── Mocks ──────────────────────────────────────────────────────────────────
 
@@ -13,16 +12,6 @@ vi.mock("react-router-dom", () => ({
   useNavigate: () => vi.fn(),
   useLocation: () => ({ pathname: "/dashboard" }),
   useParams: () => ({}),
-}));
-
-vi.mock("@tanstack/react-query", () => ({
-  useQuery: vi.fn(),
-  useMutation: vi.fn(() => ({
-    mutate: vi.fn(),
-    isError: false,
-    isPending: false,
-  })),
-  useQueryClient: () => ({ invalidateQueries: vi.fn() }),
 }));
 
 vi.mock("@/stores/auth", () => ({
@@ -42,95 +31,12 @@ vi.mock("@/stores/auth", () => ({
   }),
 }));
 
-vi.mock("@/lib/api", () => ({
-  default: {
-    get: vi.fn(),
-    post: vi.fn(),
-  },
-}));
-
 vi.mock("@/features/doctor/stores/useSedeStore", () => ({
   useSedeStore: vi.fn((selector: any) => {
-    const state = { sedeId: null, sedeName: "Todas", setSede: vi.fn() };
+    const state = { sedeId: null, sedeName: "Todas", setSede: vi.fn(), clearSede: vi.fn() };
     return selector ? selector(state) : state;
   }),
 }));
-
-vi.mock("@/features/doctor/hooks/useDashboardMetrics", () => ({
-  useDashboardMetrics: vi.fn(),
-}));
-
-vi.mock("@/features/doctor/hooks/useRevenueChart", () => ({
-  useRevenueChart: vi.fn(),
-}));
-
-vi.mock("@/features/doctor/hooks/useReminders", () => ({
-  useReminders: vi.fn(),
-}));
-
-vi.mock("recharts", () => ({
-  ResponsiveContainer: ({ children }: any) => (
-    <div data-testid="chart-container">{children}</div>
-  ),
-  ComposedChart: ({ children }: any) => <div>{children}</div>,
-  AreaChart: ({ children }: any) => <div>{children}</div>,
-  Line: () => null,
-  Area: () => null,
-  XAxis: () => null,
-  YAxis: () => null,
-  CartesianGrid: () => null,
-  Tooltip: () => null,
-  Legend: () => null,
-}));
-
-// Mock child components that have their own complex queries
-vi.mock("@/features/doctor/components/PendingTransfersSection", () => ({
-  default: () => null,
-}));
-
-vi.mock("@/features/doctor/components/RevenueChart", () => ({
-  default: () => <div data-testid="revenue-chart" />,
-}));
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-import { useQuery } from "@tanstack/react-query";
-import { useDashboardMetrics } from "@/features/doctor/hooks/useDashboardMetrics";
-import { useRevenueChart } from "@/features/doctor/hooks/useRevenueChart";
-import { useReminders } from "@/features/doctor/hooks/useReminders";
-
-function setupHooks({
-  metricsData = null,
-  metricsLoading = false,
-  agendaResults = [],
-  agendaLoading = false,
-}: {
-  metricsData?: any;
-  metricsLoading?: boolean;
-  agendaResults?: any[];
-  agendaLoading?: boolean;
-} = {}) {
-  (useDashboardMetrics as Mock).mockReturnValue({
-    data: metricsData,
-    isLoading: metricsLoading,
-  });
-
-  (useRevenueChart as Mock).mockReturnValue({
-    data: [],
-    isLoading: false,
-  });
-
-  (useReminders as Mock).mockReturnValue({
-    data: [],
-    isLoading: false,
-  });
-
-  // useQuery is used for the agenda (today's appointments)
-  (useQuery as Mock).mockReturnValue({
-    data: { count: agendaResults.length, results: agendaResults, next: null, previous: null },
-    isLoading: agendaLoading,
-  });
-}
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
@@ -142,85 +48,81 @@ describe("Dashboard", () => {
   });
 
   it("renders greeting with doctor first name", () => {
-    setupHooks();
     render(<Dashboard />);
-    // greeting includes the first name
     expect(screen.getByText(/Estefanía/)).toBeInTheDocument();
   });
 
-  it("renders the 4 metric cards section", () => {
-    setupHooks();
+  it("renders the 4 pipeline stage cards", () => {
     render(<Dashboard />);
-    expect(screen.getByText("Turnos hoy")).toBeInTheDocument();
-    expect(screen.getByText("Esta semana")).toBeInTheDocument();
-    expect(screen.getByText("Ingresos del mes")).toBeInTheDocument();
-    expect(screen.getByText("Tasa de no-show")).toBeInTheDocument();
+    expect(screen.getByText("Confirmados")).toBeInTheDocument();
+    // "En sala" appears in stage card and in StateBadge — use getAllBy
+    expect(screen.getAllByText("En sala").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("En consulta").length).toBeGreaterThan(0);
+    expect(screen.getByText("Atendidos")).toBeInTheDocument();
   });
 
   it("shows Agenda de hoy section header", () => {
-    setupHooks();
     render(<Dashboard />);
     expect(screen.getByText("Agenda de hoy")).toBeInTheDocument();
   });
 
-  it("shows revenue chart area header", () => {
-    setupHooks();
+  it("shows Bandeja clínica section header", () => {
     render(<Dashboard />);
-    expect(screen.getByText(/Ingresos · 30 dias/)).toBeInTheDocument();
+    expect(screen.getByText("Bandeja clínica")).toBeInTheDocument();
   });
 
-  it("shows Recordatorios section header", () => {
-    setupHooks();
+  it("shows Caja de hoy section", () => {
     render(<Dashboard />);
-    expect(screen.getByText("Recordatorios")).toBeInTheDocument();
+    expect(screen.getByText("Caja de hoy")).toBeInTheDocument();
+    // "Cobrado" appears once in the caja card; "Por cobrar" also in AgendaRow badges
+    expect(screen.getByText("Cobrado")).toBeInTheDocument();
+    expect(screen.getAllByText("Por cobrar").length).toBeGreaterThan(0);
   });
 
-  it("renders Exportar button", () => {
-    setupHooks();
-    render(<Dashboard />);
-    expect(screen.getByText("Exportar")).toBeInTheDocument();
-  });
-
-  it("renders Nuevo turno link/button", () => {
-    setupHooks();
+  it("renders Nuevo turno button", () => {
     render(<Dashboard />);
     expect(screen.getByText("Nuevo turno")).toBeInTheDocument();
   });
 
-  it("shows Sin turnos hoy when agenda is empty", () => {
-    setupHooks({ agendaResults: [] });
+  it("renders Ver agenda button", () => {
     render(<Dashboard />);
-    expect(screen.getByText("Sin turnos hoy")).toBeInTheDocument();
+    expect(screen.getByText("Ver agenda")).toBeInTheDocument();
   });
 
-  it("renders agenda appointment names when present", () => {
-    setupHooks({
-      agendaResults: [
-        {
-          id: 1,
-          patient: 10,
-          patient_name: "Lucas Pérez",
-          service: 1,
-          service_name: "Control sano",
-          location: 1,
-          location_name: "Pucón",
-          scheduled_date: "2026-06-10",
-          start_time: "09:00:00",
-          end_time: "09:30:00",
-          status: "CONFIRMED",
-          status_display: "Confirmado",
-          is_online: false,
-          call_platform: "",
-          hold_expires_at: null,
-          meeting_link: "",
-          attendance_confirmed: false,
-          notes: "",
-          created_at: "2026-06-01T00:00:00Z",
-          updated_at: "2026-06-01T00:00:00Z",
-        },
-      ],
-    });
+  it("renders demo agenda items", () => {
     render(<Dashboard />);
-    expect(screen.getByText("Lucas Pérez")).toBeInTheDocument();
+    // Names appear in both the focus card and the agenda list
+    expect(screen.getAllByText("Lucas Martínez").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Tomás Silva").length).toBeGreaterThan(0);
+  });
+
+  it("renders clinical inbox tasks", () => {
+    render(<Dashboard />);
+    expect(screen.getByText("Hemograma por revisar")).toBeInTheDocument();
+    expect(screen.getByText("Receta por firmar")).toBeInTheDocument();
+  });
+
+  it("shows focus card for current patient in consulta", () => {
+    render(<Dashboard />);
+    // Lucas is in consulta state — should appear in the focus card header
+    expect(screen.getByText("● Ahora en consulta")).toBeInTheDocument();
+  });
+
+  it("filters agenda by clicking a stage card", () => {
+    render(<Dashboard />);
+    const confirmadosCard = screen.getByText("Confirmados").closest("button");
+    expect(confirmadosCard).toBeTruthy();
+    fireEvent.click(confirmadosCard!);
+    // After filter: "Ver todos" link should appear
+    expect(screen.getByText("Ver todos")).toBeInTheDocument();
+  });
+
+  it("resolving a task removes it from the inbox", () => {
+    render(<Dashboard />);
+    // First "Revisar" button corresponds to the hemograma task
+    const resolveBtn = screen.getAllByText("Revisar")[0];
+    expect(resolveBtn).toBeInTheDocument();
+    fireEvent.click(resolveBtn);
+    expect(screen.queryByText("Hemograma por revisar")).not.toBeInTheDocument();
   });
 });

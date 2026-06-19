@@ -287,7 +287,10 @@ export default function DoctorLayout() {
   // Fetch locations for sede selector
   const { data: locations } = useQuery({
     queryKey: ["locations"],
-    queryFn: () => api.get<Location[]>("/locations/").then((r) => r.data),
+    queryFn: () =>
+      api
+        .get<{ results: Location[] }>("/practices/dra-estefi/locations/")
+        .then((r) => r.data.results),
     staleTime: 1000 * 60 * 30,
   });
 
@@ -325,7 +328,8 @@ export default function DoctorLayout() {
 
   const sedeOptions: { id: number | null; name: string }[] = [
     { id: null, name: "Todas" },
-    ...(locations ?? []).map((l) => ({ id: l.id, name: l.name })),
+    ...(locations ?? []).map((l) => ({ id: l.id, name: l.city || l.name })),
+    { id: -1, name: "Online" },
   ];
 
   return (

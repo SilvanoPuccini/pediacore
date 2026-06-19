@@ -22,6 +22,7 @@ class TutorPatientSerializer(serializers.ModelSerializer):
 
     tutor_email = serializers.EmailField(source="tutor.email", read_only=True)
     tutor_full_name = serializers.CharField(source="tutor.full_name", read_only=True)
+    tutor_phone = serializers.CharField(source="tutor.phone", read_only=True, default="")
 
     class Meta:
         model = TutorPatient
@@ -30,6 +31,7 @@ class TutorPatientSerializer(serializers.ModelSerializer):
             "tutor",
             "tutor_email",
             "tutor_full_name",
+            "tutor_phone",
             "relationship",
             "is_primary",
             "created_at",

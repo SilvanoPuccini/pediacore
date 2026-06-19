@@ -640,11 +640,13 @@ export default function Calendar() {
           </span>
         )}
 
-        {/* New appointment (placeholder) */}
-        <button className={cn(
-          "flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] bg-teal-dark text-white text-[12.5px] font-semibold hover:opacity-90 transition-opacity",
-          locations.length === 0 && "ml-auto"
-        )}>
+        {/* New appointment */}
+        <button
+          onClick={() => window.open("/reservar", "_blank")}
+          className={cn(
+            "flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] bg-teal-dark text-white text-[12.5px] font-semibold hover:opacity-90 transition-opacity",
+            locations.length === 0 && "ml-auto"
+          )}>
           <Plus size={14} />
           Nuevo turno
         </button>

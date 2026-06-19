@@ -7,13 +7,13 @@
 
 :root {
   --radius: 0.625rem;
-  --background: #FBF8F3;
+  --background: #FAFAF7;
   --foreground: #2C2C2C;
   --card: #FFFFFF;
   --card-foreground: #2C2C2C;
   --popover: #FFFFFF;
   --popover-foreground: #2C2C2C;
-  --primary: #4A8590;
+  --primary: #5CB8A4;
   --primary-foreground: #FFFFFF;
   --secondary: #F7F0E5;
   --secondary-foreground: #2C2C2C;
@@ -25,27 +25,31 @@
   --destructive-foreground: #FFFFFF;
   --border: #E8E6E1;
   --input: #E8E6E1;
-  --ring: #7BB5BD;
+  --ring: #7DD3C0;
 
   /* Brand colors */
-  --teal: #7BB5BD;
-  --teal-dark: #4A8590;
-  --coral: #F3A8A1;
+  --teal: #7DD3C0;
+  --teal-dark: #5CB8A4;
+  --coral: #F4A89A;
   --mustard: #E5B847;
   --sage: #A8C9A8;
   --peach: #F5D5C1;
+  --lavender: #C7B8E8;
+  --ok: #A8D5B5;
+  --warn: #F5D4A0;
+  --err: #E8A0A0;
   --ink: #2C2C2C;
   --ink2: #6B6B6B;
   --ink3: #A0A0A0;
   --line: #E8E6E1;
-  --bg: #FBF8F3;
+  --bg: #FAFAF7;
   --cream: #F7F0E5;
   --surface: #FFFFFF;
 
   /* Child color palettes (cycle: teal / coral / mustard / sage) */
-  --child-0-bg: #EEF7F8;
-  --child-0-text: #4A8590;
-  --child-0-border: #7BB5BD;
+  --child-0-bg: #D6F1EA;
+  --child-0-text: #3E8E7C;
+  --child-0-border: #7DD3C0;
   --child-1-bg: #FDF0EF;
   --child-1-text: #C0524A;
   --child-1-border: #F3A8A1;
@@ -56,19 +60,19 @@
   --child-3-text: #4A7A4A;
   --child-3-border: #A8C9A8;
 
-  --chart-1: #7BB5BD;
+  --chart-1: #7DD3C0;
   --chart-2: #F3A8A1;
   --chart-3: #E5B847;
   --chart-4: #A8C9A8;
   --chart-5: #F5D5C1;
-  --sidebar: #FBF8F3;
+  --sidebar: #FAFAF7;
   --sidebar-foreground: #2C2C2C;
-  --sidebar-primary: #4A8590;
+  --sidebar-primary: #5CB8A4;
   --sidebar-primary-foreground: #FFFFFF;
   --sidebar-accent: #F7F0E5;
   --sidebar-accent-foreground: #2C2C2C;
   --sidebar-border: #E8E6E1;
-  --sidebar-ring: #7BB5BD;
+  --sidebar-ring: #7DD3C0;
 }
 
 @theme inline {
@@ -133,6 +137,10 @@
   --color-bg: var(--bg);
   --color-cream: var(--cream);
   --color-surface: var(--surface);
+  --color-lavender: var(--lavender);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-err: var(--err);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -144,7 +152,7 @@
   --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.03), 0 1px 3px rgba(15, 23, 42, 0.04);
   --shadow-soft: 0 4px 18px rgba(15, 23, 42, 0.04);
   --shadow-pop: 0 14px 40px rgba(15, 23, 42, 0.08);
-  --shadow-cta: 0 10px 30px rgba(74, 133, 144, 0.28);
+  --shadow-cta: 0 10px 30px rgba(92, 184, 164, 0.28);
 
   --animate-marquee: marquee var(--duration) infinite linear;
   --animate-marquee-vertical: marquee-vertical var(--duration) linear infinite;
@@ -169,6 +177,20 @@ body {
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
 }
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #E8E6E1; border-radius: 999px; border: 2px solid var(--bg); }
+::-webkit-scrollbar-thumb:hover { background: #d8d6d1; }
+
+.focus-ring:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+
+/* ── Drawer animations ────────────────────────────────────────────────── */
+@keyframes drawerFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes drawerIn { 0% { transform: translateX(24px); } 100% { transform: none; } }
+@keyframes consultaFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes consultaIn { 0% { transform: translateX(24px); } 100% { transform: none; } }
 
 /* ── Portal animations ─────────────────────────────────────────────────── */
 @keyframes portalFade {
