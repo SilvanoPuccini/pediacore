@@ -559,6 +559,44 @@ export interface WorkingHours {
   is_active: boolean;
 }
 
+// ─── Vaccinations ────────────────────────────────────────────────────────────
+
+export interface VaccineScheduleEntry {
+  id: number;
+  name: string;
+  disease: string;
+  dose_label: string;
+  age_months: number;
+  age_label: string;
+  route: string;
+  display_order: number;
+}
+
+export interface Vaccination {
+  id: number;
+  patient: number;
+  patient_name: string;
+  vaccine_schedule: number | null;
+  vaccine_name: string;
+  dose_label: string;
+  lot_number: string;
+  administered_at: string;
+  administered_by: number | null;
+  site: string;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface VaccinationStatus {
+  patient_id: number;
+  patient_name: string;
+  age_months: number;
+  applied: VaccineScheduleEntry[];
+  pending: VaccineScheduleEntry[];
+  upcoming: VaccineScheduleEntry[];
+}
+
 // ─── PatientFile ──────────────────────────────────────────────────────────────
 
 export interface PatientFile {
