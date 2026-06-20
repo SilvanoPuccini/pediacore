@@ -5,8 +5,8 @@ import {
   ArrowLeft, Droplets, AlertCircle, FileText, TrendingUp,
   Paperclip, Syringe, ClipboardList, Download, Baby, Users,
   Scale, Ruler, CircleUser, Activity, ChevronRight,
-  X, Pencil, Plus, Check, Stethoscope, Video, Thermometer,
-  Calendar, Phone, Mail, MapPin, Pill, Trash2, Clock, User,
+  X, Pencil, Plus, Check, Stethoscope, Thermometer,
+  Calendar, CalendarDays, Phone, Mail, MapPin, Pill, Trash2, Clock, User,
   FileCheck, Folder,
 } from "lucide-react";
 import {
@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth";
 import type {
   Patient, GrowthPoint, PaginatedResponse, Encounter, PatientFile,
+  VaccineScheduleEntry, Vaccination, VaccinationStatus,
 } from "@/types/api";
 
 // ─── OMS reference data ─────────────────────────────────────────────────────
@@ -132,11 +133,6 @@ type ChartPoint = {
   patient?: number;
 };
 
-type VacunaLocal = {
-  id: string; nombre: string; edad: string; fecha: string;
-  estado: "aplicada" | "pendiente";
-  lote?: string; via?: string; sitio?: string; prof?: string;
-};
 
 type SistemaState = { estado: "normal" | "alterado"; nota: string };
 type MedRow = { nombre: string; dosis: string; frecuencia: string; duracion: string };
@@ -175,6 +171,66 @@ function sexLabel(sex: string): string {
   return "No especifica";
 }
 
+const SEX_OPTIONS = [
+  { value: "M", label: "Masculino" },
+  { value: "F", label: "Femenino" },
+  { value: "NO_ESPECIFICA", label: "No especifica" },
+];
+
+const BLOOD_TYPE_OPTIONS = [
+  { value: "", label: "No registrado" },
+  { value: "O+", label: "O+" }, { value: "O-", label: "O-" },
+  { value: "A+", label: "A+" }, { value: "A-", label: "A-" },
+  { value: "B+", label: "B+" }, { value: "B-", label: "B-" },
+  { value: "AB+", label: "AB+" }, { value: "AB-", label: "AB-" },
+];
+
+const INSURANCE_OPTIONS = [
+  { value: "", label: "Sin previsión" },
+  { value: "FONASA_A", label: "Fonasa A" },
+  { value: "FONASA_B", label: "Fonasa B" },
+  { value: "FONASA_C", label: "Fonasa C" },
+  { value: "FONASA_D", label: "Fonasa D" },
+  { value: "ISAPRE_BANMEDICA", label: "Isapre Banmédica" },
+  { value: "ISAPRE_COLMENA", label: "Isapre Colmena" },
+  { value: "ISAPRE_CONSALUD", label: "Isapre Consalud" },
+  { value: "ISAPRE_CRUZ_BLANCA", label: "Isapre Cruz Blanca" },
+  { value: "ISAPRE_MASVIDA", label: "Isapre MásVida" },
+  { value: "ISAPRE_NUEVA_MASVIDA", label: "Isapre Nueva MásVida" },
+  { value: "ISAPRE_ESENCIAL", label: "Isapre Esencial" },
+  { value: "ISAPRE_VIDATRES", label: "Isapre Vida Tres" },
+  { value: "ISAPRE_BUPA", label: "Isapre Bupa" },
+  { value: "ISAPRE_LIFESECURITY", label: "Isapre Lifesecurity" },
+  { value: "ISAPRE_ALEMANA_SALUD", label: "Isapre Alemana Salud" },
+  { value: "FFAA_CAPREDENA", label: "FFAA Capredena" },
+  { value: "FFAA_DIPRECA", label: "FFAA Dipreca" },
+  { value: "PARTICULAR", label: "Particular" },
+  { value: "SIN_PREVISION", label: "Sin previsión" },
+  { value: "OTRO", label: "Otro" },
+];
+
+const BIRTH_TYPE_OPTIONS = [
+  { value: "", label: "—" },
+  { value: "VAGINAL", label: "Vaginal" },
+  { value: "CESAREAN", label: "Cesárea" },
+  { value: "FORCEPS", label: "Fórceps" },
+  { value: "VACUUM", label: "Vacuum" },
+];
+
+const FEEDING_TYPE_OPTIONS = [
+  { value: "", label: "—" },
+  { value: "EXCLUSIVE_BREASTFEEDING", label: "Lactancia materna exclusiva" },
+  { value: "MIXED", label: "Mixta" },
+  { value: "FORMULA", label: "Fórmula" },
+  { value: "COMPLEMENTARY", label: "Alimentación complementaria" },
+  { value: "SOLID", label: "Sólidos" },
+];
+
+function choiceLabel(options: { value: string; label: string }[], value: string | null | undefined, fallback = "No registrado"): string {
+  if (!value) return fallback;
+  return options.find((o) => o.value === value)?.label ?? value;
+}
+
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
@@ -192,8 +248,9 @@ function formatDate(iso: string): string {
 const consultaInput = "w-full px-3 py-2.5 rounded-[10px] bg-bg border border-line text-[13px] text-ink placeholder:text-ink3 focus:outline-none focus:border-teal focus:ring-2 focus:ring-teal/20 transition";
 
 const TYPE_LABEL: Record<string, string> = {
-  FIRST_VISIT: "Primera consulta", FOLLOW_UP: "Control",
-  URGENT: "Urgencia", PREVENTIVE: "Preventiva", TELEMEDICINE: "Telemedicina",
+  CONSULTATION: "Consulta", WELL_CHILD_VISIT: "Control sano",
+  FOLLOW_UP: "Control", EMERGENCY: "Urgencia",
+  VACCINATION: "Vacunacion", OTHER: "Otra",
 };
 
 const CHIP_COLORS: Record<string, { bg: string; text: string }> = {
@@ -222,11 +279,12 @@ const INDICATOR_CONFIG: Record<MetricKey, {
 };
 
 const TIPO_CHIP_COLORS: Record<string, { bg: string; text: string }> = {
-  PREVENTIVE:   { bg: "rgba(125,211,192,0.20)", text: "#3E8E7C" },
-  FOLLOW_UP:    { bg: "rgba(125,211,192,0.20)", text: "#3E8E7C" },
-  FIRST_VISIT:  { bg: "rgba(199,184,232,0.30)", text: "#6B569E" },
-  URGENT:       { bg: "rgba(244,168,154,0.25)", text: "#B5604F" },
-  TELEMEDICINE: { bg: "rgba(244,168,154,0.25)", text: "#B5604F" },
+  WELL_CHILD_VISIT: { bg: "rgba(125,211,192,0.20)", text: "#3E8E7C" },
+  FOLLOW_UP:        { bg: "rgba(125,211,192,0.20)", text: "#3E8E7C" },
+  CONSULTATION:     { bg: "rgba(199,184,232,0.30)", text: "#6B569E" },
+  EMERGENCY:        { bg: "rgba(244,168,154,0.25)", text: "#B5604F" },
+  VACCINATION:      { bg: "rgba(168,213,181,0.25)", text: "#3F8358" },
+  OTHER:            { bg: "rgba(107,107,107,0.12)", text: "#4A4A4A" },
 };
 
 const SISTEMAS = [
@@ -257,17 +315,6 @@ const TIPO_TO_ENCOUNTER: Record<string, string> = {
   online: "CONSULTATION",
 };
 
-const FICHA_VACUNAS_SEED: VacunaLocal[] = [
-  { id: "v1", nombre: "BCG", edad: "Recien nacido", fecha: "15 dic 2022", estado: "aplicada", lote: "BCG-4471", via: "Intradermica", sitio: "Brazo derecho", prof: "Matrona" },
-  { id: "v2", nombre: "Hexavalente (1a dosis)", edad: "2 meses", fecha: "18 feb 2023", estado: "aplicada", lote: "HEX-8821", via: "Intramuscular", sitio: "Muslo izquierdo", prof: "Enf. CESFAM" },
-  { id: "v3", nombre: "Neumococica (1a)", edad: "2 meses", fecha: "18 feb 2023", estado: "aplicada", lote: "PCV-2231", via: "Intramuscular", sitio: "Muslo derecho", prof: "Enf. CESFAM" },
-  { id: "v4", nombre: "Hexavalente (2a dosis)", edad: "4 meses", fecha: "20 abr 2023", estado: "aplicada", lote: "HEX-9014", via: "Intramuscular", sitio: "Muslo izquierdo", prof: "Enf. CESFAM" },
-  { id: "v5", nombre: "Hexavalente (3a dosis)", edad: "6 meses", fecha: "22 jun 2023", estado: "aplicada", lote: "HEX-1180", via: "Intramuscular", sitio: "Muslo derecho", prof: "Dra. Estefi" },
-  { id: "v6", nombre: "Tres virica (SRP)", edad: "12 meses", fecha: "18 dic 2023", estado: "aplicada", lote: "SRP-5567", via: "Subcutanea", sitio: "Brazo izquierdo", prof: "Dra. Estefi" },
-  { id: "v7", nombre: "Hepatitis A", edad: "18 meses", fecha: "20 jun 2024", estado: "aplicada", lote: "HEP-3390", via: "Intramuscular", sitio: "Brazo derecho", prof: "Dra. Estefi" },
-  { id: "v8", nombre: "DTP refuerzo", edad: "4 anos", fecha: "Pendiente", estado: "pendiente" },
-  { id: "v9", nombre: "Tres virica (2a dosis)", edad: "4 anos", fecha: "Pendiente", estado: "pendiente" },
-];
 
 // ─── Small UI components ─────────────────────────────────────────────────────
 
@@ -325,14 +372,14 @@ function EditRow({ label, value, onChange, half, placeholder }: {
 }
 
 function EditField({ label, value, onChange, options, half }: {
-  label: string; value: string; onChange: (v: string) => void; options: string[]; half?: boolean;
+  label: string; value: string; onChange: (v: string) => void; options: { value: string; label: string }[]; half?: boolean;
 }) {
   return (
     <div className={half ? "" : "col-span-2"}>
       <div className="text-[11px] text-ink3 font-medium mb-1">{label}</div>
       <select value={value} onChange={(e) => onChange(e.target.value)}
         className="w-full px-3 py-2 rounded-[9px] bg-bg border border-line text-[13px] text-ink focus:outline-none focus:border-teal focus:ring-2 focus:ring-teal/20 transition">
-        {options.map((o) => <option key={o}>{o}</option>)}
+        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
     </div>
   );
@@ -424,8 +471,9 @@ function ConsultaHistRow({ encounter, isNew, onOpen }: {
   encounter: Encounter; isNew?: boolean; onOpen: (e: Encounter) => void;
 }) {
   const dateStr = formatDate(encounter.scheduled_at);
-  const TypeIcon = encounter.encounter_type === "PREVENTIVE" || encounter.encounter_type === "FOLLOW_UP"
-    ? Stethoscope : encounter.encounter_type === "TELEMEDICINE" ? Video : ClipboardList;
+  const TypeIcon = encounter.encounter_type === "WELL_CHILD_VISIT" || encounter.encounter_type === "FOLLOW_UP"
+    ? Stethoscope : encounter.encounter_type === "EMERGENCY" ? AlertCircle
+    : encounter.encounter_type === "VACCINATION" ? Syringe : ClipboardList;
 
   return (
     <button onClick={() => onOpen(encounter)}
@@ -538,14 +586,52 @@ function ConsultaDetalle({ encounter, patientName, onClose }: {
                   <p className="mt-2 text-[13px] text-ink2 leading-relaxed">{soap!.subjective}</p>
                 </section>
               )}
-              {soap!.objective && (
-                <section>
-                  <h4 className="text-[11px] uppercase tracking-[0.12em] font-bold text-ink3 flex items-center gap-1.5">
-                    <Stethoscope size={13} />O &mdash; Objetivo
-                  </h4>
-                  <p className="mt-2 text-[13px] text-ink2 leading-relaxed">{soap!.objective}</p>
-                </section>
-              )}
+              {soap!.objective && (() => {
+                const parts = soap!.objective.split(/\s*\|\s*/);
+                const vitals = parts.filter((p) => !p.startsWith("\n") && !p.startsWith("Examen"));
+                const examRaw = parts.find((p) => p.includes("Examen físico:"));
+                const examLines = examRaw
+                  ? examRaw.replace(/^[\s\S]*?Examen físico:\s*/, "").split("\n").filter(Boolean)
+                  : [];
+                return (
+                  <section>
+                    <h4 className="text-[11px] uppercase tracking-[0.12em] font-bold text-ink3 flex items-center gap-1.5">
+                      <Stethoscope size={13} />O &mdash; Objetivo
+                    </h4>
+                    {vitals.length > 0 && (
+                      <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1.5">
+                        {vitals.map((v, i) => {
+                          const [label, ...rest] = v.split(":");
+                          const val = rest.join(":").trim();
+                          return val ? (
+                            <div key={i} className="text-[13px]">
+                              <span className="text-ink3">{label.trim()}:</span>{" "}
+                              <span className="text-ink font-medium">{val}</span>
+                            </div>
+                          ) : (
+                            <div key={i} className="text-[13px] text-ink2">{v}</div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {examLines.length > 0 && (
+                      <div className="mt-3">
+                        <div className="text-[11.5px] font-semibold text-ink3 mb-1.5">Examen fisico</div>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                          {examLines.map((line, i) => {
+                            const isAltered = line.toLowerCase().includes("alterado");
+                            return (
+                              <div key={i} className={`text-[12.5px] ${isAltered ? "text-[#B5604F] font-semibold" : "text-ink2"}`}>
+                                {line.trim()}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </section>
+                );
+              })()}
               {soap!.assessment && (
                 <section>
                   <h4 className="text-[11px] uppercase tracking-[0.12em] font-bold text-ink3 flex items-center gap-1.5">
@@ -554,14 +640,41 @@ function ConsultaDetalle({ encounter, patientName, onClose }: {
                   <p className="mt-2 text-[13px] text-ink2 leading-relaxed">{soap!.assessment}</p>
                 </section>
               )}
-              {soap!.plan && (
-                <section>
-                  <h4 className="text-[11px] uppercase tracking-[0.12em] font-bold text-ink3 flex items-center gap-1.5">
-                    <FileText size={13} />P &mdash; Plan
-                  </h4>
-                  <p className="mt-2 text-[13px] text-ink2 leading-relaxed">{soap!.plan}</p>
-                </section>
-              )}
+              {soap!.plan && (() => {
+                const planText = soap!.plan;
+                const recetaMatch = planText.match(/\nReceta:\n([\s\S]*?)(?=\nPróximo|\n*$)/);
+                const proxMatch = planText.match(/\nPróximo control:\s*(.+)/);
+                const mainPlan = planText.replace(/\nReceta:\n[\s\S]*$/, "").trim();
+                const recetaLines = recetaMatch?.[1]?.split("\n").filter(Boolean) ?? [];
+                const proxControl = proxMatch?.[1]?.trim();
+                return (
+                  <section>
+                    <h4 className="text-[11px] uppercase tracking-[0.12em] font-bold text-ink3 flex items-center gap-1.5">
+                      <FileText size={13} />P &mdash; Plan
+                    </h4>
+                    {mainPlan && <p className="mt-2 text-[13px] text-ink2 leading-relaxed">{mainPlan}</p>}
+                    {recetaLines.length > 0 && (
+                      <div className="mt-3 bg-bg rounded-[10px] border border-line p-3">
+                        <div className="text-[11px] uppercase tracking-[0.1em] font-bold text-teal-dark mb-2 flex items-center gap-1.5">
+                          <FileText size={11} />Receta
+                        </div>
+                        <ul className="space-y-1">
+                          {recetaLines.map((med, i) => (
+                            <li key={i} className="text-[12.5px] text-ink flex items-start gap-2">
+                              <span className="w-1.5 h-1.5 rounded-full bg-teal mt-1.5 shrink-0" />{med}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {proxControl && (
+                      <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-lavender/15 text-[12px] font-semibold text-[#6B569E]">
+                        <CalendarDays size={12} />Proximo control: {proxControl}
+                      </div>
+                    )}
+                  </section>
+                );
+              })()}
             </>
           )}
 
@@ -632,18 +745,52 @@ function ConsultaDetalle({ encounter, patientName, onClose }: {
 
 // ─── VacunaPanel drawer ──────────────────────────────────────────────────────
 
-function VacunaPanel({ vacuna, isNew, patientName, onClose, onRegistrar }: {
-  vacuna: VacunaLocal; isNew: boolean; patientName: string;
-  onClose: () => void; onRegistrar: (data: VacunaLocal, isNew: boolean) => void;
+type VacunaPanelMode =
+  | { mode: "register-pending"; entry: VaccineScheduleEntry }
+  | { mode: "register-new" }
+  | { mode: "view-applied"; entry: VaccineScheduleEntry; record: Vaccination };
+
+function VacunaPanel({ panelState, patientId, patientName, onClose, onRegistrar }: {
+  panelState: VacunaPanelMode;
+  patientId: number;
+  patientName: string;
+  onClose: () => void;
+  onRegistrar: (payload: {
+    patient: number;
+    vaccine_schedule: number | null;
+    vaccine_name: string;
+    dose_label: string;
+    administered_at: string;
+    lot_number: string;
+    site: string;
+    notes: string;
+  }) => void;
 }) {
-  const aplicada = !isNew && vacuna.estado === "aplicada";
+  const isView = panelState.mode === "view-applied";
+  const isRegisterPending = panelState.mode === "register-pending";
+  const isRegisterNew = panelState.mode === "register-new";
+
+  const defaultVaccineName = isRegisterPending ? panelState.entry.name
+    : isRegisterNew ? ""
+    : panelState.entry.name;
+  const defaultDoseLabel = isRegisterPending ? panelState.entry.dose_label
+    : isRegisterNew ? ""
+    : panelState.entry.dose_label;
+  const defaultRoute = isRegisterPending ? panelState.entry.route
+    : isRegisterNew ? "Intramuscular"
+    : "";
+
+  const todayIso = new Date().toISOString().split("T")[0];
+
   const [form, setForm] = useState({
-    nombre: isNew ? "" : vacuna.nombre,
-    fecha: new Date().toLocaleDateString("es-CL"),
-    lote: "", via: "Intramuscular", sitio: "Muslo izquierdo",
+    vaccine_name: defaultVaccineName,
+    dose_label: defaultDoseLabel,
+    administered_at: todayIso,
+    lot_number: "",
+    site: "Muslo izquierdo",
+    notes: "",
+    via: defaultRoute,
   });
-  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setForm((f) => ({ ...f, [k]: e.target.value }));
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -651,9 +798,13 @@ function VacunaPanel({ vacuna, isNew, patientName, onClose, onRegistrar }: {
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  const canSave = form.nombre.trim() && form.fecha.trim();
-  const VIAS = ["Intramuscular", "Subcutanea", "Intradermica", "Oral"];
+  const setField = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) =>
+    setForm((f) => ({ ...f, [k]: v }));
+
+  const canSave = form.vaccine_name.trim() && form.administered_at.trim();
+
   const SITIOS = ["Muslo izquierdo", "Muslo derecho", "Brazo izquierdo", "Brazo derecho"];
+  const VIAS = ["Intramuscular", "Subcutanea", "Intradermica", "Oral"];
 
   const DetailRow = ({ label, val, ic }: { label: string; val: string; ic: React.ReactNode }) => (
     <div className="flex items-center justify-between gap-4 py-2.5">
@@ -662,72 +813,120 @@ function VacunaPanel({ vacuna, isNew, patientName, onClose, onRegistrar }: {
     </div>
   );
 
+  const headerLabel = isView ? "Vacuna aplicada"
+    : isRegisterPending ? "Registrar aplicacion"
+    : "Registrar vacuna";
+
+  const headerTitle = isRegisterNew ? "Nueva vacuna"
+    : isView ? panelState.entry.name
+    : panelState.entry.name;
+
+  const headerSub = isRegisterNew ? patientName
+    : `${patientName} \u00b7 ${isView ? panelState.entry.age_label : panelState.entry.age_label}`;
+
   return (
     <div className="fixed inset-0 z-[60] flex justify-end">
       <div className="absolute inset-0 bg-ink/25 backdrop-blur-sm" onClick={onClose}
         style={{ animation: "consultaFade 180ms ease-out" }} />
       <div className="relative h-full w-full max-w-[460px] bg-bg shadow-pop flex flex-col"
         style={{ animation: "consultaIn 280ms cubic-bezier(0.22,1,0.36,1)" }}>
+
+        {/* Header */}
         <div className="shrink-0 bg-surface border-b border-line px-6 py-4 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-[11px] uppercase tracking-[0.12em] font-bold text-teal-dark">
-              {aplicada ? "Vacuna aplicada" : isNew ? "Registrar vacuna" : "Registrar aplicacion"}
-            </div>
-            <h3 className="text-[17px] font-bold text-ink leading-tight mt-1 truncate">
-              {isNew ? "Nueva vacuna" : vacuna.nombre}
-            </h3>
-            <div className="text-[11.5px] text-ink3 mt-0.5">{patientName}{!isNew && vacuna.edad ? ` \u00b7 ${vacuna.edad}` : ""}</div>
+            <div className="text-[11px] uppercase tracking-[0.12em] font-bold text-teal-dark">{headerLabel}</div>
+            <h3 className="text-[17px] font-bold text-ink leading-tight mt-1 truncate">{headerTitle}</h3>
+            <div className="text-[11.5px] text-ink3 mt-0.5">{headerSub}</div>
           </div>
           <button onClick={onClose} className="w-9 h-9 rounded-[10px] bg-bg border border-line flex items-center justify-center text-ink2 hover:bg-line/50 transition shrink-0 focus-ring">
             <X size={16} />
           </button>
         </div>
 
+        {/* Body */}
         <div className="flex-1 overflow-y-auto px-6 py-5">
-          {aplicada ? (
+          {isView ? (
             <>
               <div className="flex items-center gap-2.5 px-4 py-3 rounded-[12px] bg-ok/20 border border-ok/40 mb-5">
                 <div className="w-8 h-8 rounded-full bg-ok/50 flex items-center justify-center text-[#3F8358]"><Check size={16} /></div>
                 <div>
-                  <div className="text-[12.5px] font-bold text-ink">Aplicada el {vacuna.fecha}</div>
+                  <div className="text-[12.5px] font-bold text-ink">
+                    Aplicada el {new Date(panelState.record.administered_at).toLocaleDateString("es-CL", { day: "2-digit", month: "short", year: "numeric" })}
+                  </div>
                   <div className="text-[11px] text-ink3">Registrada en el carne PNI</div>
                 </div>
               </div>
               <div className="bg-surface border border-line rounded-[12px] px-4 divide-y divide-line/70">
-                <DetailRow label="Vacuna" val={vacuna.nombre} ic={<Syringe size={13} className="text-teal-dark" />} />
-                <DetailRow label="Edad" val={vacuna.edad} ic={<Baby size={13} className="text-teal-dark" />} />
-                <DetailRow label="Fecha" val={vacuna.fecha} ic={<Calendar size={13} className="text-teal-dark" />} />
-                <DetailRow label="Lote" val={vacuna.lote ?? "\u2014"} ic={<ClipboardList size={13} className="text-teal-dark" />} />
-                <DetailRow label="Via" val={vacuna.via ?? "\u2014"} ic={<Pill size={13} className="text-teal-dark" />} />
-                <DetailRow label="Sitio" val={vacuna.sitio ?? "\u2014"} ic={<MapPin size={13} className="text-teal-dark" />} />
-                <DetailRow label="Profesional" val={vacuna.prof ?? "\u2014"} ic={<CircleUser size={13} className="text-teal-dark" />} />
+                <DetailRow label="Vacuna" val={panelState.record.vaccine_name} ic={<Syringe size={13} className="text-teal-dark" />} />
+                <DetailRow label="Dosis" val={panelState.record.dose_label || "\u2014"} ic={<Baby size={13} className="text-teal-dark" />} />
+                <DetailRow label="Fecha" val={new Date(panelState.record.administered_at).toLocaleDateString("es-CL", { day: "2-digit", month: "short", year: "numeric" })} ic={<Calendar size={13} className="text-teal-dark" />} />
+                <DetailRow label="Lote" val={panelState.record.lot_number || "\u2014"} ic={<ClipboardList size={13} className="text-teal-dark" />} />
+                <DetailRow label="Sitio" val={panelState.record.site || "\u2014"} ic={<MapPin size={13} className="text-teal-dark" />} />
+                {panelState.record.notes && (
+                  <DetailRow label="Notas" val={panelState.record.notes} ic={<FileText size={13} className="text-teal-dark" />} />
+                )}
               </div>
             </>
           ) : (
             <div className="space-y-4">
-              {isNew && (
+              {isRegisterNew && (
                 <div>
-                  <label className="text-[11.5px] font-semibold text-ink2">Vacuna</label>
-                  <input value={form.nombre} onChange={set("nombre")} placeholder="Ej: Influenza" className={"mt-1.5 " + consultaInput} />
+                  <label className="text-[11.5px] font-semibold text-ink2">Nombre de la vacuna</label>
+                  <input
+                    value={form.vaccine_name}
+                    onChange={(e) => setField("vaccine_name", e.target.value)}
+                    placeholder="Ej: Influenza"
+                    className={"mt-1.5 " + consultaInput}
+                  />
+                </div>
+              )}
+              {isRegisterNew && (
+                <div>
+                  <label className="text-[11.5px] font-semibold text-ink2">Dosis</label>
+                  <input
+                    value={form.dose_label}
+                    onChange={(e) => setField("dose_label", e.target.value)}
+                    placeholder="Ej: 1a dosis"
+                    className={"mt-1.5 " + consultaInput}
+                  />
+                </div>
+              )}
+              {isRegisterPending && (
+                <div className="px-4 py-3 rounded-[12px] bg-teal/10 border border-teal/25">
+                  <div className="text-[11px] font-semibold text-teal-dark uppercase tracking-wide mb-1">Vacuna del esquema PNI</div>
+                  <div className="text-[13px] font-bold text-ink">{panelState.entry.name} &mdash; {panelState.entry.dose_label}</div>
+                  <div className="text-[11px] text-ink3 mt-0.5">{panelState.entry.age_label} &middot; {panelState.entry.disease}</div>
                 </div>
               )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[11.5px] font-semibold text-ink2">Fecha de aplicacion</label>
-                  <input value={form.fecha} onChange={set("fecha")} className={"mt-1.5 " + consultaInput} />
+                  <input
+                    type="date"
+                    value={form.administered_at}
+                    onChange={(e) => setField("administered_at", e.target.value)}
+                    className={"mt-1.5 " + consultaInput}
+                  />
                 </div>
                 <div>
                   <label className="text-[11.5px] font-semibold text-ink2">Lote</label>
-                  <input value={form.lote} onChange={set("lote")} placeholder="Ej: HEX-1180" className={"mt-1.5 " + consultaInput} />
+                  <input
+                    value={form.lot_number}
+                    onChange={(e) => setField("lot_number", e.target.value)}
+                    placeholder="Ej: HEX-1180"
+                    className={"mt-1.5 " + consultaInput}
+                  />
                 </div>
               </div>
               <div>
                 <label className="text-[11.5px] font-semibold text-ink2">Via de administracion</label>
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
                   {VIAS.map((v) => (
-                    <button key={v} onClick={() => setForm((f) => ({ ...f, via: v }))}
+                    <button key={v} onClick={() => setField("via", v)}
                       className={cn("px-3 py-1.5 rounded-full text-[11.5px] font-semibold border transition",
-                        form.via === v ? "bg-teal-dark text-white border-teal-dark" : "bg-surface text-ink2 border-line hover:bg-bg")}>{v}</button>
+                        form.via === v ? "bg-teal-dark text-white border-teal-dark" : "bg-surface text-ink2 border-line hover:bg-bg")}>
+                      {v}
+                    </button>
                   ))}
                 </div>
               </div>
@@ -735,27 +934,49 @@ function VacunaPanel({ vacuna, isNew, patientName, onClose, onRegistrar }: {
                 <label className="text-[11.5px] font-semibold text-ink2">Sitio de puncion</label>
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
                   {SITIOS.map((s) => (
-                    <button key={s} onClick={() => setForm((f) => ({ ...f, sitio: s }))}
+                    <button key={s} onClick={() => setField("site", s)}
                       className={cn("px-3 py-1.5 rounded-full text-[11.5px] font-semibold border transition",
-                        form.sitio === s ? "bg-teal/20 border-teal/40 text-teal-dark" : "bg-surface text-ink2 border-line hover:bg-bg")}>{s}</button>
+                        form.site === s ? "bg-teal/20 border-teal/40 text-teal-dark" : "bg-surface text-ink2 border-line hover:bg-bg")}>
+                      {s}
+                    </button>
                   ))}
                 </div>
+              </div>
+              <div>
+                <label className="text-[11.5px] font-semibold text-ink2">Notas (opcional)</label>
+                <input
+                  value={form.notes}
+                  onChange={(e) => setField("notes", e.target.value)}
+                  placeholder="Observaciones adicionales"
+                  className={"mt-1.5 " + consultaInput}
+                />
               </div>
             </div>
           )}
         </div>
 
+        {/* Footer */}
         <div className="shrink-0 bg-surface border-t border-line px-6 py-3.5 flex items-center justify-end gap-2">
           <button onClick={onClose} className="px-4 py-2.5 rounded-[10px] text-[12.5px] font-semibold text-ink2 hover:bg-bg transition focus-ring">
-            {aplicada ? "Cerrar" : "Cancelar"}
+            {isView ? "Cerrar" : "Cancelar"}
           </button>
-          {aplicada ? (
+          {isView ? (
             <button onClick={onClose} className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-[10px] bg-surface border border-line text-[12.5px] font-semibold text-ink2 hover:bg-bg transition focus-ring">
               <Download size={14} /> Carne PDF
             </button>
           ) : (
-            <button disabled={!canSave}
-              onClick={() => onRegistrar({ ...vacuna, ...form, estado: "aplicada" }, isNew)}
+            <button
+              disabled={!canSave}
+              onClick={() => onRegistrar({
+                patient: patientId,
+                vaccine_schedule: isRegisterPending ? panelState.entry.id : null,
+                vaccine_name: form.vaccine_name,
+                dose_label: form.dose_label,
+                administered_at: form.administered_at,
+                lot_number: form.lot_number,
+                site: form.site,
+                notes: form.notes,
+              })}
               className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-[10px] bg-teal-dark text-white text-[12.5px] font-semibold hover:opacity-90 transition shadow-soft focus-ring disabled:opacity-40 disabled:cursor-not-allowed">
               <Check size={15} /> Registrar aplicacion
             </button>
@@ -1169,9 +1390,7 @@ export default function PatientFicha() {
   const [consultaOpen, setConsultaOpen] = useState(false);
   const [savingConsulta, setSavingConsulta] = useState(false);
   const [detalleConsulta, setDetalleConsulta] = useState<Encounter | null>(null);
-  const [vacunas, setVacunas] = useState<VacunaLocal[]>(() => FICHA_VACUNAS_SEED.map((v) => ({ ...v })));
-  const [vacunaSel, setVacunaSel] = useState<VacunaLocal | null>(null);
-  const [vacunaNueva, setVacunaNueva] = useState(false);
+  const [vacunaPanel, setVacunaPanel] = useState<VacunaPanelMode | null>(null);
   const [editDatos, setEditDatos] = useState(false);
   const [editAnt, setEditAnt] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1223,6 +1442,46 @@ export default function PatientFicha() {
     enabled: !!id && activeTab === "archivos",
   });
 
+  const vaccineStatusQ = useQuery<VaccinationStatus>({
+    queryKey: ["vaccine-status", id],
+    queryFn: async () => {
+      const { data } = await api.get<VaccinationStatus>(`/vaccinations/patient-status/?patient_id=${id}`);
+      return data;
+    },
+    enabled: !!id && activeTab === "vacunas",
+  });
+
+  const vaccinationsQ = useQuery<PaginatedResponse<Vaccination>>({
+    queryKey: ["vaccinations", id],
+    queryFn: async () => {
+      const { data } = await api.get<PaginatedResponse<Vaccination>>(`/vaccinations/?patient_id=${id}&page_size=200`);
+      return data;
+    },
+    enabled: !!id && activeTab === "vacunas",
+  });
+
+  const registerVaccineMutation = useMutation({
+    mutationFn: async (payload: {
+      patient: number;
+      vaccine_schedule: number | null;
+      vaccine_name: string;
+      dose_label: string;
+      administered_at: string;
+      lot_number: string;
+      site: string;
+      notes: string;
+    }) => {
+      const { data } = await api.post<Vaccination>("/vaccinations/", payload);
+      return data;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["vaccine-status", id] });
+      void qc.invalidateQueries({ queryKey: ["vaccinations", id] });
+      setVacunaPanel(null);
+      flash("Vacuna registrada");
+    },
+  });
+
   const patient = patientQ.data;
   const encounterCount = encountersQ.data?.count ?? 0;
   const fileCount = filesQ.data?.count ?? 0;
@@ -1232,10 +1491,10 @@ export default function PatientFicha() {
 
   type DatosForm = { sexo: string; sangre: string; prevision: string; nacionalidad: string };
   const defaultDatos: DatosForm = {
-    sexo: patient ? sexLabel(patient.sex_at_birth) : "",
-    sangre: patient?.blood_type ?? "No registrado",
-    prevision: patient?.insurance ?? "No registrada",
-    nacionalidad: patient?.country ?? "Chilena",
+    sexo: patient?.sex_at_birth ?? "NO_ESPECIFICA",
+    sangre: patient?.blood_type ?? "",
+    prevision: patient?.insurance ?? "",
+    nacionalidad: patient?.country ?? "Chile",
   };
   const [datosDraft, setDatosDraft] = useState<DatosForm>(defaultDatos);
   useEffect(() => { if (patient) setDatosDraft(defaultDatos); }, [patient?.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1295,18 +1554,12 @@ export default function PatientFicha() {
     e.target.value = "";
   }, [uploadFile]);
 
-  const sexToApi = (label: string): string => {
-    if (label === "Masculino") return "M";
-    if (label === "Femenino") return "F";
-    return "U";
-  };
-
   const handleSaveDatos = useCallback(() => {
     if (!patient) return;
     patchPatient.mutate({
-      sex_at_birth: sexToApi(datosDraft.sexo),
-      blood_type: datosDraft.sangre === "No registrado" ? "" : datosDraft.sangre,
-      insurance: datosDraft.prevision === "No registrada" ? "" : datosDraft.prevision,
+      sex_at_birth: datosDraft.sexo,
+      blood_type: datosDraft.sangre,
+      insurance: datosDraft.prevision,
       country: datosDraft.nacionalidad,
     }, {
       onSuccess: () => { setEditDatos(false); flash("Datos guardados"); },
@@ -1419,14 +1672,17 @@ export default function PatientFicha() {
     }
   }, [patient, id, qc]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const registrarVacuna = (data: VacunaLocal, isNew: boolean) => {
-    setVacunas((prev) => {
-      if (isNew) return [{ ...data, id: `vn${Date.now()}`, edad: "Extra PNI" }, ...prev];
-      return prev.map((v) => (v.id === data.id ? { ...v, ...data } : v));
-    });
-    setVacunaSel(null);
-    setVacunaNueva(false);
-    flash(isNew ? "Vacuna registrada" : `${data.nombre} registrada como aplicada`);
+  const handleRegisterVaccine = (payload: {
+    patient: number;
+    vaccine_schedule: number | null;
+    vaccine_name: string;
+    dose_label: string;
+    administered_at: string;
+    lot_number: string;
+    site: string;
+    notes: string;
+  }) => {
+    registerVaccineMutation.mutate(payload);
   };
 
   // ── Tab config ──
@@ -1556,9 +1812,9 @@ export default function PatientFicha() {
             </div>
             {editDatos ? (
               <div className="grid grid-cols-2 gap-x-6 gap-y-3.5">
-                <EditField label="Sexo" value={datosDraft.sexo} onChange={(v) => setDatosDraft((d) => ({ ...d, sexo: v }))} options={["Masculino", "Femenino"]} half />
-                <EditField label="Grupo sanguineo" value={datosDraft.sangre} onChange={(v) => setDatosDraft((d) => ({ ...d, sangre: v }))} options={["O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-", "No registrado"]} half />
-                <EditField label="Prevision" value={datosDraft.prevision} onChange={(v) => setDatosDraft((d) => ({ ...d, prevision: v }))} options={["Fonasa A", "Fonasa B", "Fonasa C", "Fonasa D", "Isapre", "Particular", "No registrada"]} half />
+                <EditField label="Sexo" value={datosDraft.sexo} onChange={(v) => setDatosDraft((d) => ({ ...d, sexo: v }))} options={SEX_OPTIONS} half />
+                <EditField label="Grupo sanguineo" value={datosDraft.sangre} onChange={(v) => setDatosDraft((d) => ({ ...d, sangre: v }))} options={BLOOD_TYPE_OPTIONS} half />
+                <EditField label="Prevision" value={datosDraft.prevision} onChange={(v) => setDatosDraft((d) => ({ ...d, prevision: v }))} options={INSURANCE_OPTIONS} half />
                 <EditRow label="Nacionalidad" value={datosDraft.nacionalidad} onChange={(v) => setDatosDraft((d) => ({ ...d, nacionalidad: v }))} half />
               </div>
             ) : (
@@ -1568,8 +1824,8 @@ export default function PatientFicha() {
                 <DataRow label="Fecha de nacimiento" value={new Date(patient.date_of_birth + "T00:00:00").toLocaleDateString("es-CL", { day: "2-digit", month: "long", year: "numeric" })} half />
                 <DataRow label="Edad" value={ageStr} half />
                 <DataRow label="Sexo" value={sexLabel(patient.sex_at_birth)} half />
-                <DataRow label="Grupo sanguineo" value={patient.blood_type ?? "No registrado"} half />
-                <DataRow label="Prevision" value={patient.insurance ?? "No registrada"} half />
+                <DataRow label="Grupo sanguineo" value={choiceLabel(BLOOD_TYPE_OPTIONS, patient.blood_type)} half />
+                <DataRow label="Prevision" value={choiceLabel(INSURANCE_OPTIONS, patient.insurance, "No registrada")} half />
               </div>
             )}
           </div>
@@ -1631,10 +1887,10 @@ export default function PatientFicha() {
                   <EditRow label="Peso al nacer (kg)" value={antDraft.pesoNacer} onChange={(v) => setAntDraft((a) => ({ ...a, pesoNacer: v }))} half placeholder="3.30" />
                   <EditRow label="Talla al nacer (cm)" value={antDraft.tallaNacer} onChange={(v) => setAntDraft((a) => ({ ...a, tallaNacer: v }))} half placeholder="50" />
                   <EditRow label="Semanas gestacionales" value={antDraft.semanas} onChange={(v) => setAntDraft((a) => ({ ...a, semanas: v }))} half placeholder="39" />
-                  <EditField label="Tipo de parto" value={antDraft.tipoParto} onChange={(v) => setAntDraft((a) => ({ ...a, tipoParto: v }))} options={["Vaginal", "Cesarea", ""]} half />
+                  <EditField label="Tipo de parto" value={antDraft.tipoParto} onChange={(v) => setAntDraft((a) => ({ ...a, tipoParto: v }))} options={BIRTH_TYPE_OPTIONS} half />
                   <EditRow label="Apgar 1 min" value={antDraft.apgar1} onChange={(v) => setAntDraft((a) => ({ ...a, apgar1: v }))} half placeholder="8" />
                   <EditRow label="Apgar 5 min" value={antDraft.apgar5} onChange={(v) => setAntDraft((a) => ({ ...a, apgar5: v }))} half placeholder="9" />
-                  <EditField label="Alimentacion" value={antDraft.alimentacion} onChange={(v) => setAntDraft((a) => ({ ...a, alimentacion: v }))} options={["Lactancia materna exclusiva", "Mixta", "Formula", ""]} half />
+                  <EditField label="Alimentacion" value={antDraft.alimentacion} onChange={(v) => setAntDraft((a) => ({ ...a, alimentacion: v }))} options={FEEDING_TYPE_OPTIONS} half />
                 </div>
               ) : (
                 <div className="mt-4 divide-y divide-line/70">
@@ -1642,10 +1898,10 @@ export default function PatientFicha() {
                     ["Peso al nacer", patient.birth_weight_grams ? `${(patient.birth_weight_grams / 1000).toFixed(2)} kg` : "No registrado"],
                     ["Talla al nacer", patient.birth_length_cm ? `${patient.birth_length_cm} cm` : "No registrada"],
                     ["Semanas gestacionales", patient.gestational_weeks ? `${patient.gestational_weeks} sem` : "No registradas"],
-                    ["Tipo de parto", patient.birth_type ?? "No registrado"],
+                    ["Tipo de parto", choiceLabel(BIRTH_TYPE_OPTIONS, patient.birth_type)],
                     ["Apgar 1 min", patient.apgar_1min?.toString() ?? "\u2014"],
                     ["Apgar 5 min", patient.apgar_5min?.toString() ?? "\u2014"],
-                    ["Alimentacion", patient.feeding_type ?? "No registrada"],
+                    ["Alimentacion", choiceLabel(FEEDING_TYPE_OPTIONS, patient.feeding_type, "No registrada")],
                   ].map(([k, v]) => (
                     <div key={k} className="flex items-center justify-between gap-3 py-2.5">
                       <span className="text-[12.5px] text-ink2 shrink-0">{k}</span>
@@ -1851,59 +2107,186 @@ export default function PatientFicha() {
       )}
 
       {/* VACUNAS */}
-      {activeTab === "vacunas" && (
-        <div className="bg-surface border border-line rounded-[14px] shadow-card overflow-hidden">
-          <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-line/70">
-            <div>
-              <h3 className="text-[15px] font-bold text-ink">Carne de vacunas (PNI)</h3>
-              <p className="text-[11.5px] text-ink3 mt-0.5">
-                {vacunas.filter((v) => v.estado === "aplicada").length} aplicadas &middot; {vacunas.filter((v) => v.estado === "pendiente").length} pendientes
-              </p>
+      {activeTab === "vacunas" && (() => {
+        const status = vaccineStatusQ.data;
+        const records = vaccinationsQ.data?.results ?? [];
+        const isLoading = vaccineStatusQ.isLoading || vaccinationsQ.isLoading;
+
+        // Build a lookup: vaccine_schedule id → Vaccination record
+        const recordByScheduleId = new Map<number, Vaccination>();
+        for (const r of records) {
+          if (r.vaccine_schedule != null) recordByScheduleId.set(r.vaccine_schedule, r);
+        }
+
+        const appliedCount = status?.applied.length ?? 0;
+        const pendingCount = status?.pending.length ?? 0;
+        const upcomingCount = status?.upcoming.length ?? 0;
+
+        return (
+          <div className="bg-surface border border-line rounded-[14px] shadow-card overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-line/70">
+              <div>
+                <h3 className="text-[15px] font-bold text-ink">Carne de vacunas (PNI)</h3>
+                <p className="text-[11.5px] text-ink3 mt-0.5">
+                  {appliedCount} aplicadas &middot; {pendingCount} pendientes &middot; {upcomingCount} proximas
+                </p>
+              </div>
+              <button
+                onClick={() => setVacunaPanel({ mode: "register-new" })}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[10px] bg-teal/15 text-teal-dark text-[12px] font-semibold hover:bg-teal/25 transition focus-ring">
+                <Plus size={13} /> Registrar
+              </button>
             </div>
-            <button onClick={() => { setVacunaNueva(true); setVacunaSel({ id: "", nombre: "", edad: "", fecha: "", estado: "pendiente" }); }}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[10px] bg-teal/15 text-teal-dark text-[12px] font-semibold hover:bg-teal/25 transition focus-ring">
-              <Plus size={13} /> Registrar
-            </button>
+
+            {isLoading && (
+              <div className="flex items-center justify-center py-10">
+                <div className="h-5 w-5 rounded-full border-2 border-line border-t-teal animate-spin" />
+              </div>
+            )}
+
+            {vaccineStatusQ.isError && (
+              <div className="flex items-center gap-2 px-5 py-4 text-[12.5px] text-[#B5604F]">
+                <AlertCircle size={15} />No se pudieron cargar las vacunas
+              </div>
+            )}
+
+            {!isLoading && status && (
+              <>
+                {/* Applied group */}
+                {status.applied.length > 0 && (
+                  <div>
+                    <div className="px-5 py-2.5 bg-ok/10 border-b border-line/50">
+                      <span className="text-[10.5px] font-bold text-[#3F8358] uppercase tracking-wide flex items-center gap-1.5">
+                        <Check size={11} />Aplicadas ({status.applied.length})
+                      </span>
+                    </div>
+                    <ul className="divide-y divide-line/70">
+                      {status.applied.map((entry) => {
+                        const rec = recordByScheduleId.get(entry.id);
+                        const dateStr = rec
+                          ? new Date(rec.administered_at).toLocaleDateString("es-CL", { day: "2-digit", month: "short", year: "numeric" })
+                          : "\u2014";
+                        return (
+                          <li key={entry.id}>
+                            <button
+                              onClick={() => {
+                                if (rec) setVacunaPanel({ mode: "view-applied", entry, record: rec });
+                              }}
+                              className="w-full text-left flex items-center gap-3 px-5 py-3 hover:bg-bg transition focus-ring">
+                              <div className="w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0"
+                                style={{ background: "rgba(168,213,181,0.30)", color: "#3F8358" }}>
+                                <Check size={15} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-[13px] font-semibold text-ink">{entry.name}</div>
+                                <div className="text-[11px] text-ink3">
+                                  {entry.dose_label}{entry.age_label ? ` \u00b7 ${entry.age_label}` : ""}
+                                  {rec?.lot_number ? ` \u00b7 Lote ${rec.lot_number}` : ""}
+                                </div>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <div className="text-[11px] font-semibold text-[#3F8358]">Aplicada</div>
+                                <div className="text-[11px] text-ink3">{dateStr}</div>
+                              </div>
+                              <ChevronRight size={15} className="text-ink3 shrink-0" />
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Pending group */}
+                {status.pending.length > 0 && (
+                  <div>
+                    <div className="px-5 py-2.5 bg-warn/10 border-b border-line/50 border-t border-line/70">
+                      <span className="text-[10.5px] font-bold text-[#9C7423] uppercase tracking-wide flex items-center gap-1.5">
+                        <Clock size={11} />Pendientes ({status.pending.length})
+                      </span>
+                    </div>
+                    <ul className="divide-y divide-line/70">
+                      {status.pending.map((entry) => (
+                        <li key={entry.id}>
+                          <button
+                            onClick={() => setVacunaPanel({ mode: "register-pending", entry })}
+                            className="w-full text-left flex items-center gap-3 px-5 py-3 hover:bg-bg transition focus-ring">
+                            <div className="w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0"
+                              style={{ background: "rgba(245,212,160,0.45)", color: "#9C7423" }}>
+                              <Clock size={15} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-[13px] font-semibold text-ink">{entry.name}</div>
+                              <div className="text-[11px] text-ink3">
+                                {entry.dose_label}{entry.age_label ? ` \u00b7 ${entry.age_label}` : ""}
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <span className="px-2.5 py-1 rounded-[8px] bg-warn/40 text-[#9C7423] text-[11px] font-semibold">Registrar</span>
+                            </div>
+                            <ChevronRight size={15} className="text-ink3 shrink-0" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Upcoming group */}
+                {status.upcoming.length > 0 && (
+                  <div>
+                    <div className="px-5 py-2.5 bg-line/30 border-b border-line/50 border-t border-line/70">
+                      <span className="text-[10.5px] font-bold text-ink3 uppercase tracking-wide flex items-center gap-1.5">
+                        <CalendarDays size={11} />Proximas ({status.upcoming.length})
+                      </span>
+                    </div>
+                    <ul className="divide-y divide-line/70">
+                      {status.upcoming.map((entry) => (
+                        <li key={entry.id}>
+                          <div className="flex items-center gap-3 px-5 py-3">
+                            <div className="w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0"
+                              style={{ background: "rgba(107,107,107,0.10)", color: "#6B6B6B" }}>
+                              <CalendarDays size={15} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-[13px] font-semibold text-ink2">{entry.name}</div>
+                              <div className="text-[11px] text-ink3">
+                                {entry.dose_label}{entry.age_label ? ` \u00b7 ${entry.age_label}` : ""}
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <span className="text-[11px] text-ink3">Proxima</span>
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {appliedCount === 0 && pendingCount === 0 && upcomingCount === 0 && (
+                  <div className="flex flex-col items-center justify-center py-10 gap-2 text-ink3">
+                    <Syringe size={28} className="opacity-30" />
+                    <p className="text-[13px]">Sin datos del esquema PNI</p>
+                  </div>
+                )}
+              </>
+            )}
           </div>
-          <ul className="divide-y divide-line/70">
-            {vacunas.map((v) => {
-              const aplicada = v.estado === "aplicada";
-              return (
-                <li key={v.id}>
-                  <button onClick={() => { setVacunaNueva(false); setVacunaSel(v); }}
-                    className="w-full text-left flex items-center gap-3 px-5 py-3 hover:bg-bg transition focus-ring">
-                    <div className="w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0"
-                      style={{ background: aplicada ? "rgba(168,213,181,0.30)" : "rgba(245,212,160,0.45)", color: aplicada ? "#3F8358" : "#9C7423" }}>
-                      {aplicada ? <Check size={15} /> : <Clock size={15} />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[13px] font-semibold text-ink">{v.nombre}</div>
-                      <div className="text-[11px] text-ink3">{v.edad}{aplicada && v.lote ? ` \u00b7 Lote ${v.lote}` : ""}</div>
-                    </div>
-                    <div className="text-right shrink-0">
-                      {aplicada ? (
-                        <>
-                          <div className="text-[11px] font-semibold text-[#3F8358]">Aplicada</div>
-                          <div className="text-[11px] text-ink3">{v.fecha}</div>
-                        </>
-                      ) : (
-                        <span className="px-2.5 py-1 rounded-[8px] bg-warn/40 text-[#9C7423] text-[11px] font-semibold">Registrar</span>
-                      )}
-                    </div>
-                    <ChevronRight size={15} className="text-ink3 shrink-0" />
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ── Drawers ── */}
 
-      {vacunaSel && (
-        <VacunaPanel vacuna={vacunaSel} isNew={vacunaNueva} patientName={patient.full_name}
-          onClose={() => { setVacunaSel(null); setVacunaNueva(false); }} onRegistrar={registrarVacuna} />
+      {vacunaPanel && (
+        <VacunaPanel
+          panelState={vacunaPanel}
+          patientId={patient.id}
+          patientName={patient.full_name}
+          onClose={() => setVacunaPanel(null)}
+          onRegistrar={handleRegisterVaccine}
+        />
       )}
 
       {consultaOpen && (
