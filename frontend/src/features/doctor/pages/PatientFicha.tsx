@@ -1386,7 +1386,7 @@ function GrowthChart({ growthData, metric, patientName, sex }: {
 export default function PatientFicha() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<TabKey>("crecimiento");
+  const [activeTab, setActiveTab] = useState<TabKey>("datos");
   const [metric, setMetric] = useState<MetricKey>("weight");
   const [consultaOpen, setConsultaOpen] = useState(false);
   const [savingConsulta, setSavingConsulta] = useState(false);

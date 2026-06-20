@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect, useRef } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   CircleUser,
   MapPin,
@@ -8,7 +8,6 @@ import {
   Lock,
   Video,
   Check,
-  ChevronRight,
   Download,
   AlertCircle,
   LogOut,
@@ -16,7 +15,12 @@ import {
 import { useNavigate } from "react-router-dom";
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/auth";
-import type { Location, Service, PaginatedResponse } from "@/types/api";
+import type {
+  Location,
+  Service,
+  PaginatedResponse,
+  NotificationPreference,
+} from "@/types/api";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -24,21 +28,28 @@ function formatCLP(amount: number): string {
   return `$${amount.toLocaleString("es-CL")}`;
 }
 
+function getInitials(firstName: string, lastName: string): string {
+  return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+}
+
 // ─── sub-components ───────────────────────────────────────────────────────────
 
 function ConfigToggle({
   checked,
   onChange,
+  disabled,
 }: {
   checked: boolean;
   onChange: (v: boolean) => void;
+  disabled?: boolean;
 }) {
   return (
     <button
-      onClick={() => onChange(!checked)}
-      className="shrink-0"
+      onClick={() => !disabled && onChange(!checked)}
+      className="shrink-0 disabled:opacity-50"
       role="switch"
       aria-checked={checked}
+      disabled={disabled}
     >
       <span
         className={`relative inline-flex items-center w-10 h-[22px] rounded-full transition ${
@@ -57,6 +68,9 @@ function ConfigToggle({
 
 const cfgInput =
   "w-full px-3 py-2.5 rounded-[10px] bg-bg border border-line text-[13px] text-ink placeholder:text-ink3 focus:outline-none focus:border-teal focus:ring-2 focus:ring-teal/20 transition";
+
+const cfgInputReadOnly =
+  "w-full px-3 py-2.5 rounded-[10px] bg-bg border border-line text-[13px] text-ink3 cursor-default select-none";
 
 function CfgField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -110,32 +124,50 @@ const CONFIG_NAV: { id: PaneId; label: string; icon: React.ReactNode }[] = [
 
 export default function ConfigPage() {
   const navigate = useNavigate();
-  const { logout } = useAuthStore();
+  const { user, logout, fetchProfile } = useAuthStore();
+  const queryClient = useQueryClient();
   const [pane, setPane] = useState<PaneId>("perfil");
-  const [notif, setNotif] = useState({
-    wapp: true, email: true, rec24: true, rec2: true,
-    noshow: true, resumen: false, pagos: true,
-  });
   const [onlineEnabled, setOnlineEnabled] = useState(true);
   const [paymentMethods, setPaymentMethods] = useState({
     mercadopago: true,
     transfer: true,
     presencial: true,
   });
-  const [twoFa, setTwoFa] = useState(true);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ msg: string; error?: boolean } | null>(null);
 
-  // local service prices (editable)
-  const [servicePrices, setServicePrices] = useState<Record<number, string>>({});
+  // ── Profile form state ──
+  const [profileForm, setProfileForm] = useState({
+    first_name: user?.first_name ?? "",
+    last_name: user?.last_name ?? "",
+    phone: user?.phone ?? "",
+    rut: user?.rut ?? "",
+  });
 
-  const flash = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 2200);
+  // Keep form in sync if user loads after mount
+  useEffect(() => {
+    if (user) {
+      setProfileForm({
+        first_name: user.first_name,
+        last_name: user.last_name,
+        phone: user.phone,
+        rut: user.rut,
+      });
+    }
+  }, [user]);
+
+  // ── Avatar upload ref ──
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  // ── Password form state ──
+  const [pwForm, setPwForm] = useState({ current_password: "", new_password: "" });
+  const [pwVisible, setPwVisible] = useState(false);
+
+  const flash = (msg: string, error = false) => {
+    setToast({ msg, error });
+    setTimeout(() => setToast(null), 2500);
   };
 
-  const tn = (k: keyof typeof notif) => setNotif((n) => ({ ...n, [k]: !n[k] }));
-
-  // API queries
+  // ── API queries ──
   const locationsQ = useQuery<PaginatedResponse<Location>>({
     queryKey: ["locations"],
     queryFn: async () => {
@@ -154,19 +186,104 @@ export default function ConfigPage() {
     staleTime: 1000 * 60 * 60,
   });
 
+  const notifPrefsQ = useQuery<NotificationPreference>({
+    queryKey: ["notification-preferences"],
+    queryFn: async () => {
+      const { data } = await api.get<NotificationPreference>("/notification-preferences/");
+      return data;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
   const locations = locationsQ.data?.results ?? [];
   const services = servicesQ.data?.results ?? [];
-
-  // seed local price state from API
-  useEffect(() => {
-    if (services.length === 0) return;
-    setServicePrices(
-      Object.fromEntries(services.map((s) => [s.id, formatCLP(s.price_clp)]))
-    );
-  }, [services]);
+  const notifPrefs = notifPrefsQ.data;
 
   const isLoading = locationsQ.isLoading || servicesQ.isLoading;
   const isError = locationsQ.isError || servicesQ.isError;
+
+  // ── Profile save mutation ──
+  const profileMutation = useMutation({
+    mutationFn: async (payload: typeof profileForm) => {
+      const { data } = await api.patch("/profile/", payload);
+      return data;
+    },
+    onSuccess: async () => {
+      await fetchProfile();
+      queryClient.invalidateQueries({ queryKey: ["auth-user"] });
+      flash("Perfil guardado");
+    },
+    onError: () => flash("Error al guardar el perfil", true),
+  });
+
+  // ── Avatar upload mutation ──
+  const avatarMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append("avatar", file);
+      const { data } = await api.post("/profile/avatar/", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      return data;
+    },
+    onSuccess: async () => {
+      await fetchProfile();
+      queryClient.invalidateQueries({ queryKey: ["auth-user"] });
+      flash("Foto actualizada");
+    },
+    onError: () => flash("Error al subir la foto", true),
+  });
+
+  // ── Notification preference mutation ──
+  const notifMutation = useMutation({
+    mutationFn: async (patch: Partial<NotificationPreference>) => {
+      const { data } = await api.patch<NotificationPreference>(
+        "/notification-preferences/",
+        patch
+      );
+      return data;
+    },
+    onSuccess: (updated) => {
+      queryClient.setQueryData(["notification-preferences"], updated);
+    },
+    onError: () => flash("Error al actualizar la preferencia", true),
+  });
+
+  // ── Password change mutation ──
+  const passwordMutation = useMutation({
+    mutationFn: async (payload: { current_password: string; new_password: string }) => {
+      await api.post("/change-password/", payload);
+    },
+    onSuccess: () => {
+      setPwForm({ current_password: "", new_password: "" });
+      setPwVisible(false);
+      flash("Contraseña actualizada");
+    },
+    onError: (err: unknown) => {
+      const detail =
+        (err as { response?: { data?: { detail?: string; new_password?: string[] } } })
+          ?.response?.data?.detail ??
+        (err as { response?: { data?: { new_password?: string[] } } })
+          ?.response?.data?.new_password?.[0] ??
+        "Error al cambiar la contraseña";
+      flash(detail, true);
+    },
+  });
+
+  // ── PDF export ──
+  const handleExport = async () => {
+    try {
+      const response = await api.get("/profile/export-pdf/", { responseType: "blob" });
+      const url = URL.createObjectURL(response.data as Blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "pediacore-export.pdf";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      flash("Error al generar la exportación", true);
+    }
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[210px_1fr] gap-6">
@@ -196,44 +313,96 @@ export default function ConfigPage() {
               title="Perfil profesional"
               desc="Esta información aparece en tu sitio y en los comprobantes."
             >
+              {/* Avatar */}
               <div className="flex items-center gap-4 mb-5">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-teal to-lavender flex items-center justify-center text-white text-[22px] font-bold">
-                  E
-                </div>
+                {user?.avatar_url ? (
+                  <img
+                    src={user.avatar_url}
+                    alt="Avatar"
+                    className="w-16 h-16 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-teal to-lavender flex items-center justify-center text-white text-[22px] font-bold">
+                    {user ? getInitials(user.first_name, user.last_name) : "?"}
+                  </div>
+                )}
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) avatarMutation.mutate(file);
+                    // Reset so the same file can be re-uploaded if needed
+                    e.target.value = "";
+                  }}
+                />
                 <button
-                  onClick={() => flash("Subir foto (demo)")}
-                  className="px-3.5 py-2 rounded-[10px] bg-surface border border-line text-[12.5px] font-semibold text-ink2 hover:bg-bg transition"
+                  onClick={() => avatarInputRef.current?.click()}
+                  disabled={avatarMutation.isPending}
+                  className="px-3.5 py-2 rounded-[10px] bg-surface border border-line text-[12.5px] font-semibold text-ink2 hover:bg-bg transition disabled:opacity-60"
                 >
-                  Cambiar foto
+                  {avatarMutation.isPending ? "Subiendo…" : "Cambiar foto"}
                 </button>
               </div>
+
+              {/* Form fields */}
               <div className="grid sm:grid-cols-2 gap-4">
                 <CfgField label="Nombre">
-                  <input className={cfgInput} defaultValue="Estefanía Ortigosa" />
+                  <input
+                    className={cfgInput}
+                    value={profileForm.first_name}
+                    onChange={(e) =>
+                      setProfileForm((f) => ({ ...f, first_name: e.target.value }))
+                    }
+                  />
                 </CfgField>
-                <CfgField label="Especialidad">
-                  <input className={cfgInput} defaultValue="Médica Pediatra" />
+                <CfgField label="Apellido">
+                  <input
+                    className={cfgInput}
+                    value={profileForm.last_name}
+                    onChange={(e) =>
+                      setProfileForm((f) => ({ ...f, last_name: e.target.value }))
+                    }
+                  />
                 </CfgField>
                 <CfgField label="RUT">
-                  <input className={cfgInput} defaultValue="28.625.096-3" />
-                </CfgField>
-                <CfgField label="Registro (Superintendencia)">
-                  <input className={cfgInput} defaultValue="MN 12.847" />
-                </CfgField>
-                <CfgField label="Email">
-                  <input className={cfgInput} defaultValue="estefiortigosa.pediatra@gmail.com" />
+                  <input
+                    className={cfgInput}
+                    value={profileForm.rut}
+                    onChange={(e) =>
+                      setProfileForm((f) => ({ ...f, rut: e.target.value }))
+                    }
+                  />
                 </CfgField>
                 <CfgField label="Teléfono">
-                  <input className={cfgInput} defaultValue="+56 9 5845 5537" />
+                  <input
+                    className={cfgInput}
+                    value={profileForm.phone}
+                    onChange={(e) =>
+                      setProfileForm((f) => ({ ...f, phone: e.target.value }))
+                    }
+                  />
+                </CfgField>
+                <CfgField label="Email">
+                  <input
+                    className={cfgInputReadOnly}
+                    value={user?.email ?? ""}
+                    readOnly
+                    tabIndex={-1}
+                  />
                 </CfgField>
               </div>
             </CfgSection>
             <div className="flex justify-end">
               <button
-                onClick={() => flash("Perfil guardado")}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[10px] bg-teal-dark text-white text-[13px] font-semibold hover:opacity-90 transition shadow-soft"
+                onClick={() => profileMutation.mutate(profileForm)}
+                disabled={profileMutation.isPending}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[10px] bg-teal-dark text-white text-[13px] font-semibold hover:opacity-90 transition shadow-soft disabled:opacity-60"
               >
-                <Check size={15} /> Guardar cambios
+                <Check size={15} />
+                {profileMutation.isPending ? "Guardando…" : "Guardar cambios"}
               </button>
             </div>
           </>
@@ -263,49 +432,33 @@ export default function ConfigPage() {
                   >
                     <div className="grid sm:grid-cols-2 gap-4">
                       <CfgField label="Dirección">
-                        <input className={cfgInput} defaultValue={loc.address} />
+                        <input
+                          className={cfgInputReadOnly}
+                          defaultValue={loc.address}
+                          readOnly
+                        />
                       </CfgField>
                       <CfgField label="Teléfono">
-                        <input className={cfgInput} defaultValue={loc.phone || ""} />
+                        <input
+                          className={cfgInputReadOnly}
+                          defaultValue={loc.phone || "—"}
+                          readOnly
+                        />
                       </CfgField>
                     </div>
+                    <p className="text-[11px] text-ink3 mt-3">
+                      Para modificar sedes, usá el panel de administración.
+                    </p>
                   </CfgSection>
                 ))
             ) : (
-              // Fallback hardcoded sedes if API has no data
-              <>
-                <CfgSection
-                  icon={<MapPin size={16} />}
-                  title="Centro El Valle · Pucón"
-                  desc="Sede principal presencial."
-                >
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <CfgField label="Dirección">
-                      <input className={cfgInput} defaultValue="Gral. Urrutia 291, Of. 4" />
-                    </CfgField>
-                    <CfgField label="Teléfono">
-                      <input className={cfgInput} defaultValue="+56 9 4500 0000" />
-                    </CfgField>
-                  </div>
-                </CfgSection>
-                <CfgSection
-                  icon={<MapPin size={16} />}
-                  title="Almainfancia · Villarrica"
-                  desc="Sede presencial secundaria."
-                >
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <CfgField label="Dirección">
-                      <input className={cfgInput} defaultValue="Valentín Letelier 921" />
-                    </CfgField>
-                    <CfgField label="Teléfono">
-                      <input className={cfgInput} defaultValue="+56 9 4500 0001" />
-                    </CfgField>
-                  </div>
-                </CfgSection>
-              </>
+              <div className="flex flex-col items-center justify-center py-16 gap-2 text-ink3">
+                <MapPin size={28} className="opacity-40" />
+                <p className="text-[13px]">No hay sedes configuradas</p>
+              </div>
             )}
 
-            {/* Online toggle always present */}
+            {/* Online toggle — local only, no backend endpoint yet */}
             <CfgSection
               icon={<Video size={16} />}
               title="Atención online"
@@ -315,10 +468,7 @@ export default function ConfigPage() {
                 <span className="text-[12.5px] text-ink2">Habilitar reservas online</span>
                 <ConfigToggle
                   checked={onlineEnabled}
-                  onChange={(v) => {
-                    setOnlineEnabled(v);
-                    flash("Ajuste actualizado");
-                  }}
+                  onChange={setOnlineEnabled}
                 />
               </div>
             </CfgSection>
@@ -338,42 +488,31 @@ export default function ConfigPage() {
                   <div className="h-5 w-5 rounded-full border-2 border-line border-t-teal animate-spin" />
                 </div>
               ) : services.length > 0 ? (
-                <ul className="divide-y divide-line/70 -mt-1">
-                  {services
-                    .slice()
-                    .sort((a, b) => a.display_order - b.display_order)
-                    .map((svc) => (
-                      <li key={svc.id} className="flex items-center justify-between gap-4 py-2.5">
-                        <span className="text-[13px] text-ink">{svc.name}</span>
-                        <input
-                          className="w-28 px-3 py-1.5 rounded-[9px] bg-bg border border-line text-[12.5px] font-semibold text-ink text-right focus:outline-none focus:border-teal"
-                          value={servicePrices[svc.id] ?? formatCLP(svc.price_clp)}
-                          onChange={(e) =>
-                            setServicePrices((p) => ({ ...p, [svc.id]: e.target.value }))
-                          }
-                        />
-                      </li>
-                    ))}
-                </ul>
+                <>
+                  <ul className="divide-y divide-line/70 -mt-1">
+                    {services
+                      .slice()
+                      .sort((a, b) => a.display_order - b.display_order)
+                      .map((svc) => (
+                        <li
+                          key={svc.id}
+                          className="flex items-center justify-between gap-4 py-2.5"
+                        >
+                          <span className="text-[13px] text-ink">{svc.name}</span>
+                          <input
+                            className="w-28 px-3 py-1.5 rounded-[9px] bg-bg border border-line text-[12.5px] font-semibold text-ink3 text-right cursor-default"
+                            value={formatCLP(svc.price_clp)}
+                            readOnly
+                          />
+                        </li>
+                      ))}
+                  </ul>
+                  <p className="text-[11px] text-ink3 mt-3">
+                    Para modificar aranceles, usá el panel de administración.
+                  </p>
+                </>
               ) : (
-                // Fallback demo values
-                <ul className="divide-y divide-line/70 -mt-1">
-                  {[
-                    ["Control de niño sano", "$40.000"],
-                    ["Control por enfermedad", "$40.000"],
-                    ["Telemedicina", "$35.000"],
-                    ["Asesoría de lactancia", "$40.000"],
-                    ["Control FONASA", "$32.000"],
-                  ].map(([s, v]) => (
-                    <li key={s} className="flex items-center justify-between gap-4 py-2.5">
-                      <span className="text-[13px] text-ink">{s}</span>
-                      <input
-                        className="w-28 px-3 py-1.5 rounded-[9px] bg-bg border border-line text-[12.5px] font-semibold text-ink text-right focus:outline-none focus:border-teal"
-                        defaultValue={v}
-                      />
-                    </li>
-                  ))}
-                </ul>
+                <p className="text-[13px] text-ink3 py-4">No hay servicios configurados.</p>
               )}
             </CfgSection>
 
@@ -396,10 +535,7 @@ export default function ConfigPage() {
                   <span className="text-[12.5px] text-ink2">{label}</span>
                   <ConfigToggle
                     checked={paymentMethods[k]}
-                    onChange={(v) => {
-                      setPaymentMethods((p) => ({ ...p, [k]: v }));
-                      flash("Medio de pago actualizado");
-                    }}
+                    onChange={(v) => setPaymentMethods((p) => ({ ...p, [k]: v }))}
                   />
                 </div>
               ))}
@@ -410,50 +546,92 @@ export default function ConfigPage() {
         {/* ── Notificaciones ── */}
         {pane === "notif" && (
           <>
-            <CfgSection
-              icon={<Bell size={16} />}
-              title="Recordatorios a las familias"
-              desc="Avisos automáticos antes de cada turno."
-            >
-              {(
-                [
-                  ["wapp",  "Recordatorio por WhatsApp"],
-                  ["email", "Recordatorio por email"],
-                  ["rec24", "Avisar 24 horas antes"],
-                  ["rec2",  "Avisar 2 horas antes"],
-                ] as const
-              ).map(([k, label]) => (
-                <div
-                  key={k}
-                  className="flex items-center justify-between py-2.5 border-b border-line/60 last:border-0"
+            {notifPrefsQ.isLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <div className="h-5 w-5 rounded-full border-2 border-line border-t-teal animate-spin" />
+              </div>
+            ) : notifPrefsQ.isError ? (
+              <div className="flex flex-col items-center justify-center py-16 gap-2 text-ink3">
+                <AlertCircle size={28} className="opacity-40" />
+                <p className="text-[13px]">Error al cargar las preferencias</p>
+              </div>
+            ) : (
+              <>
+                <CfgSection
+                  icon={<Bell size={16} />}
+                  title="Recordatorios a las familias"
+                  desc="Avisos automáticos antes de cada turno."
                 >
-                  <span className="text-[12.5px] text-ink2">{label}</span>
-                  <ConfigToggle checked={notif[k]} onChange={() => tn(k)} />
-                </div>
-              ))}
-            </CfgSection>
+                  <div className="flex items-center justify-between py-2.5 border-b border-line/60 last:border-0">
+                    <span className="text-[12.5px] text-ink2">Recordatorio por email</span>
+                    <ConfigToggle
+                      checked={notifPrefs?.email_appointment_reminder ?? false}
+                      disabled={notifMutation.isPending}
+                      onChange={(v) =>
+                        notifMutation.mutate({ email_appointment_reminder: v })
+                      }
+                    />
+                  </div>
+                  <div className="flex items-center justify-between py-2.5 border-b border-line/60 last:border-0">
+                    <span className="text-[12.5px] text-ink2">Turno confirmado</span>
+                    <ConfigToggle
+                      checked={notifPrefs?.email_appointment_confirmed ?? false}
+                      disabled={notifMutation.isPending}
+                      onChange={(v) =>
+                        notifMutation.mutate({ email_appointment_confirmed: v })
+                      }
+                    />
+                  </div>
+                  <div className="flex items-center justify-between py-2.5 last:border-0">
+                    <span className="text-[12.5px] text-ink2">Turno cancelado</span>
+                    <ConfigToggle
+                      checked={notifPrefs?.email_appointment_cancelled ?? false}
+                      disabled={notifMutation.isPending}
+                      onChange={(v) =>
+                        notifMutation.mutate({ email_appointment_cancelled: v })
+                      }
+                    />
+                  </div>
+                </CfgSection>
 
-            <CfgSection
-              icon={<AlertCircle size={16} />}
-              title="Tus alertas"
-              desc="Lo que querés que el sistema te avise a vos."
-            >
-              {(
-                [
-                  ["noshow",  "Avisar cuando un paciente no asiste"],
-                  ["resumen", "Resumen diario de la agenda por email"],
-                  ["pagos",   "Notificar pagos recibidos"],
-                ] as const
-              ).map(([k, label]) => (
-                <div
-                  key={k}
-                  className="flex items-center justify-between py-2.5 border-b border-line/60 last:border-0"
+                <CfgSection
+                  icon={<AlertCircle size={16} />}
+                  title="Tus alertas"
+                  desc="Lo que querés que el sistema te avise a vos."
                 >
-                  <span className="text-[12.5px] text-ink2">{label}</span>
-                  <ConfigToggle checked={notif[k]} onChange={() => tn(k)} />
-                </div>
-              ))}
-            </CfgSection>
+                  <div className="flex items-center justify-between py-2.5 border-b border-line/60 last:border-0">
+                    <span className="text-[12.5px] text-ink2">Lista de espera disponible</span>
+                    <ConfigToggle
+                      checked={notifPrefs?.email_waitlist_available ?? false}
+                      disabled={notifMutation.isPending}
+                      onChange={(v) =>
+                        notifMutation.mutate({ email_waitlist_available: v })
+                      }
+                    />
+                  </div>
+                  <div className="flex items-center justify-between py-2.5 border-b border-line/60 last:border-0">
+                    <span className="text-[12.5px] text-ink2">Pagos recibidos</span>
+                    <ConfigToggle
+                      checked={notifPrefs?.email_payment_received ?? false}
+                      disabled={notifMutation.isPending}
+                      onChange={(v) =>
+                        notifMutation.mutate({ email_payment_received: v })
+                      }
+                    />
+                  </div>
+                  <div className="flex items-center justify-between py-2.5 last:border-0">
+                    <span className="text-[12.5px] text-ink2">Blog y novedades</span>
+                    <ConfigToggle
+                      checked={notifPrefs?.email_blog_posts ?? false}
+                      disabled={notifMutation.isPending}
+                      onChange={(v) =>
+                        notifMutation.mutate({ email_blog_posts: v })
+                      }
+                    />
+                  </div>
+                </CfgSection>
+              </>
+            )}
           </>
         )}
 
@@ -465,32 +643,64 @@ export default function ConfigPage() {
               title="Seguridad"
               desc="Acceso a tu cuenta de Pediacore."
             >
-              <div className="space-y-3">
+              {/* Inline password change form */}
+              {!pwVisible ? (
                 <button
-                  onClick={() => flash("Cambiar contraseña (demo)")}
+                  onClick={() => setPwVisible(true)}
                   className="w-full flex items-center justify-between px-4 py-3 rounded-[10px] bg-bg border border-line hover:bg-line/40 transition text-left"
                 >
                   <span className="text-[13px] font-semibold text-ink">Cambiar contraseña</span>
-                  <ChevronRight size={15} className="text-ink3" />
+                  <Lock size={14} className="text-ink3" />
                 </button>
-                <div className="flex items-center justify-between px-4 py-3 rounded-[10px] bg-bg border border-line">
-                  <div>
-                    <div className="text-[13px] font-semibold text-ink">
-                      Verificación en dos pasos
-                    </div>
-                    <div className="text-[11px] text-ink3 mt-0.5">
-                      Mayor seguridad al iniciar sesión
-                    </div>
+              ) : (
+                <div className="space-y-3">
+                  <CfgField label="Contraseña actual">
+                    <input
+                      type="password"
+                      className={cfgInput}
+                      value={pwForm.current_password}
+                      onChange={(e) =>
+                        setPwForm((f) => ({ ...f, current_password: e.target.value }))
+                      }
+                      autoComplete="current-password"
+                    />
+                  </CfgField>
+                  <CfgField label="Nueva contraseña">
+                    <input
+                      type="password"
+                      className={cfgInput}
+                      value={pwForm.new_password}
+                      onChange={(e) =>
+                        setPwForm((f) => ({ ...f, new_password: e.target.value }))
+                      }
+                      autoComplete="new-password"
+                    />
+                  </CfgField>
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      onClick={() => passwordMutation.mutate(pwForm)}
+                      disabled={
+                        passwordMutation.isPending ||
+                        !pwForm.current_password ||
+                        !pwForm.new_password
+                      }
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[10px] bg-teal-dark text-white text-[12.5px] font-semibold hover:opacity-90 transition disabled:opacity-60"
+                    >
+                      <Check size={13} />
+                      {passwordMutation.isPending ? "Guardando…" : "Confirmar"}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setPwVisible(false);
+                        setPwForm({ current_password: "", new_password: "" });
+                      }}
+                      className="px-4 py-2.5 rounded-[10px] bg-bg border border-line text-[12.5px] font-semibold text-ink2 hover:bg-line/40 transition"
+                    >
+                      Cancelar
+                    </button>
                   </div>
-                  <ConfigToggle
-                    checked={twoFa}
-                    onChange={(v) => {
-                      setTwoFa(v);
-                      flash("2FA actualizado");
-                    }}
-                  />
                 </div>
-              </div>
+              )}
             </CfgSection>
 
             <CfgSection
@@ -499,10 +709,10 @@ export default function ConfigPage() {
               desc="Exportá la información de tu consultorio."
             >
               <button
-                onClick={() => flash("Generando exportación…")}
+                onClick={handleExport}
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[10px] bg-surface border border-line text-[12.5px] font-semibold text-ink2 hover:bg-bg transition"
               >
-                <Download size={14} /> Exportar pacientes y consultas
+                <Download size={14} /> Exportar mis datos (PDF)
               </button>
             </CfgSection>
 
@@ -518,9 +728,17 @@ export default function ConfigPage() {
 
       {/* Toast */}
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-[12px] bg-ink text-white text-[12.5px] font-semibold shadow-pop flex items-center gap-2">
-          <Check size={14} className="text-teal" />
-          {toast}
+        <div
+          className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-[12px] text-white text-[12.5px] font-semibold shadow-pop flex items-center gap-2 ${
+            toast.error ? "bg-err" : "bg-ink"
+          }`}
+        >
+          {toast.error ? (
+            <AlertCircle size={14} className="text-white" />
+          ) : (
+            <Check size={14} className="text-teal" />
+          )}
+          {toast.msg}
         </div>
       )}
     </div>
