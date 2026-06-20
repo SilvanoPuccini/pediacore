@@ -35,6 +35,8 @@ function mapStatus(status: string, attendanceConfirmed?: boolean): string {
   if (status === "CONFIRMED" && attendanceConfirmed) return "asistencia";
   switch (status) {
     case "CONFIRMED": return "confirmado";
+    case "CHECKED_IN": return "en sala";
+    case "IN_PROGRESS": return "en consulta";
     case "HOLD":
     case "PENDING": return "pendiente";
     case "CANCELLED":

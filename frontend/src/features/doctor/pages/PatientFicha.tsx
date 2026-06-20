@@ -211,7 +211,7 @@ const INSURANCE_OPTIONS = [
 
 const BIRTH_TYPE_OPTIONS = [
   { value: "", label: "—" },
-  { value: "VAGINAL", label: "Vaginal" },
+  { value: "VAGINAL", label: "Natural" },
   { value: "CESAREAN", label: "Cesárea" },
   { value: "FORCEPS", label: "Fórceps" },
   { value: "VACUUM", label: "Vacuum" },
@@ -750,7 +750,7 @@ type VacunaPanelMode =
   | { mode: "register-new" }
   | { mode: "view-applied"; entry: VaccineScheduleEntry; record: Vaccination };
 
-function VacunaPanel({ panelState, patientId, patientName, onClose, onRegistrar }: {
+function VacunaPanel({ panelState, patientId, patientName, onClose, onRegistrar, isPending }: {
   panelState: VacunaPanelMode;
   patientId: number;
   patientName: string;
@@ -765,6 +765,7 @@ function VacunaPanel({ panelState, patientId, patientName, onClose, onRegistrar 
     site: string;
     notes: string;
   }) => void;
+  isPending?: boolean;
 }) {
   const isView = panelState.mode === "view-applied";
   const isRegisterPending = panelState.mode === "register-pending";
@@ -966,7 +967,7 @@ function VacunaPanel({ panelState, patientId, patientName, onClose, onRegistrar 
             </button>
           ) : (
             <button
-              disabled={!canSave}
+              disabled={!canSave || isPending}
               onClick={() => onRegistrar({
                 patient: patientId,
                 vaccine_schedule: isRegisterPending ? panelState.entry.id : null,
@@ -978,7 +979,7 @@ function VacunaPanel({ panelState, patientId, patientName, onClose, onRegistrar 
                 notes: form.notes,
               })}
               className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-[10px] bg-teal-dark text-white text-[12.5px] font-semibold hover:opacity-90 transition shadow-soft focus-ring disabled:opacity-40 disabled:cursor-not-allowed">
-              <Check size={15} /> Registrar aplicacion
+              <Check size={15} /> {isPending ? "Registrando…" : "Registrar aplicacion"}
             </button>
           )}
         </div>
@@ -1479,6 +1480,10 @@ export default function PatientFicha() {
       void qc.invalidateQueries({ queryKey: ["vaccinations", id] });
       setVacunaPanel(null);
       flash("Vacuna registrada");
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : "Error al registrar vacuna";
+      flash(msg);
     },
   });
 
@@ -2286,6 +2291,7 @@ export default function PatientFicha() {
           patientName={patient.full_name}
           onClose={() => setVacunaPanel(null)}
           onRegistrar={handleRegisterVaccine}
+          isPending={registerVaccineMutation.isPending}
         />
       )}
 

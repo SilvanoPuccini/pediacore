@@ -50,6 +50,14 @@ const STATUS_CONFIG: Record<string, { label: string; classes: string }> = {
     label: "Asistencia confirmada",
     classes: "bg-green-50 text-green-700 border border-green-200",
   },
+  CHECKED_IN: {
+    label: "En sala de espera",
+    classes: "bg-amber-50 text-amber-700 border border-amber-200",
+  },
+  IN_PROGRESS: {
+    label: "En consulta",
+    classes: "bg-teal/15 text-teal-dark border border-teal/30",
+  },
   COMPLETED: {
     label: "Atendido",
     classes: "bg-green-50 text-green-700 border border-green-200",

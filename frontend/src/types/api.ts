@@ -238,6 +238,7 @@ export interface Appointment {
   id: number;
   patient: number;
   patient_name: string;
+  patient_age: { years: number; months: number };
   service: number;
   service_name: string;
   location: number;
@@ -252,8 +253,8 @@ export interface Appointment {
   hold_expires_at: string | null;
   meeting_link: string;
   attendance_confirmed: boolean;
-  payment_id: number | null;
   notes: string;
+  payment_id: number | null;
   created_at: string;
   updated_at: string;
 }

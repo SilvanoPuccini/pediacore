@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Calendar,
   Clock,
@@ -8,73 +9,35 @@ import {
   Sun,
   Plus,
   FileText,
-  FileCheck,
-  MessageCircle,
-  Syringe,
   AlertCircle,
   CreditCard,
   ChevronRight,
-  Inbox,
   MapPin,
+  Loader2,
 } from "lucide-react";
+import api from "@/lib/api";
 import { useAuthStore } from "@/stores/auth";
 import { useSedeStore } from "../stores/useSedeStore";
+import type { Appointment, PaginatedResponse } from "@/types/api";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type FlowState = "confirmado" | "espera" | "consulta" | "atendido";
-type PagoState = "pagado" | "pendiente";
-type TaskKind = "lab" | "receta" | "mensaje" | "vacuna";
 
-interface Turn {
-  id: string;
-  time: string;
-  patientId: number;
-  name: string;
-  age: string;
-  tutor: string;
-  type: "Control sano" | "Consulta" | "Online";
-  sede: string;
-  reason: string;
-  state: FlowState;
-  pago: PagoState;
-}
+// Backend status → frontend flow state
+const STATUS_TO_FLOW: Record<string, FlowState> = {
+  CONFIRMED: "confirmado",
+  CHECKED_IN: "espera",
+  IN_PROGRESS: "consulta",
+  COMPLETED: "atendido",
+};
 
-interface ClinicalTask {
-  id: string;
-  kind: TaskKind;
-  icon: string;
-  patientId: number;
-  patient: string;
-  title: string;
-  detail: string;
-  action: string;
-  urgent: boolean;
-}
-
-// ─── Demo data ────────────────────────────────────────────────────────────────
-
-const TODAY_AGENDA: Turn[] = [
-  { id: "t1", time: "09:00", patientId: 1, name: "Mateo González",  age: "3 años",  tutor: "Carolina González", type: "Control sano", sede: "Pucón",      reason: "Control 41 meses",          state: "atendido",   pago: "pagado"   },
-  { id: "t2", time: "09:45", patientId: 2, name: "Sofía Pérez",     age: "6 meses", tutor: "Daniela Pérez",     type: "Control sano", sede: "Pucón",      reason: "Control 6 meses + vacuna",  state: "atendido",   pago: "pagado"   },
-  { id: "t3", time: "10:30", patientId: 3, name: "Lucas Martínez",  age: "5 años",  tutor: "Andrés Martínez",   type: "Consulta",     sede: "Pucón",      reason: "Tos y fiebre 48h",          state: "consulta",   pago: "pendiente"},
-  { id: "t4", time: "11:30", patientId: 4, name: "Catalina Rojas",  age: "2 años",  tutor: "Javiera Rojas",     type: "Online",       sede: "Online",     reason: "Erupción en la piel",       state: "espera",     pago: "pagado"   },
-  { id: "t5", time: "15:00", patientId: 5, name: "Tomás Silva",     age: "8 años",  tutor: "Rocío Silva",       type: "Consulta",     sede: "Villarrica", reason: "Control asma",              state: "confirmado", pago: "pagado"   },
-  { id: "t6", time: "16:15", patientId: 6, name: "Antonia Vidal",   age: "14 años", tutor: "Patricia Vidal",    type: "Control sano", sede: "Villarrica", reason: "Control adolescente",       state: "confirmado", pago: "pendiente"},
-];
-
-const CLINICAL_TASKS: ClinicalTask[] = [
-  { id: "c1", kind: "lab",     icon: "FileText",      patientId: 5, patient: "Tomás Silva",    title: "Hemograma por revisar",  detail: "Resultado cargado hoy 08:15",           action: "Revisar",   urgent: true  },
-  { id: "c2", kind: "receta",  icon: "FileCheck",     patientId: 3, patient: "Lucas Martínez", title: "Receta por firmar",      detail: "Amoxicilina 250 mg/5 ml · 7 días",     action: "Firmar",    urgent: false },
-  { id: "c3", kind: "mensaje", icon: "MessageCircle", patientId: 2, patient: "Daniela Pérez",  title: "Mensaje de tutora",      detail: '"¿Sofía puede bañarse tras la vacuna?"', action: "Responder", urgent: false },
-  { id: "c4", kind: "vacuna",  icon: "Syringe",       patientId: 2, patient: "Sofía Pérez",    title: "Vacuna pendiente",       detail: "Pentavalente 6m · vence en 3 días",     action: "Agendar",   urgent: true  },
-  { id: "c5", kind: "mensaje", icon: "MessageCircle", patientId: 4, patient: "Javiera Rojas",  title: "Mensaje de tutora",      detail: '"Adjunto foto de la erupción"',          action: "Responder", urgent: false },
-];
-
-const PRICE_BY_TYPE: Record<string, number> = {
-  "Control sano": 40000,
-  "Consulta":     40000,
-  "Online":       35000,
+// Frontend flow state → backend status (for PATCH)
+const FLOW_TO_STATUS: Record<FlowState, string> = {
+  confirmado: "CONFIRMED",
+  espera: "CHECKED_IN",
+  consulta: "IN_PROGRESS",
+  atendido: "COMPLETED",
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -99,6 +62,20 @@ function todayFormatted(): string {
   });
 }
 
+function todayDateString(): string {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function formatAge(age: { years: number; months: number }): string {
+  if (age.years === 0) return `${age.months} meses`;
+  if (age.months === 0) return `${age.years} año${age.years !== 1 ? "s" : ""}`;
+  return `${age.years} a ${age.months} m`;
+}
+
 function patientInitial(name: string): string {
   return name.charAt(0).toUpperCase();
 }
@@ -114,6 +91,10 @@ function avatarColor(name: string): AvatarColors {
     { fg: "#F5D4A0", bg: "#FCEACB" },
   ];
   return palettes[name.charCodeAt(0) % palettes.length];
+}
+
+function flowStateFromAppointment(appt: Appointment): FlowState {
+  return STATUS_TO_FLOW[appt.status] ?? "confirmado";
 }
 
 // ─── Static metadata ──────────────────────────────────────────────────────────
@@ -140,29 +121,15 @@ const NEXT_ACTION: Partial<Record<FlowState, { label: string; Icon: React.Elemen
   consulta:   { label: "Finalizar",        Icon: Check       },
 };
 
-const TASK_ICON_MAP: Record<string, React.ElementType> = {
-  FileText,
-  FileCheck,
-  MessageCircle,
-  Syringe,
-};
-
-const TASK_KIND_COLORS: Record<TaskKind, { bg: string; text: string }> = {
-  lab:     { bg: "rgba(244, 168, 154, 0.25)", text: "#B5604F" },
-  receta:  { bg: "rgba(125, 211, 192, 0.20)", text: "#3E8E7C" },
-  mensaje: { bg: "rgba(199, 184, 232, 0.28)", text: "#6B569E" },
-  vacuna:  { bg: "rgba(245, 212, 160, 0.45)", text: "#9C7423" },
-};
-
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function TypeChip({ type }: { type: string }) {
   const map: Record<string, { bg: string; text: string }> = {
-    "Control sano": { bg: "rgba(125, 211, 192, 0.20)", text: "#3E8E7C" },
-    "Consulta":     { bg: "rgba(199, 184, 232, 0.30)", text: "#6B569E" },
-    "Online":       { bg: "rgba(244, 168, 154, 0.25)", text: "#B5604F" },
+    "Control sano":           { bg: "rgba(125, 211, 192, 0.20)", text: "#3E8E7C" },
+    "Consulta pediátrica":    { bg: "rgba(199, 184, 232, 0.30)", text: "#6B569E" },
+    "Consulta online":        { bg: "rgba(244, 168, 154, 0.25)", text: "#B5604F" },
   };
-  const s = map[type] ?? map["Consulta"];
+  const s = map[type] ?? { bg: "rgba(199, 184, 232, 0.30)", text: "#6B569E" };
   return (
     <span
       className="px-2 py-0.5 rounded-md text-[10.5px] font-semibold"
@@ -226,15 +193,17 @@ function StageCard({
 }
 
 function FocusCard({
-  turn,
+  appt,
+  advancing,
   onAdvance,
   onOpenFicha,
 }: {
-  turn: Turn | null;
-  onAdvance: (id: string) => void;
+  appt: Appointment | null;
+  advancing: boolean;
+  onAdvance: (id: number) => void;
   onOpenFicha: (patientId: number) => void;
 }) {
-  if (!turn) {
+  if (!appt) {
     return (
       <div className="bg-surface border border-line rounded-[16px] shadow-[var(--shadow-card)] p-6 flex items-center gap-4">
         <div
@@ -253,10 +222,12 @@ function FocusCard({
     );
   }
 
-  const m = STATE_META[turn.state];
-  const av = avatarColor(turn.name);
-  const inConsult = turn.state === "consulta";
-  const act = NEXT_ACTION[turn.state];
+  const state = flowStateFromAppointment(appt);
+  const m = STATE_META[state];
+  const av = avatarColor(appt.patient_name);
+  const inConsult = state === "consulta";
+  const act = NEXT_ACTION[state];
+  const time = appt.start_time.slice(0, 5);
 
   return (
     <div
@@ -275,63 +246,66 @@ function FocusCard({
         >
           {inConsult
             ? "● Ahora en consulta"
-            : turn.state === "espera"
+            : state === "espera"
             ? "Siguiente · en sala"
             : "Siguiente paciente"}
         </span>
-        <span className="text-[12px] font-bold text-teal-dark">{turn.time}</span>
+        <span className="text-[12px] font-bold text-teal-dark">{time}</span>
       </div>
 
       <div className="mt-3 flex items-center gap-3">
         <button
-          onClick={() => onOpenFicha(turn.patientId)}
+          onClick={() => onOpenFicha(appt.patient)}
           className="w-12 h-12 rounded-full flex items-center justify-center text-[16px] font-bold shrink-0 focus-ring"
           style={{ background: av.bg, color: av.fg }}
         >
-          {patientInitial(turn.name)}
+          {patientInitial(appt.patient_name)}
         </button>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <button
-              onClick={() => onOpenFicha(turn.patientId)}
+              onClick={() => onOpenFicha(appt.patient)}
               className="text-[16px] font-bold text-ink hover:text-teal-dark transition text-left focus-ring"
             >
-              {turn.name}
+              {appt.patient_name}
             </button>
-            <span className="text-[12px] text-ink3">· {turn.age}</span>
+            <span className="text-[12px] text-ink3">· {formatAge(appt.patient_age)}</span>
           </div>
           <div className="mt-0.5 flex items-center gap-2 flex-wrap text-[12px] text-ink2">
-            <TypeChip type={turn.type} />
+            <TypeChip type={appt.service_name} />
             <span className="inline-flex items-center gap-1">
               <MapPin size={11} className="text-ink3" />
-              {turn.sede}
+              {appt.location_name}
             </span>
           </div>
         </div>
       </div>
 
-      <div className="mt-3 px-3 py-2 rounded-[10px] text-[12.5px] text-ink2" style={{ background: "rgba(250, 250, 247, 0.70)" }}>
-        <span className="font-semibold text-ink">Motivo:</span> {turn.reason}
-        {turn.pago === "pendiente" && (
-          <span className="ml-2 inline-flex items-center gap-1 text-[11px] font-semibold text-[#9C7423]">
-            <AlertCircle size={11} /> Pago pendiente
-          </span>
-        )}
-      </div>
+      {appt.notes && (
+        <div className="mt-3 px-3 py-2 rounded-[10px] text-[12.5px] text-ink2" style={{ background: "rgba(250, 250, 247, 0.70)" }}>
+          <span className="font-semibold text-ink">Motivo:</span> {appt.notes}
+          {!appt.payment_id && state !== "atendido" && (
+            <span className="ml-2 inline-flex items-center gap-1 text-[11px] font-semibold text-[#9C7423]">
+              <AlertCircle size={11} /> Pago pendiente
+            </span>
+          )}
+        </div>
+      )}
 
       <div className="mt-4 flex items-center gap-2">
         {act && (
           <button
-            onClick={() => onAdvance(turn.id)}
-            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-[10px] text-white text-[13px] font-semibold hover:opacity-90 transition shadow-[var(--shadow-soft)] focus-ring"
+            onClick={() => onAdvance(appt.id)}
+            disabled={advancing}
+            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-[10px] text-white text-[13px] font-semibold hover:opacity-90 transition shadow-[var(--shadow-soft)] focus-ring disabled:opacity-60"
             style={{ background: "#5CB8A4" }}
           >
-            <act.Icon size={15} />
+            {advancing ? <Loader2 size={15} className="animate-spin" /> : <act.Icon size={15} />}
             {act.label}
           </button>
         )}
         <button
-          onClick={() => onOpenFicha(turn.patientId)}
+          onClick={() => onOpenFicha(appt.patient)}
           className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-[10px] bg-surface border border-line text-[13px] font-semibold text-ink2 hover:bg-bg transition focus-ring"
         >
           <FileText size={15} />
@@ -343,19 +317,21 @@ function FocusCard({
 }
 
 function AgendaRow({
-  turn,
+  appt,
+  advancing,
   onAdvance,
-  onCobrar,
   onOpenFicha,
 }: {
-  turn: Turn;
-  onAdvance: (id: string) => void;
-  onCobrar: (id: string) => void;
+  appt: Appointment;
+  advancing: boolean;
+  onAdvance: (id: number) => void;
   onOpenFicha: (patientId: number) => void;
 }) {
-  const av = avatarColor(turn.name);
-  const act = NEXT_ACTION[turn.state];
-  const done = turn.state === "atendido";
+  const state = flowStateFromAppointment(appt);
+  const av = avatarColor(appt.patient_name);
+  const act = NEXT_ACTION[state];
+  const done = state === "atendido";
+  const time = appt.start_time.slice(0, 5);
 
   return (
     <div
@@ -365,56 +341,48 @@ function AgendaRow({
       ].join(" ")}
     >
       <div className="w-12 shrink-0 text-teal-dark font-bold text-[14px] leading-tight">
-        {turn.time}
+        {time}
       </div>
       <div className="w-px self-stretch bg-line shrink-0" />
       <button
-        onClick={() => onOpenFicha(turn.patientId)}
+        onClick={() => onOpenFicha(appt.patient)}
         className="w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-bold shrink-0 focus-ring"
         style={{ background: av.bg, color: av.fg }}
       >
-        {patientInitial(turn.name)}
+        {patientInitial(appt.patient_name)}
       </button>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <button
-            onClick={() => onOpenFicha(turn.patientId)}
+            onClick={() => onOpenFicha(appt.patient)}
             className="text-[13.5px] font-semibold text-ink hover:text-teal-dark transition text-left focus-ring"
           >
-            {turn.name}
+            {appt.patient_name}
           </button>
-          <span className="text-[11px] text-ink3">· {turn.age}</span>
-          <TypeChip type={turn.type} />
+          <span className="text-[11px] text-ink3">· {formatAge(appt.patient_age)}</span>
+          <TypeChip type={appt.service_name} />
         </div>
-        <div className="mt-0.5 text-[11.5px] text-ink2 truncate">{turn.reason}</div>
+        {appt.notes && (
+          <div className="mt-0.5 text-[11.5px] text-ink2 truncate">{appt.notes}</div>
+        )}
       </div>
       <div className="hidden sm:flex flex-col items-end gap-1.5 shrink-0">
-        <StateBadge state={turn.state} />
-        {turn.pago === "pendiente" && (
+        <StateBadge state={state} />
+        {!appt.payment_id && !done && (
           <span className="text-[10.5px] font-semibold text-[#9C7423] inline-flex items-center gap-1">
             <CreditCard size={10} /> Por cobrar
           </span>
         )}
       </div>
       <div className="flex items-center gap-1.5 shrink-0 w-[150px] justify-end">
-        {turn.pago === "pendiente" && !done && (
-          <button
-            onClick={() => onCobrar(turn.id)}
-            className="inline-flex items-center gap-1 px-2.5 py-2 rounded-[9px] text-[11.5px] font-semibold transition focus-ring"
-            style={{ background: "rgba(245, 212, 160, 0.40)", color: "#9C7423" }}
-            title="Registrar pago"
-          >
-            <CreditCard size={13} />
-            Cobrar
-          </button>
-        )}
         {act ? (
           <button
-            onClick={() => onAdvance(turn.id)}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[9px] text-white text-[11.5px] font-semibold hover:opacity-90 transition focus-ring whitespace-nowrap"
+            onClick={() => onAdvance(appt.id)}
+            disabled={advancing}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[9px] text-white text-[11.5px] font-semibold hover:opacity-90 transition focus-ring whitespace-nowrap disabled:opacity-60"
             style={{ background: "#5CB8A4" }}
           >
-            <act.Icon size={13} />
+            {advancing ? <Loader2 size={13} className="animate-spin" /> : <act.Icon size={13} />}
             {act.label}
           </button>
         ) : (
@@ -423,58 +391,6 @@ function AgendaRow({
           </span>
         )}
       </div>
-    </div>
-  );
-}
-
-function TaskRow({
-  task,
-  onResolve,
-  onOpenFicha,
-}: {
-  task: ClinicalTask;
-  onResolve: (id: string) => void;
-  onOpenFicha: (patientId: number) => void;
-}) {
-  const colors = TASK_KIND_COLORS[task.kind] ?? { bg: "#F2F1EC", text: "#6B6B6B" };
-  const IconComp = TASK_ICON_MAP[task.icon] ?? FileText;
-
-  return (
-    <div className="group flex items-start gap-3 px-4 py-3 hover:bg-bg transition">
-      <div
-        className="w-8 h-8 rounded-[9px] flex items-center justify-center shrink-0"
-        style={{ background: colors.bg, color: colors.text }}
-      >
-        <IconComp size={15} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          <span className="text-[12.5px] font-semibold text-ink leading-tight">
-            {task.title}
-          </span>
-          {task.urgent && (
-            <span
-              className="w-1.5 h-1.5 rounded-full shrink-0"
-              style={{ background: "#F4A89A" }}
-              title="Urgente"
-            />
-          )}
-        </div>
-        <button
-          onClick={() => onOpenFicha(task.patientId)}
-          className="text-[11px] font-medium hover:underline focus-ring"
-          style={{ color: "#5CB8A4" }}
-        >
-          {task.patient}
-        </button>
-        <div className="text-[11.5px] text-ink2 mt-0.5 leading-snug">{task.detail}</div>
-      </div>
-      <button
-        onClick={() => onResolve(task.id)}
-        className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-[8px] bg-surface border border-line text-[11.5px] font-semibold text-ink2 hover:bg-teal/10 hover:text-teal-dark hover:border-teal/40 transition focus-ring"
-      >
-        {task.action}
-      </button>
     </div>
   );
 }
@@ -495,17 +411,17 @@ function Toast({ message }: { message: string | null }) {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const sedeName = useSedeStore((s) => s.sedeName);
 
-  const [flow, setFlow] = useState<Turn[]>(() => TODAY_AGENDA.map((t) => ({ ...t })));
-  const [tasks, setTasks] = useState<ClinicalTask[]>(() => CLINICAL_TASKS.map((t) => ({ ...t })));
   const [filter, setFilter] = useState<FlowState | null>(null);
-  const [resolved, setResolved] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [advancingId, setAdvancingId] = useState<number | null>(null);
 
   const firstName = user?.first_name ?? "Estefi";
+  const today = todayDateString();
 
   // Flash toast
   const flash = useCallback((msg: string) => {
@@ -514,86 +430,102 @@ export default function Dashboard() {
     toastTimer.current = setTimeout(() => setToast(null), 2200);
   }, []);
 
-  // Sede filter: "Todas" shows everything; a named sede shows that sede + online turns
-  const inSede = useCallback(
-    (t: Turn) => sedeName === "Todas" || t.sede === sedeName || t.sede === "Online",
-    [sedeName]
-  );
+  // ─── Data fetching ─────────────────────────────────────────────────────────
 
-  const sedeFlow = useMemo(() => flow.filter(inSede), [flow, inSede]);
+  const { data: appointmentsData, isLoading } = useQuery({
+    queryKey: ["appointments", "doctor-dashboard", today],
+    queryFn: () =>
+      api
+        .get<PaginatedResponse<Appointment>>("/appointments/", {
+          params: {
+            date: today,
+            status: "CONFIRMED,CHECKED_IN,IN_PROGRESS,COMPLETED",
+            page_size: 50,
+          },
+        })
+        .then((r) => r.data),
+    refetchInterval: 30_000,
+  });
+
+  const allAppointments = appointmentsData?.results ?? [];
+
+  // ─── Advance mutation ──────────────────────────────────────────────────────
+
+  const advanceMutation = useMutation({
+    mutationFn: async ({ appointmentId, nextStatus }: { appointmentId: number; nextStatus: string }) => {
+      const res = await api.patch<Appointment>(`/appointments/${appointmentId}/`, {
+        status: nextStatus,
+      });
+      return res.data;
+    },
+    onMutate: ({ appointmentId }) => {
+      setAdvancingId(appointmentId);
+    },
+    onSuccess: (data) => {
+      const stateLabel: Partial<Record<string, string>> = {
+        CHECKED_IN: "en sala de espera",
+        IN_PROGRESS: "en consulta",
+        COMPLETED: "atendido",
+      };
+      flash(`${data.patient_name} → ${stateLabel[data.status] ?? data.status_display}`);
+      queryClient.invalidateQueries({ queryKey: ["appointments", "doctor-dashboard"] });
+    },
+    onError: () => {
+      flash("Error al cambiar estado");
+    },
+    onSettled: () => {
+      setAdvancingId(null);
+    },
+  });
+
+  // ─── Sede filter ───────────────────────────────────────────────────────────
+
+  const sedeAppointments = useMemo(() => {
+    if (sedeName === "Todas") return allAppointments;
+    return allAppointments.filter(
+      (a) => a.location_name === sedeName || a.is_online
+    );
+  }, [allAppointments, sedeName]);
 
   const counts = useMemo(() => {
     const c: Record<FlowState, number> = { confirmado: 0, espera: 0, consulta: 0, atendido: 0 };
-    sedeFlow.forEach((t) => { c[t.state]++; });
+    sedeAppointments.forEach((a) => {
+      const s = flowStateFromAppointment(a);
+      c[s]++;
+    });
     return c;
-  }, [sedeFlow]);
+  }, [sedeAppointments]);
 
   // Focus: patient in consulta → espera → first confirmado → null
   const focus = useMemo(
     () =>
-      sedeFlow.find((t) => t.state === "consulta") ??
-      sedeFlow.find((t) => t.state === "espera") ??
-      sedeFlow.find((t) => t.state === "confirmado") ??
+      sedeAppointments.find((a) => a.status === "IN_PROGRESS") ??
+      sedeAppointments.find((a) => a.status === "CHECKED_IN") ??
+      sedeAppointments.find((a) => a.status === "CONFIRMED") ??
       null,
-    [sedeFlow]
+    [sedeAppointments]
   );
 
-  const shown = useMemo(
-    () => (filter ? sedeFlow.filter((t) => t.state === filter) : sedeFlow),
-    [filter, sedeFlow]
-  );
+  const shown = useMemo(() => {
+    if (!filter) return sedeAppointments;
+    const targetStatus = FLOW_TO_STATUS[filter];
+    return sedeAppointments.filter((a) => a.status === targetStatus);
+  }, [filter, sedeAppointments]);
 
-  // Money
-  const ingresosHoy = useMemo(
-    () => sedeFlow.filter((t) => t.state === "atendido" && t.pago === "pagado").reduce((s, t) => s + (PRICE_BY_TYPE[t.type] ?? 40000), 0),
-    [sedeFlow]
-  );
-  const porCobrar = useMemo(
-    () => sedeFlow.filter((t) => t.pago === "pendiente").reduce((s, t) => s + (PRICE_BY_TYPE[t.type] ?? 40000), 0),
-    [sedeFlow]
-  );
+  // ─── Actions ───────────────────────────────────────────────────────────────
 
-  // Actions
   const advance = useCallback(
-    (id: string) => {
-      setFlow((prev) =>
-        prev.map((t) => {
-          if (t.id !== id) return t;
-          const idx = FLOW_ORDER.indexOf(t.state);
-          const next = FLOW_ORDER[Math.min(idx + 1, FLOW_ORDER.length - 1)];
-          const labels: Partial<Record<FlowState, string>> = {
-            espera:   "en sala de espera",
-            consulta: "en consulta",
-            atendido: "atendido",
-          };
-          flash(`${t.name} → ${labels[next] ?? next}`);
-          return { ...t, state: next };
-        })
-      );
+    (appointmentId: number) => {
+      const appt = allAppointments.find((a) => a.id === appointmentId);
+      if (!appt) return;
+      const currentFlow = flowStateFromAppointment(appt);
+      const idx = FLOW_ORDER.indexOf(currentFlow);
+      const nextFlow = FLOW_ORDER[Math.min(idx + 1, FLOW_ORDER.length - 1)];
+      if (nextFlow === currentFlow) return;
+      const nextStatus = FLOW_TO_STATUS[nextFlow];
+      advanceMutation.mutate({ appointmentId, nextStatus });
     },
-    [flash]
-  );
-
-  const cobrar = useCallback(
-    (id: string) => {
-      setFlow((prev) =>
-        prev.map((t) => {
-          if (t.id !== id) return t;
-          flash(`Pago de ${t.name} registrado · ${dashCLP(PRICE_BY_TYPE[t.type] ?? 40000)}`);
-          return { ...t, pago: "pagado" };
-        })
-      );
-    },
-    [flash]
-  );
-
-  const resolveTask = useCallback(
-    (id: string) => {
-      setTasks((prev) => prev.filter((t) => t.id !== id));
-      setResolved((r) => r + 1);
-      flash("Tarea resuelta");
-    },
-    [flash]
+    [allAppointments, advanceMutation]
   );
 
   const openFicha = useCallback(
@@ -605,6 +537,25 @@ export default function Dashboard() {
     () => navigate("/dashboard/calendario"),
     [navigate]
   );
+
+  // ─── Money ─────────────────────────────────────────────────────────────────
+
+  const completedWithPayment = sedeAppointments.filter(
+    (a) => a.status === "COMPLETED" && a.payment_id
+  ).length;
+  const pendingPayment = sedeAppointments.filter(
+    (a) => !a.payment_id && a.status !== "COMPLETED"
+  ).length;
+
+  // ─── Loading state ─────────────────────────────────────────────────────────
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 size={28} className="animate-spin text-teal" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -619,9 +570,8 @@ export default function Dashboard() {
             {greetingText()}, {firstName}
           </h1>
           <p className="mt-1 text-[13.5px] text-ink2">
-            {counts.atendido} de {sedeFlow.length} atendidos ·{" "}
-            <span className="font-semibold text-ink">{counts.consulta + counts.espera}</span> en curso ·{" "}
-            <span className="font-semibold text-ink">{tasks.length}</span> tareas clínicas
+            {counts.atendido} de {sedeAppointments.length} atendidos ·{" "}
+            <span className="font-semibold text-ink">{counts.consulta + counts.espera}</span> en curso
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -675,7 +625,12 @@ export default function Dashboard() {
         {/* Left: focus card + agenda */}
         <div className="xl:col-span-2 space-y-5">
           {/* Focus card */}
-          <FocusCard turn={focus} onAdvance={advance} onOpenFicha={openFicha} />
+          <FocusCard
+            appt={focus}
+            advancing={advancingId === focus?.id}
+            onAdvance={advance}
+            onOpenFicha={openFicha}
+          />
 
           {/* Agenda de hoy */}
           <div className="bg-surface border border-line rounded-[14px] shadow-[var(--shadow-card)] overflow-hidden">
@@ -685,7 +640,7 @@ export default function Dashboard() {
                 <p className="text-[11.5px] text-ink3 mt-0.5">
                   {filter
                     ? `Filtrando: ${STATE_META[filter].short}`
-                    : `${sedeFlow.length} ${sedeFlow.length === 1 ? "turno" : "turnos"} · ${sedeName === "Todas" ? "Pucón y Villarrica" : sedeName}`}
+                    : `${sedeAppointments.length} ${sedeAppointments.length === 1 ? "turno" : "turnos"} · ${sedeName === "Todas" ? "Pucón y Villarrica" : sedeName}`}
                 </p>
               </div>
               <button
@@ -698,12 +653,12 @@ export default function Dashboard() {
             </div>
             <div className="px-2 pb-3">
               {shown.length > 0 ? (
-                shown.map((t, i) => (
-                  <div key={t.id}>
+                shown.map((appt, i) => (
+                  <div key={appt.id}>
                     <AgendaRow
-                      turn={t}
+                      appt={appt}
+                      advancing={advancingId === appt.id}
                       onAdvance={advance}
-                      onCobrar={cobrar}
                       onOpenFicha={openFicha}
                     />
                     {i < shown.length - 1 && (
@@ -713,79 +668,42 @@ export default function Dashboard() {
                 ))
               ) : (
                 <div className="px-4 py-10 text-center text-[12.5px] text-ink3">
-                  Sin turnos en este estado.
+                  {sedeAppointments.length === 0
+                    ? "Sin turnos agendados para hoy."
+                    : "Sin turnos en este estado."}
                 </div>
               )}
             </div>
           </div>
         </div>
 
-        {/* Right: clinical inbox + caja */}
+        {/* Right: summary */}
         <div className="space-y-5">
-          {/* Bandeja clínica */}
-          <div className="bg-surface border border-line rounded-[14px] shadow-[var(--shadow-card)] overflow-hidden">
-            <div className="flex items-center justify-between px-5 pt-5 pb-3">
-              <div>
-                <h3 className="text-[15px] font-bold text-ink">Bandeja clínica</h3>
-                <p className="text-[11.5px] text-ink3 mt-0.5">
-                  {tasks.length > 0 ? `${tasks.length} pendientes` : "Todo al día"}
-                  {resolved > 0 && ` · ${resolved} resueltas hoy`}
-                </p>
-              </div>
-              <div
-                className="w-8 h-8 rounded-[9px] flex items-center justify-center"
-                style={{ background: "rgba(125, 211, 192, 0.15)", color: "#5CB8A4" }}
-              >
-                <Inbox size={16} />
-              </div>
-            </div>
-            <div className="pb-2">
-              {tasks.length > 0 ? (
-                tasks.map((t, i) => (
-                  <div key={t.id}>
-                    <TaskRow task={t} onResolve={resolveTask} onOpenFicha={openFicha} />
-                    {i < tasks.length - 1 && (
-                      <div className="mx-4 h-px bg-line/60" />
-                    )}
-                  </div>
-                ))
-              ) : (
-                <div className="px-5 py-10 text-center">
-                  <div
-                    className="mx-auto w-12 h-12 rounded-full flex items-center justify-center mb-3"
-                    style={{ background: "rgba(168, 213, 181, 0.25)", color: "#3F8358" }}
-                  >
-                    <Check size={20} />
-                  </div>
-                  <div className="text-[13px] font-bold text-ink">Bandeja vacía</div>
-                  <div className="text-[11.5px] text-ink3 mt-1">
-                    Resolviste todas las tareas.
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Caja de hoy */}
+          {/* Resumen de hoy */}
           <div className="bg-surface border border-line rounded-[14px] shadow-[var(--shadow-card)] p-5">
-            <h3 className="text-[14px] font-bold text-ink">Caja de hoy</h3>
+            <h3 className="text-[14px] font-bold text-ink">Resumen de hoy</h3>
             <div className="mt-4 flex items-stretch gap-3">
               <div className="flex-1 rounded-[12px] p-3.5" style={{ background: "rgba(168, 213, 181, 0.15)" }}>
-                <div className="text-[11px] font-semibold text-[#3F8358]">Cobrado</div>
+                <div className="text-[11px] font-semibold text-[#3F8358]">Atendidos</div>
                 <div className="mt-1 text-[20px] font-bold text-ink leading-none tracking-tight">
-                  {dashCLP(ingresosHoy)}
+                  {counts.atendido}
                 </div>
               </div>
               <div className="flex-1 rounded-[12px] p-3.5" style={{ background: "rgba(245, 212, 160, 0.25)" }}>
-                <div className="text-[11px] font-semibold text-[#9C7423]">Por cobrar</div>
+                <div className="text-[11px] font-semibold text-[#9C7423]">Pendientes</div>
                 <div className="mt-1 text-[20px] font-bold text-ink leading-none tracking-tight">
-                  {dashCLP(porCobrar)}
+                  {counts.confirmado + counts.espera}
                 </div>
               </div>
             </div>
-            <p className="mt-3 text-[11px] text-ink3">
-              Registrá los pagos pendientes desde la agenda con el botón "Cobrar".
-            </p>
+            <div className="mt-3 space-y-1.5 text-[11.5px] text-ink3">
+              <p>{completedWithPayment} con pago registrado</p>
+              {pendingPayment > 0 && (
+                <p className="text-[#9C7423] font-medium">
+                  {pendingPayment} sin pago asociado
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>

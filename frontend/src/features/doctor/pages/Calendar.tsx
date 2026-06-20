@@ -52,14 +52,16 @@ function getServiceColor(serviceName: string): ServiceColor {
 // ─── Status config ────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; border: string; dot: string }> = {
-  CONFIRMED:  { label: "Confirmado", bg: "#D6F1EA", text: "#3E8E7C", border: "#7DD3C0", dot: "#3E8E7C" },
-  PENDING:    { label: "Pendiente",  bg: "#FFF3CD", text: "#856404", border: "#FFD85E", dot: "#D4A017" },
-  HOLD:       { label: "Reservado",  bg: "#EDE4FF", text: "#6B569E", border: "#C7B8E8", dot: "#7C6BC4" },
-  COMPLETED:  { label: "Completado", bg: "#E0F2FE", text: "#0369A1", border: "#7DD3F4", dot: "#0284C7" },
-  CANCELLED:  { label: "Cancelado",  bg: "#FFE4E1", text: "#B5604F", border: "#F4A89A", dot: "#DC2626" },
-  NO_SHOW:    { label: "No asistió", bg: "#F3F4F6", text: "#6B7280", border: "#D1D5DB", dot: "#9CA3AF" },
-  EXPIRED:    { label: "Expirado",   bg: "#F3F4F6", text: "#6B7280", border: "#D1D5DB", dot: "#9CA3AF" },
-  RESCHEDULED:{ label: "Reagendado", bg: "#FEF3C7", text: "#92400E", border: "#FCD34D", dot: "#D97706" },
+  CONFIRMED:   { label: "Confirmado",  bg: "#D6F1EA", text: "#3E8E7C", border: "#7DD3C0", dot: "#3E8E7C" },
+  CHECKED_IN:  { label: "En sala",     bg: "#FEF3C7", text: "#9C7423", border: "#F5D4A0", dot: "#D4A017" },
+  IN_PROGRESS: { label: "En consulta", bg: "#D1FAE5", text: "#065F46", border: "#6EE7B7", dot: "#059669" },
+  PENDING:     { label: "Pendiente",   bg: "#FFF3CD", text: "#856404", border: "#FFD85E", dot: "#D4A017" },
+  HOLD:        { label: "Reservado",   bg: "#EDE4FF", text: "#6B569E", border: "#C7B8E8", dot: "#7C6BC4" },
+  COMPLETED:   { label: "Completado",  bg: "#E0F2FE", text: "#0369A1", border: "#7DD3F4", dot: "#0284C7" },
+  CANCELLED:   { label: "Cancelado",   bg: "#FFE4E1", text: "#B5604F", border: "#F4A89A", dot: "#DC2626" },
+  NO_SHOW:     { label: "No asistió",  bg: "#F3F4F6", text: "#6B7280", border: "#D1D5DB", dot: "#9CA3AF" },
+  EXPIRED:     { label: "Expirado",    bg: "#F3F4F6", text: "#6B7280", border: "#D1D5DB", dot: "#9CA3AF" },
+  RESCHEDULED: { label: "Reagendado",  bg: "#FEF3C7", text: "#92400E", border: "#FCD34D", dot: "#D97706" },
 };
 
 function StatusChip({ status }: { status: string }) {
@@ -204,7 +206,7 @@ function AppointmentBlock({
   const statusCfg = STATUS_CONFIG[appt.status];
   const isCancelled = appt.status === "CANCELLED" || appt.status === "EXPIRED" || appt.status === "NO_SHOW";
   const isDragging = draggingId === appt.id;
-  const canDrag = isDraggable && ["PENDING", "HOLD", "CONFIRMED"].includes(appt.status);
+  const canDrag = isDraggable && ["PENDING", "HOLD", "CONFIRMED", "CHECKED_IN"].includes(appt.status);
 
   function handleDragStart(e: React.DragEvent<HTMLButtonElement>) {
     const durationMinutes =
@@ -390,10 +392,10 @@ function AppointmentDetailModal({ appt, onClose }: ModalProps) {
   const anyPending = confirmMut.isPending || completeMut.isPending || noShowMut.isPending || cancelMut.isPending || rescheduleMut.isPending;
 
   const canConfirm = appt.status === "PENDING" || appt.status === "HOLD";
-  const canComplete = appt.status === "CONFIRMED";
-  const canNoShow = appt.status === "CONFIRMED";
-  const canCancel = ["PENDING", "HOLD", "CONFIRMED"].includes(appt.status);
-  const canReschedule = ["PENDING", "HOLD", "CONFIRMED"].includes(appt.status);
+  const canComplete = ["CONFIRMED", "CHECKED_IN", "IN_PROGRESS"].includes(appt.status);
+  const canNoShow = ["CONFIRMED", "CHECKED_IN"].includes(appt.status);
+  const canCancel = ["PENDING", "HOLD", "CONFIRMED", "CHECKED_IN"].includes(appt.status);
+  const canReschedule = ["PENDING", "HOLD", "CONFIRMED", "CHECKED_IN"].includes(appt.status);
   const isTerminal = ["CANCELLED", "EXPIRED", "NO_SHOW", "COMPLETED", "RESCHEDULED"].includes(appt.status);
 
   return (

@@ -9,6 +9,15 @@ vi.mock("react-router-dom", () => ({
       {children}
     </a>
   ),
+  useNavigate: () => vi.fn(),
+}));
+
+vi.mock("@tanstack/react-query", () => ({
+  useMutation: vi.fn(() => ({
+    mutate: vi.fn(),
+    isPending: false,
+  })),
+  useQueryClient: () => ({ invalidateQueries: vi.fn() }),
 }));
 
 // ─── Fixture ──────────────────────────────────────────────────────────────────
@@ -18,6 +27,7 @@ function makeAppointment(overrides: Partial<Appointment> = {}): Appointment {
     id: 10,
     patient: 1,
     patient_name: "Sofía Ramírez",
+    patient_age: { years: 2, months: 3 },
     service: 2,
     service_name: "Control de niño sano",
     location: 3,
@@ -33,6 +43,7 @@ function makeAppointment(overrides: Partial<Appointment> = {}): Appointment {
     meeting_link: "",
     attendance_confirmed: false,
     notes: "",
+    payment_id: null,
     created_at: "2026-06-01T00:00:00Z",
     updated_at: "2026-06-01T00:00:00Z",
     ...overrides,

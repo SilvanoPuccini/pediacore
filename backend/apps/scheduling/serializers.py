@@ -17,6 +17,7 @@ User = get_user_model()
 
 class AppointmentListSerializer(serializers.ModelSerializer):
     patient_name = serializers.SerializerMethodField()
+    patient_age = serializers.SerializerMethodField()
     service_name = serializers.CharField(source="service.name", read_only=True)
     location_name = serializers.SerializerMethodField()
     status_display = serializers.CharField(source="get_status_display", read_only=True)
@@ -28,6 +29,7 @@ class AppointmentListSerializer(serializers.ModelSerializer):
             "id",
             "patient",
             "patient_name",
+            "patient_age",
             "service",
             "service_name",
             "location",
@@ -42,6 +44,7 @@ class AppointmentListSerializer(serializers.ModelSerializer):
             "call_platform",
             "meeting_link",
             "attendance_confirmed",
+            "notes",
             "payment_id",
             "created_at",
             "updated_at",
@@ -50,6 +53,7 @@ class AppointmentListSerializer(serializers.ModelSerializer):
             "end_time",
             "status_display",
             "patient_name",
+            "patient_age",
             "service_name",
             "location_name",
             "payment_id",
@@ -57,6 +61,9 @@ class AppointmentListSerializer(serializers.ModelSerializer):
 
     def get_patient_name(self, obj: Appointment) -> str:
         return obj.patient.full_name
+
+    def get_patient_age(self, obj: Appointment) -> dict:
+        return obj.patient.age
 
     def get_location_name(self, obj: Appointment) -> str:
         if obj.is_online:

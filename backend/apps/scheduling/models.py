@@ -15,6 +15,8 @@ class Appointment(BaseModel):
     HOLD = "HOLD"
     PENDING = "PENDING"
     CONFIRMED = "CONFIRMED"
+    CHECKED_IN = "CHECKED_IN"
+    IN_PROGRESS = "IN_PROGRESS"
     COMPLETED = "COMPLETED"
     CANCELLED = "CANCELLED"
     EXPIRED = "EXPIRED"
@@ -25,6 +27,8 @@ class Appointment(BaseModel):
         (HOLD, _("Hold (pending payment)")),
         (PENDING, _("Pending")),
         (CONFIRMED, _("Confirmed")),
+        (CHECKED_IN, _("Checked in")),
+        (IN_PROGRESS, _("In progress")),
         (COMPLETED, _("Completed")),
         (CANCELLED, _("Cancelled")),
         (EXPIRED, _("Expired")),
@@ -33,7 +37,7 @@ class Appointment(BaseModel):
     ]
 
     # Statuses that occupy a slot (block availability)
-    SLOT_BLOCKING_STATUSES = [HOLD, PENDING, CONFIRMED, COMPLETED]
+    SLOT_BLOCKING_STATUSES = [HOLD, PENDING, CONFIRMED, CHECKED_IN, IN_PROGRESS, COMPLETED]
     # Statuses that free a slot
     SLOT_FREE_STATUSES = [CANCELLED, EXPIRED, NO_SHOW, RESCHEDULED]
 

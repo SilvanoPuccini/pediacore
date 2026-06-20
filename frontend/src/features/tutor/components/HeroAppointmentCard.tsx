@@ -39,6 +39,8 @@ function mapStatus(status: string, attendanceConfirmed?: boolean): string {
   if (status === "CONFIRMED" && attendanceConfirmed) return "asistencia";
   const MAP: Record<string, string> = {
     CONFIRMED: "confirmado",
+    CHECKED_IN: "en sala",
+    IN_PROGRESS: "en consulta",
     COMPLETED: "realizado",
     CANCELLED: "cancelado",
     HOLD: "pendiente",

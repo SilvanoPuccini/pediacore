@@ -73,6 +73,7 @@ const mockAppointment: Appointment = {
   id: 1,
   patient: 10,
   patient_name: "Sofía Torres",
+  patient_age: { years: 4, months: 0 },
   service: 1,
   service_name: "Control sano",
   location: 1,
@@ -88,6 +89,7 @@ const mockAppointment: Appointment = {
   meeting_link: "",
   attendance_confirmed: false,
   notes: "",
+  payment_id: null,
   created_at: "2026-06-01T00:00:00Z",
   updated_at: "2026-06-01T00:00:00Z",
 };
