@@ -65,6 +65,8 @@ export function Avatar({ name, childIndex = 0, sex, size = 40, className }: Avat
 const STATUS_MAP = {
   asistencia: { color: "sage" as const, label: "Asistencia confirmada" },
   confirmado: { color: "teal" as const, label: "Confirmado" },
+  "en sala": { color: "mustard" as const, label: "En sala de espera" },
+  "en consulta": { color: "teal" as const, label: "En consulta" },
   pendiente: { color: "mustard" as const, label: "Pendiente de pago" },
   cancelado: { color: "err" as const, label: "Cancelado" },
   realizado: { color: "neutral" as const, label: "Realizada" },
