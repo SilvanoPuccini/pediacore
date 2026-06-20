@@ -42,10 +42,6 @@ const FLOW_TO_STATUS: Record<FlowState, string> = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function dashCLP(n: number): string {
-  return "$" + n.toLocaleString("es-CL");
-}
-
 function greetingText(): string {
   const h = new Date().getHours();
   if (h < 12) return "Buenos días";
