@@ -159,7 +159,7 @@ export default function ConfigPage() {
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
   // ── Password form state ──
-  const [pwForm, setPwForm] = useState({ current_password: "", new_password: "" });
+  const [pwForm, setPwForm] = useState({ current_password: "", new_password: "", confirm_password: "" });
   const [pwVisible, setPwVisible] = useState(false);
 
   const flash = (msg: string, error = false) => {
@@ -171,7 +171,7 @@ export default function ConfigPage() {
   const locationsQ = useQuery<PaginatedResponse<Location>>({
     queryKey: ["locations"],
     queryFn: async () => {
-      const { data } = await api.get<PaginatedResponse<Location>>("/locations/");
+      const { data } = await api.get<PaginatedResponse<Location>>("/practices/dra-estefi/locations/");
       return data;
     },
     staleTime: 1000 * 60 * 60,
@@ -180,7 +180,7 @@ export default function ConfigPage() {
   const servicesQ = useQuery<PaginatedResponse<Service>>({
     queryKey: ["services"],
     queryFn: async () => {
-      const { data } = await api.get<PaginatedResponse<Service>>("/services/");
+      const { data } = await api.get<PaginatedResponse<Service>>("/practices/dra-estefi/services/");
       return data;
     },
     staleTime: 1000 * 60 * 60,
@@ -255,7 +255,7 @@ export default function ConfigPage() {
       await api.post("/change-password/", payload);
     },
     onSuccess: () => {
-      setPwForm({ current_password: "", new_password: "" });
+      setPwForm({ current_password: "", new_password: "", confirm_password: "" });
       setPwVisible(false);
       flash("Contraseña actualizada");
     },
@@ -676,13 +676,29 @@ export default function ConfigPage() {
                       autoComplete="new-password"
                     />
                   </CfgField>
+                  <CfgField label="Confirmar nueva contraseña">
+                    <input
+                      type="password"
+                      className={cfgInput}
+                      value={pwForm.confirm_password}
+                      onChange={(e) =>
+                        setPwForm((f) => ({ ...f, confirm_password: e.target.value }))
+                      }
+                      autoComplete="new-password"
+                    />
+                  </CfgField>
+                  {pwForm.confirm_password && pwForm.new_password !== pwForm.confirm_password && (
+                    <p className="text-[12px] text-err">Las contraseñas no coinciden</p>
+                  )}
                   <div className="flex gap-2 pt-1">
                     <button
                       onClick={() => passwordMutation.mutate(pwForm)}
                       disabled={
                         passwordMutation.isPending ||
                         !pwForm.current_password ||
-                        !pwForm.new_password
+                        !pwForm.new_password ||
+                        !pwForm.confirm_password ||
+                        pwForm.new_password !== pwForm.confirm_password
                       }
                       className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[10px] bg-teal-dark text-white text-[12.5px] font-semibold hover:opacity-90 transition disabled:opacity-60"
                     >
@@ -692,7 +708,7 @@ export default function ConfigPage() {
                     <button
                       onClick={() => {
                         setPwVisible(false);
-                        setPwForm({ current_password: "", new_password: "" });
+                        setPwForm({ current_password: "", new_password: "", confirm_password: "" });
                       }}
                       className="px-4 py-2.5 rounded-[10px] bg-bg border border-line text-[12.5px] font-semibold text-ink2 hover:bg-line/40 transition"
                     >
@@ -705,14 +721,14 @@ export default function ConfigPage() {
 
             <CfgSection
               icon={<Download size={16} />}
-              title="Datos"
-              desc="Exportá la información de tu consultorio."
+              title="Resumen del consultorio"
+              desc="Descargá un resumen profesional con sedes, servicios, horarios y estadísticas."
             >
               <button
                 onClick={handleExport}
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[10px] bg-surface border border-line text-[12.5px] font-semibold text-ink2 hover:bg-bg transition"
               >
-                <Download size={14} /> Exportar mis datos (PDF)
+                <Download size={14} /> Descargar resumen PDF
               </button>
             </CfgSection>
 

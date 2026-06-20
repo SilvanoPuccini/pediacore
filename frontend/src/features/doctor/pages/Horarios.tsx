@@ -123,7 +123,7 @@ export default function HorariosPage() {
   const locationsQ = useQuery<PaginatedResponse<Location>>({
     queryKey: ["locations"],
     queryFn: async () => {
-      const { data } = await api.get<PaginatedResponse<Location>>("/locations/");
+      const { data } = await api.get<PaginatedResponse<Location>>("/practices/dra-estefi/locations/");
       return data;
     },
     staleTime: 1000 * 60 * 60,
@@ -155,6 +155,7 @@ export default function HorariosPage() {
   const toggleDay = (day: DayKey) => {
     setSchedule((prev) => {
       const next = JSON.parse(JSON.stringify(prev)) as FullSchedule;
+      if (!next[activeSede]) next[activeSede] = emptySedeSchedule();
       const d = next[activeSede][day];
       d.enabled = !d.enabled;
       if (d.enabled && d.blocks.length === 0) d.blocks = [{ start: "09:00", end: "13:00" }];
@@ -165,6 +166,7 @@ export default function HorariosPage() {
   const addBlock = (day: DayKey) => {
     setSchedule((prev) => {
       const next = JSON.parse(JSON.stringify(prev)) as FullSchedule;
+      if (!next[activeSede]) next[activeSede] = emptySedeSchedule();
       const d = next[activeSede][day];
       d.enabled = true;
       const last = d.blocks[d.blocks.length - 1];
@@ -176,6 +178,7 @@ export default function HorariosPage() {
   const removeBlock = (day: DayKey, i: number) => {
     setSchedule((prev) => {
       const next = JSON.parse(JSON.stringify(prev)) as FullSchedule;
+      if (!next[activeSede]) next[activeSede] = emptySedeSchedule();
       const d = next[activeSede][day];
       d.blocks.splice(i, 1);
       if (d.blocks.length === 0) d.enabled = false;
@@ -186,6 +189,7 @@ export default function HorariosPage() {
   const editBlock = (day: DayKey, i: number, field: "start" | "end", val: string) => {
     setSchedule((prev) => {
       const next = JSON.parse(JSON.stringify(prev)) as FullSchedule;
+      if (!next[activeSede]) next[activeSede] = emptySedeSchedule();
       next[activeSede][day].blocks[i][field] = val;
       return next;
     });

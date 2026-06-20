@@ -358,9 +358,13 @@ export default function DoctorLayout() {
         <div className="px-6 pb-5">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#F4A89A] to-[#C7B8E8] flex items-center justify-center text-white font-semibold text-sm">
-                {initials}
-              </div>
+              {user?.avatar_url ? (
+                <img src={user.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#F4A89A] to-[#C7B8E8] flex items-center justify-center text-white font-semibold text-sm">
+                  {initials}
+                </div>
+              )}
               <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-sage border-2 border-surface" />
             </div>
             <div className="min-w-0">
@@ -529,9 +533,13 @@ export default function DoctorLayout() {
 
             <div className="flex items-center gap-2">
               <NotificationBell />
-              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-[#F4A89A] to-[#C7B8E8] flex items-center justify-center shrink-0 cursor-default">
-                <span className="text-[12px] font-bold text-white">{initials}</span>
-              </div>
+              {user?.avatar_url ? (
+                <img src={user.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover shrink-0" />
+              ) : (
+                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-[#F4A89A] to-[#C7B8E8] flex items-center justify-center shrink-0 cursor-default">
+                  <span className="text-[12px] font-bold text-white">{initials}</span>
+                </div>
+              )}
             </div>
           </div>
         </header>
