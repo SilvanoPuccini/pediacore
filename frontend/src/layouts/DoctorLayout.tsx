@@ -39,10 +39,10 @@ const NAV_ITEMS = [
   { label: "Calendario", href: "/dashboard/calendario", icon: Calendar },
   { label: "Pacientes", href: "/dashboard/pacientes", icon: Users },
   { label: "Lista de espera", href: "/dashboard/espera", icon: Clock },
-  { label: "Blog", href: "/dashboard/blog", icon: FileText },
+  { label: "Horarios", href: "/dashboard/horarios", icon: CalendarClock },
   { label: "Pagos", href: "/dashboard/pagos", icon: CreditCard },
   { label: "Finanzas", href: "/dashboard/finanzas", icon: Calculator },
-  { label: "Horarios", href: "/dashboard/horarios", icon: CalendarClock },
+  { label: "Blog", href: "/dashboard/blog", icon: FileText },
   { label: "Configuración", href: "/dashboard/config", icon: Settings },
 ];
 
