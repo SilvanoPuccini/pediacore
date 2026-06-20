@@ -1045,7 +1045,7 @@ export default function Calendar() {
   const locationsQ = useQuery<Location[]>({
     queryKey: ["locations"],
     queryFn: async () => {
-      const { data } = await api.get<PaginatedResponse<Location>>("/locations/");
+      const { data } = await api.get<PaginatedResponse<Location>>("/practices/dra-estefi/locations/");
       return data.results;
     },
     staleTime: 1000 * 60 * 60,

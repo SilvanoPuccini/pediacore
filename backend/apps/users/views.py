@@ -225,24 +225,44 @@ class ProfileExportPDFView(APIView):
     """
     GET /api/v1/profile/export-pdf/
 
-    Generates a PDF with the authenticated tutor's profile data,
-    including linked patients (children) and co-responsibles.
+    Practice summary PDF for the doctor. Includes practice data, locations,
+    services with pricing, working hours, and key statistics.
     Returns the file as an attachment.
     """
 
     permission_classes = [IsAuthenticated]
 
     def get(self, request: Request) -> HttpResponse:
-        from apps.patients.models import CoResponsible, TutorPatient
+        from collections import defaultdict
+
+        from apps.patients.models import Patient
+        from apps.practice.models import Location, Practice, Service, WorkingHours
+        from apps.scheduling.models import Appointment
 
         user = request.user
+        practice = Practice.objects.filter(owner=user).first()
+        if not practice:
+            return HttpResponse("No practice found", status=404)
 
-        # Fetch linked patients via the TutorPatient junction model
-        links = TutorPatient.objects.filter(tutor=user).select_related("patient")
-        patients = [link.patient for link in links]
+        locations = Location.objects.filter(practice=practice, is_active=True).order_by("name")
+        services = Service.objects.filter(practice=practice, is_active=True).order_by("display_order", "name")
+        working_hours = WorkingHours.objects.filter(
+            practice=practice, is_active=True
+        ).select_related("location").order_by("location__name", "day_of_week")
 
-        # Fetch co-responsibles linked to this tutor
-        coresponsibles = list(CoResponsible.objects.filter(tutor=user))
+        # Stats
+        total_patients = Patient.objects.filter(practice=practice, is_active=True).count()
+        today = timezone.now().date()
+        first_of_month = today.replace(day=1)
+        appointments_this_month = Appointment.objects.filter(
+            practice=practice,
+            scheduled_date__gte=first_of_month,
+            scheduled_date__lte=today,
+            status__in=["CONFIRMED", "COMPLETED", "CHECKED_IN", "IN_PROGRESS"],
+        ).count()
+        completed_total = Appointment.objects.filter(
+            practice=practice, status="COMPLETED"
+        ).count()
 
         # Embed the logo as base64 so WeasyPrint can render it without filesystem access
         logo_path = Path(__file__).resolve().parents[3] / "frontend" / "public" / "images" / "logofinal.png"
@@ -250,18 +270,45 @@ class ProfileExportPDFView(APIView):
         if logo_path.exists():
             logo_b64 = base64.b64encode(logo_path.read_bytes()).decode()
 
+        # Group working hours by location name
+        DAY_NAMES = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+        hours_by_location: dict = defaultdict(list)
+        for wh in working_hours:
+            loc_name = wh.location.name if wh.location else "Online"
+            hours_by_location[loc_name].append({
+                "day": DAY_NAMES[wh.day_of_week],
+                "start": wh.start_time.strftime("%H:%M"),
+                "end": wh.end_time.strftime("%H:%M"),
+            })
+
+        # Pre-format prices for Chilean display ($XX.XXX)
+        services_list = []
+        for svc in services:
+            services_list.append({
+                "name": svc.name,
+                "duration_minutes": svc.duration_minutes,
+                "modality": svc.modality,
+                "price_display": f"${svc.price_clp:,.0f}".replace(",", ".") if svc.price_clp else None,
+            })
+
         context = {
             "user": user,
-            "patients": patients,
-            "coresponsibles": coresponsibles,
+            "practice": practice,
+            "locations": locations,
+            "services": services_list,
+            "hours_by_location": dict(hours_by_location),
+            "total_patients": total_patients,
+            "appointments_this_month": appointments_this_month,
+            "completed_total": completed_total,
             "logo_b64": logo_b64,
             "generated_at": timezone.now(),
+            "month_name": today.strftime("%B %Y"),
         }
 
-        html_string = render_to_string("pdf/profile_export.html", context, request=request)
+        html_string = render_to_string("pdf/practice_summary.html", context, request=request)
         pdf_file = HTML(string=html_string, base_url=request.build_absolute_uri("/")).write_pdf()
 
-        filename = f"mis-datos-{timezone.now().strftime('%Y-%m-%d')}.pdf"
+        filename = f"consultorio-{timezone.now().strftime('%Y-%m-%d')}.pdf"
         response = HttpResponse(pdf_file, content_type="application/pdf")
         response["Content-Disposition"] = f'attachment; filename="{filename}"'
         return response

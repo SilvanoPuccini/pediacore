@@ -802,7 +802,7 @@ function VacunaPanel({ panelState, patientId, patientName, onClose, onRegistrar,
   const setField = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
-  const canSave = form.vaccine_name.trim() && form.administered_at.trim();
+  const canSave = form.vaccine_name.trim() && form.administered_at.trim() && form.dose_label.trim();
 
   const SITIOS = ["Muslo izquierdo", "Muslo derecho", "Brazo izquierdo", "Brazo derecho"];
   const VIAS = ["Intramuscular", "Subcutanea", "Intradermica", "Oral"];
