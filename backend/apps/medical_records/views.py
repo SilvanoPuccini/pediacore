@@ -514,7 +514,7 @@ class VaccinationViewSet(ModelViewSet):
         from apps.practice.models import Practice
 
         practice = Practice.objects.filter(
-            users=self.request.user
+            owner=self.request.user
         ).first()
         serializer.save(
             practice=practice,
