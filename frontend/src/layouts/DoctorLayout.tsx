@@ -21,6 +21,7 @@ import {
   Check,
   Search,
   CalendarPlus,
+  Bell,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/auth";
@@ -43,6 +44,7 @@ const NAV_ITEMS = [
   { label: "Pagos", href: "/dashboard/pagos", icon: CreditCard },
   { label: "Finanzas", href: "/dashboard/finanzas", icon: Calculator },
   { label: "Blog", href: "/dashboard/blog", icon: FileText },
+  { label: "Notificaciones", href: "/dashboard/notificaciones", icon: Bell },
   { label: "Configuración", href: "/dashboard/config", icon: Settings },
 ];
 
@@ -64,6 +66,7 @@ function usePageTitle(pathname: string): string {
   if (pathname.startsWith("/dashboard/blog")) return "Blog";
   if (pathname.startsWith("/dashboard/pagos")) return "Pagos";
   if (pathname.startsWith("/dashboard/finanzas")) return "Finanzas";
+  if (pathname.startsWith("/dashboard/notificaciones")) return "Notificaciones";
   if (pathname.startsWith("/dashboard/config")) return "Configuración";
   return "Dashboard";
 }
@@ -527,13 +530,10 @@ export default function DoctorLayout() {
             >
               <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink3" />
               <span className="flex-1 text-[12.5px] text-ink3">Buscar en Pediacore...</span>
-              <kbd className="hidden lg:inline-flex items-center px-1.5 h-5 rounded-md bg-bg text-[10px] font-semibold text-ink3 border border-line">
-                ⌘K
-              </kbd>
             </button>
 
             <div className="flex items-center gap-2">
-              <NotificationBell />
+              <NotificationBell notificationsPath="/dashboard/notificaciones" />
               {user?.avatar_url ? (
                 <img src={user.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover shrink-0" />
               ) : (
