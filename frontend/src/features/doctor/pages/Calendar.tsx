@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import NewAppointmentModal from "../components/NewAppointmentModal";
 import {
   ChevronLeft,
   ChevronRight,
@@ -1014,6 +1015,7 @@ export default function Calendar() {
   const [activeSede, setActiveSede] = useState<number | null>(sedeId);
   const [selectedApt, setSelectedApt] = useState<Appointment | null>(null);
   const [toast, setToast] = useState<ToastState>(null);
+  const [showNewAppt, setShowNewAppt] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Scroll to business hours on mount / view change
@@ -1278,7 +1280,7 @@ export default function Calendar() {
 
         {/* New appointment */}
         <button
-          onClick={() => window.open("/reservar", "_blank")}
+          onClick={() => setShowNewAppt(true)}
           className={cn(
             "flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] bg-teal-dark text-white text-[12.5px] font-semibold hover:opacity-90 transition-opacity",
             locations.length === 0 && "ml-auto"
@@ -1503,6 +1505,13 @@ export default function Calendar() {
 
       {/* ── Toast ── */}
       <Toast toast={toast} onDismiss={() => setToast(null)} />
+
+      {/* ── New appointment modal ── */}
+      <NewAppointmentModal
+        open={showNewAppt}
+        onClose={() => setShowNewAppt(false)}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ["appointments"] })}
+      />
     </div>
   );
 }
