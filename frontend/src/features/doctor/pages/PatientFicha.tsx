@@ -1643,7 +1643,11 @@ export default function PatientFicha() {
     }
     patchPatient.mutate(payload, {
       onSuccess: () => { setEditDatos(false); flash("Datos guardados"); },
-      onError: () => flash("Error al guardar datos"),
+      onError: (err: unknown) => {
+        const detail = (err as { response?: { data?: Record<string, unknown> } })?.response?.data;
+        const msg = detail ? Object.entries(detail).map(([k, v]) => `${k}: ${v}`).join(", ") : "Error desconocido";
+        flash(`Error: ${msg}`);
+      },
     });
   }, [patient, datosDraft]); // eslint-disable-line react-hooks/exhaustive-deps
 

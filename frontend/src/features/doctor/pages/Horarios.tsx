@@ -62,16 +62,35 @@ function buildScheduleFromApi(
 ): FullSchedule {
   const schedule: FullSchedule = {};
   for (const loc of locations) {
-    const sedeSched = emptySedeSchedule();
-    const locHours = hours.filter((h) => h.location === loc.id && h.is_active);
-    for (const h of locHours) {
-      const day = HOR_DAYS[h.day_of_week];
-      if (day) {
-        sedeSched[day].enabled = true;
-        sedeSched[day].blocks.push({ start: h.start_time.slice(0, 5), end: h.end_time.slice(0, 5) });
+    schedule[loc.name] = emptySedeSchedule();
+  }
+
+  for (const h of hours) {
+    if (!h.is_active) continue;
+    const day = HOR_DAYS[h.day_of_week];
+    if (!day) continue;
+    const block = { start: h.start_time.slice(0, 5), end: h.end_time.slice(0, 5) };
+
+    if (h.location) {
+      // Hours assigned to a specific location
+      const loc = locations.find((l) => l.id === h.location);
+      if (loc && schedule[loc.name]) {
+        schedule[loc.name][day].enabled = true;
+        schedule[loc.name][day].blocks.push(block);
+      }
+    } else if (h.is_online) {
+      // Online hours (location is null, is_online true)
+      if (!schedule["Online"]) schedule["Online"] = emptySedeSchedule();
+      schedule["Online"][day].enabled = true;
+      schedule["Online"][day].blocks.push(block);
+    } else {
+      // Hours without location — assign to first location as fallback
+      const firstLoc = locations[0];
+      if (firstLoc && schedule[firstLoc.name]) {
+        schedule[firstLoc.name][day].enabled = true;
+        schedule[firstLoc.name][day].blocks.push(block);
       }
     }
-    schedule[loc.name] = sedeSched;
   }
   return schedule;
 }

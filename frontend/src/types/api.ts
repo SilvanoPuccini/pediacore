@@ -557,8 +557,9 @@ export interface WorkingHours {
   day_of_week: number;
   start_time: string;
   end_time: string;
-  location: number;
+  location: number | null;
   location_name?: string;
+  is_online: boolean;
   is_active: boolean;
 }
 
