@@ -16,7 +16,9 @@ ENV VITE_API_URL=$VITE_API_URL
 ARG VITE_MP_PUBLIC_KEY
 ENV VITE_MP_PUBLIC_KEY=$VITE_MP_PUBLIC_KEY
 
-RUN pnpm build
+# Skip tsc -b in production (already type-checked before commit).
+# tsc on a 1GB droplet thrashes swap for ~70 min.
+RUN pnpm vite build
 
 # Stage 2: nginx with frontend build + config
 FROM nginx:alpine
