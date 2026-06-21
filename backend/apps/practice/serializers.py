@@ -140,6 +140,7 @@ class BlockedSlotSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+        read_only_fields = ["practice"]
 
     def get_location_name(self, obj: BlockedSlot) -> str | None:
         return obj.location.name if obj.location else None
