@@ -563,6 +563,20 @@ export interface WorkingHours {
   is_active: boolean;
 }
 
+// ─── Blocked Slots ──────────────────────────────────────────────────────────
+
+export interface BlockedSlot {
+  id: number;
+  practice: number;
+  location: number | null;
+  location_name: string | null;
+  start_datetime: string;
+  end_datetime: string;
+  reason: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // ─── Vaccinations ────────────────────────────────────────────────────────────
 
 export interface VaccineScheduleEntry {

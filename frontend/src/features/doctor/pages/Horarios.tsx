@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   MapPin,
   Video,
@@ -11,9 +11,10 @@ import {
   Calendar,
   Sun,
   AlertCircle,
+  Trash2,
 } from "lucide-react";
 import api from "@/lib/api";
-import type { WorkingHours, Location } from "@/types/api";
+import type { WorkingHours, Location, BlockedSlot } from "@/types/api";
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
@@ -35,12 +36,7 @@ interface DaySchedule {
 type SedeSchedule = Record<DayKey, DaySchedule>;
 type FullSchedule = Record<string, SedeSchedule>;
 
-interface BlockedDay {
-  id: string;
-  fecha: string;
-  label: string;
-  tipo: "feriado" | "evento" | "vacaciones";
-}
+type BlockedTipo = "feriado" | "evento" | "vacaciones";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -95,14 +91,26 @@ function buildScheduleFromApi(
   return schedule;
 }
 
-const BLOCKED_SEED: BlockedDay[] = [
-  { id: "b1", fecha: "19 jun 2026", label: "Feriado · Día nacional", tipo: "feriado" },
-  { id: "b2", fecha: "26 jun 2026", label: "Congreso de Pediatría", tipo: "evento" },
-  { id: "b3", fecha: "7–11 jul 2026", label: "Vacaciones de invierno", tipo: "vacaciones" },
-];
+function guessTipo(reason: string): BlockedTipo {
+  const r = reason.toLowerCase();
+  if (r.includes("feriado") || r.includes("nacional")) return "feriado";
+  if (r.includes("vacacion")) return "vacaciones";
+  return "evento";
+}
+
+function formatBlockedDate(start: string, end: string): string {
+  const s = new Date(start);
+  const e = new Date(end);
+  const fmt = (d: Date) =>
+    d.toLocaleDateString("es-CL", { day: "numeric", month: "short", year: "numeric" });
+  // Same day or next-day-midnight = single day
+  const diffMs = e.getTime() - s.getTime();
+  if (diffMs <= 86400000) return fmt(s);
+  return `${fmt(s)} – ${fmt(e)}`;
+}
 
 const tipoChip: Record<
-  BlockedDay["tipo"],
+  BlockedTipo,
   { bg: string; text: string; icon: React.ReactNode }
 > = {
   feriado:    { bg: "rgba(232, 160, 160, 0.25)", text: "#A85050", icon: <Star size={14} /> },
@@ -117,12 +125,12 @@ export default function HorariosPage() {
   const [schedule, setSchedule] = useState<FullSchedule>({});
   const [sedes, setSedes] = useState<string[]>([]);
   const [duracion, setDuracion] = useState(45);
-  const [blocked, setBlocked] = useState<BlockedDay[]>(() => [...BLOCKED_SEED]);
   const [showBlockForm, setShowBlockForm] = useState(false);
-  const [newBlock, setNewBlock] = useState<{ fecha: string; label: string; tipo: BlockedDay["tipo"] }>({
-    fecha: "", label: "", tipo: "feriado",
+  const [newBlock, setNewBlock] = useState<{ startDate: string; endDate: string; reason: string; tipo: BlockedTipo }>({
+    startDate: "", endDate: "", reason: "", tipo: "feriado",
   });
   const [toast, setToast] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const flash = (msg: string) => {
     setToast(msg);
@@ -148,8 +156,42 @@ export default function HorariosPage() {
     staleTime: 1000 * 60 * 60,
   });
 
+  const blockedQ = useQuery<BlockedSlot[]>({
+    queryKey: ["blocked-slots"],
+    queryFn: async () => {
+      const { data } = await api.get<{ results: BlockedSlot[] }>("/admin/blocked-slots/?page_size=200");
+      return data.results;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const createBlockedMutation = useMutation({
+    mutationFn: async (payload: { start_datetime: string; end_datetime: string; reason: string }) => {
+      await api.post("/admin/blocked-slots/", payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["blocked-slots"] });
+      flash("Día bloqueado");
+      setShowBlockForm(false);
+      setNewBlock({ startDate: "", endDate: "", reason: "", tipo: "feriado" });
+    },
+    onError: () => flash("Error al bloquear día"),
+  });
+
+  const deleteBlockedMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await api.delete(`/admin/blocked-slots/${id}/`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["blocked-slots"] });
+      flash("Día desbloqueado");
+    },
+    onError: () => flash("Error al desbloquear día"),
+  });
+
   const locations = locationsQ.data ?? [];
   const hours = hoursQ.data ?? [];
+  const blocked = blockedQ.data ?? [];
   const isLoading = hoursQ.isLoading || locationsQ.isLoading;
   const isError = hoursQ.isError || locationsQ.isError;
 
@@ -215,17 +257,17 @@ export default function HorariosPage() {
   };
 
   const addBlocked = () => {
-    if (!newBlock.fecha.trim()) { flash("Indicá una fecha"); return; }
-    setBlocked((prev) => [
-      { id: "b" + Date.now(), fecha: newBlock.fecha, label: newBlock.label || "Sin atención", tipo: newBlock.tipo },
-      ...prev,
-    ]);
-    setNewBlock({ fecha: "", label: "", tipo: "feriado" });
-    setShowBlockForm(false);
-    flash("Día bloqueado");
+    if (!newBlock.startDate) { flash("Indicá una fecha de inicio"); return; }
+    const startDt = `${newBlock.startDate}T00:00:00`;
+    const endDt = newBlock.endDate
+      ? `${newBlock.endDate}T23:59:59`
+      : `${newBlock.startDate}T23:59:59`;
+    createBlockedMutation.mutate({
+      start_datetime: startDt,
+      end_datetime: endDt,
+      reason: newBlock.reason || newBlock.tipo,
+    });
   };
-
-  const removeBlocked = (id: string) => setBlocked((prev) => prev.filter((b) => b.id !== id));
 
   // capacity calculation
   const stats = useMemo(() => {
@@ -471,16 +513,31 @@ export default function HorariosPage() {
 
                 {showBlockForm && (
                   <div className="mx-3 mb-2 p-3 rounded-[12px] bg-bg border border-line space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1">
+                        <label className="text-[10.5px] font-semibold text-ink3 mb-0.5 block">Desde</label>
+                        <input
+                          type="date"
+                          value={newBlock.startDate}
+                          onChange={(e) => setNewBlock((n) => ({ ...n, startDate: e.target.value }))}
+                          className="w-full px-3 py-2 rounded-[9px] bg-surface border border-line text-[12.5px] focus:outline-none focus:border-teal"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <label className="text-[10.5px] font-semibold text-ink3 mb-0.5 block">Hasta <span className="font-normal">(opcional)</span></label>
+                        <input
+                          type="date"
+                          value={newBlock.endDate}
+                          onChange={(e) => setNewBlock((n) => ({ ...n, endDate: e.target.value }))}
+                          min={newBlock.startDate}
+                          className="w-full px-3 py-2 rounded-[9px] bg-surface border border-line text-[12.5px] focus:outline-none focus:border-teal"
+                        />
+                      </div>
+                    </div>
                     <input
-                      value={newBlock.fecha}
-                      onChange={(e) => setNewBlock((n) => ({ ...n, fecha: e.target.value }))}
-                      placeholder="Fecha · ej: 25 jun 2026"
-                      className="w-full px-3 py-2 rounded-[9px] bg-surface border border-line text-[12.5px] focus:outline-none focus:border-teal"
-                    />
-                    <input
-                      value={newBlock.label}
-                      onChange={(e) => setNewBlock((n) => ({ ...n, label: e.target.value }))}
-                      placeholder="Motivo · ej: Feriado"
+                      value={newBlock.reason}
+                      onChange={(e) => setNewBlock((n) => ({ ...n, reason: e.target.value }))}
+                      placeholder="Motivo · ej: Feriado, Congreso, Vacaciones"
                       className="w-full px-3 py-2 rounded-[9px] bg-surface border border-line text-[12.5px] focus:outline-none focus:border-teal"
                     />
                     <div className="flex items-center gap-1.5">
@@ -506,21 +563,28 @@ export default function HorariosPage() {
                     </div>
                     <button
                       onClick={addBlocked}
-                      className="w-full px-3 py-2 rounded-[9px] bg-teal-dark text-white text-[12px] font-semibold hover:opacity-90 transition"
+                      disabled={createBlockedMutation.isPending}
+                      className="w-full px-3 py-2 rounded-[9px] bg-teal-dark text-white text-[12px] font-semibold hover:opacity-90 transition disabled:opacity-50"
                     >
-                      Bloquear día
+                      {createBlockedMutation.isPending ? "Bloqueando..." : "Bloquear día"}
                     </button>
                   </div>
                 )}
 
                 <ul className="px-2 pb-3">
-                  {blocked.length === 0 && (
+                  {blockedQ.isLoading && (
+                    <li className="px-3 py-6 text-center">
+                      <div className="h-4 w-4 rounded-full border-2 border-line border-t-teal animate-spin mx-auto" />
+                    </li>
+                  )}
+                  {!blockedQ.isLoading && blocked.length === 0 && (
                     <li className="px-3 py-6 text-center text-[12px] text-ink3">
                       Sin días bloqueados.
                     </li>
                   )}
                   {blocked.map((b) => {
-                    const tc = tipoChip[b.tipo];
+                    const tipo = guessTipo(b.reason);
+                    const tc = tipoChip[tipo];
                     return (
                       <li
                         key={b.id}
@@ -534,16 +598,16 @@ export default function HorariosPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="text-[12.5px] font-semibold text-ink leading-tight">
-                            {b.fecha}
+                            {formatBlockedDate(b.start_datetime, b.end_datetime)}
                           </div>
-                          <div className="text-[11px] text-ink3 truncate">{b.label}</div>
+                          <div className="text-[11px] text-ink3 truncate">{b.reason || "Sin motivo"}</div>
                         </div>
                         <button
-                          onClick={() => removeBlocked(b.id)}
+                          onClick={() => deleteBlockedMutation.mutate(b.id)}
                           className="text-ink3 hover:text-[#A85050] opacity-0 group-hover:opacity-100 transition p-1"
                           title="Quitar"
                         >
-                          <X size={14} />
+                          <Trash2 size={14} />
                         </button>
                       </li>
                     );

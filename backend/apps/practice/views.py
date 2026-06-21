@@ -248,4 +248,7 @@ class BlockedSlotAdminViewSet(viewsets.ModelViewSet):
     pagination_class = StandardPagination
 
     def get_queryset(self):
-        return BlockedSlot.objects.select_related("practice", "location").all()
+        return BlockedSlot.objects.select_related("practice", "location").order_by("start_datetime")
+
+    def perform_create(self, serializer):
+        serializer.save(practice=self.request.user.practice)
