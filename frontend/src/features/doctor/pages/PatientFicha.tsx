@@ -2320,6 +2320,41 @@ export default function PatientFicha() {
                   </div>
                 )}
 
+                {/* Custom (non-PNI) vaccines */}
+                {customRecords.length > 0 && (
+                  <div>
+                    <div className="px-5 py-2.5 bg-teal/10 border-b border-line/50 border-t border-line/70">
+                      <span className="text-[10.5px] font-bold text-teal-dark uppercase tracking-wide flex items-center gap-1.5">
+                        <Syringe size={11} />Vacunas adicionales ({customRecords.length})
+                      </span>
+                    </div>
+                    <ul className="divide-y divide-line/70">
+                      {customRecords.map((rec) => (
+                        <li key={rec.id}>
+                          <div className="flex items-center gap-3 px-5 py-3">
+                            <div className="w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0"
+                              style={{ background: "rgba(74,133,144,0.15)", color: "#4A8590" }}>
+                              <Check size={15} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-[13px] font-semibold text-ink">{rec.vaccine_name}</div>
+                              <div className="text-[11px] text-ink3">
+                                {rec.dose_label}{rec.lot_number ? ` \u00b7 Lote ${rec.lot_number}` : ""}
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <div className="text-[11px] font-semibold text-teal-dark">Aplicada</div>
+                              <div className="text-[11px] text-ink3">
+                                {new Date(rec.administered_at).toLocaleDateString("es-CL", { day: "2-digit", month: "short", year: "numeric" })}
+                              </div>
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 {/* Pending group */}
                 {status.pending.length > 0 && (
                   <div>
@@ -2379,41 +2414,6 @@ export default function PatientFicha() {
                             </div>
                             <div className="text-right shrink-0">
                               <span className="text-[11px] text-ink3">Proxima</span>
-                            </div>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Custom (non-PNI) vaccines */}
-                {customRecords.length > 0 && (
-                  <div>
-                    <div className="px-5 py-2.5 bg-teal/10 border-b border-line/50 border-t border-line/70">
-                      <span className="text-[10.5px] font-bold text-teal-dark uppercase tracking-wide flex items-center gap-1.5">
-                        <Syringe size={11} />Vacunas adicionales ({customRecords.length})
-                      </span>
-                    </div>
-                    <ul className="divide-y divide-line/70">
-                      {customRecords.map((rec) => (
-                        <li key={rec.id}>
-                          <div className="flex items-center gap-3 px-5 py-3">
-                            <div className="w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0"
-                              style={{ background: "rgba(74,133,144,0.15)", color: "#4A8590" }}>
-                              <Check size={15} />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-[13px] font-semibold text-ink">{rec.vaccine_name}</div>
-                              <div className="text-[11px] text-ink3">
-                                {rec.dose_label}{rec.lot_number ? ` \u00b7 Lote ${rec.lot_number}` : ""}
-                              </div>
-                            </div>
-                            <div className="text-right shrink-0">
-                              <div className="text-[11px] font-semibold text-teal-dark">Aplicada</div>
-                              <div className="text-[11px] text-ink3">
-                                {new Date(rec.administered_at).toLocaleDateString("es-CL", { day: "2-digit", month: "short", year: "numeric" })}
-                              </div>
                             </div>
                           </div>
                         </li>

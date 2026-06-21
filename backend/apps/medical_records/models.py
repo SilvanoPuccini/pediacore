@@ -38,12 +38,12 @@ class Encounter(BaseModel):
     OTHER = "OTHER"
 
     ENCOUNTER_TYPE_CHOICES = [
-        (CONSULTATION, _("Consultation")),
-        (WELL_CHILD_VISIT, _("Well-child visit")),
-        (FOLLOW_UP, _("Follow-up")),
-        (EMERGENCY, _("Emergency")),
-        (VACCINATION, _("Vaccination")),
-        (OTHER, _("Other")),
+        (CONSULTATION, _("Consulta")),
+        (WELL_CHILD_VISIT, _("Control sano")),
+        (FOLLOW_UP, _("Seguimiento")),
+        (EMERGENCY, _("Urgencia")),
+        (VACCINATION, _("Vacunación")),
+        (OTHER, _("Otro")),
     ]
 
     SCHEDULED = "SCHEDULED"
@@ -52,10 +52,10 @@ class Encounter(BaseModel):
     CANCELLED = "CANCELLED"
 
     STATUS_CHOICES = [
-        (SCHEDULED, _("Scheduled")),
-        (IN_PROGRESS, _("In progress")),
-        (COMPLETED, _("Completed")),
-        (CANCELLED, _("Cancelled")),
+        (SCHEDULED, _("Agendado")),
+        (IN_PROGRESS, _("En curso")),
+        (COMPLETED, _("Completado")),
+        (CANCELLED, _("Cancelado")),
     ]
 
     practice = models.ForeignKey(

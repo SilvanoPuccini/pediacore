@@ -175,7 +175,13 @@ export default function HorariosPage() {
       setShowBlockForm(false);
       setNewBlock({ startDate: "", endDate: "", reason: "", tipo: "feriado" });
     },
-    onError: () => flash("Error al bloquear día"),
+    onError: (err: unknown) => {
+      const detail = (err as { response?: { data?: Record<string, unknown> } })?.response?.data;
+      const msg = detail
+        ? Object.values(detail).flat().join(". ")
+        : "Error al bloquear día";
+      flash(msg || "Error al bloquear día");
+    },
   });
 
   const deleteBlockedMutation = useMutation({
@@ -512,25 +518,25 @@ export default function HorariosPage() {
                 </div>
 
                 {showBlockForm && (
-                  <div className="mx-3 mb-2 p-3 rounded-[12px] bg-bg border border-line space-y-2">
+                  <div className="mx-3 mb-2 p-3 rounded-[12px] bg-bg border border-line space-y-2 overflow-hidden">
                     <div className="flex items-center gap-2">
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <label className="text-[10.5px] font-semibold text-ink3 mb-0.5 block">Desde</label>
                         <input
                           type="date"
                           value={newBlock.startDate}
                           onChange={(e) => setNewBlock((n) => ({ ...n, startDate: e.target.value }))}
-                          className="w-full px-3 py-2 rounded-[9px] bg-surface border border-line text-[12.5px] focus:outline-none focus:border-teal"
+                          className="w-full px-2 py-2 rounded-[9px] bg-surface border border-line text-[12px] focus:outline-none focus:border-teal"
                         />
                       </div>
-                      <div className="flex-1">
-                        <label className="text-[10.5px] font-semibold text-ink3 mb-0.5 block">Hasta <span className="font-normal">(opcional)</span></label>
+                      <div className="flex-1 min-w-0">
+                        <label className="text-[10.5px] font-semibold text-ink3 mb-0.5 block">Hasta <span className="font-normal">(op.)</span></label>
                         <input
                           type="date"
                           value={newBlock.endDate}
                           onChange={(e) => setNewBlock((n) => ({ ...n, endDate: e.target.value }))}
                           min={newBlock.startDate}
-                          className="w-full px-3 py-2 rounded-[9px] bg-surface border border-line text-[12.5px] focus:outline-none focus:border-teal"
+                          className="w-full px-2 py-2 rounded-[9px] bg-surface border border-line text-[12px] focus:outline-none focus:border-teal"
                         />
                       </div>
                     </div>

@@ -18,6 +18,7 @@ from apps.practice.models import BlockedSlot, Location, Practice, Service, Worki
 from apps.practice.serializers import (
     BankDetailsSerializer,
     BlockedSlotSerializer,
+    LocationAdminSerializer,
     LocationSerializer,
     PracticeSerializer,
     ServiceSerializer,
@@ -211,7 +212,7 @@ class LocationAdminViewSet(viewsets.ModelViewSet):
     GET/PUT/PATCH/DELETE /api/v1/admin/locations/<pk>/
     """
 
-    serializer_class = LocationSerializer
+    serializer_class = LocationAdminSerializer
     permission_classes = [IsDoctor]
     pagination_class = StandardPagination
 
