@@ -127,6 +127,15 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True,
     )
+    practice = serializers.PrimaryKeyRelatedField(
+        queryset=Appointment.practice.field.related_model.objects.all(),
+        required=False,
+    )
+    doctor = serializers.PrimaryKeyRelatedField(
+        queryset=Appointment.doctor.field.related_model.objects.all(),
+        required=False,
+        allow_null=True,
+    )
 
     class Meta:
         model = Appointment

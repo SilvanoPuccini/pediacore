@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import NewAppointmentModal from "../components/NewAppointmentModal";
 import {
   Calendar,
   Clock,
@@ -415,6 +416,7 @@ export default function Dashboard() {
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [advancingId, setAdvancingId] = useState<number | null>(null);
+  const [showNewAppt, setShowNewAppt] = useState(false);
 
   const firstName = user?.first_name ?? "Estefi";
   const today = todayDateString();
@@ -579,7 +581,7 @@ export default function Dashboard() {
             Ver agenda
           </button>
           <button
-            onClick={goCalendar}
+            onClick={() => setShowNewAppt(true)}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[10px] text-white text-[13px] font-semibold hover:opacity-90 transition shadow-[var(--shadow-soft)] focus-ring"
             style={{ background: "#5CB8A4" }}
           >
@@ -706,6 +708,13 @@ export default function Dashboard() {
 
       {/* Toast */}
       <Toast message={toast} />
+
+      {/* New appointment modal */}
+      <NewAppointmentModal
+        open={showNewAppt}
+        onClose={() => setShowNewAppt(false)}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ["appointments", "doctor-dashboard"] })}
+      />
     </div>
   );
 }

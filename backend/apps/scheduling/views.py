@@ -145,7 +145,12 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         return qs
 
     def perform_create(self, serializer) -> None:
-        appointment = serializer.save()
+        extra = {}
+        user = self.request.user
+        if user.role == user.DOCTOR:
+            extra["practice"] = user.practice
+            extra["doctor"] = user
+        appointment = serializer.save(**extra)
         check_and_send_auto_response(appointment)
 
     @action(detail=True, methods=["post"])
