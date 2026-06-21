@@ -12,6 +12,7 @@ import {
   MapPin,
   Wifi,
   AlertCircle,
+  CreditCard,
 } from "lucide-react";
 import api from "@/lib/api";
 import type {
@@ -53,6 +54,7 @@ interface FormState {
   customTime: string;
   useCustomTime: boolean;
   notes: string;
+  sendPaymentLink: boolean;
 }
 
 const INITIAL_FORM: FormState = {
@@ -65,6 +67,7 @@ const INITIAL_FORM: FormState = {
   customTime: "",
   useCustomTime: false,
   notes: "",
+  sendPaymentLink: false,
 };
 
 // ─── Age formatting ───────────────────────────────────────────────────────────
@@ -523,6 +526,8 @@ function Step4Confirm({
   form,
   notes,
   onNotesChange,
+  sendPaymentLink,
+  onTogglePaymentLink,
   isPending,
   error,
   onSubmit,
@@ -530,6 +535,8 @@ function Step4Confirm({
   form: FormState;
   notes: string;
   onNotesChange: (v: string) => void;
+  sendPaymentLink: boolean;
+  onTogglePaymentLink: (v: boolean) => void;
   isPending: boolean;
   error: string | null;
   onSubmit: () => void;
@@ -577,6 +584,42 @@ function Step4Confirm({
         />
       </div>
 
+      {/* Payment link toggle */}
+      <button
+        type="button"
+        onClick={() => onTogglePaymentLink(!sendPaymentLink)}
+        className={[
+          "w-full flex items-center gap-3 p-3.5 rounded-[12px] border transition-all text-left",
+          sendPaymentLink
+            ? "border-teal/30 bg-teal/8"
+            : "border-line bg-surface hover:border-teal/20",
+        ].join(" ")}
+      >
+        <div className={[
+          "w-8 h-8 rounded-[9px] flex items-center justify-center shrink-0",
+          sendPaymentLink ? "bg-teal-dark text-white" : "bg-bg text-ink3",
+        ].join(" ")}>
+          <CreditCard size={14} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[13px] font-semibold text-ink">Enviar link de pago</p>
+          <p className="text-[11px] text-ink3">
+            {sendPaymentLink
+              ? "Se enviará un link de MercadoPago al tutor por email"
+              : "Sin cobro online — pago en consultorio o transferencia"}
+          </p>
+        </div>
+        <span className={[
+          "relative w-10 h-[22px] rounded-full transition shrink-0",
+          sendPaymentLink ? "bg-teal-dark" : "bg-line",
+        ].join(" ")}>
+          <span className={[
+            "absolute top-0.5 w-[18px] h-[18px] rounded-full bg-white shadow transition-all",
+            sendPaymentLink ? "left-[20px]" : "left-0.5",
+          ].join(" ")} />
+        </span>
+      </button>
+
       {/* Notes */}
       <div>
         <label className="text-[12px] font-semibold text-ink2 uppercase tracking-[0.08em] block mb-2">
@@ -607,10 +650,10 @@ function Step4Confirm({
         {isPending ? (
           <>
             <Loader2 size={15} className="animate-spin" />
-            Agendando...
+            {sendPaymentLink ? "Agendando y enviando link..." : "Agendando..."}
           </>
         ) : (
-          "Agendar turno"
+          sendPaymentLink ? "Agendar y enviar link de pago" : "Agendar turno"
         )}
       </button>
     </div>
@@ -695,7 +738,22 @@ export default function NewAppointmentModal({ open, onClose, onSuccess }: Props)
     };
   }, [open]);
 
-  // ── Mutation ──
+  // ── Mutations ──
+
+  function extractErrorMsg(err: unknown, fallback: string): string {
+    if (
+      typeof err === "object" &&
+      err !== null &&
+      "response" in err &&
+      typeof (err as { response?: { data?: unknown } }).response?.data === "object"
+    ) {
+      const data = (err as { response: { data: Record<string, unknown> } }).response.data;
+      const first = Object.values(data)[0];
+      if (Array.isArray(first)) return String(first[0]);
+      if (typeof first === "string") return first;
+    }
+    return fallback;
+  }
 
   const createMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) =>
@@ -710,19 +768,24 @@ export default function NewAppointmentModal({ open, onClose, onSuccess }: Props)
       }, 1800);
     },
     onError: (err: unknown) => {
-      let msg = "No se pudo agendar el turno. Verificá los datos e intentá de nuevo.";
-      if (
-        typeof err === "object" &&
-        err !== null &&
-        "response" in err &&
-        typeof (err as { response?: { data?: unknown } }).response?.data === "object"
-      ) {
-        const data = (err as { response: { data: Record<string, unknown> } }).response.data;
-        const first = Object.values(data)[0];
-        if (Array.isArray(first)) msg = String(first[0]);
-        else if (typeof first === "string") msg = first;
-      }
-      setSubmitError(msg);
+      setSubmitError(extractErrorMsg(err, "No se pudo agendar el turno. Verificá los datos e intentá de nuevo."));
+    },
+  });
+
+  const bookWithPaymentMutation = useMutation({
+    mutationFn: (payload: Record<string, unknown>) =>
+      api.post("/book/", payload).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      setToast("Turno agendado · Link de pago enviado al tutor");
+      setTimeout(() => {
+        setToast(null);
+        onSuccess?.();
+        onClose();
+      }, 2200);
+    },
+    onError: (err: unknown) => {
+      setSubmitError(extractErrorMsg(err, "No se pudo agendar el turno. Verificá los datos e intentá de nuevo."));
     },
   });
 
@@ -767,6 +830,10 @@ export default function NewAppointmentModal({ open, onClose, onSuccess }: Props)
     setForm((f) => ({ ...f, notes: v }));
   }, []);
 
+  const handleTogglePaymentLink = useCallback((v: boolean) => {
+    setForm((f) => ({ ...f, sendPaymentLink: v }));
+  }, []);
+
   // ── Step validation ──
 
   function canAdvance(): boolean {
@@ -804,7 +871,15 @@ export default function NewAppointmentModal({ open, onClose, onSuccess }: Props)
     if (form.location) {
       payload.location = form.location.id;
     }
-    createMutation.mutate(payload);
+
+    if (form.sendPaymentLink) {
+      // Use /book/ endpoint — creates HOLD + Payment + sends MP link to tutor
+      payload.practice = 1; // Single practice for TFM
+      payload.payment_method = "MERCADOPAGO";
+      bookWithPaymentMutation.mutate(payload);
+    } else {
+      createMutation.mutate(payload);
+    }
   }
 
   if (!open) return null;
@@ -889,7 +964,9 @@ export default function NewAppointmentModal({ open, onClose, onSuccess }: Props)
                 form={form}
                 notes={form.notes}
                 onNotesChange={handleNotesChange}
-                isPending={createMutation.isPending}
+                sendPaymentLink={form.sendPaymentLink}
+                onTogglePaymentLink={handleTogglePaymentLink}
+                isPending={createMutation.isPending || bookWithPaymentMutation.isPending}
                 error={submitError}
                 onSubmit={handleSubmit}
               />
