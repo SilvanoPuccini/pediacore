@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth";
 import type {
   Patient, GrowthPoint, PaginatedResponse, Encounter, PatientFile,
-  VaccineScheduleEntry, Vaccination, VaccinationStatus,
+  VaccineScheduleEntry, Vaccination, VaccinationStatus, Location,
 } from "@/types/api";
 
 // ─── OMS reference data ─────────────────────────────────────────────────────
@@ -208,6 +208,13 @@ const INSURANCE_OPTIONS = [
   { value: "SIN_PREVISION", label: "Sin previsión" },
   { value: "OTRO", label: "Otro" },
 ];
+
+const RELATIONSHIP_LABELS: Record<string, string> = {
+  MOTHER: "Madre",
+  FATHER: "Padre",
+  GUARDIAN: "Tutor/a legal",
+  OTHER: "Otro vínculo",
+};
 
 const BIRTH_TYPE_OPTIONS = [
   { value: "", label: "—" },
@@ -1291,6 +1298,30 @@ function GrowthChart({ growthData, metric, patientName, sex }: {
     else bmiStatus = "Obesidad";
   }
 
+  // ── Growth velocity (last two data points sorted by date) ──
+  const sortedGrowth = [...growthData].sort(
+    (a, b) => new Date(a.encounter_date).getTime() - new Date(b.encounter_date).getTime()
+  );
+  let growthVelocity = "Sin datos previos";
+  if (sortedGrowth.length >= 2) {
+    const prev = sortedGrowth[sortedGrowth.length - 2];
+    const prevPercentile = prev[indCfg.percentileKey] as number | null;
+    if (latestPercentile != null && prevPercentile != null) {
+      const delta = latestPercentile - prevPercentile;
+      if (Math.abs(delta) <= 10) growthVelocity = "Adecuada";
+      else if (delta > 10) growthVelocity = "Acelerada";
+      else growthVelocity = "Desacelerada";
+    }
+  }
+
+  const firstName = patientName.split(" ")[0];
+  const isNormal = latestPercentile != null && latestPercentile >= 3 && latestPercentile <= 97;
+  const interpretationText = latestPercentile != null
+    ? isNormal
+      ? `${firstName} se encuentra en una trayectoria estable dentro de los rangos normales según OMS. Próximo control sugerido en 3 meses.`
+      : `${firstName} presenta valores fuera de los rangos normales OMS. Se recomienda evaluación clínica y seguimiento cercano.`
+    : null;
+
   return (
     <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-5">
       <div className="bg-surface border border-line rounded-[14px] shadow-card p-6">
@@ -1359,18 +1390,36 @@ function GrowthChart({ growthData, metric, patientName, sex }: {
           {latestGrowth ? (
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-[11.5px] text-ink2">Percentil</span>
+                <span className="text-[11.5px] text-ink2">Percentil actual</span>
                 <span className="text-[13px] font-bold text-ink">{latestPercentile != null ? `P${Math.round(latestPercentile)}` : "\u2014"}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-[11.5px] text-ink2">Z-score</span>
-                <span className="text-[13px] font-bold text-ink">{latestZ != null ? latestZ.toFixed(2) : "\u2014"}</span>
+                <span className="text-[13px] font-bold text-ink">
+                  {latestZ != null
+                    ? `${latestZ > 0 ? "+" : ""}${latestZ.toFixed(2)}`
+                    : "\u2014"}
+                </span>
               </div>
-              <p className="text-[11px] text-ink3 pt-1 border-t border-line">
-                {latestPercentile != null && latestPercentile >= 3 && latestPercentile <= 97
-                  ? "Dentro de rangos normales OMS"
-                  : latestPercentile != null ? "Fuera de rangos normales OMS" : "Sin datos suficientes"}
-              </p>
+              <div className="flex justify-between items-center">
+                <span className="text-[11.5px] text-ink2">Velocidad de crecimiento</span>
+                <span className={cn("text-[12px] font-semibold",
+                  growthVelocity === "Adecuada" ? "text-teal-dark"
+                    : growthVelocity === "Acelerada" ? "text-warn"
+                    : growthVelocity === "Desacelerada" ? "text-coral"
+                    : "text-ink3")}>
+                  {growthVelocity}
+                </span>
+              </div>
+              {interpretationText && (
+                <p className={cn("text-[11px] pt-1 border-t border-line leading-relaxed",
+                  isNormal ? "text-ink3" : "text-coral")}>
+                  {interpretationText}
+                </p>
+              )}
+              {!interpretationText && (
+                <p className="text-[11px] text-ink3 pt-1 border-t border-line">Sin datos suficientes</p>
+              )}
             </div>
           ) : (
             <p className="text-[12.5px] text-ink3">Sin datos disponibles</p>
@@ -1423,6 +1472,15 @@ export default function PatientFicha() {
     queryKey: ["growth", id],
     queryFn: async () => { const { data } = await api.get<GrowthPoint[]>(`/patients/${id}/growth-history/`); return data; },
     enabled: !!id,
+  });
+
+  const locationsQ = useQuery<Location[]>({
+    queryKey: ["locations"],
+    queryFn: async () => {
+      const { data } = await api.get<{ results: Location[] }>("/practices/dra-estefi/locations/");
+      return data.results;
+    },
+    staleTime: 30 * 60 * 1000,
   });
 
   const filesQ = useQuery<{ count: number }>({
@@ -1494,12 +1552,21 @@ export default function PatientFicha() {
 
   // ── Editable state (initialized after patient loads) ──
 
-  type DatosForm = { sexo: string; sangre: string; prevision: string; nacionalidad: string };
+  type DatosForm = {
+    first_name: string; last_name: string; date_of_birth: string; rut: string;
+    sexo: string; sangre: string; prevision: string; nacionalidad: string;
+    preferred_location: number | null;
+  };
   const defaultDatos: DatosForm = {
+    first_name: patient?.first_name ?? "",
+    last_name: patient?.last_name ?? "",
+    date_of_birth: patient?.date_of_birth ?? "",
+    rut: patient?.rut ?? "",
     sexo: patient?.sex_at_birth ?? "NO_ESPECIFICA",
     sangre: patient?.blood_type ?? "",
     prevision: patient?.insurance ?? "",
     nacionalidad: patient?.country ?? "Chile",
+    preferred_location: patient?.preferred_location ?? null,
   };
   const [datosDraft, setDatosDraft] = useState<DatosForm>(defaultDatos);
   useEffect(() => { if (patient) setDatosDraft(defaultDatos); }, [patient?.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1562,10 +1629,15 @@ export default function PatientFicha() {
   const handleSaveDatos = useCallback(() => {
     if (!patient) return;
     patchPatient.mutate({
+      first_name: datosDraft.first_name,
+      last_name: datosDraft.last_name,
+      date_of_birth: datosDraft.date_of_birth,
+      rut: datosDraft.rut,
       sex_at_birth: datosDraft.sexo,
       blood_type: datosDraft.sangre,
       insurance: datosDraft.prevision,
       country: datosDraft.nacionalidad,
+      preferred_location: datosDraft.preferred_location,
     }, {
       onSuccess: () => { setEditDatos(false); flash("Datos guardados"); },
       onError: () => flash("Error al guardar datos"),
@@ -1755,7 +1827,7 @@ export default function PatientFicha() {
                     <span key={t.id}>
                       {i > 0 && <span className="text-ink3 mx-1">&middot;</span>}
                       <span className="font-medium text-ink">{t.tutor_full_name}</span>
-                      {t.relationship && <span className="text-ink3 ml-1">({t.relationship})</span>}
+                      {t.relationship && <span className="text-ink3 ml-1">({RELATIONSHIP_LABELS[t.relationship] ?? t.relationship})</span>}
                     </span>
                   ))}
                 </span>
@@ -1817,10 +1889,33 @@ export default function PatientFicha() {
             </div>
             {editDatos ? (
               <div className="grid grid-cols-2 gap-x-6 gap-y-3.5">
+                <div className="col-span-2 grid grid-cols-2 gap-x-6 gap-y-3.5">
+                  <EditRow label="Nombre" value={datosDraft.first_name} onChange={(v) => setDatosDraft((d) => ({ ...d, first_name: v }))} half placeholder="Nombre" />
+                  <EditRow label="Apellido" value={datosDraft.last_name} onChange={(v) => setDatosDraft((d) => ({ ...d, last_name: v }))} half placeholder="Apellido" />
+                </div>
+                <EditRow label="RUT" value={datosDraft.rut} onChange={(v) => setDatosDraft((d) => ({ ...d, rut: v }))} half placeholder="12.345.678-9" />
+                <div>
+                  <div className="text-[11px] text-ink3 font-medium mb-1">Fecha de nacimiento</div>
+                  <input type="date" value={datosDraft.date_of_birth}
+                    onChange={(e) => setDatosDraft((d) => ({ ...d, date_of_birth: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-[9px] bg-bg border border-line text-[13px] text-ink focus:outline-none focus:border-teal focus:ring-2 focus:ring-teal/20 transition" />
+                </div>
                 <EditField label="Sexo" value={datosDraft.sexo} onChange={(v) => setDatosDraft((d) => ({ ...d, sexo: v }))} options={SEX_OPTIONS} half />
                 <EditField label="Grupo sanguineo" value={datosDraft.sangre} onChange={(v) => setDatosDraft((d) => ({ ...d, sangre: v }))} options={BLOOD_TYPE_OPTIONS} half />
                 <EditField label="Prevision" value={datosDraft.prevision} onChange={(v) => setDatosDraft((d) => ({ ...d, prevision: v }))} options={INSURANCE_OPTIONS} half />
                 <EditRow label="Nacionalidad" value={datosDraft.nacionalidad} onChange={(v) => setDatosDraft((d) => ({ ...d, nacionalidad: v }))} half />
+                <div>
+                  <div className="text-[11px] text-ink3 font-medium mb-1">Sede habitual</div>
+                  <select
+                    value={datosDraft.preferred_location ?? ""}
+                    onChange={(e) => setDatosDraft((d) => ({ ...d, preferred_location: e.target.value ? Number(e.target.value) : null }))}
+                    className="w-full px-3 py-2 rounded-[9px] bg-bg border border-line text-[13px] text-ink focus:outline-none focus:border-teal focus:ring-2 focus:ring-teal/20 transition">
+                    <option value="">Sin sede asignada</option>
+                    {(locationsQ.data ?? []).map((loc) => (
+                      <option key={loc.id} value={loc.id}>{loc.name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-x-6 gap-y-4">
@@ -1831,6 +1926,12 @@ export default function PatientFicha() {
                 <DataRow label="Sexo" value={sexLabel(patient.sex_at_birth)} half />
                 <DataRow label="Grupo sanguineo" value={choiceLabel(BLOOD_TYPE_OPTIONS, patient.blood_type)} half />
                 <DataRow label="Prevision" value={choiceLabel(INSURANCE_OPTIONS, patient.insurance, "No registrada")} half />
+                <DataRow label="Nacionalidad" value={patient.country ?? "—"} half />
+                <DataRow label="Sede habitual" value={
+                  patient.preferred_location
+                    ? (locationsQ.data?.find((l) => l.id === patient.preferred_location)?.name ?? "—")
+                    : "Sin asignar"
+                } half />
               </div>
             )}
           </div>
@@ -1845,7 +1946,7 @@ export default function PatientFicha() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-[13px] font-semibold text-ink">{t.tutor_full_name}</div>
-                    <div className="text-[11px] text-ink3">{t.relationship}{t.is_primary ? " (principal)" : ""}</div>
+                    <div className="text-[11px] text-ink3">{RELATIONSHIP_LABELS[t.relationship] ?? t.relationship}{t.is_primary ? " (principal)" : ""}</div>
                     <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
                       {t.tutor_email && (
                         <a href={`mailto:${t.tutor_email}`} className="inline-flex items-center gap-1 text-[11px] text-ink2 hover:text-teal-dark transition">

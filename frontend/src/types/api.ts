@@ -185,6 +185,7 @@ export interface TutorPatientLink {
   tutor_email: string;
   tutor_full_name: string;
   tutor_phone: string;
+  tutor_avatar_url?: string | null;
   relationship: string;
   is_primary: boolean;
   created_at: string;
@@ -228,6 +229,7 @@ export interface Patient {
   apgar_1min?: number;
   apgar_5min?: number;
   feeding_type?: string;
+  preferred_location?: number | null;
   profile_completion?: {
     percentage: number;
     missing: string[];

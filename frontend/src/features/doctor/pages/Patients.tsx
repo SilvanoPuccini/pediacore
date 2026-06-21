@@ -20,6 +20,15 @@ import api from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { Patient, PaginatedResponse } from "@/types/api";
 
+// ─── Relationship labels ─────────────────────────────────────────────────────
+
+const RELATIONSHIP_LABELS: Record<string, string> = {
+  MOTHER: "Madre",
+  FATHER: "Padre",
+  GUARDIAN: "Tutor/a legal",
+  OTHER: "Otro vínculo",
+};
+
 // ─── Palettes for deterministic avatars ─────────────────────────────────────
 
 const PALETTES: [string, string][] = [
@@ -145,10 +154,11 @@ interface RowMenuProps {
   onAgendar: () => void;
   onMensaje: () => void;
   onArchivar: () => void;
+  onEliminar: () => void;
   onClose: () => void;
 }
 
-function RowMenu({ onFicha, onAgendar, onMensaje, onArchivar, onClose }: RowMenuProps) {
+function RowMenu({ onFicha, onAgendar, onMensaje, onArchivar, onEliminar, onClose }: RowMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -189,9 +199,10 @@ function RowMenu({ onFicha, onAgendar, onMensaje, onArchivar, onClose }: RowMenu
     >
       {menuItem(<FileText size={14} />, "Ver ficha", onFicha)}
       {menuItem(<CalendarPlus size={14} />, "Agendar turno", onAgendar)}
-      {menuItem(<MessageCircle size={14} />, "Mensaje al tutor", onMensaje)}
+      {menuItem(<MessageCircle size={14} />, "Mensaje al tutor (próximamente)", onMensaje)}
       <div className="h-px bg-line/70 my-1" />
       {menuItem(<Folder size={14} />, "Archivar", onArchivar, true)}
+      {menuItem(<X size={14} />, "Eliminar paciente", onEliminar, true)}
     </div>
   );
 }
@@ -431,9 +442,30 @@ export default function Patients() {
   const [menuId, setMenuId] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
-  const flash = (msg: string) => {
-    setToast(msg);
+  const flash = (msg: string, isError = false) => {
+    setToast(isError ? `Error: ${msg}` : msg);
     setTimeout(() => setToast(null), 2400);
+  };
+
+  const handleArchive = async (patient: Patient) => {
+    try {
+      await api.patch(`/patients/${patient.id}/`, { is_active: false });
+      qc.invalidateQueries({ queryKey: ["patients"] });
+      flash(`${patient.full_name} archivado`);
+    } catch {
+      flash("Error al archivar", true);
+    }
+  };
+
+  const handleDelete = async (patient: Patient) => {
+    if (!window.confirm(`¿Eliminar a ${patient.full_name}? Esta acción no se puede deshacer.`)) return;
+    try {
+      await api.delete(`/patients/${patient.id}/`);
+      qc.invalidateQueries({ queryKey: ["patients"] });
+      flash(`${patient.full_name} eliminado`);
+    } catch {
+      flash("Error al eliminar", true);
+    }
   };
 
   // ── Data ────────────────────────────────────────────────────────────────────
@@ -750,7 +782,15 @@ export default function Patients() {
                   >
                     {/* Paciente */}
                     <div className="flex items-center gap-3 min-w-0">
-                      <PatientAvatar name={patient.full_name} />
+                      {tutor?.tutor_avatar_url ? (
+                        <img
+                          src={tutor.tutor_avatar_url}
+                          alt=""
+                          className="w-9 h-9 rounded-full object-cover shrink-0"
+                        />
+                      ) : (
+                        <PatientAvatar name={patient.full_name} />
+                      )}
                       <div className="min-w-0">
                         <div className="text-[13.5px] font-semibold text-ink truncate">
                           {patient.full_name}
@@ -771,7 +811,9 @@ export default function Patients() {
 
                     {/* Tutor principal */}
                     <div className="text-[12.5px] text-ink2 truncate">
-                      {tutor ? tutor.tutor_full_name : "—"}
+                      {tutor
+                        ? `${tutor.tutor_full_name} (${RELATIONSHIP_LABELS[tutor.relationship] ?? tutor.relationship})`
+                        : "—"}
                     </div>
 
                     {/* Última consulta */}
@@ -821,7 +863,8 @@ export default function Patients() {
                       onFicha={() => navigate(`/dashboard/pacientes/${patient.id}`)}
                       onAgendar={() => navigate("/dashboard/calendario")}
                       onMensaje={() => flash("Función disponible próximamente")}
-                      onArchivar={() => flash(`${patient.full_name} archivado`)}
+                      onArchivar={() => handleArchive(patient)}
+                      onEliminar={() => handleDelete(patient)}
                     />
                   )}
 

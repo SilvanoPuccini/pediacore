@@ -23,6 +23,15 @@ class TutorPatientSerializer(serializers.ModelSerializer):
     tutor_email = serializers.EmailField(source="tutor.email", read_only=True)
     tutor_full_name = serializers.CharField(source="tutor.full_name", read_only=True)
     tutor_phone = serializers.CharField(source="tutor.phone", read_only=True, default="")
+    tutor_avatar_url = serializers.SerializerMethodField()
+
+    def get_tutor_avatar_url(self, obj: TutorPatient) -> str | None:
+        if obj.tutor and obj.tutor.avatar:
+            request = self.context.get("request")
+            if request:
+                return request.build_absolute_uri(obj.tutor.avatar.url)
+            return obj.tutor.avatar.url
+        return None
 
     class Meta:
         model = TutorPatient
@@ -32,6 +41,7 @@ class TutorPatientSerializer(serializers.ModelSerializer):
             "tutor_email",
             "tutor_full_name",
             "tutor_phone",
+            "tutor_avatar_url",
             "relationship",
             "is_primary",
             "created_at",
@@ -158,6 +168,7 @@ class PatientSerializer(serializers.ModelSerializer):
             "address",
             "phone",
             "phone_prefix",
+            "preferred_location",
             "is_active",
             "birth_weight_grams",
             "birth_length_cm",
@@ -338,6 +349,7 @@ class PatientUpdateSerializer(serializers.ModelSerializer):
             "comuna",
             "address",
             "phone",
+            "preferred_location",
             "is_active",
             "birth_weight_grams",
             "birth_length_cm",
