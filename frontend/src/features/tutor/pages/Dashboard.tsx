@@ -261,7 +261,7 @@ function GrowthSnapshotCard({ patient, index }: GrowthSnapshotCardProps) {
           </p>
         </div>
         <Link
-          to={`/portal/hijos/${patient.id}`}
+          to={`/portal/hijos?tab=growth&child=${patient.id}`}
           className="text-[11.5px] font-semibold hover:underline underline-offset-2 transition-colors"
           style={{ color: pal.fg }}
         >
@@ -622,7 +622,7 @@ export default function Dashboard() {
               Crecimiento
             </h2>
             <Link
-              to="/portal/hijos"
+              to="/portal/hijos?tab=growth"
               className="text-[12px] font-semibold text-teal-dark hover:underline underline-offset-2 transition-colors"
             >
               Ver historias

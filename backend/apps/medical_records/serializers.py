@@ -333,6 +333,7 @@ class EncounterListSerializer(serializers.ModelSerializer):
     doctor_name = serializers.SerializerMethodField()
     encounter_type_display = serializers.CharField(source="get_encounter_type_display", read_only=True)
     status_display = serializers.CharField(source="get_status_display", read_only=True)
+    public_summary = serializers.SerializerMethodField()
 
     class Meta:
         model = Encounter
@@ -349,12 +350,25 @@ class EncounterListSerializer(serializers.ModelSerializer):
             "scheduled_at",
             "reason_for_visit",
             "created_at",
+            "public_summary",
         ]
         read_only_fields = ["id", "created_at"]
 
     def get_doctor_name(self, obj: Encounter) -> str:
         doctor = obj.doctor
         return f"{doctor.first_name} {doctor.last_name}".strip() or doctor.email
+
+    def get_public_summary(self, obj: Encounter) -> dict | None:
+        """Return only the public subset of the SOAP note for tutor-facing views."""
+        soap = getattr(obj, "soap_note", None)
+        if soap is None:
+            return None
+        if not soap.subjective and not soap.plan:
+            return None
+        return {
+            "reason": soap.subjective,
+            "plan": soap.plan,
+        }
 
 
 class EncounterDetailSerializer(serializers.ModelSerializer):

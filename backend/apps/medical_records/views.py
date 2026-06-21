@@ -108,7 +108,9 @@ class EncounterViewSet(ModelViewSet):
         user = self.request.user
         patient_id = self.request.query_params.get("patient_id")
 
-        qs = Encounter.objects.select_related("patient", "doctor", "practice", "location").prefetch_related(
+        qs = Encounter.objects.select_related(
+            "patient", "doctor", "practice", "location", "soap_note",
+        ).prefetch_related(
             "diagnoses",
         )
 
