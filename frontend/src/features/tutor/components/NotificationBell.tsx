@@ -29,7 +29,11 @@ function relativeTime(isoString: string): string {
 
 // ─── NotificationBell ─────────────────────────────────────────────────────────
 
-export default function NotificationBell() {
+type NotificationBellProps = {
+  notificationsPath?: string;
+};
+
+export default function NotificationBell({ notificationsPath = "/portal/notificaciones" }: NotificationBellProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -175,7 +179,7 @@ export default function NotificationBell() {
             <div className="px-4 py-2.5 border-t border-line">
               <button
                 onClick={() => {
-                  navigate("/portal/notificaciones");
+                  navigate(notificationsPath);
                   setOpen(false);
                 }}
                 className="text-[12px] text-teal-dark font-semibold hover:text-teal transition-colors"
