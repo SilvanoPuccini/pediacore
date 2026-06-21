@@ -423,7 +423,12 @@ class CancellationPolicyView(APIView):
     def _get_practice(self, request: Request):
         from apps.practice.models import Practice
 
-        return get_object_or_404(Practice, owner=request.user)
+        practice = Practice.objects.filter(owner=request.user).first()
+        if not practice:
+            practice = Practice.objects.filter(is_active=True).first()
+        if not practice:
+            raise Practice.DoesNotExist
+        return practice
 
     def get(self, request: Request) -> Response:
         practice = self._get_practice(request)
@@ -448,7 +453,11 @@ class CancellationTierViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         from apps.practice.models import Practice
 
-        practice = get_object_or_404(Practice, owner=self.request.user)
+        practice = Practice.objects.filter(owner=self.request.user).first()
+        if not practice:
+            practice = Practice.objects.filter(is_active=True).first()
+        if not practice:
+            return CancellationTier.objects.none()
         try:
             policy = CancellationPolicy.objects.get(practice=practice)
             return CancellationTier.objects.filter(policy=policy)
@@ -558,7 +567,12 @@ class AutoResponderConfigView(APIView):
     def _get_practice(self, request: Request):
         from apps.practice.models import Practice
 
-        return get_object_or_404(Practice, owner=request.user)
+        practice = Practice.objects.filter(owner=request.user).first()
+        if not practice:
+            practice = Practice.objects.filter(is_active=True).first()
+        if not practice:
+            raise Practice.DoesNotExist
+        return practice
 
     def get(self, request: Request) -> Response:
         practice = self._get_practice(request)

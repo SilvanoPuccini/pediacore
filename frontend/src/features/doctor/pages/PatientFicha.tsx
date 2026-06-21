@@ -1628,7 +1628,7 @@ export default function PatientFicha() {
 
   const handleSaveDatos = useCallback(() => {
     if (!patient) return;
-    patchPatient.mutate({
+    const payload: Record<string, unknown> = {
       first_name: datosDraft.first_name,
       last_name: datosDraft.last_name,
       date_of_birth: datosDraft.date_of_birth,
@@ -1637,8 +1637,11 @@ export default function PatientFicha() {
       blood_type: datosDraft.sangre,
       insurance: datosDraft.prevision,
       country: datosDraft.nacionalidad,
-      preferred_location: datosDraft.preferred_location,
-    }, {
+    };
+    if (datosDraft.preferred_location != null) {
+      payload.preferred_location = datosDraft.preferred_location;
+    }
+    patchPatient.mutate(payload, {
       onSuccess: () => { setEditDatos(false); flash("Datos guardados"); },
       onError: () => flash("Error al guardar datos"),
     });
@@ -1805,8 +1808,12 @@ export default function PatientFicha() {
       {/* ── Patient header card ── */}
       <div className="bg-surface border border-line rounded-[18px] shadow-card p-6">
         <div className="flex items-start gap-5 flex-wrap">
-          <div className="w-16 h-16 rounded-full flex items-center justify-center text-[22px] font-bold shrink-0 text-white"
-            style={{ background: "linear-gradient(135deg, #3E8E7C, #6B569E)" }}>{firstInitial}</div>
+          {patient.tutors?.[0]?.tutor_avatar_url ? (
+            <img src={patient.tutors[0].tutor_avatar_url} alt="" className="w-16 h-16 rounded-full object-cover shrink-0" />
+          ) : (
+            <div className="w-16 h-16 rounded-full flex items-center justify-center text-[22px] font-bold shrink-0 text-white"
+              style={{ background: "linear-gradient(135deg, #3E8E7C, #6B569E)" }}>{firstInitial}</div>
+          )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-[22px] font-bold text-ink tracking-tight">{patient.full_name}</h2>
