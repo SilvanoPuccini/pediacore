@@ -617,17 +617,9 @@ export default function Dashboard() {
       {/* ── 3. Growth snapshots ────────────────────────────────────────── */}
       {patients.length > 0 && (
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-[15px] font-semibold text-ink">
-              Crecimiento
-            </h2>
-            <Link
-              to="/portal/hijos?tab=growth"
-              className="text-[12px] font-semibold text-teal-dark hover:underline underline-offset-2 transition-colors"
-            >
-              Ver historias
-            </Link>
-          </div>
+          <h2 className="text-[15px] font-semibold text-ink mb-4">
+            Crecimiento
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {patients.map((patient, idx) => (
               <GrowthSnapshotCard
