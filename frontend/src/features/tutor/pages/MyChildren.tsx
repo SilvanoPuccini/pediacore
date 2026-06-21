@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -209,7 +210,7 @@ interface ConfirmModalProps {
 }
 
 function ConfirmModal({ patient, onConfirm, onCancel, isPending }: ConfirmModalProps) {
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
         className="absolute inset-0 bg-ink/40 backdrop-blur-sm"
@@ -247,7 +248,8 @@ function ConfirmModal({ patient, onConfirm, onCancel, isPending }: ConfirmModalP
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
