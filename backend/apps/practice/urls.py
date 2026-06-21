@@ -11,6 +11,7 @@ from rest_framework.routers import DefaultRouter
 from apps.practice.views import (
     BankDetailsView,
     BlockedSlotAdminViewSet,
+    LocationAdminViewSet,
     LocationListView,
     OnlineScheduleView,
     OnlineWorkingHoursListView,
@@ -23,6 +24,7 @@ from apps.practice.views import (
 app_name = "practice"
 
 router = DefaultRouter()
+router.register(r"admin/locations", LocationAdminViewSet, basename="admin-locations")
 router.register(r"admin/working-hours", WorkingHoursAdminViewSet, basename="admin-working-hours")
 router.register(r"admin/blocked-slots", BlockedSlotAdminViewSet, basename="admin-blocked-slots")
 

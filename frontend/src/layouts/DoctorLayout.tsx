@@ -476,18 +476,19 @@ export default function DoctorLayout() {
           </button>
         </div>
 
-        <ConfirmDialog
-          open={logoutOpen}
-          title="Cerrar sesión"
-          message="¿Estás seguro de que querés salir?"
-          confirmLabel="Cerrar sesión"
-          cancelLabel="Cancelar"
-          variant="danger"
-          onConfirm={handleLogout}
-          onCancel={() => setLogoutOpen(false)}
-          isPending={logoutPending}
-        />
       </aside>
+
+      <ConfirmDialog
+        open={logoutOpen}
+        title="Cerrar sesión"
+        message="¿Estás seguro de que querés salir?"
+        confirmLabel="Cerrar sesión"
+        cancelLabel="Cancelar"
+        variant="danger"
+        onConfirm={handleLogout}
+        onCancel={() => setLogoutOpen(false)}
+        isPending={logoutPending}
+      />
 
       {/* Mobile overlay */}
       {sidebarOpen && (

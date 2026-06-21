@@ -203,6 +203,22 @@ class BankDetailsView(APIView):
 # ---------------------------------------------------------------------------
 
 
+class LocationAdminViewSet(viewsets.ModelViewSet):
+    """
+    Admin endpoint. Full CRUD for locations.
+
+    GET/POST   /api/v1/admin/locations/
+    GET/PUT/PATCH/DELETE /api/v1/admin/locations/<pk>/
+    """
+
+    serializer_class = LocationSerializer
+    permission_classes = [IsDoctor]
+    pagination_class = StandardPagination
+
+    def get_queryset(self):
+        return Location.objects.select_related("practice").all()
+
+
 class WorkingHoursAdminViewSet(viewsets.ModelViewSet):
     """
     Admin endpoint. Full CRUD for working hours.
