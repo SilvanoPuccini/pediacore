@@ -94,6 +94,8 @@ class NotificationPreferenceView(APIView):
             from apps.practice.models import Practice
 
             practice = Practice.objects.filter(owner=user).first()
+            if not practice:
+                practice = Practice.objects.filter(is_active=True).first()
         else:
             from apps.patients.models import TutorPatient
 
@@ -173,7 +175,11 @@ class SendNotificationView(APIView):
         # Resolve the doctor's practice
         from apps.practice.models import Practice
 
-        practice = get_object_or_404(Practice, owner=request.user)
+        practice = Practice.objects.filter(owner=request.user).first()
+        if not practice:
+            practice = Practice.objects.filter(is_active=True).first()
+        if not practice:
+            return Response({"detail": "No practice found."}, status=404)
 
         notification = Notification.objects.create(
             practice=practice,

@@ -511,11 +511,16 @@ class VaccinationViewSet(ModelViewSet):
 
     def perform_create(self, serializer: VaccinationCreateSerializer) -> None:
         """Inject practice from the authenticated doctor's practice."""
-        from django.shortcuts import get_object_or_404
+        from rest_framework.exceptions import ValidationError
 
         from apps.practice.models import Practice
 
-        practice = get_object_or_404(Practice, owner=self.request.user)
+        practice = Practice.objects.filter(owner=self.request.user).first()
+        if not practice:
+            # Single-practice fallback — doctor may not be the owner row
+            practice = Practice.objects.filter(is_active=True).first()
+        if not practice:
+            raise ValidationError({"practice": "No practice found."})
         serializer.save(
             practice=practice,
             administered_by=self.request.user,

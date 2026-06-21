@@ -242,6 +242,8 @@ class ProfileExportPDFView(APIView):
         user = request.user
         practice = Practice.objects.filter(owner=user).first()
         if not practice:
+            practice = Practice.objects.filter(is_active=True).first()
+        if not practice:
             return HttpResponse("No practice found", status=404)
 
         locations = Location.objects.filter(practice=practice, is_active=True).order_by("name")
