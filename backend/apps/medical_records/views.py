@@ -511,11 +511,11 @@ class VaccinationViewSet(ModelViewSet):
 
     def perform_create(self, serializer: VaccinationCreateSerializer) -> None:
         """Inject practice from the authenticated doctor's practice."""
+        from django.shortcuts import get_object_or_404
+
         from apps.practice.models import Practice
 
-        practice = Practice.objects.filter(
-            owner=self.request.user
-        ).first()
+        practice = get_object_or_404(Practice, owner=self.request.user)
         serializer.save(
             practice=practice,
             administered_by=self.request.user,

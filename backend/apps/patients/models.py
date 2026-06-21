@@ -152,6 +152,14 @@ class Patient(BaseModel):
         related_name="patients",
         verbose_name=_("practice"),
     )
+    preferred_location = models.ForeignKey(
+        "practice.Location",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="preferred_patients",
+        help_text="Sede habitual del paciente",
+    )
     first_name = models.CharField(_("first name"), max_length=150)
     last_name = models.CharField(_("last name"), max_length=150)
     date_of_birth = models.DateField(_("date of birth"))
