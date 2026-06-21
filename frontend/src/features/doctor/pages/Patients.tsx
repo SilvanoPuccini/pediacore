@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import api from "@/lib/api";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { cn } from "@/lib/utils";
 import type { Patient, PaginatedResponse } from "@/types/api";
 
@@ -440,6 +441,8 @@ export default function Patients() {
   // ── UI state ────────────────────────────────────────────────────────────────
   const [showModal, setShowModal] = useState(false);
   const [menuId, setMenuId] = useState<number | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Patient | null>(null);
+  const [deletePending, setDeletePending] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   const flash = (msg: string, isError = false) => {
@@ -458,13 +461,16 @@ export default function Patients() {
   };
 
   const handleDelete = async (patient: Patient) => {
-    if (!window.confirm(`¿Eliminar a ${patient.full_name}? Esta acción no se puede deshacer.`)) return;
+    setDeletePending(true);
     try {
       await api.delete(`/patients/${patient.id}/`);
       qc.invalidateQueries({ queryKey: ["patients"] });
       flash(`${patient.full_name} eliminado`);
     } catch {
       flash("Error al eliminar", true);
+    } finally {
+      setDeletePending(false);
+      setDeleteTarget(null);
     }
   };
 
@@ -864,7 +870,7 @@ export default function Patients() {
                       onAgendar={() => navigate("/dashboard/calendario")}
                       onMensaje={() => flash("Función disponible próximamente")}
                       onArchivar={() => handleArchive(patient)}
-                      onEliminar={() => handleDelete(patient)}
+                      onEliminar={() => { setMenuId(null); setDeleteTarget(patient); }}
                     />
                   )}
 
@@ -890,6 +896,19 @@ export default function Patients() {
           }}
         />
       )}
+
+      {/* Delete confirmation */}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Eliminar paciente"
+        message={`¿Eliminar a ${deleteTarget?.full_name ?? ""}? Esta acción no se puede deshacer.`}
+        confirmLabel="Eliminar"
+        cancelLabel="Cancelar"
+        variant="danger"
+        onConfirm={() => { if (deleteTarget) handleDelete(deleteTarget); }}
+        onCancel={() => setDeleteTarget(null)}
+        isPending={deletePending}
+      />
 
       {/* Toast */}
       {toast && <Toast message={toast} />}

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import api from "@/lib/api";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { useAuthStore } from "@/stores/auth";
 import type {
   Location,
@@ -133,6 +134,7 @@ export default function ConfigPage() {
     presencial: true,
   });
   const [toast, setToast] = useState<{ msg: string; error?: boolean } | null>(null);
+  const [logoutOpen, setLogoutOpen] = useState(false);
 
   // ── Profile form state ──
   const [profileForm, setProfileForm] = useState({
@@ -168,12 +170,12 @@ export default function ConfigPage() {
 
   // ── API queries ──
   const locationsQ = useQuery<Location[]>({
-    queryKey: ["locations"],
+    queryKey: ["admin-locations"],
     queryFn: async () => {
-      const { data } = await api.get<{ results: Location[] }>("/practices/dra-estefi/locations/");
+      const { data } = await api.get<{ results: Location[] }>("/admin/locations/");
       return data.results;
     },
-    staleTime: 1000 * 60 * 60,
+    staleTime: 1000 * 60 * 5,
   });
 
   const servicesQ = useQuery<Service[]>({
@@ -246,6 +248,19 @@ export default function ConfigPage() {
       queryClient.setQueryData(["notification-preferences"], updated);
     },
     onError: () => flash("Error al actualizar la preferencia", true),
+  });
+
+  // ── Location toggle mutation ──
+  const locationToggleMutation = useMutation({
+    mutationFn: async ({ id, is_active }: { id: number; is_active: boolean }) => {
+      await api.patch(`/admin/locations/${id}/`, { is_active });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-locations"] });
+      queryClient.invalidateQueries({ queryKey: ["locations"] });
+      flash("Sede actualizada");
+    },
+    onError: () => flash("Error al actualizar la sede", true),
   });
 
   // ── Password change mutation ──
@@ -432,36 +447,39 @@ export default function ConfigPage() {
                 <p className="text-[13px]">Error al cargar las sedes</p>
               </div>
             ) : locations.length > 0 ? (
-              locations
-                .filter((loc) => loc.is_active)
-                .map((loc) => (
-                  <CfgSection
-                    key={loc.id}
-                    icon={<MapPin size={16} />}
-                    title={loc.name}
-                    desc={loc.address ? `${loc.address}, ${loc.city}` : loc.city}
-                  >
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <CfgField label="Dirección">
-                        <input
-                          className={cfgInputReadOnly}
-                          defaultValue={loc.address}
-                          readOnly
-                        />
-                      </CfgField>
-                      <CfgField label="Teléfono">
-                        <input
-                          className={cfgInputReadOnly}
-                          defaultValue={loc.phone || "—"}
-                          readOnly
-                        />
-                      </CfgField>
-                    </div>
-                    <p className="text-[11px] text-ink3 mt-3">
-                      Para modificar sedes, usá el panel de administración.
-                    </p>
-                  </CfgSection>
-                ))
+              locations.map((loc) => (
+                <CfgSection
+                  key={loc.id}
+                  icon={<MapPin size={16} />}
+                  title={loc.name}
+                  desc={loc.address ? `${loc.address}, ${loc.city}` : loc.city}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-[12.5px] text-ink2">Sede habilitada</span>
+                    <ConfigToggle
+                      checked={loc.is_active}
+                      onChange={(v) => locationToggleMutation.mutate({ id: loc.id, is_active: v })}
+                      disabled={locationToggleMutation.isPending}
+                    />
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <CfgField label="Dirección">
+                      <input
+                        className={cfgInputReadOnly}
+                        defaultValue={loc.address}
+                        readOnly
+                      />
+                    </CfgField>
+                    <CfgField label="Teléfono">
+                      <input
+                        className={cfgInputReadOnly}
+                        defaultValue={loc.phone || "—"}
+                        readOnly
+                      />
+                    </CfgField>
+                  </div>
+                </CfgSection>
+              ))
             ) : (
               <div className="flex flex-col items-center justify-center py-16 gap-2 text-ink3">
                 <MapPin size={28} className="opacity-40" />
@@ -744,7 +762,7 @@ export default function ConfigPage() {
             </CfgSection>
 
             <button
-              onClick={async () => { await logout(); navigate("/login"); }}
+              onClick={() => setLogoutOpen(true)}
               className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-[12px] border border-err/40 text-[#A85050] text-[13px] font-semibold hover:bg-err/10 transition"
             >
               <LogOut size={15} /> Cerrar sesión
@@ -752,6 +770,17 @@ export default function ConfigPage() {
           </>
         )}
       </div>
+
+      <ConfirmDialog
+        open={logoutOpen}
+        title="Cerrar sesión"
+        message="¿Estás seguro de que querés salir?"
+        confirmLabel="Cerrar sesión"
+        cancelLabel="Cancelar"
+        variant="danger"
+        onConfirm={async () => { await logout(); navigate("/login"); }}
+        onCancel={() => setLogoutOpen(false)}
+      />
 
       {/* Toast */}
       {toast && (
