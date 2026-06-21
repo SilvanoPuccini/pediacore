@@ -53,6 +53,7 @@ def hold_appointment(
     call_platform: str = "",
     notes: str = "",
     payment_method: str = Payment.MERCADOPAGO,
+    booked_by_doctor: bool = False,
 ) -> tuple[Appointment, Payment]:
     """
     Reserve a slot atomically and create a pending payment.
@@ -62,15 +63,19 @@ def hold_appointment(
 
     Payment is collected later via the CardPayment Brick (process-card endpoint).
 
+    When booked_by_doctor=True, `user` is the doctor booking on behalf of a patient.
+    The TutorPatient ownership check is skipped and the doctor field is set to `user`.
+
     Raises:
-        PermissionError: patient does not belong to the requesting tutor.
+        PermissionError: patient does not belong to the requesting tutor (tutor flow only).
         ValidationError: service is inactive or payment_method is invalid.
         SlotUnavailableError: the slot is already taken.
     """
     from apps.patients.models import TutorPatient
 
     # ── 1. Patient ownership check (outside transaction — fast check) ────────
-    if not TutorPatient.objects.filter(tutor=user, patient=patient).exists():
+    # Skipped when the doctor books directly on behalf of a patient.
+    if not booked_by_doctor and not TutorPatient.objects.filter(tutor=user, patient=patient).exists():
         raise PermissionError(f"Patient {patient.pk} does not belong to tutor {user.pk}.")
 
     # ── 2. Service active check ───────────────────────────────────────────────
@@ -107,8 +112,9 @@ def hold_appointment(
         if blocking_qs.exists():
             raise SlotUnavailableError(f"The slot at {scheduled_date} {start_time} is no longer available.")
 
-        # ── 4. Resolve doctor (practice owner) ───────────────────────────────
-        doctor = practice.owner
+        # ── 4. Resolve doctor ────────────────────────────────────────────────
+        # When the doctor books directly, they are both the user and the doctor.
+        doctor = user if booked_by_doctor else practice.owner
 
         if payment_method == Payment.MERCADOPAGO:
             # ── 5a. MERCADOPAGO path ─────────────────────────────────────────

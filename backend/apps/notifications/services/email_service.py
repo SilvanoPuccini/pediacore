@@ -1125,6 +1125,89 @@ def send_appointment_cancellation(appointment: Appointment) -> None:
         )
 
 
+def send_payment_link_email(appointment, payment_link_url: str) -> None:
+    """
+    Send a payment link email to all tutors linked to the appointment's patient.
+
+    Sent when a doctor books an appointment on behalf of a patient. The email
+    includes appointment details and a prominent CTA button linking to the
+    MercadoPago payment page.
+
+    Creates a Notification record for each tutor regardless of email preferences,
+    since this is an action-required notification initiated by the doctor.
+
+    Args:
+        appointment: The Appointment instance (just created, status=HOLD).
+        payment_link_url: The MercadoPago init_point URL for the payment page.
+    """
+    from apps.patients.models import TutorPatient
+
+    tutors_qs = TutorPatient.objects.filter(patient=appointment.patient).select_related("tutor")
+
+    patient_name = str(appointment.patient)
+
+    # Build the payment CTA button HTML to inject as extra_html
+    payment_button_html = ""
+    if payment_link_url:
+        payment_button_html = f"""
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 0;">
+    <tr>
+        <td style="background-color:#4A8590; border-radius:8px; text-align:center; padding:14px 32px;">
+            <a href="{payment_link_url}"
+               style="color:#FFFFFF; font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+                      font-size:15px; font-weight:600; text-decoration:none; display:inline-block; white-space:nowrap;">
+                Realizar pago
+            </a>
+        </td>
+    </tr>
+</table>"""
+
+    for link in tutors_qs:
+        tutor = link.tutor
+
+        subject = f"Link de pago \u2014 Turno de {patient_name}"
+        html_body = _build_appointment_html(
+            title="Link de pago para tu turno",
+            body_lines=[
+                f"Hola {tutor.first_name},",
+                f"La Dra. Estefi registr\u00f3 un turno para <strong>{patient_name}</strong>. "
+                f"Para confirmar la reserva, realizá el pago usando el botón de abajo.",
+                f"Fecha: {_fmt_date(appointment.scheduled_date)}",
+                f"Hora: {_fmt_time(appointment.start_time)}",
+                f"Servicio: {appointment.service.name}",
+                *_location_lines(appointment.location),
+            ],
+            extra_html=payment_button_html,
+        )
+
+        Notification.objects.create(
+            practice=appointment.practice,
+            recipient=tutor,
+            notification_type=Notification.PAYMENT_RECEIVED,
+            title="Link de pago para tu turno",
+            message=(
+                f"Realizá el pago para confirmar el turno de {patient_name} "
+                f"el {_fmt_date_short(appointment.scheduled_date)} "
+                f"a las {_fmt_time(appointment.start_time)}."
+            ),
+            related_type="Appointment",
+            related_id=appointment.pk,
+        )
+
+        send_email(
+            to=tutor.email,
+            subject=subject,
+            html_body=html_body,
+            practice=appointment.practice,
+        )
+
+        logger.info(
+            "send_payment_link_email: sent to tutor %s for Appointment #%s",
+            tutor.pk,
+            appointment.pk,
+        )
+
+
 def _build_token_urls_for_appointment(appointment) -> dict | None:
     """
     Retrieve token URLs for an appointment if tokens exist.
