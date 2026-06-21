@@ -502,6 +502,7 @@ export interface Encounter {
   reason_for_visit: string;
   created_at: string;
   soap_note?: SOAPNote | null;
+  public_summary?: { reason: string; plan: string } | null;
   diagnoses?: Diagnosis[];
   anthropometry?: Anthropometry | null;
 }

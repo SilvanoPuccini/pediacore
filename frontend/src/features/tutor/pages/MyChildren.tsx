@@ -676,7 +676,7 @@ function VaccinesTab({ patientId }: VaccinesTabProps) {
   const { data, isLoading, isError } = useQuery<VaccineRecord[]>({
     queryKey: ["vaccines", patientId],
     queryFn: async () => {
-      const { data } = await api.get<PaginatedResponse<VaccineRecord>>(`/vaccinations/?patient=${patientId}`);
+      const { data } = await api.get<PaginatedResponse<VaccineRecord>>(`/vaccinations/?patient_id=${patientId}`);
       return data.results;
     },
     retry: false,
@@ -785,7 +785,7 @@ function EncountersTab({ patientId }: EncountersTabProps) {
     queryKey: ["encounters-tutor", patientId],
     queryFn: async () => {
       const { data } = await api.get<PaginatedResponse<Encounter>>(
-        `/encounters/?patient=${patientId}`
+        `/encounters/?patient_id=${patientId}`
       );
       return data.results;
     },
@@ -829,8 +829,19 @@ function EncountersTab({ patientId }: EncountersTabProps) {
 
 function EncounterRow({ encounter }: { encounter: Encounter }) {
   const [expanded, setExpanded] = useState(false);
-  const soap = encounter.soap_note;
-  const hasSoap = soap && (soap.subjective || soap.objective || soap.assessment || soap.plan);
+  const summary = encounter.public_summary;
+  const hasSummary = summary && (summary.reason || summary.plan);
+
+  // Extract "Próximo paso" from the plan text if it contains a sentence about next steps
+  const nextStep = useMemo(() => {
+    if (!summary?.plan) return null;
+    const markers = ["próximo control", "próximo paso", "siguiente control", "control en"];
+    const sentences = summary.plan.split(/\.\s+/);
+    const match = sentences.find((s) =>
+      markers.some((m) => s.toLowerCase().includes(m))
+    );
+    return match ? match.replace(/\.$/, "").trim() + "." : null;
+  }, [summary?.plan]);
 
   return (
     <li className="px-5 py-4 hover:bg-bg/60 transition-colors">
@@ -847,63 +858,52 @@ function EncounterRow({ encounter }: { encounter: Encounter }) {
             <Chip color="neutral">{encounter.encounter_type_display}</Chip>
           </div>
           <p className="text-[11px] text-ink3 mb-1.5">{formatDate(encounter.scheduled_at.split("T")[0])}</p>
-          {!expanded && soap?.plan && (
-            <p className="text-[12px] text-ink2 line-clamp-2">{soap.plan}</p>
+          {!expanded && summary?.plan && (
+            <p className="text-[12px] text-ink2 line-clamp-2">{summary.plan}</p>
           )}
         </div>
 
         {/* Action */}
-        {hasSoap && (
+        {hasSummary && (
           <Btn
             variant="ghost"
             size="sm"
             iconRight={expanded ? "ChevronUp" : "ChevronDown"}
             onClick={() => setExpanded(!expanded)}
           >
-            Resumen
+            Ver resumen
           </Btn>
         )}
       </div>
 
-      {/* Expanded SOAP note */}
-      {expanded && hasSoap && (
+      {/* Expanded public summary card */}
+      {expanded && hasSummary && (
         <div className="ml-12 mt-3 bg-bg rounded-[12px] border border-line p-4 space-y-3">
-          {soap.subjective && (
+          {summary.reason && (
             <div>
-              <p className="text-[10px] uppercase tracking-wider font-bold text-ink3 mb-0.5">Motivo de consulta</p>
-              <p className="text-[12.5px] text-ink leading-relaxed">{soap.subjective}</p>
+              <p className="text-[10px] uppercase tracking-wider font-bold text-ink3 mb-0.5">Motivo</p>
+              <p className="text-[12.5px] text-ink leading-relaxed">{summary.reason}</p>
             </div>
           )}
-          {soap.objective && (
+          {summary.plan && (
             <div>
-              <p className="text-[10px] uppercase tracking-wider font-bold text-ink3 mb-0.5">Examen</p>
-              <p className="text-[12.5px] text-ink leading-relaxed">{soap.objective}</p>
+              <p className="text-[10px] uppercase tracking-wider font-bold text-ink3 mb-0.5">Plan / Indicaciones</p>
+              <p className="text-[12.5px] text-ink leading-relaxed">{summary.plan}</p>
             </div>
           )}
-          {soap.assessment && (
+          {nextStep && (
             <div>
-              <p className="text-[10px] uppercase tracking-wider font-bold text-ink3 mb-0.5">Evaluación</p>
-              <p className="text-[12.5px] text-ink leading-relaxed">{soap.assessment}</p>
+              <p className="text-[10px] uppercase tracking-wider font-bold text-ink3 mb-0.5">Próximo paso</p>
+              <p className="text-[12.5px] text-ink leading-relaxed">{nextStep}</p>
             </div>
           )}
-          {soap.plan && (
-            <div>
-              <p className="text-[10px] uppercase tracking-wider font-bold text-ink3 mb-0.5">Plan</p>
-              <p className="text-[12.5px] text-ink leading-relaxed">{soap.plan}</p>
-            </div>
-          )}
-          {encounter.diagnoses && encounter.diagnoses.length > 0 && (
-            <div>
-              <p className="text-[10px] uppercase tracking-wider font-bold text-ink3 mb-0.5">Diagnósticos</p>
-              <div className="flex flex-wrap gap-1.5">
-                {encounter.diagnoses.map((d) => (
-                  <span key={d.id} className="text-[11px] px-2 py-0.5 rounded-full bg-teal/10 text-teal-dark font-medium">
-                    {d.code} — {d.description}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-2 border-t border-line">
+            <Btn variant="ghost" size="sm" onClick={() => setExpanded(false)}>
+              Cerrar
+            </Btn>
+          </div>
         </div>
       )}
     </li>
@@ -1047,7 +1047,7 @@ function ChildDetailView({ patient, childIndex, onUnlink, initialTab }: ChildDet
     queryKey: ["vaccines", patient.id],
     queryFn: async () => {
       try {
-        const { data } = await api.get<PaginatedResponse<VaccineRecord>>(`/vaccinations/?patient=${patient.id}`);
+        const { data } = await api.get<PaginatedResponse<VaccineRecord>>(`/vaccinations/?patient_id=${patient.id}`);
         return data.results ?? [];
       } catch {
         return [];
@@ -1061,7 +1061,7 @@ function ChildDetailView({ patient, childIndex, onUnlink, initialTab }: ChildDet
     queryFn: async () => {
       try {
         const { data } = await api.get<PaginatedResponse<Encounter>>(
-          `/encounters/?patient=${patient.id}`
+          `/encounters/?patient_id=${patient.id}`
         );
         return data.results ?? [];
       } catch {
@@ -1114,9 +1114,12 @@ export default function MyChildren() {
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const tabParam = searchParams.get("tab") as TabId | null;
+  const childParam = searchParams.get("child");
   const initialTab = tabParam && VALID_TABS.includes(tabParam) ? tabParam : undefined;
   const [showForm, setShowForm] = useState(false);
-  const [activeChildId, setActiveChildId] = useState<number | null>(null);
+  const [activeChildId, setActiveChildId] = useState<number | null>(
+    childParam ? Number(childParam) : null,
+  );
   const [pendingUnlink, setPendingUnlink] = useState<Patient | null>(null);
 
   const { data, isLoading } = useQuery({
