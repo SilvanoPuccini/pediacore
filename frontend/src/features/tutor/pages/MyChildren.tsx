@@ -42,11 +42,12 @@ import type { Patient, PaginatedResponse, Encounter, GrowthPoint } from "@/types
 
 interface VaccineRecord {
   id: number;
-  name: string;
-  recommended_age: string;
-  status: "done" | "pending" | "overdue";
+  vaccine_name: string;
+  dose_label: string;
+  lot_number: string | null;
   administered_at: string | null;
-  location_name: string | null;
+  site: string | null;
+  notes: string | null;
 }
 
 // ─── OMS Weight-for-age percentiles (boys, 0–60 months) ──────────────────────
@@ -674,7 +675,6 @@ interface VaccinesTabProps {
 }
 
 function VaccinesTab({ patientId }: VaccinesTabProps) {
-  const navigate = useNavigate();
   const { data, isLoading, isError } = useQuery<VaccineRecord[]>({
     queryKey: ["vaccines", patientId],
     queryFn: async () => {
@@ -696,7 +696,7 @@ function VaccinesTab({ patientId }: VaccinesTabProps) {
     );
   }
 
-  const done = data.filter((v) => v.status === "done").length;
+  const applied = data.filter((v) => v.administered_at).length;
   const total = data.length;
 
   return (
@@ -706,7 +706,7 @@ function VaccinesTab({ patientId }: VaccinesTabProps) {
         <div>
           <p className="text-[14px] font-bold text-ink">Carnet de vacunas</p>
           <p className="text-[12px] text-ink3 mt-0.5">
-            {done} de {total} aplicadas
+            {applied} de {total} registradas
           </p>
         </div>
       </div>
@@ -716,7 +716,7 @@ function VaccinesTab({ patientId }: VaccinesTabProps) {
       ) : (
         <ul className="divide-y divide-line">
           {data.map((vaccine) => (
-            <VaccineRow key={vaccine.id} vaccine={vaccine} onBook={() => navigate("/booking")} />
+            <VaccineRow key={vaccine.id} vaccine={vaccine} />
           ))}
         </ul>
       )}
@@ -724,38 +724,33 @@ function VaccinesTab({ patientId }: VaccinesTabProps) {
   );
 }
 
-function VaccineRow({ vaccine, onBook }: { vaccine: VaccineRecord; onBook: () => void }) {
-  const icons = {
-    done: <Check size={15} className="text-sage-700" />,
-    pending: <Clock size={15} className="text-mustard" style={{ color: "#8A6A1F" }} />,
-    overdue: <AlertCircle size={15} className="text-coral" style={{ color: "#A85050" }} />,
-  };
-  const bgMap = {
-    done: "rgba(168,201,168,0.30)",
-    pending: "rgba(229,184,71,0.28)",
-    overdue: "rgba(232,160,160,0.26)",
-  };
+function VaccineRow({ vaccine }: { vaccine: VaccineRecord }) {
+  const isApplied = !!vaccine.administered_at;
 
   return (
     <li className="flex items-center gap-4 px-5 py-3.5 hover:bg-bg/60 transition-colors">
       {/* Status icon */}
       <div
         className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
-        style={{ backgroundColor: bgMap[vaccine.status] }}
+        style={{
+          backgroundColor: isApplied
+            ? "rgba(168,201,168,0.30)"
+            : "rgba(229,184,71,0.28)",
+        }}
       >
-        {icons[vaccine.status]}
+        {isApplied ? (
+          <Check size={15} className="text-sage-700" />
+        ) : (
+          <Clock size={15} style={{ color: "#8A6A1F" }} />
+        )}
       </div>
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <p className="text-[13px] font-semibold text-ink truncate">{vaccine.name}</p>
+        <p className="text-[13px] font-semibold text-ink truncate">{vaccine.vaccine_name}</p>
         <div className="flex items-center gap-2 mt-0.5">
-          <span className="text-[11px] text-ink3">{vaccine.recommended_age}</span>
-          {vaccine.location_name && (
-            <>
-              <span className="text-ink3 text-[10px]">·</span>
-              <span className="text-[11px] text-ink3">{vaccine.location_name}</span>
-            </>
+          {vaccine.dose_label && (
+            <span className="text-[11px] text-ink3">{vaccine.dose_label}</span>
           )}
           {vaccine.administered_at && (
             <>
@@ -763,15 +758,14 @@ function VaccineRow({ vaccine, onBook }: { vaccine: VaccineRecord; onBook: () =>
               <span className="text-[11px] text-ink3">{formatDate(vaccine.administered_at)}</span>
             </>
           )}
+          {vaccine.lot_number && (
+            <>
+              <span className="text-ink3 text-[10px]">·</span>
+              <span className="text-[11px] text-ink3">Lote {vaccine.lot_number}</span>
+            </>
+          )}
         </div>
       </div>
-
-      {/* Action */}
-      {vaccine.status !== "done" && (
-        <Btn variant="ghost" size="sm" onClick={onBook}>
-          Agendar
-        </Btn>
-      )}
     </li>
   );
 }
@@ -834,15 +828,31 @@ function EncounterRow({ encounter }: { encounter: Encounter }) {
   const summary = encounter.public_summary;
   const hasSummary = summary && (summary.reason || summary.plan);
 
-  // Extract "Próximo paso" from the plan text if it contains a sentence about next steps
-  const nextStep = useMemo(() => {
-    if (!summary?.plan) return null;
+  // Split plan into indicaciones + próximo paso using known markers
+  const { indicaciones, nextStep } = useMemo(() => {
+    if (!summary?.plan) return { indicaciones: null, nextStep: null };
+    const plan = summary.plan;
     const markers = ["próximo control", "próximo paso", "siguiente control", "control en"];
-    const sentences = summary.plan.split(/\.\s+/);
-    const match = sentences.find((s) =>
-      markers.some((m) => s.toLowerCase().includes(m))
-    );
-    return match ? match.replace(/\.$/, "").trim() + "." : null;
+    const lower = plan.toLowerCase();
+    // Find the earliest marker position
+    let earliest = -1;
+    for (const m of markers) {
+      const idx = lower.indexOf(m);
+      if (idx !== -1 && (earliest === -1 || idx < earliest)) earliest = idx;
+    }
+    if (earliest === -1) return { indicaciones: plan, nextStep: null };
+    // Walk back to find sentence boundary (period, newline, or start)
+    let splitAt = earliest;
+    for (let i = earliest - 1; i >= 0; i--) {
+      if (plan[i] === "." || plan[i] === "\n") { splitAt = i + 1; break; }
+      if (i === 0) splitAt = 0;
+    }
+    const before = plan.slice(0, splitAt).replace(/[.\s]+$/, "").trim();
+    const after = plan.slice(splitAt).replace(/^[.\s]+/, "").trim();
+    return {
+      indicaciones: before || null,
+      nextStep: after ? after.replace(/\.+$/, "").trim() + "." : null,
+    };
   }, [summary?.plan]);
 
   return (
@@ -860,8 +870,8 @@ function EncounterRow({ encounter }: { encounter: Encounter }) {
             <Chip color="neutral">{encounter.encounter_type_display}</Chip>
           </div>
           <p className="text-[11px] text-ink3 mb-1.5">{formatDate(encounter.scheduled_at.split("T")[0])}</p>
-          {!expanded && summary?.plan && (
-            <p className="text-[12px] text-ink2 line-clamp-2">{summary.plan}</p>
+          {!expanded && (indicaciones || nextStep) && (
+            <p className="text-[12px] text-ink2 line-clamp-2">{indicaciones || nextStep}</p>
           )}
         </div>
 
@@ -887,10 +897,10 @@ function EncounterRow({ encounter }: { encounter: Encounter }) {
               <p className="text-[12.5px] text-ink leading-relaxed">{summary.reason}</p>
             </div>
           )}
-          {summary.plan && (
+          {indicaciones && (
             <div>
-              <p className="text-[10px] uppercase tracking-wider font-bold text-ink3 mb-0.5">Plan / Indicaciones</p>
-              <p className="text-[12.5px] text-ink leading-relaxed">{summary.plan}</p>
+              <p className="text-[10px] uppercase tracking-wider font-bold text-ink3 mb-0.5">Indicaciones</p>
+              <p className="text-[12.5px] text-ink leading-relaxed">{indicaciones}</p>
             </div>
           )}
           {nextStep && (
@@ -1074,7 +1084,7 @@ function ChildDetailView({ patient, childIndex, onUnlink, initialTab }: ChildDet
   });
 
   const pendingVaccines = useMemo(
-    () => vaccinesData?.filter((v) => v.status !== "done").length,
+    () => vaccinesData?.filter((v) => !v.administered_at).length,
     [vaccinesData]
   );
 

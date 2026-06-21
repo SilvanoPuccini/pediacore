@@ -54,6 +54,30 @@ class LocationSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class LocationAdminSerializer(serializers.ModelSerializer):
+    """Admin serializer — allows toggling is_active via PATCH."""
+
+    class Meta:
+        model = Location
+        fields = [
+            "id",
+            "name",
+            "slug",
+            "address",
+            "city",
+            "region",
+            "phone",
+            "email",
+            "display_hours",
+            "latitude",
+            "longitude",
+            "is_active",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "slug", "created_at", "updated_at"]
+
+
 class ServiceSerializer(serializers.ModelSerializer):
     """Read-only serializer for public service listing. Includes location names."""
 
