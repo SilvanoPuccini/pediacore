@@ -179,6 +179,18 @@ export interface PatientCreate {
   practice: number;
 }
 
+export interface CoResponsibleInfo {
+  id: number;
+  name: string;
+  relationship: string;
+  relationship_display: string;
+  rut: string;
+  phone: string;
+  email: string;
+  can_book: boolean;
+  can_pickup: boolean;
+}
+
 export interface TutorPatientLink {
   id: number;
   tutor: number;
@@ -188,6 +200,7 @@ export interface TutorPatientLink {
   tutor_avatar_url?: string | null;
   relationship: string;
   is_primary: boolean;
+  co_responsibles: CoResponsibleInfo[];
   created_at: string;
 }
 

@@ -1978,6 +1978,47 @@ export default function PatientFicha() {
               ))}
               {patient.tutors.length === 0 && <p className="text-[12px] text-ink3 italic">Sin tutores registrados</p>}
             </div>
+
+            {/* Co-responsables */}
+            {patient.tutors.some((t) => t.co_responsibles?.length > 0) && (
+              <>
+                <h4 className="text-[13px] font-bold text-ink mt-5 mb-3">Co-responsables</h4>
+                <div className="space-y-2.5">
+                  {patient.tutors.flatMap((t) =>
+                    (t.co_responsibles ?? []).map((cr) => (
+                      <div key={cr.id} className="flex items-start gap-3 p-3 rounded-[12px] bg-bg">
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-lavender to-teal flex items-center justify-center text-white font-bold text-[13px] shrink-0 mt-0.5">
+                          {cr.name.charAt(0)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[13px] font-semibold text-ink">{cr.name}</div>
+                          <div className="text-[11px] text-ink3">
+                            {cr.relationship_display}
+                            {cr.can_book && " · Puede agendar"}
+                            {cr.can_pickup && " · Puede retirar"}
+                          </div>
+                          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+                            {cr.email && (
+                              <a href={`mailto:${cr.email}`} className="inline-flex items-center gap-1 text-[11px] text-ink2 hover:text-teal-dark transition">
+                                <Mail size={11} />{cr.email}
+                              </a>
+                            )}
+                            {cr.phone && (
+                              <a href={`tel:${cr.phone}`} className="inline-flex items-center gap-1 text-[11px] text-ink2 hover:text-teal-dark transition">
+                                <Phone size={11} />{cr.phone}
+                              </a>
+                            )}
+                            {cr.rut && (
+                              <span className="text-[11px] text-ink3">RUT: {cr.rut}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
