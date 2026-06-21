@@ -18,7 +18,6 @@ import { useAuthStore } from "@/stores/auth";
 import type {
   Location,
   Service,
-  PaginatedResponse,
   NotificationPreference,
 } from "@/types/api";
 
@@ -168,20 +167,20 @@ export default function ConfigPage() {
   };
 
   // ── API queries ──
-  const locationsQ = useQuery<PaginatedResponse<Location>>({
+  const locationsQ = useQuery<Location[]>({
     queryKey: ["locations"],
     queryFn: async () => {
-      const { data } = await api.get<PaginatedResponse<Location>>("/practices/dra-estefi/locations/");
-      return data;
+      const { data } = await api.get<{ results: Location[] }>("/practices/dra-estefi/locations/");
+      return data.results;
     },
     staleTime: 1000 * 60 * 60,
   });
 
-  const servicesQ = useQuery<PaginatedResponse<Service>>({
+  const servicesQ = useQuery<Service[]>({
     queryKey: ["services"],
     queryFn: async () => {
-      const { data } = await api.get<PaginatedResponse<Service>>("/practices/dra-estefi/services/");
-      return data;
+      const { data } = await api.get<{ results: Service[] }>("/practices/dra-estefi/services/");
+      return data.results;
     },
     staleTime: 1000 * 60 * 60,
   });
@@ -195,8 +194,8 @@ export default function ConfigPage() {
     staleTime: 1000 * 60 * 5,
   });
 
-  const locations = locationsQ.data?.results ?? [];
-  const services = servicesQ.data?.results ?? [];
+  const locations = locationsQ.data ?? [];
+  const services = servicesQ.data ?? [];
   const notifPrefs = notifPrefsQ.data;
 
   const isLoading = locationsQ.isLoading || servicesQ.isLoading;
@@ -274,14 +273,26 @@ export default function ConfigPage() {
   const handleExport = async () => {
     try {
       const response = await api.get("/profile/export-pdf/", { responseType: "blob" });
-      const url = URL.createObjectURL(response.data as Blob);
+      const blob = response.data as Blob;
+      if (blob.type && !blob.type.includes("pdf")) {
+        const text = await blob.text();
+        flash(text || "El servidor no devolvió un PDF", true);
+        return;
+      }
+      const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "pediacore-export.pdf";
+      a.download = "consultorio-resumen.pdf";
       a.click();
       URL.revokeObjectURL(url);
-    } catch {
-      flash("Error al generar la exportación", true);
+    } catch (err: unknown) {
+      const axErr = err as { response?: { data?: Blob } };
+      if (axErr.response?.data instanceof Blob) {
+        const text = await axErr.response.data.text();
+        flash(text || "Error al generar el PDF", true);
+      } else {
+        flash("Error al generar la exportación", true);
+      }
     }
   };
 

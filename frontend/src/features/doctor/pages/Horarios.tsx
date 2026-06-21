@@ -13,7 +13,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import api from "@/lib/api";
-import type { WorkingHours, Location, PaginatedResponse } from "@/types/api";
+import type { WorkingHours, Location } from "@/types/api";
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
@@ -139,16 +139,16 @@ export default function HorariosPage() {
     staleTime: 1000 * 60 * 10,
   });
 
-  const locationsQ = useQuery<PaginatedResponse<Location>>({
+  const locationsQ = useQuery<Location[]>({
     queryKey: ["locations"],
     queryFn: async () => {
-      const { data } = await api.get<PaginatedResponse<Location>>("/practices/dra-estefi/locations/");
-      return data;
+      const { data } = await api.get<{ results: Location[] }>("/practices/dra-estefi/locations/");
+      return data.results;
     },
     staleTime: 1000 * 60 * 60,
   });
 
-  const locations = locationsQ.data?.results ?? [];
+  const locations = locationsQ.data ?? [];
   const hours = hoursQ.data ?? [];
   const isLoading = hoursQ.isLoading || locationsQ.isLoading;
   const isError = hoursQ.isError || locationsQ.isError;
