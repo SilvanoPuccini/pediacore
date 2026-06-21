@@ -17,6 +17,7 @@ import api from "@/lib/api";
 import { useAuthStore } from "@/stores/auth";
 import { cn } from "@/lib/utils";
 import { Card, Btn, Chip } from "@/features/tutor/components/portal-ui";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import NotificationPreferencesSection from "@/features/tutor/components/NotificationPreferencesSection";
 import CoResponsiblesSection from "@/features/tutor/components/CoResponsiblesSection";
 import SecuritySection from "@/features/tutor/components/SecuritySection";
@@ -422,38 +423,16 @@ export default function MyProfile() {
         />
       </div>
 
-      {/* ── Logout confirmation modal ── */}
-      {showLogoutConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-[16px] shadow-xl p-6 w-full max-w-[380px] mx-4 text-center">
-            <div className="w-12 h-12 rounded-full bg-coral/10 flex items-center justify-center mx-auto mb-4">
-              <LogOut size={22} className="text-[#B5604F]" />
-            </div>
-            <h3 className="font-display text-[18px] font-bold text-ink mb-1">
-              ¿Cerrar sesión?
-            </h3>
-            <p className="text-[13px] text-ink2 mb-5">
-              Vas a necesitar iniciar sesión de nuevo para acceder a tu portal.
-            </p>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setShowLogoutConfirm(false)}
-                className="flex-1 px-4 py-2.5 rounded-[10px] border border-line text-[13px] font-semibold text-ink hover:bg-cream transition"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={() => logout()}
-                className="flex-1 px-4 py-2.5 rounded-[10px] bg-[#B5604F] text-white text-[13px] font-semibold hover:bg-[#A04D3D] transition"
-              >
-                Cerrar sesión
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ── Logout confirmation ── */}
+      <ConfirmDialog
+        open={showLogoutConfirm}
+        title="Cerrar sesión"
+        message="Vas a necesitar iniciar sesión de nuevo para acceder a tu portal."
+        confirmLabel="Cerrar sesión"
+        variant="danger"
+        onConfirm={() => logout()}
+        onCancel={() => setShowLogoutConfirm(false)}
+      />
     </div>
   );
 }
