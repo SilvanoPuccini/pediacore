@@ -17,6 +17,28 @@ User = get_user_model()
 # ---------------------------------------------------------------------------
 
 
+class CoResponsibleNestedSerializer(serializers.ModelSerializer):
+    """Lightweight read-only serializer for co-responsibles nested inside tutor data."""
+
+    relationship_display = serializers.CharField(
+        source="get_relationship_display", read_only=True
+    )
+
+    class Meta:
+        model = CoResponsible
+        fields = [
+            "id",
+            "name",
+            "relationship",
+            "relationship_display",
+            "rut",
+            "phone",
+            "email",
+            "can_book",
+            "can_pickup",
+        ]
+
+
 class TutorPatientSerializer(serializers.ModelSerializer):
     """Read serializer showing tutor info and relationship details."""
 
@@ -24,6 +46,7 @@ class TutorPatientSerializer(serializers.ModelSerializer):
     tutor_full_name = serializers.CharField(source="tutor.full_name", read_only=True)
     tutor_phone = serializers.CharField(source="tutor.phone", read_only=True, default="")
     tutor_avatar_url = serializers.SerializerMethodField()
+    co_responsibles = serializers.SerializerMethodField()
 
     def get_tutor_avatar_url(self, obj: TutorPatient) -> str | None:
         if obj.tutor and obj.tutor.avatar:
@@ -32,6 +55,10 @@ class TutorPatientSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(obj.tutor.avatar.url)
             return obj.tutor.avatar.url
         return None
+
+    def get_co_responsibles(self, obj: TutorPatient) -> list[dict]:
+        qs = CoResponsible.objects.filter(tutor=obj.tutor)
+        return CoResponsibleNestedSerializer(qs, many=True).data
 
     class Meta:
         model = TutorPatient
@@ -44,6 +71,7 @@ class TutorPatientSerializer(serializers.ModelSerializer):
             "tutor_avatar_url",
             "relationship",
             "is_primary",
+            "co_responsibles",
             "created_at",
         ]
         read_only_fields = ["id", "created_at"]
