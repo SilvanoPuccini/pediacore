@@ -133,7 +133,7 @@ export default function HorariosPage() {
   const hoursQ = useQuery<WorkingHours[]>({
     queryKey: ["working-hours"],
     queryFn: async () => {
-      const { data } = await api.get<PaginatedResponse<WorkingHours>>("/admin/working-hours/?page_size=200");
+      const { data } = await api.get<{ results: WorkingHours[] }>("/admin/working-hours/?page_size=200");
       return data.results;
     },
     staleTime: 1000 * 60 * 10,
