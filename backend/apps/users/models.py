@@ -106,3 +106,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     def is_email_verified(self) -> bool:
         """Return True if the user has verified their email address."""
         return self.email_verified_at is not None
+
+    @property
+    def practice(self):
+        """Return the first practice owned by this user (single-tenant shortcut)."""
+        return self.owned_practices.first()
