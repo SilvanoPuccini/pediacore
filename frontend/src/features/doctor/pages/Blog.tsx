@@ -55,11 +55,10 @@ const EMPTY_FORM = {
   content: "",
   tags: "",
   meta_description: "",
-  cover_image: "",
   is_published: false,
 };
 
-type FormData = typeof EMPTY_FORM;
+type FormFields = typeof EMPTY_FORM;
 
 // ─── page ───────────────────────────────────────────────────────────────────────
 
@@ -74,7 +73,9 @@ export default function BlogPage() {
     updated_at?: string;
     published_at?: string;
   }>({});
-  const [form, setForm] = useState<FormData>(EMPTY_FORM);
+  const [form, setForm] = useState<FormFields>(EMPTY_FORM);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [contentTab, setContentTab] = useState<"write" | "preview">("write");
   const [toast, setToast] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
@@ -85,7 +86,7 @@ export default function BlogPage() {
     setTimeout(() => setToast(null), 2500);
   };
 
-  const set = <K extends keyof FormData>(field: K, value: FormData[K]) =>
+  const set = <K extends keyof FormFields>(field: K, value: FormFields[K]) =>
     setForm((f) => ({ ...f, [field]: value }));
 
   // ── queries ─────────────────────────────────────────────────────────────────
@@ -106,11 +107,12 @@ export default function BlogPage() {
   // ── mutations ───────────────────────────────────────────────────────────────
 
   const saveMutation = useMutation({
-    mutationFn: async (payload: Record<string, unknown>) => {
+    mutationFn: async (payload: FormData) => {
+      const headers = { "Content-Type": "multipart/form-data" };
       if (mode === "edit" && editId) {
-        return api.patch(`/admin/blog/${editId}/`, payload);
+        return api.patch(`/admin/blog/${editId}/`, payload, { headers });
       }
-      return api.post("/admin/blog/", payload);
+      return api.post("/admin/blog/", payload, { headers });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["blog-posts-admin"] });
@@ -160,6 +162,8 @@ export default function BlogPage() {
 
   function openCreate() {
     setForm(EMPTY_FORM);
+    setCoverFile(null);
+    setCoverPreview(null);
     setEditId(null);
     setEditMeta({});
     setContentTab("write");
@@ -173,9 +177,10 @@ export default function BlogPage() {
       content: post.content,
       tags: post.tags,
       meta_description: post.meta_description,
-      cover_image: post.cover_image ?? "",
       is_published: post.is_published,
     });
+    setCoverFile(null);
+    setCoverPreview(post.cover_image || null);
     setEditMeta({
       slug: post.slug,
       post_number: post.post_number,
@@ -193,6 +198,17 @@ export default function BlogPage() {
     setMode("list");
     setEditId(null);
     setEditMeta({});
+    setCoverFile(null);
+    setCoverPreview(null);
+  }
+
+  function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) {
+      setCoverFile(file);
+      setCoverPreview(URL.createObjectURL(file));
+    }
+    e.target.value = "";
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -201,16 +217,17 @@ export default function BlogPage() {
       flash("El título es obligatorio");
       return;
     }
-    const payload: Record<string, unknown> = {
-      title: form.title,
-      excerpt: form.excerpt,
-      content: form.content,
-      tags: form.tags,
-      meta_description: form.meta_description,
-      cover_image: form.cover_image || null,
-      is_published: form.is_published,
-    };
-    saveMutation.mutate(payload);
+    const fd = new FormData();
+    fd.append("title", form.title);
+    fd.append("excerpt", form.excerpt);
+    fd.append("content", form.content);
+    fd.append("tags", form.tags);
+    fd.append("meta_description", form.meta_description);
+    fd.append("is_published", String(form.is_published));
+    if (coverFile) {
+      fd.append("cover_image", coverFile);
+    }
+    saveMutation.mutate(fd);
   }
 
   const isContentHtml = form.content.includes("<p>") || form.content.includes("<h");
@@ -365,19 +382,19 @@ export default function BlogPage() {
             {/* Cover image */}
             <div>
               <label className="block text-[12px] font-semibold text-ink2 mb-1.5">
-                Imagen de portada (URL)
+                Imagen de portada
               </label>
               <input
-                value={form.cover_image}
-                onChange={(e) => set("cover_image", e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-[10px] border border-line bg-bg text-[13.5px] text-ink placeholder:text-ink3 focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal transition-colors"
-                placeholder="https://example.com/image.jpg"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handleCoverChange}
+                className="w-full text-[13px] text-ink file:mr-3 file:px-3.5 file:py-2 file:rounded-[10px] file:border file:border-line file:bg-bg file:text-[12px] file:font-semibold file:text-ink2 hover:file:bg-line/40 file:transition file:cursor-pointer"
               />
-              {form.cover_image && (
+              {coverPreview && (
                 <div className="mt-3 rounded-[10px] overflow-hidden border border-line bg-bg max-w-[300px]">
                   <img
-                    src={form.cover_image}
-                    alt="Preview"
+                    src={coverPreview}
+                    alt="Vista previa"
                     className="w-full h-auto object-cover"
                     onError={(e) => {
                       (e.target as HTMLImageElement).style.display = "none";
