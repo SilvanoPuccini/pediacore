@@ -327,7 +327,7 @@ class WaitlistEntrySerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "patient_name", "service_name", "location_name", "status_display", "notified_at"]
+        read_only_fields = ["id", "practice", "patient_name", "service_name", "location_name", "status", "status_display", "notified_at", "created_at", "updated_at"]
 
     def get_patient_name(self, obj: WaitlistEntry) -> str:
         return obj.patient.full_name

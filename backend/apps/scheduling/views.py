@@ -402,9 +402,11 @@ class AvailableSlotsView(APIView):
 class WaitlistViewSet(viewsets.ModelViewSet):
     serializer_class = WaitlistEntrySerializer
     pagination_class = StandardPagination
-    http_method_names = ["get", "post", "delete", "head", "options"]
+    http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
     def get_permissions(self):
+        if self.action in ("offer_slot", "destroy", "partial_update"):
+            return [IsDoctor()]
         return [IsAuthenticated()]
 
     def get_queryset(self):
@@ -419,7 +421,69 @@ class WaitlistViewSet(viewsets.ModelViewSet):
         elif user.role != User.DOCTOR:
             qs = qs.none()
 
+        status_param = self.request.query_params.get("status")
+        if status_param:
+            statuses = [s.strip() for s in status_param.split(",")]
+            qs = qs.filter(status__in=statuses)
+
         return qs
+
+    def perform_create(self, serializer) -> None:
+        from apps.practice.models import Practice
+
+        user = self.request.user
+        if user.role == User.DOCTOR:
+            practice = Practice.objects.filter(owner=user).first() or Practice.objects.filter(is_active=True).first()
+        else:
+            practice = Practice.objects.filter(is_active=True).first()
+        serializer.save(practice=practice, status=WaitlistEntry.WAITING)
+
+    def perform_destroy(self, instance) -> None:
+        """Soft-delete: set status to CANCELLED instead of hard delete."""
+        instance.status = WaitlistEntry.CANCELLED
+        instance.save(update_fields=["status", "updated_at"])
+
+    @action(detail=True, methods=["post"], permission_classes=[IsDoctor], url_path="offer-slot")
+    def offer_slot(self, request: Request, pk=None) -> Response:
+        """
+        POST /api/v1/waitlist/{id}/offer-slot/
+
+        Doctor offers an available slot to a waitlist entry.
+        Changes status to NOTIFIED and sends in-app notification to tutors.
+        """
+        entry = self.get_object()
+
+        if entry.status != WaitlistEntry.WAITING:
+            return Response(
+                {"detail": "Only entries with WAITING status can be offered a slot."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        entry.status = WaitlistEntry.NOTIFIED
+        entry.notified_at = timezone.now()
+        entry.save(update_fields=["status", "notified_at", "updated_at"])
+
+        # Notify every tutor linked to the patient
+        from apps.notifications.models import Notification
+        from apps.patients.models import TutorPatient
+
+        tutors_qs = TutorPatient.objects.filter(patient=entry.patient).select_related("tutor")
+        for link in tutors_qs:
+            Notification.objects.create(
+                practice=entry.practice,
+                recipient=link.tutor,
+                notification_type=Notification.WAITLIST_AVAILABLE,
+                title="Turno disponible",
+                message=(
+                    f"La doctora te ofrece un turno para {entry.patient.full_name} "
+                    f"— {entry.service.name}. Ingresá al sistema para reservarlo."
+                ),
+                related_type="WaitlistEntry",
+                related_id=entry.pk,
+            )
+
+        serializer = self.get_serializer(entry)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class CancellationPolicyView(APIView):
