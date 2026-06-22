@@ -12,10 +12,19 @@ import {
   Trash2,
   Check,
   X,
+  CircleUser,
+  MessageCircle,
 } from "lucide-react";
 import api from "@/lib/api";
 import { useSedeStore } from "../stores/useSedeStore";
-import type { WaitlistEntry, PaginatedResponse, Patient, Service, Location } from "@/types/api";
+import type {
+  WaitlistEntry,
+  PaginatedResponse,
+  Patient,
+  Service,
+  Location,
+  AvailableSlot,
+} from "@/types/api";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -35,6 +44,24 @@ function esperaAvatar(name: string): { fg: string; bg: string } {
   ];
   const [fg, bg] = palettes[name.charCodeAt(0) % palettes.length];
   return { fg, bg };
+}
+
+function isoDatePlus(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+function formatSlotLabel(date: string, time: string): string {
+  const today = new Date().toISOString().slice(0, 10);
+  const tomorrow = isoDatePlus(1);
+  const d = new Date(date + "T00:00:00");
+  const hhmm = time.slice(0, 5);
+  if (date === today) return `Hoy · ${hhmm}`;
+  if (date === tomorrow) return `Mañana · ${hhmm}`;
+  const days = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+  const months = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+  return `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]} · ${hhmm}`;
 }
 
 // ─── maps ─────────────────────────────────────────────────────────────────────
@@ -57,23 +84,33 @@ const PRIO_META: Record<PrioKey, { label: string; bg: string; text: string; dot:
 
 interface EnrichedEntry {
   id: number;
+  patient_id: number;
+  service_id: number;
+  location_id: number | null;
   name: string;
   motivo: string;
   sede: string;
   prioridad: PrioKey;
   dias: number;
   pref: string;
+  notes: string;
+  preferred_date_start: string;
 }
 
-function enrich(e: WaitlistEntry): EnrichedEntry {
+function enrich(e: WaitlistEntry & { patient?: number; service?: number; location?: number | null; preferred_date_start?: string }): EnrichedEntry {
   return {
     id: e.id,
+    patient_id: e.patient ?? 0,
+    service_id: e.service ?? 0,
+    location_id: e.location ?? null,
     name: e.patient_name,
     motivo: e.service_name,
-    sede: e.location_name || "Pucón",
+    sede: e.location_name || "Online",
     prioridad: PRIORITY_MAP[e.priority] ?? "media",
     dias: waitDays(e.created_at),
     pref: e.notes?.toLowerCase().includes("tarde") ? "Tarde" : "Mañana",
+    notes: e.notes ?? "",
+    preferred_date_start: e.preferred_date_start ?? new Date().toISOString().slice(0, 10),
   };
 }
 
@@ -153,11 +190,10 @@ function EsperaSeg({ label, options, value, onChange }: EsperaSegProps) {
 interface AddFormState {
   patient: string;
   service: string;
-  location: string;
+  location: string; // "" = Online (null)
+  horario: string;  // "Mañana" | "Tarde" — stored in notes
   priority: "HIGH" | "NORMAL" | "LOW";
   preferred_date_start: string;
-  preferred_time_start: string;
-  preferred_time_end: string;
   notes: string;
 }
 
@@ -172,26 +208,25 @@ function AgregarEsperaForm({ onClose, onSuccess }: AddFormProps) {
     patient: "",
     service: "",
     location: "",
+    horario: "Mañana",
     priority: "NORMAL",
     preferred_date_start: "",
-    preferred_time_start: "",
-    preferred_time_end: "",
     notes: "",
   });
 
-  const set = (k: keyof AddFormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
-    setForm((s) => ({ ...s, [k]: e.target.value }));
+  const set =
+    (k: keyof AddFormState) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
+      setForm((s) => ({ ...s, [k]: e.target.value }));
   const setV = (k: keyof AddFormState, v: string) =>
     setForm((s) => ({ ...s, [k]: v }));
 
-  // Escape to close
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   }, [onClose]);
 
-  // Select data queries
   const { data: patientsData } = useQuery<PaginatedResponse<Patient>>({
     queryKey: ["patients-select"],
     queryFn: async () => {
@@ -221,16 +256,21 @@ function AgregarEsperaForm({ onClose, onSuccess }: AddFormProps) {
 
   const mutation = useMutation({
     mutationFn: async () => {
+      const notesWithPref = [
+        form.horario === "Tarde" ? "tarde" : "mañana",
+        form.notes,
+      ]
+        .filter(Boolean)
+        .join(". ");
+
       const payload: Record<string, unknown> = {
         patient: Number(form.patient),
         service: Number(form.service),
         location: form.location ? Number(form.location) : null,
         priority: form.priority,
         preferred_date_start: form.preferred_date_start,
-        notes: form.notes,
+        notes: notesWithPref,
       };
-      if (form.preferred_time_start) payload.preferred_time_start = form.preferred_time_start;
-      if (form.preferred_time_end) payload.preferred_time_end = form.preferred_time_end;
       const { data } = await api.post<WaitlistEntry>("/waitlist/", payload);
       return data;
     },
@@ -242,6 +282,14 @@ function AgregarEsperaForm({ onClose, onSuccess }: AddFormProps) {
   });
 
   const canSave = Boolean(form.patient && form.service && form.preferred_date_start);
+
+  // Build location options for segmented control from real data + "Online"
+  const locationOptions: SegOption[] = [
+    ...(Array.isArray(locationsData)
+      ? locationsData.map((l) => ({ v: String(l.id), label: l.name }))
+      : []),
+    { v: "", label: "Online" },
+  ];
 
   return (
     <div className="fixed inset-0 z-[60] flex justify-end">
@@ -279,54 +327,59 @@ function AgregarEsperaForm({ onClose, onSuccess }: AddFormProps) {
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
-          {/* Patient */}
-          <div>
-            <label className="text-[11.5px] font-semibold text-ink2">Paciente *</label>
-            <select value={form.patient} onChange={set("patient")} className={`mt-1.5 ${inputCls}`}>
-              <option value="">Seleccionar paciente…</option>
-              {patientsData?.results.map((p) => (
-                <option key={p.id} value={p.id}>{p.full_name}</option>
-              ))}
-            </select>
+          <div className="grid grid-cols-2 gap-3">
+            {/* Patient — col-span-2 */}
+            <div className="col-span-2">
+              <label className="text-[11.5px] font-semibold text-ink2">Paciente *</label>
+              <select value={form.patient} onChange={set("patient")} className={`mt-1.5 ${inputCls}`}>
+                <option value="">Seleccionar paciente…</option>
+                {patientsData?.results.map((p) => (
+                  <option key={p.id} value={p.id}>{p.full_name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Service — col-span-2 */}
+            <div className="col-span-2">
+              <label className="text-[11.5px] font-semibold text-ink2">Tipo de consulta *</label>
+              <select value={form.service} onChange={set("service")} className={`mt-1.5 ${inputCls}`}>
+                <option value="">Seleccionar servicio…</option>
+                {Array.isArray(servicesData)
+                  ? servicesData.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))
+                  : null}
+              </select>
+            </div>
           </div>
 
-          {/* Service */}
-          <div>
-            <label className="text-[11.5px] font-semibold text-ink2">Tipo de consulta *</label>
-            <select value={form.service} onChange={set("service")} className={`mt-1.5 ${inputCls}`}>
-              <option value="">Seleccionar servicio…</option>
-              {Array.isArray(servicesData)
-                ? servicesData.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))
-                : null}
-            </select>
-          </div>
-
-          {/* Location */}
-          <div>
-            <label className="text-[11.5px] font-semibold text-ink2">Sede preferida</label>
-            <select value={form.location} onChange={set("location")} className={`mt-1.5 ${inputCls}`}>
-              <option value="">Sin preferencia</option>
-              {Array.isArray(locationsData)
-                ? locationsData.map((l) => (
-                    <option key={l.id} value={l.id}>{l.name}</option>
-                  ))
-                : null}
-            </select>
-          </div>
-
-          {/* Priority */}
+          {/* Sede — segmented with real locations + Online */}
           <EsperaSeg
-            label="Prioridad"
-            value={form.priority}
-            onChange={(v) => setV("priority", v)}
-            options={[
-              { v: "HIGH", label: "Alta" },
-              { v: "NORMAL", label: "Normal" },
-              { v: "LOW", label: "Baja" },
-            ]}
+            label="Sede preferida"
+            value={form.location}
+            onChange={(v) => setV("location", v)}
+            options={locationOptions}
           />
+
+          {/* Horario + Prioridad — 2-col grid */}
+          <div className="grid grid-cols-2 gap-3">
+            <EsperaSeg
+              label="Horario"
+              value={form.horario}
+              onChange={(v) => setV("horario", v)}
+              options={["Mañana", "Tarde"]}
+            />
+            <EsperaSeg
+              label="Prioridad"
+              value={form.priority}
+              onChange={(v) => setV("priority", v)}
+              options={[
+                { v: "HIGH", label: "Alta" },
+                { v: "NORMAL", label: "Media" },
+                { v: "LOW", label: "Baja" },
+              ]}
+            />
+          </div>
 
           {/* Preferred date */}
           <div>
@@ -337,28 +390,6 @@ function AgregarEsperaForm({ onClose, onSuccess }: AddFormProps) {
               onChange={set("preferred_date_start")}
               className={`mt-1.5 ${inputCls}`}
             />
-          </div>
-
-          {/* Optional time window */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-[11.5px] font-semibold text-ink2">Desde (opcional)</label>
-              <input
-                type="time"
-                value={form.preferred_time_start}
-                onChange={set("preferred_time_start")}
-                className={`mt-1.5 ${inputCls}`}
-              />
-            </div>
-            <div>
-              <label className="text-[11.5px] font-semibold text-ink2">Hasta (opcional)</label>
-              <input
-                type="time"
-                value={form.preferred_time_end}
-                onChange={set("preferred_time_end")}
-                className={`mt-1.5 ${inputCls}`}
-              />
-            </div>
           </div>
 
           {/* Notes */}
@@ -409,6 +440,277 @@ function AgregarEsperaForm({ onClose, onSuccess }: AddFormProps) {
   );
 }
 
+// ─── offer-slot panel ─────────────────────────────────────────────────────────
+
+interface SlotItem {
+  date: string;
+  start_time: string;
+  label: string;
+}
+
+type OfferChannel = "EMAIL" | "WHATSAPP" | "PHONE";
+
+interface OfrecerTurnoPanelProps {
+  entry: EnrichedEntry;
+  onClose: () => void;
+  onSuccess: (name: string) => void;
+}
+
+function OfrecerTurnoPanel({ entry, onClose, onSuccess }: OfrecerTurnoPanelProps) {
+  const queryClient = useQueryClient();
+  const [selectedSlot, setSelectedSlot] = useState<SlotItem | null>(null);
+  const [canal, setCanal] = useState<OfferChannel>("EMAIL");
+
+  const av = esperaAvatar(entry.name);
+  const pm = PRIO_META[entry.prioridad];
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  // Fetch slots for today + next 3 days
+  const dates = [0, 1, 2, 3].map(isoDatePlus);
+
+  const slotQueries = useQuery<SlotItem[]>({
+    queryKey: ["offer-slots", entry.service_id, entry.location_id, dates[0]],
+    queryFn: async () => {
+      const results: SlotItem[] = [];
+      for (const date of dates) {
+        const params = new URLSearchParams({
+          service: String(entry.service_id),
+          date,
+        });
+        if (entry.location_id) params.set("location", String(entry.location_id));
+        try {
+          const { data } = await api.get<AvailableSlot[]>(
+            `/available-slots/?${params.toString()}`
+          );
+          for (const slot of data) {
+            if (slot.available) {
+              results.push({
+                date,
+                start_time: slot.start_time,
+                label: formatSlotLabel(date, slot.start_time),
+              });
+            }
+          }
+        } catch {
+          // skip days that error
+        }
+      }
+      return results;
+    },
+    staleTime: 1000 * 60 * 2,
+  });
+
+  const slots = slotQueries.data ?? [];
+
+  // Auto-select first slot when data arrives
+  useEffect(() => {
+    if (slots.length > 0 && !selectedSlot) {
+      setSelectedSlot(slots[0]);
+    }
+  }, [slots, selectedSlot]);
+
+  const offerMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedSlot) throw new Error("No slot selected");
+      await api.post(`/waitlist/${entry.id}/offer-slot/`, {
+        scheduled_date: selectedSlot.date,
+        start_time: selectedSlot.start_time,
+        channel: canal,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["waitlist"] });
+      onSuccess(entry.name);
+    },
+  });
+
+  const channelOptions: SegOption[] = [
+    { v: "EMAIL", label: "Email" },
+    { v: "WHATSAPP", label: "WhatsApp" },
+    { v: "PHONE", label: "Llamada" },
+  ];
+
+  const firstName = entry.name.split(" ")[0];
+
+  return (
+    <div className="fixed inset-0 z-[60] flex justify-end">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-ink/25 backdrop-blur-sm"
+        onClick={onClose}
+        style={{ animation: "consultaFade 180ms ease-out" }}
+      />
+
+      {/* Panel */}
+      <div
+        className="relative h-full w-full max-w-[440px] bg-bg shadow-pop flex flex-col"
+        style={{ animation: "consultaIn 280ms cubic-bezier(0.22,1,0.36,1)" }}
+      >
+        {/* Header */}
+        <div className="shrink-0 bg-surface border-b border-line px-6 py-4 flex items-start justify-between gap-3">
+          <div>
+            <div className="text-[11px] uppercase tracking-[0.12em] font-bold text-teal-dark">
+              Ofrecer turno
+            </div>
+            <h3 className="text-[17px] font-bold text-ink leading-tight mt-1">Avisar a la familia</h3>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-9 h-9 rounded-[10px] bg-bg border border-line flex items-center justify-center text-ink2 hover:bg-line/50 transition shrink-0"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+          {/* Patient info card */}
+          <div className="flex items-center gap-3 p-3.5 rounded-[12px] bg-surface border border-line">
+            <div
+              className="w-11 h-11 rounded-full flex items-center justify-center text-[15px] font-bold shrink-0"
+              style={{ background: av.bg, color: av.fg }}
+            >
+              {entry.name.charAt(0)}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[14px] font-bold text-ink">{entry.name}</div>
+              <div className="text-[12px] text-ink2">{entry.motivo}</div>
+              <div className="mt-1 flex items-center gap-2 flex-wrap text-[11px] text-ink3">
+                <span className="inline-flex items-center gap-1">
+                  <CircleUser size={10} />
+                  {entry.sede}
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <MapPin size={10} />
+                  {entry.sede}
+                </span>
+                <span
+                  className="inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded-full text-[10.5px] font-semibold"
+                  style={{ background: pm.bg, color: pm.text }}
+                >
+                  {pm.label}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Slot selector */}
+          <div>
+            <label className="text-[11.5px] font-semibold text-ink2">Cupo disponible</label>
+            {slotQueries.isLoading ? (
+              <div className="mt-2 flex items-center gap-2 text-[12px] text-ink3">
+                <span className="w-3.5 h-3.5 rounded-full border-2 border-line border-t-teal animate-spin" />
+                Buscando cupos disponibles…
+              </div>
+            ) : slots.length === 0 ? (
+              <div className="mt-2 px-3 py-2.5 rounded-[10px] bg-bg border border-line text-[12px] text-ink3">
+                No hay cupos disponibles en los próximos días.
+              </div>
+            ) : (
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {slots.map((s) => {
+                  const isSelected =
+                    selectedSlot?.date === s.date && selectedSlot?.start_time === s.start_time;
+                  return (
+                    <button
+                      key={`${s.date}-${s.start_time}`}
+                      type="button"
+                      onClick={() => setSelectedSlot(s)}
+                      className={`px-3 py-2.5 rounded-[10px] border text-[12.5px] font-semibold transition text-left ${
+                        isSelected
+                          ? "bg-teal/15 border-teal text-teal-dark"
+                          : "bg-surface border-line text-ink2 hover:bg-bg"
+                      }`}
+                    >
+                      <Clock size={12} className="inline mr-1.5 -mt-0.5" />
+                      {s.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Channel selector */}
+          <EsperaSeg
+            label="Avisar por"
+            value={canal}
+            onChange={(v) => setCanal(v as OfferChannel)}
+            options={channelOptions}
+          />
+
+          {/* Message preview */}
+          {canal === "EMAIL" && selectedSlot && (
+            <div className="p-3.5 rounded-[12px] bg-[#3E8E7C]/[0.08] border border-[#3E8E7C]/20">
+              <div className="text-[11px] font-semibold text-[#3E8E7C] mb-1.5 flex items-center gap-1.5">
+                <MessageCircle size={12} />
+                Mensaje a la familia de {firstName}
+              </div>
+              <p className="text-[12px] text-ink2 leading-relaxed">
+                Hola, le informamos que se liberó un cupo con la Dra. Estefanía para{" "}
+                <span className="font-semibold text-ink">{entry.name}</span>:{" "}
+                <span className="font-semibold text-ink">{selectedSlot.label}</span> en{" "}
+                {entry.sede}. Por favor confirmanos si pueden asistir.
+              </p>
+            </div>
+          )}
+
+          {canal === "WHATSAPP" && selectedSlot && (
+            <div className="p-3.5 rounded-[12px] bg-[#3E8E7C]/[0.08] border border-[#3E8E7C]/20">
+              <div className="text-[11px] font-semibold text-[#3E8E7C] mb-1.5 flex items-center gap-1.5">
+                <MessageCircle size={12} />
+                Mensaje WhatsApp para la familia
+              </div>
+              <p className="text-[12px] text-ink2 leading-relaxed">
+                Hola! 👋 Se liberó un cupo con la Dra. Estefi para {firstName}:{" "}
+                <span className="font-semibold text-ink">{selectedSlot.label}</span> en{" "}
+                {entry.sede}. ¿Lo confirmamos?
+              </p>
+            </div>
+          )}
+
+          {/* Error */}
+          {offerMutation.isError && (
+            <div className="px-3 py-2.5 rounded-[10px] bg-err/10 border border-err/30 text-[12.5px] text-[#A85050]">
+              Error al ofrecer el turno. Intentá de nuevo.
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="shrink-0 bg-surface border-t border-line px-6 py-3.5 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2.5 rounded-[10px] text-[12.5px] font-semibold text-ink2 hover:bg-bg transition"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            disabled={!selectedSlot || offerMutation.isPending}
+            onClick={() => offerMutation.mutate()}
+            className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-[10px] bg-teal-dark text-white text-[12.5px] font-semibold hover:opacity-90 transition shadow-soft disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {offerMutation.isPending ? (
+              <span className="w-3.5 h-3.5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+            ) : (
+              <CalendarPlus size={15} />
+            )}
+            Ofrecer y avisar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── confirm dialog ───────────────────────────────────────────────────────────
 
 interface ConfirmDialogProps {
@@ -428,7 +730,6 @@ function ConfirmDialog({
   onConfirm,
   isPending,
 }: ConfirmDialogProps) {
-  // Escape to cancel
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onCancel(); };
     document.addEventListener("keydown", handler);
@@ -476,13 +777,13 @@ export default function WaitlistPage() {
   const [toast, setToast] = useState<string | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // slide-over form
+  // slide-over: add form
   const [addOpen, setAddOpen] = useState(false);
 
-  // offer-slot confirm
+  // slide-over: offer-slot panel
   const [offerTarget, setOfferTarget] = useState<EnrichedEntry | null>(null);
 
-  // delete confirm
+  // confirm dialog: delete
   const [deleteTarget, setDeleteTarget] = useState<EnrichedEntry | null>(null);
 
   // sync sede store → local filter
@@ -510,21 +811,6 @@ export default function WaitlistPage() {
     staleTime: 1000 * 60 * 2,
   });
 
-  // ── offer-slot mutation ─────────────────────────────────────────────────────
-
-  const offerMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const { data } = await api.post<WaitlistEntry>(`/waitlist/${id}/offer-slot/`);
-      return data;
-    },
-    onSuccess: (_data, _id) => {
-      queryClient.invalidateQueries({ queryKey: ["waitlist"] });
-      const name = offerTarget?.name ?? "Paciente";
-      setOfferTarget(null);
-      flash(`Turno ofrecido a ${name}`);
-    },
-  });
-
   // ── delete mutation ─────────────────────────────────────────────────────────
 
   const deleteMutation = useMutation({
@@ -540,7 +826,9 @@ export default function WaitlistPage() {
 
   // ── derived data ────────────────────────────────────────────────────────────
 
-  const enriched = (data?.results ?? []).map(enrich);
+  const enriched = (data?.results ?? []).map((e) =>
+    enrich(e as WaitlistEntry & { patient?: number; service?: number; location?: number | null; preferred_date_start?: string })
+  );
 
   const shown = enriched.filter((e) => {
     if (sedeFilter !== "Todas" && e.sede !== sedeFilter) return false;
@@ -753,19 +1041,19 @@ export default function WaitlistPage() {
         />
       )}
 
-      {/* Offer-slot confirm */}
+      {/* Offer-slot slide-over panel */}
       {offerTarget && (
-        <ConfirmDialog
-          message={`¿Ofrecer un turno disponible a ${offerTarget.name}?`}
-          confirmLabel="Ofrecer turno"
-          confirmClass="bg-teal-dark text-white hover:opacity-90"
-          isPending={offerMutation.isPending}
-          onCancel={() => setOfferTarget(null)}
-          onConfirm={() => offerMutation.mutate(offerTarget.id)}
+        <OfrecerTurnoPanel
+          entry={offerTarget}
+          onClose={() => setOfferTarget(null)}
+          onSuccess={(name) => {
+            setOfferTarget(null);
+            flash(`Turno ofrecido a ${name}`);
+          }}
         />
       )}
 
-      {/* Delete confirm */}
+      {/* Delete confirm dialog */}
       {deleteTarget && (
         <ConfirmDialog
           message={`¿Quitar a ${deleteTarget.name} de la lista de espera?`}
