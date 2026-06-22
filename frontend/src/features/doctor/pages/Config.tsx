@@ -127,7 +127,6 @@ export default function ConfigPage() {
   const { user, logout, fetchProfile } = useAuthStore();
   const queryClient = useQueryClient();
   const [pane, setPane] = useState<PaneId>("perfil");
-  const [onlineEnabled, setOnlineEnabled] = useState(true);
   const [paymentMethods, setPaymentMethods] = useState({
     mercadopago: true,
     transfer: true,
@@ -167,6 +166,29 @@ export default function ConfigPage() {
     setToast({ msg, error });
     setTimeout(() => setToast(null), 2500);
   };
+
+  // ── Practice settings (online toggle) ──
+  const practiceSettingsQ = useQuery<{ id: number; is_online_enabled: boolean }>({
+    queryKey: ["practice-settings"],
+    queryFn: async () => {
+      const { data } = await api.get<{ id: number; is_online_enabled: boolean }>("/admin/practice-settings/");
+      return data;
+    },
+    staleTime: 1000 * 60 * 10,
+  });
+
+  const onlineEnabled = practiceSettingsQ.data?.is_online_enabled ?? true;
+
+  const toggleOnlineMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      await api.patch("/admin/practice-settings/", { is_online_enabled: enabled });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["practice-settings"] });
+      flash("Configuracion actualizada");
+    },
+    onError: () => flash("Error al actualizar", true),
+  });
 
   // ── API queries ──
   const locationsQ = useQuery<Location[]>({
@@ -487,17 +509,16 @@ export default function ConfigPage() {
               </div>
             )}
 
-            {/* Online toggle — local only, no backend endpoint yet */}
             <CfgSection
               icon={<Video size={16} />}
-              title="Atención online"
+              title="Atencion online"
               desc="Videollamada para familias en regiones."
             >
               <div className="flex items-center justify-between">
                 <span className="text-[12.5px] text-ink2">Habilitar reservas online</span>
                 <ConfigToggle
                   checked={onlineEnabled}
-                  onChange={setOnlineEnabled}
+                  onChange={(v) => toggleOnlineMutation.mutate(v)}
                 />
               </div>
             </CfgSection>

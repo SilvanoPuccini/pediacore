@@ -21,6 +21,7 @@ from apps.practice.serializers import (
     LocationAdminSerializer,
     LocationSerializer,
     PracticeSerializer,
+    PracticeSettingsSerializer,
     ServiceSerializer,
     WorkingHoursSerializer,
 )
@@ -234,6 +235,32 @@ class WorkingHoursAdminViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return WorkingHours.objects.select_related("practice", "location").all()
+
+
+class PracticeSettingsView(APIView):
+    """
+    GET/PATCH /api/v1/admin/practice-settings/
+
+    Read and update practice-level settings (e.g. is_online_enabled).
+    """
+
+    permission_classes = [IsDoctor]
+
+    def get(self, request):
+        practice = request.user.practice
+        if practice is None:
+            return Response({"detail": "No practice found."}, status=404)
+        serializer = PracticeSettingsSerializer(practice)
+        return Response(serializer.data)
+
+    def patch(self, request):
+        practice = request.user.practice
+        if practice is None:
+            return Response({"detail": "No practice found."}, status=404)
+        serializer = PracticeSettingsSerializer(practice, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
 
 class BlockedSlotAdminViewSet(viewsets.ModelViewSet):

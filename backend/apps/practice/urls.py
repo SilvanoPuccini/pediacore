@@ -16,6 +16,7 @@ from apps.practice.views import (
     OnlineScheduleView,
     OnlineWorkingHoursListView,
     PracticeDetailView,
+    PracticeSettingsView,
     ServiceListView,
     WorkingHoursAdminViewSet,
     WorkingHoursListView,
@@ -37,6 +38,7 @@ urlpatterns = [
     path("practices/<slug:slug>/online-hours/", OnlineScheduleView.as_view(), name="online-schedule"),
     path("practices/<slug:slug>/working-hours/online/", OnlineWorkingHoursListView.as_view(), name="online-working-hours"),
     path("locations/<int:pk>/working-hours/", WorkingHoursListView.as_view(), name="working-hours-list"),
-    # Admin endpoints (ModelViewSet via router)
+    # Admin endpoints
+    path("admin/practice-settings/", PracticeSettingsView.as_view(), name="practice-settings"),
     path("", include(router.urls)),
 ]
