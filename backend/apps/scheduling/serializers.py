@@ -301,6 +301,7 @@ class CancelAppointmentSerializer(serializers.Serializer):
 class WaitlistEntrySerializer(serializers.ModelSerializer):
     patient_name = serializers.SerializerMethodField()
     service_name = serializers.CharField(source="service.name", read_only=True)
+    location_name = serializers.SerializerMethodField()
     status_display = serializers.CharField(source="get_status_display", read_only=True)
 
     class Meta:
@@ -313,10 +314,12 @@ class WaitlistEntrySerializer(serializers.ModelSerializer):
             "service",
             "service_name",
             "location",
+            "location_name",
             "preferred_date_start",
             "preferred_date_end",
             "preferred_time_start",
             "preferred_time_end",
+            "priority",
             "status",
             "status_display",
             "notified_at",
@@ -324,10 +327,13 @@ class WaitlistEntrySerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "patient_name", "service_name", "status_display", "notified_at"]
+        read_only_fields = ["id", "patient_name", "service_name", "location_name", "status_display", "notified_at"]
 
     def get_patient_name(self, obj: WaitlistEntry) -> str:
         return obj.patient.full_name
+
+    def get_location_name(self, obj: WaitlistEntry) -> str | None:
+        return obj.location.name if obj.location else None
 
     def validate(self, attrs: dict) -> dict:
         request = self.context.get("request")

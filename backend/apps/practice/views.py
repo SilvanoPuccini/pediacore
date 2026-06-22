@@ -7,13 +7,15 @@ Admin views (IsDoctor): full CRUD for working hours and blocked slots.
 
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers, viewsets
+from rest_framework.decorators import action
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.permissions import AllowAny
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.core.pagination import StandardPagination
-from apps.core.permissions import IsDoctor
+from apps.core.permissions import IsDoctor, get_practice
 from apps.practice.models import BlockedSlot, Location, Practice, Service, WorkingHours
 from apps.practice.serializers import (
     BankDetailsSerializer,
@@ -247,14 +249,14 @@ class PracticeSettingsView(APIView):
     permission_classes = [IsDoctor]
 
     def get(self, request):
-        practice = request.user.practice
+        practice = get_practice(request.user)
         if practice is None:
             return Response({"detail": "No practice found."}, status=404)
         serializer = PracticeSettingsSerializer(practice)
         return Response(serializer.data)
 
     def patch(self, request):
-        practice = request.user.practice
+        practice = get_practice(request.user)
         if practice is None:
             return Response({"detail": "No practice found."}, status=404)
         serializer = PracticeSettingsSerializer(practice, data=request.data, partial=True)
@@ -279,7 +281,46 @@ class BlockedSlotAdminViewSet(viewsets.ModelViewSet):
         return BlockedSlot.objects.select_related("practice", "location").order_by("start_datetime")
 
     def perform_create(self, serializer):
-        practice = self.request.user.practice
+        practice = get_practice(self.request.user)
         if practice is None:
             raise serializers.ValidationError({"practice": "User has no associated practice."})
         serializer.save(practice=practice)
+
+    @action(detail=False, methods=["post"], url_path="check-conflicts")
+    def check_conflicts(self, request: Request) -> Response:
+        """Return appointments that would be affected by a new blocked slot.
+
+        POST /api/v1/admin/blocked-slots/check-conflicts/
+        Body: {"start_datetime": "...", "end_datetime": "..."}
+        """
+        from apps.scheduling.models import Appointment
+
+        start = request.data.get("start_datetime", "")
+        end = request.data.get("end_datetime", "")
+        if not start or not end:
+            return Response({"appointments": [], "count": 0})
+
+        from django.utils.dateparse import parse_datetime
+        start_dt = parse_datetime(start)
+        end_dt = parse_datetime(end)
+        if not start_dt or not end_dt:
+            return Response({"appointments": [], "count": 0})
+
+        conflicts = Appointment.objects.filter(
+            scheduled_date__gte=start_dt.date(),
+            scheduled_date__lte=end_dt.date(),
+            status__in=Appointment.SLOT_BLOCKING_STATUSES,
+        ).select_related("patient", "service").order_by("scheduled_date", "start_time")
+
+        data = [
+            {
+                "id": a.id,
+                "patient_name": f"{a.patient.first_name} {a.patient.last_name}",
+                "service_name": a.service.name,
+                "scheduled_date": str(a.scheduled_date),
+                "start_time": str(a.start_time),
+                "status": a.status,
+            }
+            for a in conflicts[:20]
+        ]
+        return Response({"appointments": data, "count": conflicts.count()})

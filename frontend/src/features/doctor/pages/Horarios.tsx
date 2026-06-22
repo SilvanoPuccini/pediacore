@@ -129,6 +129,7 @@ export default function HorariosPage() {
   const [newBlock, setNewBlock] = useState<{ startDate: string; endDate: string; reason: string; tipo: BlockedTipo }>({
     startDate: "", endDate: "", reason: "", tipo: "feriado",
   });
+  const [conflictWarning, setConflictWarning] = useState<{ count: number; appointments: { id: number; patient_name: string; service_name: string; scheduled_date: string; start_time: string }[] } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
@@ -262,17 +263,48 @@ export default function HorariosPage() {
     });
   };
 
-  const addBlocked = () => {
-    if (!newBlock.startDate) { flash("Indicá una fecha de inicio"); return; }
-    const startDt = `${newBlock.startDate}T00:00:00`;
-    const endDt = newBlock.endDate
-      ? `${newBlock.endDate}T23:59:59`
-      : `${newBlock.startDate}T23:59:59`;
+  const doBlock = (startDt: string, endDt: string) => {
     createBlockedMutation.mutate({
       start_datetime: startDt,
       end_datetime: endDt,
       reason: newBlock.reason || newBlock.tipo,
     });
+  };
+
+  const addBlocked = async () => {
+    if (!newBlock.startDate) { flash("Indicá una fecha de inicio"); return; }
+    const startDt = `${newBlock.startDate}T00:00:00`;
+    const endDt = newBlock.endDate
+      ? `${newBlock.endDate}T23:59:59`
+      : `${newBlock.startDate}T23:59:59`;
+
+    try {
+      const { data } = await api.post<{
+        count: number;
+        appointments: { id: number; patient_name: string; service_name: string; scheduled_date: string; start_time: string }[];
+      }>("/admin/blocked-slots/check-conflicts/", {
+        start_datetime: startDt,
+        end_datetime: endDt,
+      });
+
+      if (data.count > 0) {
+        setConflictWarning({ count: data.count, appointments: data.appointments });
+        return;
+      }
+    } catch {
+      // If check fails, proceed anyway
+    }
+
+    doBlock(startDt, endDt);
+  };
+
+  const confirmBlock = () => {
+    const startDt = `${newBlock.startDate}T00:00:00`;
+    const endDt = newBlock.endDate
+      ? `${newBlock.endDate}T23:59:59`
+      : `${newBlock.startDate}T23:59:59`;
+    setConflictWarning(null);
+    doBlock(startDt, endDt);
   };
 
   // capacity calculation
@@ -626,6 +658,49 @@ export default function HorariosPage() {
       )}
 
       {/* Toast */}
+      {/* Conflict warning modal */}
+      {conflictWarning && (
+        <div className="fixed inset-0 z-50 bg-ink/30 flex items-center justify-center" onClick={() => setConflictWarning(null)}>
+          <div className="bg-surface rounded-[14px] border border-line shadow-lg p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-2 mb-3">
+              <AlertCircle size={18} className="text-amber-500" />
+              <h3 className="text-[15px] font-bold text-ink">Turnos en ese rango</h3>
+            </div>
+            <p className="text-[13px] text-ink2 mb-3">
+              Hay <strong>{conflictWarning.count} turno{conflictWarning.count !== 1 ? "s" : ""}</strong> agendado{conflictWarning.count !== 1 ? "s" : ""} en las fechas que querés bloquear:
+            </p>
+            <ul className="space-y-1.5 mb-4 max-h-40 overflow-y-auto">
+              {conflictWarning.appointments.map((a) => (
+                <li key={a.id} className="text-[12px] text-ink2 flex items-center gap-2">
+                  <Calendar size={12} className="text-ink3 shrink-0" />
+                  <span>{a.scheduled_date} {a.start_time.slice(0, 5)} — {a.patient_name} ({a.service_name})</span>
+                </li>
+              ))}
+              {conflictWarning.count > conflictWarning.appointments.length && (
+                <li className="text-[11px] text-ink3">...y {conflictWarning.count - conflictWarning.appointments.length} más</li>
+              )}
+            </ul>
+            <p className="text-[12px] text-ink3 mb-4">
+              Si bloqueás este rango, los turnos seguirán existiendo. Cancelalos manualmente si corresponde.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setConflictWarning(null)}
+                className="px-4 py-2 rounded-[10px] text-[13px] text-ink2 hover:bg-bg transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmBlock}
+                className="px-4 py-2 rounded-[10px] text-[13px] font-semibold bg-teal-dark text-white hover:opacity-90 transition-opacity"
+              >
+                Bloquear de todas formas
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {toast && (
         <div className="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-[12px] bg-ink text-white text-[12.5px] font-semibold shadow-pop flex items-center gap-2">
           <Check size={14} className="text-teal" />
