@@ -20,8 +20,8 @@ import type { VideoResource, PaginatedResponse } from "@/types/api";
 const CATEGORIES = [
   { value: "URGENCIAS", label: "Urgencias" },
   { value: "LACTANCIA", label: "Lactancia" },
-  { value: "ALIMENTACION", label: "Alimentacion" },
-  { value: "SUENO", label: "Sueno" },
+  { value: "ALIMENTACION", label: "Alimentación" },
+  { value: "SUENO", label: "Sueño" },
   { value: "PRIMEROS_AUXILIOS", label: "Primeros auxilios" },
   { value: "DESARROLLO", label: "Desarrollo" },
   { value: "CONSEJOS", label: "Consejos" },
@@ -82,8 +82,8 @@ function textToChapters(text: string): { time_seconds: number; label: string }[]
 
 function StatusChip({ isPublished }: { isPublished: boolean }) {
   const s = isPublished
-    ? { bg: "rgba(168, 213, 181, 0.30)", text: "#3F8358", label: "Published" }
-    : { bg: "rgba(180, 180, 190, 0.25)", text: "#777", label: "Draft" };
+    ? { bg: "rgba(168, 213, 181, 0.30)", text: "#3F8358", label: "Publicado" }
+    : { bg: "rgba(180, 180, 190, 0.25)", text: "#777", label: "Borrador" };
   return (
     <span
       className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold"
@@ -161,10 +161,10 @@ export default function VideosPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["videos-admin"] });
-      flash(mode === "edit" ? "Video updated" : "Video created");
+      flash(mode === "edit" ? "Video actualizado" : "Video creado");
       goBack();
     },
-    onError: () => flash("Error saving video"),
+    onError: () => flash("Error al guardar el video"),
   });
 
   const togglePublishMutation = useMutation({
@@ -172,19 +172,19 @@ export default function VideosPage() {
       api.post(`/admin/videos/${id}/${publish ? "publish" : "unpublish"}/`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["videos-admin"] });
-      flash("Status updated");
+      flash("Estado actualizado");
     },
-    onError: () => flash("Error updating status"),
+    onError: () => flash("Error al actualizar el estado"),
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => api.delete(`/admin/videos/${id}/`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["videos-admin"] });
-      flash("Video deleted");
+      flash("Video eliminado");
       setDeleteId(null);
     },
-    onError: () => flash("Error deleting video"),
+    onError: () => flash("Error al eliminar el video"),
   });
 
   const autofillMutation = useMutation({
@@ -213,9 +213,9 @@ export default function VideosPage() {
           ? chaptersToText(suggestions.chapters)
           : f.chapters_text,
       }));
-      flash("Fields populated with AI suggestions");
+      flash("Campos completados con IA");
     },
-    onError: () => flash("AI autofill failed — check YouTube URL"),
+    onError: () => flash("Falló el autocompletado IA — revisá la URL"),
   });
 
   // ── actions ─────────────────────────────────────────────────────────────────
@@ -248,11 +248,11 @@ export default function VideosPage() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.title.trim()) {
-      flash("Title is required");
+      flash("El título es obligatorio");
       return;
     }
     if (!form.youtube_url.trim()) {
-      flash("YouTube URL is required");
+      flash("La URL de YouTube es obligatoria");
       return;
     }
     const chapters = textToChapters(form.chapters_text);
@@ -297,7 +297,7 @@ export default function VideosPage() {
             <ArrowLeft size={18} />
           </button>
           <h2 className="text-[18px] font-bold text-ink">
-            {mode === "create" ? "New video" : "Edit video"}
+            {mode === "create" ? "Nuevo video" : "Editar video"}
           </h2>
         </div>
 
@@ -306,13 +306,13 @@ export default function VideosPage() {
             {/* Title */}
             <div>
               <label className="block text-[12px] font-semibold text-ink2 mb-1.5">
-                Title *
+                Título *
               </label>
               <input
                 value={form.title}
                 onChange={(e) => set("title", e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-[10px] border border-line bg-bg text-[13.5px] text-ink placeholder:text-ink3 focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal transition-colors"
-                placeholder="Video title"
+                placeholder="Título del video"
               />
             </div>
 
@@ -347,8 +347,8 @@ export default function VideosPage() {
                 >
                   <Sparkles size={13} />
                   {autofillMutation.isPending
-                    ? "Generating..."
-                    : "Autofill with AI"}
+                    ? "Generando..."
+                    : "Autocompletar con IA"}
                 </button>
               )}
             </div>
@@ -356,14 +356,14 @@ export default function VideosPage() {
             {/* Description */}
             <div>
               <label className="block text-[12px] font-semibold text-ink2 mb-1.5">
-                Description
+                Descripción
               </label>
               <textarea
                 value={form.description}
                 onChange={(e) => set("description", e.target.value)}
                 rows={4}
                 className="w-full px-3.5 py-2.5 rounded-[10px] border border-line bg-bg text-[13.5px] text-ink placeholder:text-ink3 focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal resize-y transition-colors"
-                placeholder="Video description"
+                placeholder="Descripción del video"
               />
             </div>
 
@@ -371,7 +371,7 @@ export default function VideosPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
                 <label className="block text-[12px] font-semibold text-ink2 mb-1.5">
-                  Category
+                  Categoría
                 </label>
                 <select
                   value={form.category}
@@ -387,7 +387,7 @@ export default function VideosPage() {
               </div>
               <div>
                 <label className="block text-[12px] font-semibold text-ink2 mb-1.5">
-                  Duration (seconds)
+                  Duración (segundos)
                 </label>
                 <input
                   type="number"
@@ -410,30 +410,30 @@ export default function VideosPage() {
             {/* Thumbnail */}
             <div>
               <label className="block text-[12px] font-semibold text-ink2 mb-1.5">
-                Thumbnail (URL)
+                Miniatura (URL)
               </label>
               <input
                 value={form.thumbnail}
                 onChange={(e) => set("thumbnail", e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-[10px] border border-line bg-bg text-[13.5px] text-ink placeholder:text-ink3 focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal transition-colors"
-                placeholder="Leave empty to use YouTube default"
+                placeholder="Dejar vacío para usar la de YouTube"
               />
             </div>
 
             {/* Chapters */}
             <div>
               <label className="block text-[12px] font-semibold text-ink2 mb-1.5">
-                Chapters
+                Capítulos
               </label>
               <textarea
                 value={form.chapters_text}
                 onChange={(e) => set("chapters_text", e.target.value)}
                 rows={5}
                 className="w-full px-3.5 py-2.5 rounded-[10px] border border-line bg-bg text-[13px] text-ink placeholder:text-ink3 focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal resize-y font-mono transition-colors"
-                placeholder={"0:00 Introduction\n1:30 Topic one\n5:00 Summary"}
+                placeholder={"0:00 Introducción\n1:30 Tema uno\n5:00 Resumen"}
               />
               <p className="text-[11px] text-ink3 mt-1">
-                One chapter per line: MM:SS Label
+                Un capítulo por línea: MM:SS Descripción
               </p>
             </div>
           </div>
@@ -446,17 +446,17 @@ export default function VideosPage() {
               className="px-5 py-2.5 rounded-[10px] bg-teal-dark text-white text-[13px] font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
             >
               {saveMutation.isPending
-                ? "Saving..."
+                ? "Guardando..."
                 : mode === "create"
-                  ? "Create video"
-                  : "Save changes"}
+                  ? "Crear video"
+                  : "Guardar cambios"}
             </button>
             <button
               type="button"
               onClick={goBack}
               className="px-4 py-2.5 rounded-[10px] text-[13px] font-medium text-ink2 hover:bg-bg transition-colors"
             >
-              Cancel
+              Cancelar
             </button>
           </div>
         </form>
@@ -480,23 +480,23 @@ export default function VideosPage() {
             className="bg-surface rounded-[14px] border border-line shadow-lg p-6 max-w-sm w-full mx-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-[15px] font-bold text-ink mb-2">Delete video</h3>
+            <h3 className="text-[15px] font-bold text-ink mb-2">Eliminar video</h3>
             <p className="text-[13px] text-ink2 mb-5">
-              This action cannot be undone.
+              Esta acción no se puede deshacer.
             </p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setDeleteId(null)}
                 className="px-4 py-2 rounded-[10px] text-[13px] text-ink2 hover:bg-bg transition-colors"
               >
-                Cancel
+                Cancelar
               </button>
               <button
                 onClick={() => deleteMutation.mutate(deleteId)}
                 disabled={deleteMutation.isPending}
                 className="px-4 py-2 rounded-[10px] text-[13px] font-semibold bg-red-500 text-white hover:bg-red-600 disabled:opacity-50 transition-colors"
               >
-                {deleteMutation.isPending ? "Deleting..." : "Delete"}
+                {deleteMutation.isPending ? "Eliminando..." : "Eliminar"}
               </button>
             </div>
           </div>
@@ -508,7 +508,7 @@ export default function VideosPage() {
         <div>
           <h1 className="text-[20px] font-bold text-ink tracking-tight">Videos</h1>
           <p className="text-[13px] text-ink2 mt-0.5">
-            Video library management
+            Gestión de videos
           </p>
         </div>
         <button
@@ -516,7 +516,7 @@ export default function VideosPage() {
           className="inline-flex items-center gap-1.5 text-[12px] font-semibold px-3.5 py-2 rounded-[10px] bg-teal-dark text-white hover:opacity-90 transition-opacity"
         >
           <Plus size={14} />
-          New video
+          Nuevo video
         </button>
       </div>
 
@@ -528,17 +528,17 @@ export default function VideosPage() {
       ) : isError ? (
         <div className="bg-surface border border-line rounded-[14px] shadow-[var(--shadow-card)] flex flex-col items-center justify-center py-16 gap-2 text-ink3">
           <AlertCircle size={28} className="opacity-40" />
-          <p className="text-[13px]">Error loading videos</p>
+          <p className="text-[13px]">Error al cargar los videos</p>
         </div>
       ) : videos.length === 0 ? (
         <div className="bg-surface border border-line rounded-[14px] shadow-[var(--shadow-card)] flex flex-col items-center justify-center py-16 gap-2 text-ink3">
           <Video size={32} className="opacity-40" />
-          <p className="text-[14px]">No videos yet</p>
+          <p className="text-[14px]">Sin videos aún</p>
           <button
             onClick={openCreate}
             className="mt-2 text-[12px] font-semibold text-teal-dark hover:underline"
           >
-            Add the first one
+            Agregá el primero
           </button>
         </div>
       ) : (

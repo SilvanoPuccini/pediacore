@@ -34,8 +34,8 @@ function sanitize(html: string): string {
 
 function StatusChip({ isPublished }: { isPublished: boolean }) {
   const s = isPublished
-    ? { bg: "rgba(168, 213, 181, 0.30)", text: "#3F8358", label: "Published" }
-    : { bg: "rgba(180, 180, 190, 0.25)", text: "#777", label: "Draft" };
+    ? { bg: "rgba(168, 213, 181, 0.30)", text: "#3F8358", label: "Publicado" }
+    : { bg: "rgba(180, 180, 190, 0.25)", text: "#777", label: "Borrador" };
   return (
     <span
       className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold"
@@ -114,10 +114,10 @@ export default function BlogPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["blog-posts-admin"] });
-      flash(mode === "edit" ? "Post updated" : "Post created");
+      flash(mode === "edit" ? "Artículo actualizado" : "Artículo creado");
       goBack();
     },
-    onError: () => flash("Error saving post"),
+    onError: () => flash("Error al guardar"),
   });
 
   const togglePublishMutation = useMutation({
@@ -125,19 +125,19 @@ export default function BlogPage() {
       api.post(`/admin/blog/${id}/${publish ? "publish" : "unpublish"}/`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["blog-posts-admin"] });
-      flash("Status updated");
+      flash("Estado actualizado");
     },
-    onError: () => flash("Error updating status"),
+    onError: () => flash("Error al actualizar estado"),
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => api.delete(`/admin/blog/${id}/`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["blog-posts-admin"] });
-      flash("Post deleted");
+      flash("Artículo eliminado");
       setDeleteId(null);
     },
-    onError: () => flash("Error deleting post"),
+    onError: () => flash("Error al eliminar"),
   });
 
   const formatContentMutation = useMutation({
@@ -151,9 +151,9 @@ export default function BlogPage() {
     onSuccess: (html) => {
       set("content", html);
       setContentTab("preview");
-      flash("Content converted to HTML");
+      flash("Contenido convertido a HTML");
     },
-    onError: () => flash("Error converting content — check API key"),
+    onError: () => flash("Falló la conversión IA"),
   });
 
   // ── actions ─────────────────────────────────────────────────────────────────
@@ -198,7 +198,7 @@ export default function BlogPage() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.title.trim()) {
-      flash("Title is required");
+      flash("El título es obligatorio");
       return;
     }
     const payload: Record<string, unknown> = {
@@ -238,7 +238,7 @@ export default function BlogPage() {
             <ArrowLeft size={18} />
           </button>
           <h2 className="text-[18px] font-bold text-ink">
-            {mode === "create" ? "New post" : "Edit post"}
+            {mode === "create" ? "Nuevo artículo" : "Editar artículo"}
           </h2>
         </div>
 
@@ -248,13 +248,13 @@ export default function BlogPage() {
             {/* Title */}
             <div>
               <label className="block text-[12px] font-semibold text-ink2 mb-1.5">
-                Title *
+                Título *
               </label>
               <input
                 value={form.title}
                 onChange={(e) => set("title", e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-[10px] border border-line bg-bg text-[13.5px] text-ink placeholder:text-ink3 focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal transition-colors"
-                placeholder="Post title"
+                placeholder="Título del artículo"
               />
             </div>
 
@@ -262,7 +262,7 @@ export default function BlogPage() {
             {mode === "edit" && editMeta.slug && (
               <div>
                 <label className="block text-[12px] font-semibold text-ink2 mb-1.5">
-                  Slug
+                  Slug (URL)
                 </label>
                 <div className="px-3.5 py-2.5 rounded-[10px] border border-line bg-bg/50 text-[13px] text-ink3">
                   {editMeta.slug}
@@ -273,14 +273,14 @@ export default function BlogPage() {
             {/* Excerpt */}
             <div>
               <label className="block text-[12px] font-semibold text-ink2 mb-1.5">
-                Excerpt
+                Extracto
               </label>
               <textarea
                 value={form.excerpt}
                 onChange={(e) => set("excerpt", e.target.value)}
                 rows={2}
                 className="w-full px-3.5 py-2.5 rounded-[10px] border border-line bg-bg text-[13.5px] text-ink placeholder:text-ink3 focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal resize-y transition-colors"
-                placeholder="Short summary shown in the listing"
+                placeholder="Resumen corto para la lista"
               />
             </div>
 
@@ -288,7 +288,7 @@ export default function BlogPage() {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-[12px] font-semibold text-ink2">
-                  Content
+                  Contenido
                 </label>
                 <div className="flex items-center gap-2">
                   {!isContentHtml && form.content.trim().length > 20 && (
@@ -300,8 +300,8 @@ export default function BlogPage() {
                     >
                       <Sparkles size={12} />
                       {formatContentMutation.isPending
-                        ? "Converting..."
-                        : "Convert to HTML"}
+                        ? "Convirtiendo..."
+                        : "Convertir a HTML"}
                     </button>
                   )}
                   <div className="flex rounded-[8px] border border-line overflow-hidden">
@@ -315,7 +315,7 @@ export default function BlogPage() {
                       }`}
                     >
                       <Code size={12} className="inline mr-1" />
-                      Write
+                      Escribir
                     </button>
                     <button
                       type="button"
@@ -327,7 +327,7 @@ export default function BlogPage() {
                       }`}
                     >
                       <Eye size={12} className="inline mr-1" />
-                      Preview
+                      Vista previa
                     </button>
                   </div>
                 </div>
@@ -339,7 +339,7 @@ export default function BlogPage() {
                   onChange={(e) => set("content", e.target.value)}
                   rows={16}
                   className="w-full px-3.5 py-2.5 rounded-[10px] border border-line bg-bg text-[13px] text-ink placeholder:text-ink3 focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal resize-y font-mono transition-colors"
-                  placeholder={"Write your content as plain text.\nUse the 'Convert to HTML' button to format it automatically with AI."}
+                  placeholder={"Escribí el contenido acá...\nUsá el botón 'Convertir a HTML' para formatearlo automáticamente con IA."}
                 />
               ) : (
                 <div className="w-full min-h-[300px] px-4 py-3 rounded-[10px] border border-line bg-white">
@@ -352,20 +352,20 @@ export default function BlogPage() {
                     />
                   ) : (
                     <p className="text-[13px] text-ink3 italic">
-                      No content to preview
+                      Sin contenido para previsualizar
                     </p>
                   )}
                 </div>
               )}
               <p className="text-[11px] text-ink3 mt-1.5">
-                Write as plain text, then click "Convert to HTML" to format with AI. Switch to Preview to see the result.
+                Escribí como texto plano y después hacé clic en "Convertir a HTML" para formatear con IA. Cambiá a Vista previa para ver el resultado.
               </p>
             </div>
 
             {/* Cover image */}
             <div>
               <label className="block text-[12px] font-semibold text-ink2 mb-1.5">
-                Cover image (URL)
+                Imagen de portada (URL)
               </label>
               <input
                 value={form.cover_image}
@@ -390,11 +390,11 @@ export default function BlogPage() {
 
           {/* Publishing & SEO card */}
           <div className="bg-surface border border-line rounded-[14px] shadow-[var(--shadow-card)] p-6 space-y-5">
-            <h3 className="text-[13px] font-bold text-ink">Publishing & SEO</h3>
+            <h3 className="text-[13px] font-bold text-ink">Publicación y SEO</h3>
 
             {/* Publish toggle */}
             <div className="flex items-center justify-between">
-              <span className="text-[12.5px] text-ink2">Published</span>
+              <span className="text-[12.5px] text-ink2">Publicado</span>
               <button
                 type="button"
                 onClick={() => set("is_published", !form.is_published)}
@@ -414,24 +414,24 @@ export default function BlogPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
                 <label className="block text-[12px] font-semibold text-ink2 mb-1.5">
-                  Tags
+                  Etiquetas
                 </label>
                 <input
                   value={form.tags}
                   onChange={(e) => set("tags", e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-[10px] border border-line bg-bg text-[13.5px] text-ink placeholder:text-ink3 focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal transition-colors"
-                  placeholder="health, pediatrics, tips"
+                  placeholder="salud, pediatría, consejos"
                 />
               </div>
               <div>
                 <label className="block text-[12px] font-semibold text-ink2 mb-1.5">
-                  Meta description
+                  Meta descripción
                 </label>
                 <input
                   value={form.meta_description}
                   onChange={(e) => set("meta_description", e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-[10px] border border-line bg-bg text-[13.5px] text-ink placeholder:text-ink3 focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal transition-colors"
-                  placeholder="SEO description"
+                  placeholder="Descripción para SEO..."
                 />
               </div>
             </div>
@@ -441,25 +441,25 @@ export default function BlogPage() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2 border-t border-line">
                 {editMeta.post_number != null && (
                   <div>
-                    <p className="text-[10.5px] font-semibold text-ink3 uppercase">Post #</p>
+                    <p className="text-[10.5px] font-semibold text-ink3 uppercase">N° de post</p>
                     <p className="text-[12.5px] text-ink mt-0.5">{editMeta.post_number}</p>
                   </div>
                 )}
                 {editMeta.author_name && (
                   <div>
-                    <p className="text-[10.5px] font-semibold text-ink3 uppercase">Author</p>
+                    <p className="text-[10.5px] font-semibold text-ink3 uppercase">Autor</p>
                     <p className="text-[12.5px] text-ink mt-0.5">{editMeta.author_name}</p>
                   </div>
                 )}
                 {editMeta.published_at && (
                   <div>
-                    <p className="text-[10.5px] font-semibold text-ink3 uppercase">Published</p>
+                    <p className="text-[10.5px] font-semibold text-ink3 uppercase">Publicado el</p>
                     <p className="text-[12.5px] text-ink mt-0.5">{formatDate(editMeta.published_at)}</p>
                   </div>
                 )}
                 {editMeta.created_at && (
                   <div>
-                    <p className="text-[10.5px] font-semibold text-ink3 uppercase">Created</p>
+                    <p className="text-[10.5px] font-semibold text-ink3 uppercase">Creado el</p>
                     <p className="text-[12.5px] text-ink mt-0.5">{formatDate(editMeta.created_at)}</p>
                   </div>
                 )}
@@ -475,17 +475,17 @@ export default function BlogPage() {
               className="px-5 py-2.5 rounded-[10px] bg-teal-dark text-white text-[13px] font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
             >
               {saveMutation.isPending
-                ? "Saving..."
+                ? "Guardando..."
                 : mode === "create"
-                  ? "Create post"
-                  : "Save changes"}
+                  ? "Crear artículo"
+                  : "Guardar cambios"}
             </button>
             <button
               type="button"
               onClick={goBack}
               className="px-4 py-2.5 rounded-[10px] text-[13px] font-medium text-ink2 hover:bg-bg transition-colors"
             >
-              Cancel
+              Cancelar
             </button>
           </div>
         </form>
@@ -509,23 +509,23 @@ export default function BlogPage() {
             className="bg-surface rounded-[14px] border border-line shadow-lg p-6 max-w-sm w-full mx-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-[15px] font-bold text-ink mb-2">Delete post</h3>
+            <h3 className="text-[15px] font-bold text-ink mb-2">Eliminar artículo</h3>
             <p className="text-[13px] text-ink2 mb-5">
-              This action cannot be undone.
+              Esta acción no se puede deshacer.
             </p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setDeleteId(null)}
                 className="px-4 py-2 rounded-[10px] text-[13px] text-ink2 hover:bg-bg transition-colors"
               >
-                Cancel
+                Cancelar
               </button>
               <button
                 onClick={() => deleteMutation.mutate(deleteId)}
                 disabled={deleteMutation.isPending}
                 className="px-4 py-2 rounded-[10px] text-[13px] font-semibold bg-red-500 text-white hover:bg-red-600 disabled:opacity-50 transition-colors"
               >
-                {deleteMutation.isPending ? "Deleting..." : "Delete"}
+                {deleteMutation.isPending ? "Eliminando..." : "Eliminar"}
               </button>
             </div>
           </div>
@@ -537,7 +537,7 @@ export default function BlogPage() {
         <div>
           <h1 className="text-[20px] font-bold text-ink tracking-tight">Blog</h1>
           <p className="text-[13px] text-ink2 mt-0.5">
-            Published posts and drafts
+            Gestión del blog
           </p>
         </div>
         <button
@@ -545,7 +545,7 @@ export default function BlogPage() {
           className="inline-flex items-center gap-1.5 text-[12px] font-semibold px-3.5 py-2 rounded-[10px] bg-teal-dark text-white hover:opacity-90 transition-opacity"
         >
           <Plus size={14} />
-          New post
+          Nuevo artículo
         </button>
       </div>
 
@@ -558,17 +558,17 @@ export default function BlogPage() {
         ) : isError ? (
           <div className="flex flex-col items-center justify-center py-16 gap-2 text-ink3">
             <AlertCircle size={28} className="opacity-40" />
-            <p className="text-[13px]">Error loading posts</p>
+            <p className="text-[13px]">Error al cargar los artículos</p>
           </div>
         ) : posts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-2 text-ink3">
             <FileText size={32} className="opacity-40" />
-            <p className="text-[14px]">No posts yet</p>
+            <p className="text-[14px]">Sin artículos aún</p>
             <button
               onClick={openCreate}
               className="mt-2 text-[12px] font-semibold text-teal-dark hover:underline"
             >
-              Create the first one
+              Escribí el primero
             </button>
           </div>
         ) : (
@@ -577,16 +577,16 @@ export default function BlogPage() {
               <thead>
                 <tr className="border-b border-line">
                   <th className="px-5 py-3 text-left text-[11.5px] font-semibold text-ink3 uppercase tracking-wide">
-                    Title
+                    Título
                   </th>
                   <th className="px-5 py-3 text-left text-[11.5px] font-semibold text-ink3 uppercase tracking-wide">
-                    Status
+                    Estado
                   </th>
                   <th className="px-5 py-3 text-left text-[11.5px] font-semibold text-ink3 uppercase tracking-wide hidden sm:table-cell">
-                    Created
+                    Creado
                   </th>
                   <th className="px-5 py-3 text-right text-[11.5px] font-semibold text-ink3 uppercase tracking-wide">
-                    Actions
+                    Acciones
                   </th>
                 </tr>
               </thead>
@@ -611,7 +611,7 @@ export default function BlogPage() {
                             publish: !post.is_published,
                           })
                         }
-                        title={post.is_published ? "Click to unpublish" : "Click to publish"}
+                        title={post.is_published ? "Clic para despublicar" : "Clic para publicar"}
                       >
                         <StatusChip isPublished={post.is_published} />
                       </button>
@@ -624,7 +624,7 @@ export default function BlogPage() {
                         <button
                           onClick={() => openEdit(post)}
                           className="p-1.5 rounded-[6px] text-ink3 hover:text-teal-dark hover:bg-bg transition-colors"
-                          title="Edit"
+                          title="Editar"
                         >
                           <Pencil size={14} />
                         </button>
@@ -636,14 +636,14 @@ export default function BlogPage() {
                             })
                           }
                           className="p-1.5 rounded-[6px] text-ink3 hover:text-teal-dark hover:bg-bg transition-colors"
-                          title={post.is_published ? "Unpublish" : "Publish"}
+                          title={post.is_published ? "Despublicar" : "Publicar"}
                         >
                           {post.is_published ? <EyeOff size={14} /> : <Eye size={14} />}
                         </button>
                         <button
                           onClick={() => setDeleteId(post.id)}
                           className="p-1.5 rounded-[6px] text-ink3 hover:text-red-500 hover:bg-red-50 transition-colors"
-                          title="Delete"
+                          title="Eliminar"
                         >
                           <Trash2 size={14} />
                         </button>

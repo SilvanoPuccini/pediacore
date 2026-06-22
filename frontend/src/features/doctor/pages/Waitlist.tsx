@@ -73,7 +73,7 @@ function enrich(e: WaitlistEntry): EnrichedEntry {
     name: e.patient_name,
     motivo: e.service_name,
     sede: e.location_name || "Pucón",
-    prioridad: PRIORITY_MAP[e.priority],
+    prioridad: PRIORITY_MAP[e.priority] ?? "media",
     dias: waitDays(e.created_at),
     phone: "—",
     pref: e.notes?.toLowerCase().includes("tarde") ? "Tarde" : "Mañana",

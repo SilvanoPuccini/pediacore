@@ -39,7 +39,7 @@ from apps.content.serializers import (
     VideoResourcePublicSerializer,
 )
 from apps.core.pagination import StandardPagination
-from apps.core.permissions import IsDoctor
+from apps.core.permissions import IsDoctor, get_practice
 
 
 # ---------------------------------------------------------------------------
@@ -145,7 +145,7 @@ class AdminBlogPostViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer: BlogPostAdminSerializer) -> None:
         """Auto-assign the request user as author and practice. Auto-generate slug if missing."""
-        practice = self.request.user.practice
+        practice = get_practice(self.request.user)
         if practice is None:
             from rest_framework import serializers as _s
             raise _s.ValidationError({"practice": "User has no associated practice."})
@@ -282,7 +282,7 @@ class AdminVideoViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer: VideoResourceAdminSerializer) -> None:
         """Auto-assign the request user as author and their practice."""
-        practice = self.request.user.practice
+        practice = get_practice(self.request.user)
         if practice is None:
             from rest_framework import serializers as _s
             raise _s.ValidationError({"practice": "User has no associated practice."})
