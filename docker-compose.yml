@@ -35,6 +35,23 @@ services:
         condition: service_healthy
     command: python manage.py runserver 0.0.0.0:8000
 
+  qcluster:
+    build:
+      context: ./backend
+      args:
+        REQUIREMENTS_FILE: development.txt
+    restart: unless-stopped
+    volumes:
+      - ./backend:/app
+    env_file:
+      - ./backend/.env
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.development
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: python manage.py qcluster
+
   # frontend:
   #   build:
   #     context: ./frontend

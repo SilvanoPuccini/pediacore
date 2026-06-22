@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NewAppointmentModal from "../components/NewAppointmentModal";
+import PendingTransfersSection from "../components/PendingTransfersSection";
 import {
   Calendar,
   Clock,
@@ -590,6 +591,9 @@ export default function Dashboard() {
           </button>
         </div>
       </div>
+
+      {/* Pending transfers — high priority alert */}
+      <PendingTransfersSection />
 
       {/* Flow pipeline */}
       <div>
