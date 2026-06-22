@@ -73,7 +73,7 @@ class BlogPostAdminSerializer(serializers.ModelSerializer):
             "updated_at",
             "deleted_at",
         ]
-        read_only_fields = ["id", "author", "author_name", "published_at", "post_number", "created_at", "updated_at", "deleted_at"]
+        read_only_fields = ["id", "practice", "author", "author_name", "published_at", "post_number", "created_at", "updated_at", "deleted_at"]
 
     def get_author_name(self, obj: BlogPost) -> str:
         return obj.author.full_name or obj.author.email
@@ -282,6 +282,7 @@ class VideoResourceAdminSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             "id",
+            "practice",
             "author",
             "author_name",
             "published_at",
