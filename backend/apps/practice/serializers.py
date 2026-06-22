@@ -30,6 +30,15 @@ class PracticeSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class PracticeSettingsSerializer(serializers.ModelSerializer):
+    """Admin serializer for practice settings (partial updates)."""
+
+    class Meta:
+        model = Practice
+        fields = ["id", "is_online_enabled"]
+        read_only_fields = ["id"]
+
+
 class LocationSerializer(serializers.ModelSerializer):
     """Read-only serializer for public location listing."""
 

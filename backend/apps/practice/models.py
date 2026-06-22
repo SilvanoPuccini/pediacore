@@ -47,6 +47,13 @@ class Practice(BaseModel):
     account_rut = models.CharField(_("account RUT"), max_length=20, blank=True, default="")
     account_email = models.EmailField(_("account email"), blank=True, default="")
 
+    # ── Online consultation toggle ───────────────────────────────────────────
+    is_online_enabled = models.BooleanField(
+        _("online consultations enabled"),
+        default=True,
+        help_text=_("Whether online video consultations are available for booking."),
+    )
+
     class Meta:
         db_table = "practices"
         ordering = ["-created_at"]
