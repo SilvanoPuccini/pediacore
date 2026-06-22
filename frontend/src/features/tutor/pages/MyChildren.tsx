@@ -158,7 +158,11 @@ function calcAgeFull(dateOfBirth: string): string {
 
 function formatDate(isoDate: string | null | undefined): string {
   if (!isoDate) return "—";
-  return new Date(isoDate + "T00:00:00").toLocaleDateString("es-CL", {
+  // Handle both date-only ("2025-10-18") and datetime ("2025-10-18T10:30:00Z") formats
+  const dateStr = isoDate.includes("T") ? isoDate : isoDate + "T00:00:00";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("es-CL", {
     day: "2-digit",
     month: "short",
     year: "numeric",

@@ -551,7 +551,7 @@ class PaymentViewSet(viewsets.ModelViewSet):
             # Upstream MP failure (5xx) → 502; client-side rejection → 400
             http_status = (
                 status.HTTP_502_BAD_GATEWAY
-                if mp_status_code >= 500
+                if isinstance(mp_status_code, int) and mp_status_code >= 500
                 else status.HTTP_400_BAD_REQUEST
             )
             return Response(
