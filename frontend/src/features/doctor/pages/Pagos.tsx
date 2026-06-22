@@ -174,7 +174,12 @@ function PaymentDetailModal({
   const paymentTypeId = mpDetails?.payment_type_id as string | undefined;
   const installments = mpDetails?.installments as number | undefined;
   const statusDetail = mpDetails?.status_detail as string | undefined;
-  const ocrResult = payment?.metadata?.ocr_result as string | undefined;
+  const ocrRaw = payment?.metadata?.ocr_result as Record<string, unknown> | undefined;
+  const ocrSummary = ocrRaw && !ocrRaw.error
+    ? `Confianza: ${ocrRaw.confidence ?? "—"}%`
+    : ocrRaw?.error
+      ? `Error: ${ocrRaw.error}`
+      : undefined;
 
   const rejectionLabel = statusDetail
     ? (MP_REJECTION_LABELS[statusDetail] ?? statusDetail)
@@ -365,8 +370,8 @@ function PaymentDetailModal({
                           value={formatDate(payment.receipt_uploaded_at)}
                         />
                       )}
-                      {ocrResult && (
-                        <DetailRow label="Resultado OCR" value={ocrResult} />
+                      {ocrSummary && (
+                        <DetailRow label="Resultado OCR" value={ocrSummary} />
                       )}
                     </>
                   )}
