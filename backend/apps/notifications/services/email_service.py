@@ -937,6 +937,21 @@ def send_appointment_confirmation(
             practice=appointment.practice,
         )
 
+    doctor = appointment.practice.owner
+    if doctor:
+        Notification.objects.create(
+            practice=appointment.practice,
+            recipient=doctor,
+            notification_type=Notification.APPOINTMENT_CONFIRMED,
+            title="Nueva reserva",
+            message=(
+                f"Nueva reserva: {appointment.patient} para {appointment.service.name} "
+                f"el {_fmt_date_short(appointment.scheduled_date)}."
+            ),
+            related_type="Appointment",
+            related_id=appointment.pk,
+        )
+
 
 def send_payment_receipt(payment) -> None:
     """
@@ -1010,6 +1025,24 @@ def send_payment_receipt(payment) -> None:
             subject=subject,
             html_body=html_body,
             practice=payment.practice,
+        )
+
+    doctor = payment.practice.owner
+    if doctor:
+        try:
+            amount_display_doctor = f"{int(payment.amount):,}".replace(",", ".")
+        except (TypeError, ValueError):
+            amount_display_doctor = str(payment.amount)
+        Notification.objects.create(
+            practice=payment.practice,
+            recipient=doctor,
+            notification_type=Notification.PAYMENT_RECEIVED,
+            title="Pago recibido",
+            message=(
+                f"Pago recibido: ${amount_display_doctor} de {str(patient)}."
+            ),
+            related_type="Payment",
+            related_id=payment.pk,
         )
 
 
@@ -1122,6 +1155,21 @@ def send_appointment_cancellation(appointment: Appointment) -> None:
             subject=subject,
             html_body=html_body,
             practice=appointment.practice,
+        )
+
+    doctor = appointment.practice.owner
+    if doctor:
+        Notification.objects.create(
+            practice=appointment.practice,
+            recipient=doctor,
+            notification_type=Notification.APPOINTMENT_CANCELLED,
+            title="Turno cancelado",
+            message=(
+                f"Turno cancelado: {appointment.patient} canceló su turno "
+                f"del {_fmt_date_short(appointment.scheduled_date)}."
+            ),
+            related_type="Appointment",
+            related_id=appointment.pk,
         )
 
 
@@ -1912,6 +1960,22 @@ def send_transfer_expired(payment) -> None:
             message=(
                 f"Tu turno del {scheduled_date_short} fue cancelado porque no "
                 f"recibimos el comprobante de transferencia a tiempo."
+            ),
+            related_type="Payment",
+            related_id=payment.pk,
+        )
+
+    doctor = payment.practice.owner
+    if doctor:
+        patient_name = str(payment.patient) if payment.patient else "Un paciente"
+        Notification.objects.create(
+            practice=payment.practice,
+            recipient=doctor,
+            notification_type=Notification.GENERAL,
+            title="Transferencia expirada",
+            message=(
+                f"Transferencia expirada: {patient_name} no subió comprobante "
+                f"para el turno del {scheduled_date_short}."
             ),
             related_type="Payment",
             related_id=payment.pk,

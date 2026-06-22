@@ -97,6 +97,21 @@ def notify_waitlist_on_cancellation(appointment: Appointment) -> WaitlistEntry |
             related_id=entry.pk,
         )
 
+    doctor = entry.practice.owner
+    if doctor:
+        Notification.objects.create(
+            practice=entry.practice,
+            recipient=doctor,
+            notification_type=Notification.WAITLIST_AVAILABLE,
+            title="Lista de espera notificada",
+            message=(
+                f"Lista de espera: Se notificó a tutores sobre disponibilidad "
+                f"para {entry.service.name} el {cancelled_date}."
+            ),
+            related_type="Appointment",
+            related_id=appointment.pk,
+        )
+
     logger.info(
         "Waitlist entry %s (patient=%s) notified for freed slot: service=%s date=%s",
         entry.pk,
