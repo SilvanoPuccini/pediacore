@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -311,11 +311,10 @@ interface ChildHeaderCardProps {
   childIndex: number;
   onSchedule: () => void;
   onUnlink: () => void;
-  onQuickNav: (tab: TabId) => void;
   nutritionalStatus?: string;
 }
 
-function ChildHeaderCard({ patient, childIndex, onSchedule, onUnlink, onQuickNav, nutritionalStatus }: ChildHeaderCardProps) {
+function ChildHeaderCard({ patient, childIndex, onSchedule, onUnlink, nutritionalStatus }: ChildHeaderCardProps) {
   const pal = sexPalette(patient.sex_at_birth, childIndex);
   const age = calcAgeFull(patient.date_of_birth);
   const isMale = patient.sex_at_birth === "M";
@@ -402,15 +401,6 @@ function ChildHeaderCard({ patient, childIndex, onSchedule, onUnlink, onQuickNav
         <div className="flex flex-wrap gap-2">
           <Btn variant="primary" icon="CalendarDays" size="sm" onClick={onSchedule}>
             Agendar control
-          </Btn>
-          <Btn variant="ghost" icon="Syringe" size="sm" onClick={() => onQuickNav("vaccines")}>
-            Ver vacunas
-          </Btn>
-          <Btn variant="ghost" icon="FileText" size="sm" onClick={() => onQuickNav("encounters")}>
-            Resúmenes
-          </Btn>
-          <Btn variant="ghost" icon="TrendingUp" size="sm" onClick={() => onQuickNav("growth")}>
-            Ver historia
           </Btn>
         </div>
       </div>
@@ -1051,13 +1041,14 @@ function ChildDetailView({ patient, childIndex, onUnlink, initialTab }: ChildDet
   const [activeTab, setActiveTab] = useState<TabId>(initialTab ?? "growth");
   const tabsSectionRef = useRef<HTMLDivElement>(null);
 
-  const handleQuickNav = (tab: TabId) => {
-    setActiveTab(tab);
-    // Small delay so the tab content renders before scrolling
-    setTimeout(() => {
-      tabsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 50);
-  };
+  // Auto-scroll to tab section when arriving from Dashboard quick links
+  useEffect(() => {
+    if (initialTab) {
+      setTimeout(() => {
+        tabsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 150);
+    }
+  }, [initialTab]);
 
   const { data: clinicalSummary } = useQuery({
     queryKey: ["clinical-summary", patient.id],
@@ -1118,7 +1109,6 @@ function ChildDetailView({ patient, childIndex, onUnlink, initialTab }: ChildDet
         childIndex={childIndex}
         onSchedule={() => navigate("/booking")}
         onUnlink={onUnlink}
-        onQuickNav={handleQuickNav}
         nutritionalStatus={nutritionalLabel(clinicalSummary?.last_anthropometry?.weight_percentile)}
       />
 
