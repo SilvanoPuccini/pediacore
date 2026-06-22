@@ -299,11 +299,20 @@ export interface OcrExtracted {
   fecha: string | null;
   rut_remitente: string | null;
   banco_origen: string | null;
+  nombre_destinatario: string | null;
+  rut_destinatario: string | null;
+  cuenta_destinatario: string | null;
+  banco_destinatario: string | null;
 }
 
 export interface OcrMatches {
   monto?: boolean;
   fecha?: boolean;
+  rut_remitente?: boolean;
+  nombre_destinatario?: boolean;
+  rut_destinatario?: boolean;
+  cuenta_destinatario?: boolean;
+  banco_destinatario?: boolean;
 }
 
 export interface OcrResult {

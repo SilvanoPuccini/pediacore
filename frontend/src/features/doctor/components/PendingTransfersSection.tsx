@@ -77,10 +77,23 @@ function OcrAnalysisCard({ ocr }: { ocr: OcrResult }) {
   return (
     <div className="rounded-[12px] border border-line bg-bg px-4 py-3 space-y-1.5">
       <p className="text-[11px] font-semibold text-ink2 uppercase tracking-wide mb-2">Analisis del comprobante</p>
+
+      <p className="text-[10px] font-semibold text-ink3 uppercase tracking-wide mt-1">Remitente</p>
       <OcrFieldRow label="Monto" value={formattedMonto} match={matches.monto} />
       <OcrFieldRow label="Fecha" value={formattedFecha} match={matches.fecha} />
-      <OcrFieldRow label="RUT" value={extracted.rut_remitente} />
-      <OcrFieldRow label="Banco" value={extracted.banco_origen} />
+      <OcrFieldRow label="RUT remitente" value={extracted.rut_remitente} match={matches.rut_remitente} />
+      <OcrFieldRow label="Banco origen" value={extracted.banco_origen} />
+
+      {(extracted.nombre_destinatario || extracted.rut_destinatario || extracted.cuenta_destinatario || extracted.banco_destinatario) && (
+        <>
+          <p className="text-[10px] font-semibold text-ink3 uppercase tracking-wide mt-2.5">Destinatario</p>
+          <OcrFieldRow label="Nombre" value={extracted.nombre_destinatario} match={matches.nombre_destinatario} />
+          <OcrFieldRow label="RUT" value={extracted.rut_destinatario} match={matches.rut_destinatario} />
+          <OcrFieldRow label="Cuenta" value={extracted.cuenta_destinatario} match={matches.cuenta_destinatario} />
+          <OcrFieldRow label="Banco" value={extracted.banco_destinatario} match={matches.banco_destinatario} />
+        </>
+      )}
+
       <div className="flex items-center gap-2 mt-2 pt-2 border-t border-line">
         <span className="text-[12px] text-ink2">Confianza:</span>
         <span className={cn("text-[12px] font-bold px-2 py-0.5 rounded-full", colorClass)}>
@@ -93,18 +106,46 @@ function OcrAnalysisCard({ ocr }: { ocr: OcrResult }) {
 
 // ─── inline receipt preview ─────────────────────────────────────────────────────
 
+function ReceiptZoomOverlay({ url, onClose }: { url: string; onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
+      onClick={onClose}
+    >
+      <div className="relative flex flex-col items-center gap-2">
+        <img
+          src={url}
+          alt="Receipt fullscreen"
+          className="max-w-[90vw] max-h-[90vh] object-contain"
+          onClick={(e) => e.stopPropagation()}
+        />
+        <span className="text-white/60 text-[12px]">Click para cerrar</span>
+      </div>
+    </div>
+  );
+}
+
 function ReceiptPreview({ url }: { url: string }) {
   const isPdf = url.toLowerCase().includes(".pdf");
+  const [zoomed, setZoomed] = useState(false);
 
   return (
-    <div className="rounded-[12px] border border-line bg-bg overflow-hidden">
-      <p className="text-[11px] font-semibold text-ink2 uppercase tracking-wide px-4 pt-3 pb-2">Comprobante</p>
-      {isPdf ? (
-        <iframe src={url} className="w-full h-[320px] border-0" title="Receipt preview" />
-      ) : (
-        <img src={url} alt="Receipt" className="w-full max-h-[320px] object-contain px-2 pb-2" />
-      )}
-    </div>
+    <>
+      <div className="rounded-[12px] border border-line bg-bg overflow-hidden">
+        <p className="text-[11px] font-semibold text-ink2 uppercase tracking-wide px-4 pt-3 pb-2">Comprobante</p>
+        {isPdf ? (
+          <iframe src={url} className="w-full h-[400px] border-0" title="Receipt preview" />
+        ) : (
+          <img
+            src={url}
+            alt="Receipt"
+            className="w-full max-h-[400px] object-contain px-2 pb-2 cursor-zoom-in"
+            onClick={() => setZoomed(true)}
+          />
+        )}
+      </div>
+      {zoomed && !isPdf && <ReceiptZoomOverlay url={url} onClose={() => setZoomed(false)} />}
+    </>
   );
 }
 
@@ -112,11 +153,12 @@ function ReceiptPreview({ url }: { url: string }) {
 
 const REJECTION_REASONS = [
   { key: "monto", label: "El monto no coincide" },
-  { key: "titular", label: "El titular no coincide" },
   { key: "fecha", label: "La fecha no coincide" },
+  { key: "titular", label: "El titular remitente no coincide" },
+  { key: "destinatario", label: "La cuenta destinataria no es correcta" },
+  { key: "banco_dest", label: "El banco destinatario no coincide" },
   { key: "ilegible", label: "Comprobante ilegible" },
   { key: "incompleto", label: "Datos incompletos" },
-  { key: "banco", label: "Banco no verificado" },
 ] as const;
 
 function getAutoSelectedReasons(ocr?: OcrResult): Set<string> {
@@ -124,6 +166,12 @@ function getAutoSelectedReasons(ocr?: OcrResult): Set<string> {
   if (!ocr || ocr.error) return auto;
   if (ocr.matches.monto === false) auto.add("monto");
   if (ocr.matches.fecha === false) auto.add("fecha");
+  if (ocr.matches.rut_remitente === false) auto.add("titular");
+  // Recipient mismatches
+  if (ocr.matches.nombre_destinatario === false || ocr.matches.rut_destinatario === false || ocr.matches.cuenta_destinatario === false) {
+    auto.add("destinatario");
+  }
+  if (ocr.matches.banco_destinatario === false) auto.add("banco_dest");
   return auto;
 }
 
