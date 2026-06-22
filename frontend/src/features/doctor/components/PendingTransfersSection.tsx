@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, CheckCircle, Clock, ExternalLink, X } from "lucide-react";
-import { useState } from "react";
+import { AlertCircle, CheckCircle, Clock, Eye, EyeOff, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { OcrResult, PaginatedResponse, PendingTransferPayment } from "@/types/api";
@@ -75,7 +75,7 @@ function OcrAnalysisCard({ ocr }: { ocr: OcrResult }) {
     : null;
 
   return (
-    <div className="mt-3 rounded-[12px] border border-line bg-bg px-4 py-3 space-y-1.5">
+    <div className="rounded-[12px] border border-line bg-bg px-4 py-3 space-y-1.5">
       <p className="text-[11px] font-semibold text-ink2 uppercase tracking-wide mb-2">Analisis del comprobante</p>
       <OcrFieldRow label="Monto" value={formattedMonto} match={matches.monto} />
       <OcrFieldRow label="Fecha" value={formattedFecha} match={matches.fecha} />
@@ -91,32 +91,123 @@ function OcrAnalysisCard({ ocr }: { ocr: OcrResult }) {
   );
 }
 
+// ─── inline receipt preview ─────────────────────────────────────────────────────
+
+function ReceiptPreview({ url }: { url: string }) {
+  const isPdf = url.toLowerCase().includes(".pdf");
+
+  return (
+    <div className="rounded-[12px] border border-line bg-bg overflow-hidden">
+      <p className="text-[11px] font-semibold text-ink2 uppercase tracking-wide px-4 pt-3 pb-2">Comprobante</p>
+      {isPdf ? (
+        <iframe src={url} className="w-full h-[320px] border-0" title="Receipt preview" />
+      ) : (
+        <img src={url} alt="Receipt" className="w-full max-h-[320px] object-contain px-2 pb-2" />
+      )}
+    </div>
+  );
+}
+
+// ─── rejection reasons ──────────────────────────────────────────────────────────
+
+const REJECTION_REASONS = [
+  { key: "monto", label: "El monto no coincide" },
+  { key: "titular", label: "El titular no coincide" },
+  { key: "fecha", label: "La fecha no coincide" },
+  { key: "ilegible", label: "Comprobante ilegible" },
+  { key: "incompleto", label: "Datos incompletos" },
+  { key: "banco", label: "Banco no verificado" },
+] as const;
+
+function getAutoSelectedReasons(ocr?: OcrResult): Set<string> {
+  const auto = new Set<string>();
+  if (!ocr || ocr.error) return auto;
+  if (ocr.matches.monto === false) auto.add("monto");
+  if (ocr.matches.fecha === false) auto.add("fecha");
+  return auto;
+}
+
 // ─── reject modal ────────────────────────────────────────────────────────────────
 
 function RejectModal({
+  ocrResult,
   onClose,
   onConfirm,
   isPending,
 }: {
-  paymentId: number;
+  ocrResult?: OcrResult;
   onClose: () => void;
   onConfirm: (reason: string) => void;
   isPending: boolean;
 }) {
-  const [reason, setReason] = useState("");
+  const [checkedReasons, setCheckedReasons] = useState<Set<string>>(() => getAutoSelectedReasons(ocrResult));
+  const [freeText, setFreeText] = useState("");
+
+  useEffect(() => {
+    setCheckedReasons(getAutoSelectedReasons(ocrResult));
+    setFreeText("");
+  }, [ocrResult]);
+
+  function toggleReason(key: string) {
+    setCheckedReasons((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  function buildReason(): string {
+    const selected = REJECTION_REASONS
+      .filter((r) => checkedReasons.has(r.key))
+      .map((r) => r.label);
+    const parts: string[] = [];
+    if (selected.length > 0) parts.push(selected.join(". ") + ".");
+    if (freeText.trim()) parts.push(freeText.trim());
+    return parts.join(" ");
+  }
+
+  const hasContent = checkedReasons.size > 0 || freeText.trim().length > 0;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)] w-full max-w-[440px] p-6">
+      <div className="bg-surface rounded-[20px] border border-line shadow-[var(--shadow-soft)] w-full max-w-[480px] p-6">
         <div className="flex items-start justify-between gap-3 mb-4">
           <h3 className="font-display text-[18px] font-semibold text-ink">Rechazar transferencia</h3>
           <button onClick={onClose} className="text-ink3 hover:text-ink transition-colors"><X size={18} /></button>
         </div>
-        <p className="text-[13px] text-ink2 mb-4">Indica el motivo del rechazo. El tutor recibira un email explicando la razon.</p>
+        <p className="text-[13px] text-ink2 mb-4">Selecciona los motivos del rechazo. El tutor recibira un email con la explicacion.</p>
+
+        <div className="space-y-2 mb-4">
+          {REJECTION_REASONS.map((r) => {
+            const isAuto = getAutoSelectedReasons(ocrResult).has(r.key);
+            return (
+              <label key={r.key} className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-[10px] border cursor-pointer transition-colors text-[13px]",
+                checkedReasons.has(r.key)
+                  ? "border-coral/40 bg-coral/8 text-ink"
+                  : "border-line bg-bg text-ink2 hover:border-coral/20",
+              )}>
+                <input
+                  type="checkbox"
+                  checked={checkedReasons.has(r.key)}
+                  onChange={() => toggleReason(r.key)}
+                  className="accent-coral w-4 h-4 shrink-0"
+                />
+                <span className="flex-1">{r.label}</span>
+                {isAuto && checkedReasons.has(r.key) && (
+                  <span className="text-[10px] font-medium text-coral bg-coral/10 px-1.5 py-0.5 rounded-full">IA</span>
+                )}
+              </label>
+            );
+          })}
+        </div>
+
         <textarea
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          rows={3}
-          placeholder="Ej: El monto transferido no coincide con el indicado..."
+          value={freeText}
+          onChange={(e) => setFreeText(e.target.value)}
+          rows={2}
+          placeholder="Comentario adicional (opcional)..."
           className="w-full px-4 py-3 rounded-[12px] border border-line bg-bg text-ink text-[13px] resize-none focus:outline-none focus:ring-2 focus:ring-coral/30 focus:border-coral"
         />
         <div className="flex gap-3 mt-4">
@@ -124,8 +215,8 @@ function RejectModal({
             Cancelar
           </button>
           <button
-            onClick={() => onConfirm(reason)}
-            disabled={!reason.trim() || isPending}
+            onClick={() => onConfirm(buildReason())}
+            disabled={!hasContent || isPending}
             className="flex-1 px-4 py-2.5 rounded-[10px] bg-coral text-white text-[13px] font-semibold transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-y-0"
           >
             {isPending ? "Rechazando..." : "Rechazar"}
@@ -140,7 +231,8 @@ function RejectModal({
 
 export default function PendingTransfersSection() {
   const queryClient = useQueryClient();
-  const [rejectTarget, setRejectTarget] = useState<number | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<{ paymentId: number; ocrResult?: OcrResult } | null>(null);
+  const [previewOpen, setPreviewOpen] = useState<number | null>(null);
 
   const pendingTransfersQ = useQuery<PaginatedResponse<PendingTransferPayment>>({
     queryKey: ["payments", "pending-transfers"],
@@ -192,6 +284,7 @@ export default function PendingTransfersSection() {
           <div className="divide-y divide-line">
             {pendingTransfers.map((payment) => {
               const ocrResult = payment.metadata?.ocr_result;
+              const isPreviewOpen = previewOpen === payment.id;
               return (
                 <div key={payment.id} className="px-5 py-4 hover:bg-bg/60 transition-colors">
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -206,10 +299,13 @@ export default function PendingTransfersSection() {
                       {formatCurrency(payment.amount, payment.currency)}
                     </span>
                     {payment.receipt_file && (
-                      <a href={payment.receipt_file} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-[12px] font-medium text-teal-dark hover:underline">
-                        <ExternalLink size={13} /> Ver comprobante
-                      </a>
+                      <button
+                        onClick={() => setPreviewOpen(isPreviewOpen ? null : payment.id)}
+                        className="flex items-center gap-1 text-[12px] font-medium text-teal-dark hover:underline"
+                      >
+                        {isPreviewOpen ? <EyeOff size={13} /> : <Eye size={13} />}
+                        {isPreviewOpen ? "Ocultar" : "Ver comprobante"}
+                      </button>
                     )}
                     <div className="flex items-center gap-2">
                       <button
@@ -220,7 +316,7 @@ export default function PendingTransfersSection() {
                         <CheckCircle size={13} className="inline -mt-px" /> Confirmar
                       </button>
                       <button
-                        onClick={() => setRejectTarget(payment.id)}
+                        onClick={() => setRejectTarget({ paymentId: payment.id, ocrResult: ocrResult ?? undefined })}
                         disabled={rejectMutation.isPending}
                         className={cn("flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-[8px] transition-colors bg-coral/10 text-coral hover:bg-coral/20", rejectMutation.isPending && "opacity-50 cursor-not-allowed")}
                       >
@@ -228,7 +324,22 @@ export default function PendingTransfersSection() {
                       </button>
                     </div>
                   </div>
-                  {ocrResult && !ocrResult.error && <OcrAnalysisCard ocr={ocrResult} />}
+
+                  {/* Inline preview + OCR side by side */}
+                  {(isPreviewOpen || (ocrResult && !ocrResult.error)) && (
+                    <div className={cn(
+                      "mt-3 gap-3",
+                      isPreviewOpen && ocrResult && !ocrResult.error
+                        ? "grid grid-cols-1 md:grid-cols-2"
+                        : "flex flex-col",
+                    )}>
+                      {isPreviewOpen && payment.receipt_file && (
+                        <ReceiptPreview url={payment.receipt_file} />
+                      )}
+                      {ocrResult && !ocrResult.error && <OcrAnalysisCard ocr={ocrResult} />}
+                    </div>
+                  )}
+
                   {payment.receipt_file && !ocrResult && (
                     <p className="mt-2 text-[11px] text-ink3 flex items-center gap-1.5">
                       <Clock size={11} className="shrink-0" /> Analizando comprobante...
@@ -243,9 +354,9 @@ export default function PendingTransfersSection() {
 
       {rejectTarget !== null && (
         <RejectModal
-          paymentId={rejectTarget}
+          ocrResult={rejectTarget.ocrResult}
           onClose={() => setRejectTarget(null)}
-          onConfirm={(reason) => rejectMutation.mutate({ paymentId: rejectTarget, reason })}
+          onConfirm={(reason) => rejectMutation.mutate({ paymentId: rejectTarget.paymentId, reason })}
           isPending={rejectMutation.isPending}
         />
       )}
