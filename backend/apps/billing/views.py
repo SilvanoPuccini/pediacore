@@ -866,6 +866,30 @@ class MercadoPagoWebhookView(APIView):
             )
             return Response({"detail": "Already processed."}, status=status.HTTP_200_OK)
 
+        # ── 5b. Extract card/payment details from MP response for metadata ──
+        mp_details = {}
+        if mp_payment.get("payment_type_id"):
+            mp_details["payment_type_id"] = mp_payment["payment_type_id"]
+        if mp_payment.get("payment_method_id"):
+            mp_details["payment_method_id"] = mp_payment["payment_method_id"]
+        if mp_payment.get("installments"):
+            mp_details["installments"] = mp_payment["installments"]
+        if mp_payment.get("issuer_id"):
+            mp_details["issuer_id"] = mp_payment["issuer_id"]
+        if mp_payment.get("status_detail"):
+            mp_details["status_detail"] = mp_payment["status_detail"]
+        if mp_payment.get("statement_descriptor"):
+            mp_details["statement_descriptor"] = mp_payment["statement_descriptor"]
+        card_data = mp_payment.get("card", {})
+        if card_data:
+            mp_details["card"] = {
+                k: card_data[k]
+                for k in ("last_four_digits", "first_six_digits", "expiration_year", "expiration_month")
+                if card_data.get(k)
+            }
+            if card_data.get("cardholder", {}).get("name"):
+                mp_details["card"]["cardholder_name"] = card_data["cardholder"]["name"]
+
         # ── 6. Process based on MP status ─────────────────────────────────────
         if mp_status == "approved":
             try:
@@ -875,7 +899,9 @@ class MercadoPagoWebhookView(APIView):
                     payment.external_id = mp_payment_id
                     payment.external_status = "approved"
                     payment.paid_at = timezone.now()
-                    payment.save(update_fields=["status", "external_id", "external_status", "paid_at", "updated_at"])
+                    if mp_details:
+                        payment.metadata = {**(payment.metadata or {}), "mp_details": mp_details}
+                    payment.save(update_fields=["status", "external_id", "external_status", "paid_at", "metadata", "updated_at"])
 
                     # Update Appointment
                     appointment = payment.appointment
@@ -979,7 +1005,9 @@ class MercadoPagoWebhookView(APIView):
             payment.status = Payment.FAILED
             payment.external_id = mp_payment_id
             payment.external_status = "rejected"
-            payment.save(update_fields=["status", "external_id", "external_status", "updated_at"])
+            if mp_details:
+                payment.metadata = {**(payment.metadata or {}), "mp_details": mp_details}
+            payment.save(update_fields=["status", "external_id", "external_status", "metadata", "updated_at"])
             logger.info(
                 "MercadoPago webhook: Payment #%s FAILED (rejected by MP), Appointment stays HOLD",
                 payment.pk,

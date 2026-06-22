@@ -359,7 +359,10 @@ export interface PaymentDetail extends PaymentListItem {
   patient_rut: string;
   external_id: string;
   external_status: string;
+  metadata: Record<string, unknown> | null;
   notes: string;
+  receipt_file: string | null;
+  receipt_uploaded_at: string | null;
   has_invoice: boolean;
   invoice_id: number | null;
   invoice_number: string | null;

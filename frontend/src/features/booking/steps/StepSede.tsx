@@ -1,5 +1,5 @@
 import { useBookingStore } from "../store/bookingStore";
-import { useLocations, useOnlineSchedule } from "../hooks/useBookingQueries";
+import { useLocations, useOnlineSchedule, usePractice } from "../hooks/useBookingQueries";
 import Skeleton from "../components/Skeleton";
 import type { Location } from "@/types/api";
 
@@ -97,8 +97,11 @@ export default function StepSede() {
   const { locationId, setLocation, setStep } = useBookingStore();
   const { data: locationsResp, isLoading } = useLocations();
   const { data: onlineSchedule } = useOnlineSchedule();
+  const { data: practice } = usePractice();
   const locations = locationsResp?.results ?? [];
+  const isOnlineEnabled = practice?.is_online_enabled ?? false;
   const onlineHours = onlineSchedule?.display_hours || "";
+  const hasAnyOption = locations.length > 0 || isOnlineEnabled;
 
   function handleSelect(id: number | "online") {
     setLocation(id);
@@ -121,6 +124,20 @@ export default function StepSede() {
             <Skeleton className="h-[100px]" />
             <Skeleton className="h-[100px]" />
           </div>
+        ) : !hasAnyOption ? (
+          <div className="rounded-[16px] border-2 border-dashed border-line bg-bg p-8 text-center">
+            <div className="mx-auto w-12 h-12 rounded-full bg-coral/10 flex items-center justify-center mb-3">
+              <svg className="w-5 h-5 text-coral" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <p className="text-[15px] font-semibold text-ink">
+              No hay sedes disponibles
+            </p>
+            <p className="text-[13px] text-ink2 mt-1 max-w-xs mx-auto">
+              En este momento no hay turnos habilitados. Por favor, intentá de nuevo más tarde o contactanos directamente.
+            </p>
+          </div>
         ) : (
           <div className="space-y-3">
             {locations.map((loc) => (
@@ -131,17 +148,19 @@ export default function StepSede() {
                 onClick={() => handleSelect(loc.id)}
               />
             ))}
-            <SedeCard
-              location={{
-                id: "online",
-                name: "Atención Online",
-                address: "Agendar videollamada",
-                city: "Todo Chile",
-                display_hours: onlineHours,
-              }}
-              isSelected={locationId === "online"}
-              onClick={() => handleSelect("online")}
-            />
+            {isOnlineEnabled && (
+              <SedeCard
+                location={{
+                  id: "online",
+                  name: "Atención Online",
+                  address: "Agendar videollamada",
+                  city: "Todo Chile",
+                  display_hours: onlineHours,
+                }}
+                isSelected={locationId === "online"}
+                onClick={() => handleSelect("online")}
+              />
+            )}
           </div>
         )}
       </section>

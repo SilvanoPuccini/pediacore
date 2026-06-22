@@ -24,6 +24,7 @@ class PracticeSerializer(serializers.ModelSerializer):
             "phone",
             "website",
             "is_active",
+            "is_online_enabled",
             "created_at",
             "updated_at",
         ]
