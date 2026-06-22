@@ -1980,3 +1980,71 @@ def send_transfer_expired(payment) -> None:
             related_type="Payment",
             related_id=payment.pk,
         )
+
+
+def send_waitlist_offer_email(
+    entry,
+    slot_date=None,
+    slot_time=None,
+) -> None:
+    """
+    Send email to all linked tutors notifying them that a slot is available
+    for their child who was on the waitlist.
+
+    Args:
+        entry: The WaitlistEntry instance (already marked NOTIFIED).
+        slot_date: Optional date of the offered slot.
+        slot_time: Optional time of the offered slot.
+    """
+    from apps.patients.models import TutorPatient
+
+    tutors_qs = TutorPatient.objects.filter(patient=entry.patient).select_related("tutor")
+
+    slot_info = ""
+    if slot_date and slot_time:
+        slot_info = f"{_fmt_date(slot_date)} a las {_fmt_time(slot_time)}"
+    elif slot_date:
+        slot_info = _fmt_date(slot_date)
+
+    for link in tutors_qs:
+        tutor = link.tutor
+
+        prefs = NotificationPreference.objects.filter(user=tutor).first()
+        if prefs and not prefs.email_waitlist_available:
+            continue
+
+        subject = f"¡Turno disponible para {entry.patient.first_name}!"
+        body_lines = [
+            f"Hola {tutor.first_name},",
+            f"Se liberó un cupo para <strong>{entry.patient.full_name}</strong>.",
+            f"Servicio: {entry.service.name}",
+        ]
+        if entry.location:
+            body_lines.append(f"Sede: {entry.location.name}")
+        if slot_info:
+            body_lines.append(f"Fecha disponible: {slot_info}")
+        body_lines.append(
+            "Ingresá a tu portal para reservar este turno antes de que se ocupe."
+        )
+
+        booking_url = f"https://estefipediatra.com/booking"
+        extra_html = (
+            '<div style="text-align:center;margin:24px 0 8px;">'
+            f'<a href="{booking_url}" style="display:inline-block;background:#3E8E7C;'
+            'color:#ffffff;padding:14px 32px;border-radius:12px;font-size:14px;'
+            'font-weight:700;text-decoration:none;letter-spacing:0.01em;">'
+            'Reservar turno</a></div>'
+        )
+
+        html_body = _build_appointment_html(
+            title="Turno disponible",
+            body_lines=body_lines,
+            extra_html=extra_html,
+        )
+
+        send_email(
+            to=tutor.email,
+            subject=subject,
+            html_body=html_body,
+            practice=entry.practice,
+        )

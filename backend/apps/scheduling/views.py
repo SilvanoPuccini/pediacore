@@ -449,7 +449,12 @@ class WaitlistViewSet(viewsets.ModelViewSet):
         POST /api/v1/waitlist/{id}/offer-slot/
 
         Doctor offers an available slot to a waitlist entry.
-        Changes status to NOTIFIED and sends in-app notification to tutors.
+        Changes status to NOTIFIED and sends in-app notification + email to tutors.
+
+        Body (optional):
+            scheduled_date: "YYYY-MM-DD"
+            start_time: "HH:MM"
+            channel: "EMAIL" | "WHATSAPP" | "PHONE"  (default EMAIL)
         """
         entry = self.get_object()
 
@@ -458,6 +463,24 @@ class WaitlistViewSet(viewsets.ModelViewSet):
                 {"detail": "Only entries with WAITING status can be offered a slot."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        # Optional slot info from request body
+        slot_date_str = request.data.get("scheduled_date")
+        slot_time_str = request.data.get("start_time")
+        channel = request.data.get("channel", "EMAIL")
+
+        slot_date = None
+        slot_time = None
+        if slot_date_str:
+            try:
+                slot_date = datetime.date.fromisoformat(slot_date_str)
+            except ValueError:
+                pass
+        if slot_time_str:
+            try:
+                slot_time = datetime.time.fromisoformat(slot_time_str)
+            except ValueError:
+                pass
 
         entry.status = WaitlistEntry.NOTIFIED
         entry.notified_at = timezone.now()
@@ -481,6 +504,19 @@ class WaitlistViewSet(viewsets.ModelViewSet):
                 related_type="WaitlistEntry",
                 related_id=entry.pk,
             )
+
+        # Send email notification if channel is EMAIL
+        if channel == "EMAIL":
+            try:
+                from apps.notifications.services.email_service import send_waitlist_offer_email
+
+                send_waitlist_offer_email(entry, slot_date=slot_date, slot_time=slot_time)
+            except Exception as exc:
+                logger.warning(
+                    "offer_slot: email failed for WaitlistEntry #%s: %s",
+                    entry.pk,
+                    exc,
+                )
 
         serializer = self.get_serializer(entry)
         return Response(serializer.data, status=status.HTTP_200_OK)

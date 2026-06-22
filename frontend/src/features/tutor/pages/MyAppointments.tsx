@@ -10,6 +10,7 @@ import {
   Bell,
   Clock,
   AlertCircle,
+  Check,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "@/lib/api";
@@ -339,13 +340,49 @@ interface WaitlistFormFields {
   service: number | "";
   location: number | null;
   preferred_date_start: string;
-  notes: string;
+  timePref: "Mañana" | "Tarde" | "Indistinto";
+  notifyChannel: "WhatsApp" | "Email";
 }
 
 const inputCls =
   "w-full h-9 px-3 rounded-[10px] border border-line bg-surface text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal/60 transition";
 
 const labelCls = "block text-[11.5px] font-semibold text-ink2 uppercase tracking-wide mb-1.5";
+
+function formatPatientAge(age: { years: number; months: number }): string {
+  if (age.years >= 1) return `${age.years} año${age.years !== 1 ? "s" : ""}`;
+  return `${age.months} mes${age.months !== 1 ? "es" : ""}`;
+}
+
+function SegmentedControl<T extends string>({
+  value,
+  onChange,
+  options,
+}: {
+  value: T;
+  onChange: (v: T) => void;
+  options: T[];
+}) {
+  return (
+    <div className="inline-flex p-1 rounded-[10px] bg-bg border border-line w-full">
+      {options.map((o) => (
+        <button
+          key={o}
+          type="button"
+          onClick={() => onChange(o)}
+          className={cn(
+            "flex-1 px-2.5 py-1.5 rounded-[7px] text-[12px] font-semibold transition",
+            value === o
+              ? "bg-teal-dark text-white shadow-card"
+              : "text-ink2 hover:bg-surface"
+          )}
+        >
+          {o}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function WaitlistFormModal({
   open,
@@ -361,7 +398,8 @@ function WaitlistFormModal({
     service: "",
     location: null,
     preferred_date_start: "",
-    notes: "",
+    timePref: "Indistinto",
+    notifyChannel: "Email",
   });
 
   const [error, setError] = useState<string | null>(null);
@@ -409,7 +447,14 @@ function WaitlistFormModal({
     }) => api.post("/waitlist/", body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["waitlist-tutor"] });
-      setFields({ patient: "", service: "", location: null, preferred_date_start: "", notes: "" });
+      setFields({
+        patient: "",
+        service: "",
+        location: null,
+        preferred_date_start: "",
+        timePref: "Indistinto",
+        notifyChannel: "Email",
+      });
       setError(null);
       onClose();
     },
@@ -425,12 +470,13 @@ function WaitlistFormModal({
       setError("Completá los campos obligatorios.");
       return;
     }
+    const notes = `Prefiere: ${fields.timePref}. Canal: ${fields.notifyChannel}`;
     createMutation.mutate({
       patient: fields.patient as number,
       service: fields.service as number,
       location: fields.location,
       preferred_date_start: fields.preferred_date_start,
-      notes: fields.notes,
+      notes,
       priority: "NORMAL",
     });
   }
@@ -449,67 +495,90 @@ function WaitlistFormModal({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Info banner */}
-        <div className="flex items-start gap-2.5 p-3 rounded-[12px] bg-amber-50 border border-amber-200/70">
-          <Clock size={15} className="mt-0.5 shrink-0 text-amber-700" />
+        <div className="flex items-start gap-2.5 p-3 rounded-[12px] border"
+          style={{ background: "rgba(212,168,50,0.12)", borderColor: "rgba(212,168,50,0.28)" }}>
+          <Clock size={15} className="mt-0.5 shrink-0" style={{ color: "#8A6A1F" }} />
           <p className="text-[12px] text-ink2 leading-relaxed">
             Si se libera un cupo a partir de tu fecha ideal, te avisamos para
             que lo reserves primero. No perdés ningún turno ya reservado.
           </p>
         </div>
 
-        {/* Patient */}
+        {/* Child selector — card grid */}
         <div>
           <label className={labelCls}>¿Para quién? *</label>
-          <select
-            value={fields.patient}
-            onChange={(e) => set("patient", e.target.value ? Number(e.target.value) : "")}
-            className={inputCls}
-            required
-          >
-            <option value="">Seleccioná un paciente</option>
-            {patientsData?.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.full_name}
-              </option>
-            ))}
-          </select>
+          <div className="grid grid-cols-2 gap-2">
+            {patientsData && patientsData.length > 0 ? (
+              patientsData.map((p) => {
+                const isSelected = fields.patient === p.id;
+                const firstName = p.full_name.split(" ")[0] ?? p.full_name;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => set("patient", p.id)}
+                    className={cn(
+                      "flex items-center gap-2.5 p-2.5 rounded-[10px] border transition text-left",
+                      isSelected
+                        ? "bg-teal/10 border-teal"
+                        : "bg-surface border-line hover:bg-bg"
+                    )}
+                  >
+                    <Avatar name={firstName} childIndex={p.id % 4} size={30} />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[12.5px] font-bold text-ink truncate">{firstName}</div>
+                      <div className="text-[10.5px] text-ink3">{formatPatientAge(p.age)}</div>
+                    </div>
+                    {isSelected && (
+                      <Check size={14} className="text-teal-dark shrink-0" />
+                    )}
+                  </button>
+                );
+              })
+            ) : (
+              <p className="col-span-2 text-[12px] text-ink3 py-2">
+                {patientsData ? "No tenés pacientes registrados." : "Cargando..."}
+              </p>
+            )}
+          </div>
         </div>
 
-        {/* Service */}
-        <div>
-          <label className={labelCls}>Tipo de consulta *</label>
-          <select
-            value={fields.service}
-            onChange={(e) => set("service", e.target.value ? Number(e.target.value) : "")}
-            className={inputCls}
-            required
-          >
-            <option value="">Seleccioná un servicio</option>
-            {servicesData?.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Location (optional) */}
-        <div>
-          <label className={labelCls}>Sede (opcional)</label>
-          <select
-            value={fields.location ?? ""}
-            onChange={(e) =>
-              set("location", e.target.value ? Number(e.target.value) : null)
-            }
-            className={inputCls}
-          >
-            <option value="">Cualquier sede</option>
-            {locationsData?.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.name}
-              </option>
-            ))}
-          </select>
+        {/* Service + Sede row */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className={labelCls}>Tipo de consulta *</label>
+            <select
+              value={fields.service}
+              onChange={(e) => set("service", e.target.value ? Number(e.target.value) : "")}
+              className={inputCls}
+              required
+            >
+              <option value="">Seleccioná</option>
+              {servicesData?.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className={labelCls}>Modalidad / sede</label>
+            <select
+              value={fields.location ?? ""}
+              onChange={(e) =>
+                set("location", e.target.value && e.target.value !== "online" ? Number(e.target.value) : null)
+              }
+              className={inputCls}
+            >
+              <option value="">Cualquier sede</option>
+              {locationsData?.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}
+                </option>
+              ))}
+              <option value="online">Online</option>
+            </select>
+          </div>
         </div>
 
         {/* Preferred date start */}
@@ -525,16 +594,24 @@ function WaitlistFormModal({
           />
         </div>
 
-        {/* Notes */}
-        <div>
-          <label className={labelCls}>Notas adicionales (opcional)</label>
-          <textarea
-            value={fields.notes}
-            onChange={(e) => set("notes", e.target.value)}
-            rows={2}
-            placeholder="Ej: preferencia de horario, días disponibles..."
-            className={cn(inputCls, "h-auto resize-none py-2 leading-relaxed")}
-          />
+        {/* Preferences row */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className={labelCls}>Horario que preferís</label>
+            <SegmentedControl
+              value={fields.timePref}
+              onChange={(v) => set("timePref", v)}
+              options={["Mañana", "Tarde", "Indistinto"] as const}
+            />
+          </div>
+          <div>
+            <label className={labelCls}>Avisarme por</label>
+            <SegmentedControl
+              value={fields.notifyChannel}
+              onChange={(v) => set("notifyChannel", v)}
+              options={["WhatsApp", "Email"] as const}
+            />
+          </div>
         </div>
 
         {/* Error */}
@@ -576,68 +653,71 @@ function WaitlistCard({ entry }: { entry: WaitlistEntry }) {
     },
   });
 
-  const isNotified = entry.status === "NOTIFIED";
+  // Parse structured notes: "Prefiere: Mañana. Canal: Email"
+  const timePref = entry.notes?.match(/Prefiere:\s*([^.]+)/)?.[1]?.trim();
+  const channel = entry.notes?.match(/Canal:\s*([^.]+)/)?.[1]?.trim();
 
   return (
     <div
-      className={cn(
-        "rounded-[14px] border p-4 flex items-start justify-between gap-4 flex-wrap transition-colors",
-        isNotified
-          ? "bg-teal/5 border-teal/40"
-          : "bg-surface border-line"
-      )}
+      className="rounded-[16px] p-5 border"
+      style={{
+        background: "linear-gradient(135deg, rgba(168,201,168,0.16), rgba(123,181,189,0.10))",
+        borderColor: "rgba(123,181,189,0.4)",
+      }}
     >
-      <div className="flex items-start gap-3 min-w-0">
-        {/* Icon */}
-        <div
-          className={cn(
-            "w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0",
-            isNotified ? "bg-teal/20 text-teal-dark" : "bg-amber-100 text-amber-700"
-          )}
-        >
-          {isNotified ? <Bell size={16} /> : <Clock size={16} />}
-        </div>
-
-        {/* Info */}
-        <div className="min-w-0">
-          {isNotified && (
-            <p className="text-[11px] font-bold uppercase tracking-wide text-teal-dark mb-0.5">
-              ¡Turno disponible!
-            </p>
-          )}
-          <p className="text-[13px] font-semibold text-ink leading-snug">
-            {entry.patient_name}
-          </p>
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
-            <span className="text-[12px] text-ink2 flex items-center gap-1">
-              <Stethoscope size={11} className="shrink-0 text-ink3" />
-              {entry.service_name}
-            </span>
-            {entry.location_name && (
-              <span className="text-[12px] text-ink2 flex items-center gap-1">
-                <MapPin size={11} className="shrink-0 text-ink3" />
-                {entry.location_name}
-              </span>
-            )}
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="flex items-start gap-3 min-w-0">
+          {/* Icon */}
+          <div
+            className="w-10 h-10 rounded-[12px] flex items-center justify-center shrink-0"
+            style={{ background: "rgba(168,201,168,0.40)", color: "#3F7059" }}
+          >
+            <Check size={18} />
           </div>
-          {entry.notes && (
-            <p className="text-[11.5px] text-ink3 mt-1 leading-relaxed line-clamp-2">
-              {entry.notes}
-            </p>
-          )}
-        </div>
-      </div>
 
-      {/* Leave button */}
-      <button
-        onClick={() => deleteMutation.mutate(entry.id)}
-        disabled={deleteMutation.isPending}
-        className="shrink-0 text-[12px] font-semibold text-ink3 hover:text-[#A85050] transition-colors disabled:opacity-50 flex items-center gap-1"
-        aria-label="Salir de la lista de espera"
-      >
-        <X size={13} />
-        Salir de la lista
-      </button>
+          {/* Info */}
+          <div className="min-w-0">
+            <h3 className="font-display text-[16px] text-ink">Estás en lista de espera</h3>
+            <p className="text-[12.5px] text-ink2 mt-1 leading-relaxed max-w-lg">
+              Te avisamos por{" "}
+              <span className="font-semibold text-ink">{channel ?? "Email"}</span>{" "}
+              apenas se libere un cupo para{" "}
+              <span className="font-semibold text-ink">{entry.patient_name}</span>{" "}
+              ({entry.service_name})
+              {entry.location_name ? ` en ${entry.location_name}` : ""}.
+            </p>
+            <div className="mt-2 flex items-center gap-3 flex-wrap text-[11.5px] text-ink3">
+              {timePref && (
+                <span className="inline-flex items-center gap-1">
+                  <Clock size={11} />
+                  Preferís {timePref.toLowerCase()}
+                </span>
+              )}
+              <span className="inline-flex items-center gap-1">
+                <Bell size={11} />
+                Aviso activo
+              </span>
+              {entry.location_name && (
+                <span className="inline-flex items-center gap-1">
+                  <MapPin size={11} />
+                  {entry.location_name}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Leave button */}
+        <button
+          onClick={() => deleteMutation.mutate(entry.id)}
+          disabled={deleteMutation.isPending}
+          className="shrink-0 text-[12px] font-semibold text-ink3 hover:text-[#A85050] transition-colors disabled:opacity-50 flex items-center gap-1.5 border border-line/60 rounded-[10px] px-3 py-1.5 bg-surface/60 hover:border-[#A85050]/30"
+          aria-label="Salir de la lista de espera"
+        >
+          <X size={13} />
+          Salir de la lista
+        </button>
+      </div>
     </div>
   );
 }
@@ -658,53 +738,48 @@ function WaitlistSection() {
   });
 
   const activeEntries = waitlistData ?? [];
+  const hasEntries = activeEntries.length > 0;
 
   return (
-    <div className="mt-5 space-y-3">
-      {/* Section label */}
-      <div className="flex items-center gap-2">
-        <div className="h-px flex-1 bg-line/60" />
-        <span className="text-[11px] uppercase tracking-[0.12em] font-bold text-ink3 px-1">
-          Lista de espera
-        </span>
-        <div className="h-px flex-1 bg-line/60" />
-      </div>
-
-      {/* CTA card — always visible */}
-      <div className="rounded-[16px] border border-dashed border-line bg-surface p-5">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-[12px] bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
-              <Clock size={18} />
-            </div>
-            <div>
-              <h3 className="font-display text-[15px] font-medium text-ink">
-                ¿No hay turno cuando lo necesitás?
-              </h3>
-              <p className="text-[12.5px] text-ink2 mt-0.5 leading-relaxed max-w-md">
-                Sumate a la lista de espera y te avisamos si se libera un cupo
-                antes de tu fecha ideal.
-              </p>
-            </div>
-          </div>
-          <Btn variant="primary" icon="Bell" onClick={() => setModalOpen(true)}>
-            Avisarme si se libera
-          </Btn>
-        </div>
-      </div>
-
-      {/* Active entries */}
+    <div className="mt-5">
       {isLoading ? (
         <div className="flex items-center justify-center py-4">
           <div className="h-5 w-5 rounded-full border-2 border-line border-t-teal animate-spin" />
         </div>
-      ) : activeEntries.length > 0 ? (
+      ) : hasEntries ? (
+        /* Active entries — one or more status cards */
         <div className="space-y-2.5">
           {activeEntries.map((entry) => (
             <WaitlistCard key={entry.id} entry={entry} />
           ))}
         </div>
-      ) : null}
+      ) : (
+        /* CTA — no active entries */
+        <div className="rounded-[16px] border border-dashed border-line bg-surface p-5">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="flex items-start gap-3">
+              <div
+                className="w-10 h-10 rounded-[12px] flex items-center justify-center shrink-0"
+                style={{ background: "rgba(212,168,50,0.22)", color: "#8A6A1F" }}
+              >
+                <Clock size={18} />
+              </div>
+              <div>
+                <h3 className="font-display text-[16px] text-ink">
+                  ¿No hay turno antes de lo que necesitás?
+                </h3>
+                <p className="text-[12.5px] text-ink2 mt-1 leading-relaxed max-w-lg">
+                  Sumate a la lista de espera y te avisamos apenas se libere un
+                  cupo antes de tu fecha ideal. Sin perder tu lugar en la agenda.
+                </p>
+              </div>
+            </div>
+            <Btn variant="primary" icon="Bell" onClick={() => setModalOpen(true)}>
+              Avisarme si se libera
+            </Btn>
+          </div>
+        </div>
+      )}
 
       <WaitlistFormModal open={modalOpen} onClose={() => setModalOpen(false)} />
     </div>
@@ -835,28 +910,31 @@ export default function MyAppointments() {
           </div>
         </Card>
       ) : results.length === 0 ? (
-        <Card padding={false}>
-          <EmptyState
-            icon={isPast ? "FileText" : "Calendar"}
-            title={
-              isPast ? "No hay turnos anteriores" : "No tenés turnos próximos"
-            }
-            text={
-              isPast
-                ? "Tus turnos pasados van a aparecer acá."
-                : "Cuando reserves un turno, va a aparecer acá."
-            }
-            action={
-              !isPast ? (
-                <Link to="/booking">
-                  <Btn variant="primary" size="sm" icon="Plus">
-                    Reservar turno
-                  </Btn>
-                </Link>
-              ) : undefined
-            }
-          />
-        </Card>
+        <>
+          <Card padding={false}>
+            <EmptyState
+              icon={isPast ? "FileText" : "Calendar"}
+              title={
+                isPast ? "No hay turnos anteriores" : "No tenés turnos próximos"
+              }
+              text={
+                isPast
+                  ? "Tus turnos pasados van a aparecer acá."
+                  : "Cuando reserves un turno, va a aparecer acá."
+              }
+              action={
+                !isPast ? (
+                  <Link to="/booking">
+                    <Btn variant="primary" size="sm" icon="Plus">
+                      Reservar turno
+                    </Btn>
+                  </Link>
+                ) : undefined
+              }
+            />
+          </Card>
+          {!isPast && <WaitlistSection />}
+        </>
       ) : (
         <>
           <Card padding={false}>
@@ -881,20 +959,21 @@ export default function MyAppointments() {
             />
           </div>
 
-          {/* Bottom CTA — only for upcoming tab */}
+          {/* Waitlist + bottom CTA — only for upcoming tab */}
           {!isPast && (
             <>
+              <WaitlistSection />
               <div className="mt-5 bg-surface border border-dashed border-line rounded-[14px] p-5 flex flex-wrap items-center justify-between gap-3">
-                <p className="text-[13px] font-semibold text-ink">
-                  ¿Necesitás otro turno?
-                </p>
+                <div>
+                  <p className="text-[13.5px] font-bold text-ink">¿Necesitás otro turno?</p>
+                  <p className="text-[12px] text-ink2 mt-0.5">Reservá presencial u online en menos de 2 minutos.</p>
+                </div>
                 <Link to="/booking">
                   <Btn variant="primary" size="sm" icon="Plus">
                     Reservar turno
                   </Btn>
                 </Link>
               </div>
-              <WaitlistSection />
             </>
           )}
         </>
