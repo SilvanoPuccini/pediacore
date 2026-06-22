@@ -12,6 +12,7 @@ import {
   Clock,
   CalendarClock,
   FileText,
+  Video,
   CreditCard,
   Calculator,
   Settings,
@@ -44,6 +45,7 @@ const NAV_ITEMS = [
   { label: "Pagos", href: "/dashboard/pagos", icon: CreditCard },
   { label: "Finanzas", href: "/dashboard/finanzas", icon: Calculator },
   { label: "Blog", href: "/dashboard/blog", icon: FileText },
+  { label: "Videos", href: "/dashboard/videos", icon: Video },
   { label: "Notificaciones", href: "/dashboard/notificaciones", icon: Bell },
   { label: "Configuración", href: "/dashboard/config", icon: Settings },
 ];
@@ -64,6 +66,7 @@ function usePageTitle(pathname: string): string {
   if (pathname.startsWith("/dashboard/espera")) return "Lista de espera";
   if (pathname.startsWith("/dashboard/horarios")) return "Horarios";
   if (pathname.startsWith("/dashboard/blog")) return "Blog";
+  if (pathname.startsWith("/dashboard/videos")) return "Videos";
   if (pathname.startsWith("/dashboard/pagos")) return "Pagos";
   if (pathname.startsWith("/dashboard/finanzas")) return "Finanzas";
   if (pathname.startsWith("/dashboard/notificaciones")) return "Notificaciones";
