@@ -7,17 +7,21 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  Bell,
+  Clock,
+  AlertCircle,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
-import type { Appointment, PaginatedResponse } from "@/types/api";
+import type { Appointment, PaginatedResponse, WaitlistEntry, Patient, Service, Location } from "@/types/api";
 import {
   Card,
   Btn,
   EmptyState,
   StatusBadge,
   Avatar,
+  Modal,
 } from "@/features/tutor/components/portal-ui";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -328,6 +332,385 @@ function PaginationControls({
   );
 }
 
+// ─── Waitlist form ────────────────────────────────────────────────────────────
+
+interface WaitlistFormFields {
+  patient: number | "";
+  service: number | "";
+  location: number | null;
+  preferred_date_start: string;
+  notes: string;
+}
+
+const inputCls =
+  "w-full h-9 px-3 rounded-[10px] border border-line bg-surface text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal/60 transition";
+
+const labelCls = "block text-[11.5px] font-semibold text-ink2 uppercase tracking-wide mb-1.5";
+
+function WaitlistFormModal({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  const queryClient = useQueryClient();
+
+  const [fields, setFields] = useState<WaitlistFormFields>({
+    patient: "",
+    service: "",
+    location: null,
+    preferred_date_start: "",
+    notes: "",
+  });
+
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch tutor's patients
+  const { data: patientsData } = useQuery({
+    queryKey: ["patients-for-waitlist"],
+    queryFn: async () => {
+      const res = await api.get<PaginatedResponse<Patient>>("/patients/", {
+        params: { page_size: 50 },
+      });
+      return res.data.results;
+    },
+    enabled: open,
+  });
+
+  // Fetch services
+  const { data: servicesData } = useQuery({
+    queryKey: ["services-for-waitlist"],
+    queryFn: async () => {
+      const res = await api.get<Service[]>("/services/");
+      return res.data;
+    },
+    enabled: open,
+  });
+
+  // Fetch locations
+  const { data: locationsData } = useQuery({
+    queryKey: ["locations-for-waitlist"],
+    queryFn: async () => {
+      const res = await api.get<Location[]>("/locations/");
+      return res.data;
+    },
+    enabled: open,
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (body: {
+      patient: number;
+      service: number;
+      location: number | null;
+      preferred_date_start: string;
+      notes: string;
+      priority: "NORMAL";
+    }) => api.post("/waitlist/", body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["waitlist-tutor"] });
+      setFields({ patient: "", service: "", location: null, preferred_date_start: "", notes: "" });
+      setError(null);
+      onClose();
+    },
+    onError: () => {
+      setError("No se pudo guardar. Revisá los datos e intentá de nuevo.");
+    },
+  });
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (!fields.patient || !fields.service || !fields.preferred_date_start) {
+      setError("Completá los campos obligatorios.");
+      return;
+    }
+    createMutation.mutate({
+      patient: fields.patient as number,
+      service: fields.service as number,
+      location: fields.location,
+      preferred_date_start: fields.preferred_date_start,
+      notes: fields.notes,
+      priority: "NORMAL",
+    });
+  }
+
+  function set<K extends keyof WaitlistFormFields>(key: K, value: WaitlistFormFields[K]) {
+    setFields((prev) => ({ ...prev, [key]: value }));
+  }
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Lista de espera"
+      subtitle="Avisame si se libera un cupo"
+      size="md"
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Info banner */}
+        <div className="flex items-start gap-2.5 p-3 rounded-[12px] bg-amber-50 border border-amber-200/70">
+          <Clock size={15} className="mt-0.5 shrink-0 text-amber-700" />
+          <p className="text-[12px] text-ink2 leading-relaxed">
+            Si se libera un cupo a partir de tu fecha ideal, te avisamos para
+            que lo reserves primero. No perdés ningún turno ya reservado.
+          </p>
+        </div>
+
+        {/* Patient */}
+        <div>
+          <label className={labelCls}>¿Para quién? *</label>
+          <select
+            value={fields.patient}
+            onChange={(e) => set("patient", e.target.value ? Number(e.target.value) : "")}
+            className={inputCls}
+            required
+          >
+            <option value="">Seleccioná un paciente</option>
+            {patientsData?.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.full_name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Service */}
+        <div>
+          <label className={labelCls}>Tipo de consulta *</label>
+          <select
+            value={fields.service}
+            onChange={(e) => set("service", e.target.value ? Number(e.target.value) : "")}
+            className={inputCls}
+            required
+          >
+            <option value="">Seleccioná un servicio</option>
+            {servicesData?.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Location (optional) */}
+        <div>
+          <label className={labelCls}>Sede (opcional)</label>
+          <select
+            value={fields.location ?? ""}
+            onChange={(e) =>
+              set("location", e.target.value ? Number(e.target.value) : null)
+            }
+            className={inputCls}
+          >
+            <option value="">Cualquier sede</option>
+            {locationsData?.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Preferred date start */}
+        <div>
+          <label className={labelCls}>A partir de qué fecha *</label>
+          <input
+            type="date"
+            value={fields.preferred_date_start}
+            onChange={(e) => set("preferred_date_start", e.target.value)}
+            min={new Date().toISOString().split("T")[0]}
+            className={inputCls}
+            required
+          />
+        </div>
+
+        {/* Notes */}
+        <div>
+          <label className={labelCls}>Notas adicionales (opcional)</label>
+          <textarea
+            value={fields.notes}
+            onChange={(e) => set("notes", e.target.value)}
+            rows={2}
+            placeholder="Ej: preferencia de horario, días disponibles..."
+            className={cn(inputCls, "h-auto resize-none py-2 leading-relaxed")}
+          />
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div className="flex items-center gap-2 text-[12px] text-[#A85050]">
+            <AlertCircle size={13} className="shrink-0" />
+            {error}
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex items-center justify-end gap-2 pt-1">
+          <Btn variant="ghost" onClick={onClose} type="button">
+            Cancelar
+          </Btn>
+          <Btn
+            variant="primary"
+            icon="Bell"
+            type="submit"
+            disabled={createMutation.isPending}
+          >
+            {createMutation.isPending ? "Guardando..." : "Avisarme si se libera"}
+          </Btn>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+// ─── Waitlist entry card ───────────────────────────────────────────────────────
+
+function WaitlistCard({ entry }: { entry: WaitlistEntry }) {
+  const queryClient = useQueryClient();
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => api.delete(`/waitlist/${id}/`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["waitlist-tutor"] });
+    },
+  });
+
+  const isNotified = entry.status === "NOTIFIED";
+
+  return (
+    <div
+      className={cn(
+        "rounded-[14px] border p-4 flex items-start justify-between gap-4 flex-wrap transition-colors",
+        isNotified
+          ? "bg-teal/5 border-teal/40"
+          : "bg-surface border-line"
+      )}
+    >
+      <div className="flex items-start gap-3 min-w-0">
+        {/* Icon */}
+        <div
+          className={cn(
+            "w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0",
+            isNotified ? "bg-teal/20 text-teal-dark" : "bg-amber-100 text-amber-700"
+          )}
+        >
+          {isNotified ? <Bell size={16} /> : <Clock size={16} />}
+        </div>
+
+        {/* Info */}
+        <div className="min-w-0">
+          {isNotified && (
+            <p className="text-[11px] font-bold uppercase tracking-wide text-teal-dark mb-0.5">
+              ¡Turno disponible!
+            </p>
+          )}
+          <p className="text-[13px] font-semibold text-ink leading-snug">
+            {entry.patient_name}
+          </p>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
+            <span className="text-[12px] text-ink2 flex items-center gap-1">
+              <Stethoscope size={11} className="shrink-0 text-ink3" />
+              {entry.service_name}
+            </span>
+            {entry.location_name && (
+              <span className="text-[12px] text-ink2 flex items-center gap-1">
+                <MapPin size={11} className="shrink-0 text-ink3" />
+                {entry.location_name}
+              </span>
+            )}
+          </div>
+          {entry.notes && (
+            <p className="text-[11.5px] text-ink3 mt-1 leading-relaxed line-clamp-2">
+              {entry.notes}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Leave button */}
+      <button
+        onClick={() => deleteMutation.mutate(entry.id)}
+        disabled={deleteMutation.isPending}
+        className="shrink-0 text-[12px] font-semibold text-ink3 hover:text-[#A85050] transition-colors disabled:opacity-50 flex items-center gap-1"
+        aria-label="Salir de la lista de espera"
+      >
+        <X size={13} />
+        Salir de la lista
+      </button>
+    </div>
+  );
+}
+
+// ─── Waitlist section ─────────────────────────────────────────────────────────
+
+function WaitlistSection() {
+  const [modalOpen, setModalOpen] = useState(false);
+
+  const { data: waitlistData, isLoading } = useQuery({
+    queryKey: ["waitlist-tutor"],
+    queryFn: async () => {
+      const res = await api.get<PaginatedResponse<WaitlistEntry>>("/waitlist/", {
+        params: { page_size: 20, status: "WAITING,NOTIFIED" },
+      });
+      return res.data.results;
+    },
+  });
+
+  const activeEntries = waitlistData ?? [];
+
+  return (
+    <div className="mt-5 space-y-3">
+      {/* Section label */}
+      <div className="flex items-center gap-2">
+        <div className="h-px flex-1 bg-line/60" />
+        <span className="text-[11px] uppercase tracking-[0.12em] font-bold text-ink3 px-1">
+          Lista de espera
+        </span>
+        <div className="h-px flex-1 bg-line/60" />
+      </div>
+
+      {/* CTA card — always visible */}
+      <div className="rounded-[16px] border border-dashed border-line bg-surface p-5">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-[12px] bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+              <Clock size={18} />
+            </div>
+            <div>
+              <h3 className="font-display text-[15px] font-medium text-ink">
+                ¿No hay turno cuando lo necesitás?
+              </h3>
+              <p className="text-[12.5px] text-ink2 mt-0.5 leading-relaxed max-w-md">
+                Sumate a la lista de espera y te avisamos si se libera un cupo
+                antes de tu fecha ideal.
+              </p>
+            </div>
+          </div>
+          <Btn variant="primary" icon="Bell" onClick={() => setModalOpen(true)}>
+            Avisarme si se libera
+          </Btn>
+        </div>
+      </div>
+
+      {/* Active entries */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-4">
+          <div className="h-5 w-5 rounded-full border-2 border-line border-t-teal animate-spin" />
+        </div>
+      ) : activeEntries.length > 0 ? (
+        <div className="space-y-2.5">
+          {activeEntries.map((entry) => (
+            <WaitlistCard key={entry.id} entry={entry} />
+          ))}
+        </div>
+      ) : null}
+
+      <WaitlistFormModal open={modalOpen} onClose={() => setModalOpen(false)} />
+    </div>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function MyAppointments() {
@@ -500,16 +883,19 @@ export default function MyAppointments() {
 
           {/* Bottom CTA — only for upcoming tab */}
           {!isPast && (
-            <div className="mt-5 bg-surface border border-dashed border-line rounded-[14px] p-5 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-[13px] font-semibold text-ink">
-                ¿Necesitás otro turno?
-              </p>
-              <Link to="/booking">
-                <Btn variant="primary" size="sm" icon="Plus">
-                  Reservar turno
-                </Btn>
-              </Link>
-            </div>
+            <>
+              <div className="mt-5 bg-surface border border-dashed border-line rounded-[14px] p-5 flex flex-wrap items-center justify-between gap-3">
+                <p className="text-[13px] font-semibold text-ink">
+                  ¿Necesitás otro turno?
+                </p>
+                <Link to="/booking">
+                  <Btn variant="primary" size="sm" icon="Plus">
+                    Reservar turno
+                  </Btn>
+                </Link>
+              </div>
+              <WaitlistSection />
+            </>
           )}
         </>
       )}
