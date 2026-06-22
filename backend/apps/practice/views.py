@@ -6,7 +6,7 @@ Admin views (IsDoctor): full CRUD for working hours and blocked slots.
 """
 
 from django.shortcuts import get_object_or_404
-from rest_framework import viewsets
+from rest_framework import serializers, viewsets
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -252,4 +252,7 @@ class BlockedSlotAdminViewSet(viewsets.ModelViewSet):
         return BlockedSlot.objects.select_related("practice", "location").order_by("start_datetime")
 
     def perform_create(self, serializer):
-        serializer.save(practice=self.request.user.practice)
+        practice = self.request.user.practice
+        if practice is None:
+            raise serializers.ValidationError({"practice": "User has no associated practice."})
+        serializer.save(practice=practice)

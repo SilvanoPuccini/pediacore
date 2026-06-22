@@ -144,10 +144,14 @@ class AdminBlogPostViewSet(viewsets.ModelViewSet):
         return BlogPost.objects.select_related("author", "practice").order_by("-created_at")
 
     def perform_create(self, serializer: BlogPostAdminSerializer) -> None:
-        """Auto-assign the request user as author. Auto-generate slug if missing."""
+        """Auto-assign the request user as author and practice. Auto-generate slug if missing."""
+        practice = self.request.user.practice
+        if practice is None:
+            from rest_framework import serializers as _s
+            raise _s.ValidationError({"practice": "User has no associated practice."})
         title = serializer.validated_data.get("title", "")
         slug = serializer.validated_data.get("slug") or slugify(title)
-        serializer.save(author=self.request.user, slug=slug)
+        serializer.save(author=self.request.user, practice=practice, slug=slug)
 
     @action(detail=True, methods=["post"])
     def publish(self, request: Request, pk: int | None = None) -> Response:
@@ -257,7 +261,11 @@ class AdminVideoViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer: VideoResourceAdminSerializer) -> None:
         """Auto-assign the request user as author and their practice."""
-        serializer.save(author=self.request.user, practice=self.request.user.practice)
+        practice = self.request.user.practice
+        if practice is None:
+            from rest_framework import serializers as _s
+            raise _s.ValidationError({"practice": "User has no associated practice."})
+        serializer.save(author=self.request.user, practice=practice)
 
     @action(detail=True, methods=["post"])
     def publish(self, request: Request, pk: int | None = None) -> Response:
