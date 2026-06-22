@@ -167,6 +167,27 @@ class AdminBlogPostViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(post)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @action(detail=False, methods=["post"], url_path="format-content")
+    def format_content(self, request: Request) -> Response:
+        """Convert plain text to semantic HTML using Gemini AI."""
+        content = request.data.get("content", "")
+        if not content or not content.strip():
+            return Response(
+                {"detail": "Content is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from apps.content.blog_ai_service import convert_text_to_html
+
+        html = convert_text_to_html(content)
+        if html is None:
+            return Response(
+                {"detail": "Could not convert content. Check GEMINI_API_KEY or try again."},
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+
+        return Response({"html": html}, status=status.HTTP_200_OK)
+
 
 class AdminPageViewSet(viewsets.ModelViewSet):
     """
@@ -280,6 +301,39 @@ class AdminVideoViewSet(viewsets.ModelViewSet):
         video.unpublish()
         serializer = self.get_serializer(video)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["post"], url_path="autofill-preview")
+    def autofill_preview(self, request: Request) -> Response:
+        """Generate AI suggestions from a YouTube URL without saving anything."""
+        youtube_url = request.data.get("youtube_url", "")
+        if not youtube_url:
+            return Response(
+                {"detail": "youtube_url is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from apps.content.video_ai_service import autofill_video_metadata, fetch_youtube_title
+
+        title = request.data.get("title", "") or fetch_youtube_title(youtube_url) or ""
+        duration = int(request.data.get("duration_seconds", 0) or 0)
+
+        result = autofill_video_metadata(
+            youtube_url=youtube_url,
+            title=title,
+            duration_seconds=duration,
+        )
+
+        if not result:
+            return Response(
+                {"detail": "Could not generate metadata. Check the URL or try again."},
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+
+        # Include fetched title if we resolved it
+        if title and "title" not in result:
+            result["title"] = title
+
+        return Response({"suggestions": result}, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=["post"])
     def autofill(self, request: Request, pk: int | None = None) -> Response:

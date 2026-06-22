@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import DOMPurify from "dompurify";
 import {
   FileText,
   Plus,
@@ -9,6 +10,8 @@ import {
   Pencil,
   Trash2,
   AlertCircle,
+  Sparkles,
+  Code,
 } from "lucide-react";
 import api from "@/lib/api";
 import type { BlogPost, PaginatedResponse } from "@/types/api";
@@ -23,10 +26,16 @@ function formatDate(iso: string): string {
   });
 }
 
+function sanitize(html: string): string {
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ["p", "h2", "h3", "strong", "em", "ul", "ol", "li", "br"],
+  });
+}
+
 function StatusChip({ isPublished }: { isPublished: boolean }) {
   const s = isPublished
-    ? { bg: "rgba(168, 213, 181, 0.30)", text: "#3F8358", label: "Publicado" }
-    : { bg: "rgba(180, 180, 190, 0.25)", text: "#777", label: "Borrador" };
+    ? { bg: "rgba(168, 213, 181, 0.30)", text: "#3F8358", label: "Published" }
+    : { bg: "rgba(180, 180, 190, 0.25)", text: "#777", label: "Draft" };
   return (
     <span
       className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold"
@@ -47,6 +56,7 @@ const EMPTY_FORM = {
   tags: "",
   meta_description: "",
   cover_image: "",
+  is_published: false,
 };
 
 type FormData = typeof EMPTY_FORM;
@@ -56,7 +66,16 @@ type FormData = typeof EMPTY_FORM;
 export default function BlogPage() {
   const [mode, setMode] = useState<"list" | "create" | "edit">("list");
   const [editId, setEditId] = useState<number | null>(null);
+  const [editMeta, setEditMeta] = useState<{
+    slug?: string;
+    post_number?: number | null;
+    author_name?: string;
+    created_at?: string;
+    updated_at?: string;
+    published_at?: string;
+  }>({});
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
+  const [contentTab, setContentTab] = useState<"write" | "preview">("write");
   const [toast, setToast] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const queryClient = useQueryClient();
@@ -66,7 +85,7 @@ export default function BlogPage() {
     setTimeout(() => setToast(null), 2500);
   };
 
-  const set = (field: keyof FormData, value: string) =>
+  const set = <K extends keyof FormData>(field: K, value: FormData[K]) =>
     setForm((f) => ({ ...f, [field]: value }));
 
   // ── queries ─────────────────────────────────────────────────────────────────
@@ -87,7 +106,7 @@ export default function BlogPage() {
   // ── mutations ───────────────────────────────────────────────────────────────
 
   const saveMutation = useMutation({
-    mutationFn: async (payload: Record<string, string | null>) => {
+    mutationFn: async (payload: Record<string, unknown>) => {
       if (mode === "edit" && editId) {
         return api.patch(`/admin/blog/${editId}/`, payload);
       }
@@ -95,10 +114,10 @@ export default function BlogPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["blog-posts-admin"] });
-      flash(mode === "edit" ? "Articulo actualizado" : "Articulo creado");
+      flash(mode === "edit" ? "Post updated" : "Post created");
       goBack();
     },
-    onError: () => flash("Error al guardar"),
+    onError: () => flash("Error saving post"),
   });
 
   const togglePublishMutation = useMutation({
@@ -106,19 +125,35 @@ export default function BlogPage() {
       api.post(`/admin/blog/${id}/${publish ? "publish" : "unpublish"}/`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["blog-posts-admin"] });
-      flash("Estado actualizado");
+      flash("Status updated");
     },
-    onError: () => flash("Error al cambiar estado"),
+    onError: () => flash("Error updating status"),
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => api.delete(`/admin/blog/${id}/`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["blog-posts-admin"] });
-      flash("Articulo eliminado");
+      flash("Post deleted");
       setDeleteId(null);
     },
-    onError: () => flash("Error al eliminar"),
+    onError: () => flash("Error deleting post"),
+  });
+
+  const formatContentMutation = useMutation({
+    mutationFn: async (content: string) => {
+      const { data } = await api.post<{ html: string }>(
+        "/admin/blog/format-content/",
+        { content }
+      );
+      return data.html;
+    },
+    onSuccess: (html) => {
+      set("content", html);
+      setContentTab("preview");
+      flash("Content converted to HTML");
+    },
+    onError: () => flash("Error converting content — check API key"),
   });
 
   // ── actions ─────────────────────────────────────────────────────────────────
@@ -126,6 +161,8 @@ export default function BlogPage() {
   function openCreate() {
     setForm(EMPTY_FORM);
     setEditId(null);
+    setEditMeta({});
+    setContentTab("write");
     setMode("create");
   }
 
@@ -137,26 +174,46 @@ export default function BlogPage() {
       tags: post.tags,
       meta_description: post.meta_description,
       cover_image: post.cover_image ?? "",
+      is_published: post.is_published,
+    });
+    setEditMeta({
+      slug: post.slug,
+      post_number: post.post_number,
+      author_name: post.author_name,
+      created_at: post.created_at,
+      updated_at: post.updated_at,
+      published_at: post.published_at,
     });
     setEditId(post.id);
+    setContentTab("write");
     setMode("edit");
   }
 
   function goBack() {
     setMode("list");
     setEditId(null);
+    setEditMeta({});
   }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.title.trim()) {
-      flash("El titulo es obligatorio");
+      flash("Title is required");
       return;
     }
-    const payload: Record<string, string | null> = { ...form };
-    if (!payload.cover_image) payload.cover_image = null;
+    const payload: Record<string, unknown> = {
+      title: form.title,
+      excerpt: form.excerpt,
+      content: form.content,
+      tags: form.tags,
+      meta_description: form.meta_description,
+      cover_image: form.cover_image || null,
+      is_published: form.is_published,
+    };
     saveMutation.mutate(payload);
   }
+
+  const isContentHtml = form.content.includes("<p>") || form.content.includes("<h");
 
   // ── toast ───────────────────────────────────────────────────────────────────
 
@@ -170,7 +227,7 @@ export default function BlogPage() {
 
   if (mode !== "list") {
     return (
-      <div className="space-y-6 max-w-[800px]">
+      <div className="space-y-6 max-w-[860px]">
         {toastEl}
 
         <div className="flex items-center gap-3">
@@ -181,11 +238,12 @@ export default function BlogPage() {
             <ArrowLeft size={18} />
           </button>
           <h2 className="text-[18px] font-bold text-ink">
-            {mode === "create" ? "Nuevo articulo" : "Editar articulo"}
+            {mode === "create" ? "New post" : "Edit post"}
           </h2>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Main content card */}
           <div className="bg-surface border border-line rounded-[14px] shadow-[var(--shadow-card)] p-6 space-y-5">
             {/* Title */}
             <div>
@@ -199,6 +257,18 @@ export default function BlogPage() {
                 placeholder="Post title"
               />
             </div>
+
+            {/* Slug (read-only in edit) */}
+            {mode === "edit" && editMeta.slug && (
+              <div>
+                <label className="block text-[12px] font-semibold text-ink2 mb-1.5">
+                  Slug
+                </label>
+                <div className="px-3.5 py-2.5 rounded-[10px] border border-line bg-bg/50 text-[13px] text-ink3">
+                  {editMeta.slug}
+                </div>
+              </div>
+            )}
 
             {/* Excerpt */}
             <div>
@@ -214,18 +284,82 @@ export default function BlogPage() {
               />
             </div>
 
-            {/* Content */}
+            {/* Content with Write/Preview tabs + AI convert */}
             <div>
-              <label className="block text-[12px] font-semibold text-ink2 mb-1.5">
-                Content
-              </label>
-              <textarea
-                value={form.content}
-                onChange={(e) => set("content", e.target.value)}
-                rows={14}
-                className="w-full px-3.5 py-2.5 rounded-[10px] border border-line bg-bg text-[13px] text-ink placeholder:text-ink3 focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal resize-y font-mono transition-colors"
-                placeholder="Post content (HTML supported)"
-              />
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-[12px] font-semibold text-ink2">
+                  Content
+                </label>
+                <div className="flex items-center gap-2">
+                  {!isContentHtml && form.content.trim().length > 20 && (
+                    <button
+                      type="button"
+                      onClick={() => formatContentMutation.mutate(form.content)}
+                      disabled={formatContentMutation.isPending}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[8px] text-[11px] font-semibold bg-gradient-to-r from-purple-500 to-indigo-500 text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+                    >
+                      <Sparkles size={12} />
+                      {formatContentMutation.isPending
+                        ? "Converting..."
+                        : "Convert to HTML"}
+                    </button>
+                  )}
+                  <div className="flex rounded-[8px] border border-line overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setContentTab("write")}
+                      className={`px-3 py-1 text-[11px] font-semibold transition-colors ${
+                        contentTab === "write"
+                          ? "bg-teal-dark text-white"
+                          : "bg-bg text-ink3 hover:text-ink"
+                      }`}
+                    >
+                      <Code size={12} className="inline mr-1" />
+                      Write
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setContentTab("preview")}
+                      className={`px-3 py-1 text-[11px] font-semibold transition-colors ${
+                        contentTab === "preview"
+                          ? "bg-teal-dark text-white"
+                          : "bg-bg text-ink3 hover:text-ink"
+                      }`}
+                    >
+                      <Eye size={12} className="inline mr-1" />
+                      Preview
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {contentTab === "write" ? (
+                <textarea
+                  value={form.content}
+                  onChange={(e) => set("content", e.target.value)}
+                  rows={16}
+                  className="w-full px-3.5 py-2.5 rounded-[10px] border border-line bg-bg text-[13px] text-ink placeholder:text-ink3 focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal resize-y font-mono transition-colors"
+                  placeholder={"Write your content as plain text.\nUse the 'Convert to HTML' button to format it automatically with AI."}
+                />
+              ) : (
+                <div className="w-full min-h-[300px] px-4 py-3 rounded-[10px] border border-line bg-white">
+                  {form.content ? (
+                    <div
+                      className="prose prose-sm max-w-none text-ink [&_h2]:text-[16px] [&_h2]:font-bold [&_h2]:mt-5 [&_h2]:mb-2 [&_p]:text-[13.5px] [&_p]:leading-relaxed [&_p]:mb-3 [&_li]:text-[13.5px] [&_ul]:pl-5 [&_ol]:pl-5 [&_strong]:font-semibold"
+                      dangerouslySetInnerHTML={{
+                        __html: sanitize(form.content),
+                      }}
+                    />
+                  ) : (
+                    <p className="text-[13px] text-ink3 italic">
+                      No content to preview
+                    </p>
+                  )}
+                </div>
+              )}
+              <p className="text-[11px] text-ink3 mt-1.5">
+                Write as plain text, then click "Convert to HTML" to format with AI. Switch to Preview to see the result.
+              </p>
             </div>
 
             {/* Cover image */}
@@ -252,6 +386,29 @@ export default function BlogPage() {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Publishing & SEO card */}
+          <div className="bg-surface border border-line rounded-[14px] shadow-[var(--shadow-card)] p-6 space-y-5">
+            <h3 className="text-[13px] font-bold text-ink">Publishing & SEO</h3>
+
+            {/* Publish toggle */}
+            <div className="flex items-center justify-between">
+              <span className="text-[12.5px] text-ink2">Published</span>
+              <button
+                type="button"
+                onClick={() => set("is_published", !form.is_published)}
+                className={`relative w-10 h-[22px] rounded-full transition-colors ${
+                  form.is_published ? "bg-teal" : "bg-line"
+                }`}
+              >
+                <span
+                  className={`absolute top-[3px] w-4 h-4 rounded-full bg-white shadow transition-transform ${
+                    form.is_published ? "left-[22px]" : "left-[3px]"
+                  }`}
+                />
+              </button>
+            </div>
 
             {/* Tags + Meta */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -263,7 +420,7 @@ export default function BlogPage() {
                   value={form.tags}
                   onChange={(e) => set("tags", e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-[10px] border border-line bg-bg text-[13.5px] text-ink placeholder:text-ink3 focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal transition-colors"
-                  placeholder="pediatrics, tips, breastfeeding"
+                  placeholder="health, pediatrics, tips"
                 />
               </div>
               <div>
@@ -278,6 +435,36 @@ export default function BlogPage() {
                 />
               </div>
             </div>
+
+            {/* Read-only metadata in edit mode */}
+            {mode === "edit" && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2 border-t border-line">
+                {editMeta.post_number != null && (
+                  <div>
+                    <p className="text-[10.5px] font-semibold text-ink3 uppercase">Post #</p>
+                    <p className="text-[12.5px] text-ink mt-0.5">{editMeta.post_number}</p>
+                  </div>
+                )}
+                {editMeta.author_name && (
+                  <div>
+                    <p className="text-[10.5px] font-semibold text-ink3 uppercase">Author</p>
+                    <p className="text-[12.5px] text-ink mt-0.5">{editMeta.author_name}</p>
+                  </div>
+                )}
+                {editMeta.published_at && (
+                  <div>
+                    <p className="text-[10.5px] font-semibold text-ink3 uppercase">Published</p>
+                    <p className="text-[12.5px] text-ink mt-0.5">{formatDate(editMeta.published_at)}</p>
+                  </div>
+                )}
+                {editMeta.created_at && (
+                  <div>
+                    <p className="text-[10.5px] font-semibold text-ink3 uppercase">Created</p>
+                    <p className="text-[12.5px] text-ink mt-0.5">{formatDate(editMeta.created_at)}</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Action buttons */}

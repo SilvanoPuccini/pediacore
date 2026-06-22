@@ -10,6 +10,7 @@ import {
   Trash2,
   AlertCircle,
   Play,
+  Sparkles,
 } from "lucide-react";
 import api from "@/lib/api";
 import type { VideoResource, PaginatedResponse } from "@/types/api";
@@ -186,6 +187,37 @@ export default function VideosPage() {
     onError: () => flash("Error deleting video"),
   });
 
+  const autofillMutation = useMutation({
+    mutationFn: async (youtubeUrl: string) => {
+      const { data } = await api.post<{
+        suggestions: {
+          title?: string;
+          description?: string;
+          category?: string;
+          chapters?: { time_seconds: number; label: string }[];
+        };
+      }>("/admin/videos/autofill-preview/", {
+        youtube_url: youtubeUrl,
+        title: form.title || undefined,
+        duration_seconds: form.duration_seconds || undefined,
+      });
+      return data.suggestions;
+    },
+    onSuccess: (suggestions) => {
+      setForm((f) => ({
+        ...f,
+        title: suggestions.title || f.title,
+        description: suggestions.description || f.description,
+        category: suggestions.category || f.category,
+        chapters_text: suggestions.chapters?.length
+          ? chaptersToText(suggestions.chapters)
+          : f.chapters_text,
+      }));
+      flash("Fields populated with AI suggestions");
+    },
+    onError: () => flash("AI autofill failed — check YouTube URL"),
+  });
+
   // ── actions ─────────────────────────────────────────────────────────────────
 
   function openCreate() {
@@ -305,6 +337,19 @@ export default function VideosPage() {
                     allowFullScreen
                   />
                 </div>
+              )}
+              {form.youtube_url.trim() && (
+                <button
+                  type="button"
+                  onClick={() => autofillMutation.mutate(form.youtube_url)}
+                  disabled={autofillMutation.isPending}
+                  className="mt-2 inline-flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-[8px] bg-teal-dark/10 text-teal-dark hover:bg-teal-dark/20 transition-colors disabled:opacity-50"
+                >
+                  <Sparkles size={13} />
+                  {autofillMutation.isPending
+                    ? "Generating..."
+                    : "Autofill with AI"}
+                </button>
               )}
             </div>
 
