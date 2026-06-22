@@ -1427,6 +1427,19 @@ def send_transfer_receipt_uploaded(payment) -> None:
         practice=payment.practice,
     )
 
+    Notification.objects.create(
+        practice=payment.practice,
+        recipient=doctor,
+        notification_type=Notification.PAYMENT_RECEIVED,
+        title="Nuevo comprobante de transferencia",
+        message=(
+            f"{patient_name} subió un comprobante por ${amount_display}. "
+            f"Revisá y confirmá el pago desde tu panel."
+        ),
+        related_type="Payment",
+        related_id=payment.pk,
+    )
+
 
 def send_transfer_confirmed(payment) -> None:
     """
@@ -1468,13 +1481,6 @@ def send_transfer_confirmed(payment) -> None:
             scheduled_date=scheduled_date,
             start_time=start_time,
             location_name=appointment.location.name if appointment.location else "Consulta Online",
-        )
-
-        send_email(
-            to=tutor.email,
-            subject=subject,
-            html_body=html_body,
-            practice=payment.practice,
         )
 
         send_email(
@@ -1527,6 +1533,19 @@ def send_transfer_rejected(payment, reason: str) -> None:
             subject=subject,
             html_body=html_body,
             practice=payment.practice,
+        )
+
+        Notification.objects.create(
+            practice=payment.practice,
+            recipient=tutor,
+            notification_type=Notification.PAYMENT_RECEIVED,
+            title="Transferencia rechazada",
+            message=(
+                f"Tu transferencia por ${amount_display} fue rechazada. "
+                f"Motivo: {reason}"
+            ),
+            related_type="Payment",
+            related_id=payment.pk,
         )
 
 
@@ -1883,4 +1902,17 @@ def send_transfer_expired(payment) -> None:
             subject=subject,
             html_body=html_body,
             practice=payment.practice,
+        )
+
+        Notification.objects.create(
+            practice=payment.practice,
+            recipient=tutor,
+            notification_type=Notification.APPOINTMENT_CANCELLED,
+            title="Turno cancelado por falta de comprobante",
+            message=(
+                f"Tu turno del {scheduled_date_short} fue cancelado porque no "
+                f"recibimos el comprobante de transferencia a tiempo."
+            ),
+            related_type="Payment",
+            related_id=payment.pk,
         )
