@@ -35,6 +35,8 @@ def get_available_slots(
     if is_online:
         location = None
         practice = service.practice
+        if not practice.is_online_enabled:
+            return []
     else:
         try:
             location = Location.objects.get(pk=location_id, is_active=True)

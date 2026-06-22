@@ -212,6 +212,16 @@ class WaitlistEntry(BaseModel):
         (CANCELLED, _("Cancelled")),
     ]
 
+    HIGH = "HIGH"
+    NORMAL = "NORMAL"
+    LOW = "LOW"
+
+    PRIORITY_CHOICES = [
+        (HIGH, _("High")),
+        (NORMAL, _("Normal")),
+        (LOW, _("Low")),
+    ]
+
     practice = models.ForeignKey(
         "practice.Practice",
         on_delete=models.CASCADE,
@@ -248,6 +258,12 @@ class WaitlistEntry(BaseModel):
         max_length=20,
         choices=STATUS_CHOICES,
         default=WAITING,
+    )
+    priority = models.CharField(
+        _("priority"),
+        max_length=10,
+        choices=PRIORITY_CHOICES,
+        default=NORMAL,
     )
     notified_at = models.DateTimeField(_("notified at"), null=True, blank=True)
     notes = models.TextField(_("notes"), blank=True)

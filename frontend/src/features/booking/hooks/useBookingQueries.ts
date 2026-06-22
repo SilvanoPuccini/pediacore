@@ -4,6 +4,24 @@ import type { Location, Service, AvailableSlot, Patient, PaginatedResponse } fro
 
 const PRACTICE_SLUG = "dra-estefi";
 
+// ─── Practice ─────────────────────────────────────────────────────────────────
+
+interface PracticeInfo {
+  id: number;
+  is_online_enabled: boolean;
+}
+
+export function usePractice() {
+  return useQuery<PracticeInfo>({
+    queryKey: ["practice", PRACTICE_SLUG],
+    queryFn: async () => {
+      const { data } = await api.get<PracticeInfo>(`/practices/${PRACTICE_SLUG}/`);
+      return data;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
 // ─── Locations ─────────────────────────────────────────────────────────────────
 
 export function useLocations() {
