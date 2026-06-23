@@ -246,3 +246,129 @@ class TestPaymentProviderViews:
         client = auth_client(tutor)
         response = client.get("/api/v1/admin/payment-providers/")
         assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+# ---------------------------------------------------------------------------
+# CashFlowView
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+class TestCashFlowView:
+    def test_doctor_can_view_cash_flow(self) -> None:
+        doctor = DoctorFactory()
+        practice = PracticeFactory(owner=doctor)
+        client = auth_client(doctor)
+        response = client.get("/api/v1/cash-flow/")
+        assert response.status_code == status.HTTP_200_OK
+        assert "series" in response.data or "months" in response.data
+
+    def test_doctor_without_practice_returns_404(self) -> None:
+        doctor = DoctorFactory()
+        # No practice created
+        client = auth_client(doctor)
+        response = client.get("/api/v1/cash-flow/")
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_tutor_cannot_access_cash_flow(self) -> None:
+        tutor = UserFactory()
+        client = auth_client(tutor)
+        response = client.get("/api/v1/cash-flow/")
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_unauthenticated_returns_401(self) -> None:
+        client = APIClient()
+        response = client.get("/api/v1/cash-flow/")
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+# ---------------------------------------------------------------------------
+# TaxCalculatorView
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+class TestTaxCalculatorView:
+    url = "/api/v1/tax-calculator/"
+
+    def _auth_doctor_client(self):
+        doctor = DoctorFactory()
+        PracticeFactory(owner=doctor)
+        return auth_client(doctor)
+
+    def test_calculate_boleta_returns_200(self) -> None:
+        client = self._auth_doctor_client()
+        response = client.post(
+            self.url,
+            {"gross_amount": 500000, "document_type": "boleta"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_200_OK
+        data = response.data
+        assert "boleta" in data
+        assert "factura" in data
+        assert "comparison" in data
+        assert data["boleta"]["retention"] > 0
+
+    def test_calculate_factura_returns_200(self) -> None:
+        client = self._auth_doctor_client()
+        response = client.post(
+            self.url,
+            {"gross_amount": 500000, "document_type": "factura_exenta"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["factura"]["annual_tax_estimate"] >= 0
+
+    def test_tutor_cannot_access_calculator(self) -> None:
+        tutor = UserFactory()
+        client = auth_client(tutor)
+        response = client.post(
+            self.url,
+            {"gross_amount": 500000, "document_type": "boleta"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_missing_gross_amount_returns_400(self) -> None:
+        client = self._auth_doctor_client()
+        response = client.post(self.url, {"document_type": "boleta"}, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_zero_gross_returns_400(self) -> None:
+        client = self._auth_doctor_client()
+        response = client.post(
+            self.url,
+            {"gross_amount": 0, "document_type": "boleta"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_invalid_document_type_returns_400(self) -> None:
+        client = self._auth_doctor_client()
+        response = client.post(
+            self.url,
+            {"gross_amount": 500000, "document_type": "invalid"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_unauthenticated_returns_401(self) -> None:
+        client = APIClient()
+        response = client.post(
+            self.url,
+            {"gross_amount": 500000, "document_type": "boleta"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_comparison_recommends_factura_for_high_income(self) -> None:
+        client = self._auth_doctor_client()
+        response = client.post(
+            self.url,
+            {"gross_amount": 5000000, "document_type": "boleta"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_200_OK
+        rec = response.data["comparison"]["recommendation"]
+        assert rec in ("boleta", "factura")
