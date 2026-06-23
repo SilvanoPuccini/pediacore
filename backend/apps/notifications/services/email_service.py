@@ -1982,6 +1982,11 @@ def send_transfer_expired(payment) -> None:
         )
 
 
+_DAYS_ES = [
+    "lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"
+]
+
+
 def send_waitlist_offer_email(
     entry,
     slot_date=None,
@@ -2004,12 +2009,6 @@ def send_waitlist_offer_email(
 
     tutors_qs = TutorPatient.objects.filter(patient=entry.patient).select_related("tutor")
 
-    slot_info = ""
-    if slot_date and slot_time:
-        slot_info = f"{_fmt_date(slot_date)} a las {_fmt_time(slot_time)}"
-    elif slot_date:
-        slot_info = _fmt_date(slot_date)
-
     for link in tutors_qs:
         tutor = link.tutor
 
@@ -2017,43 +2016,431 @@ def send_waitlist_offer_email(
         if prefs and not prefs.email_waitlist_available:
             continue
 
-        subject = f"¡Turno disponible para {entry.patient.first_name}!"
-        body_lines = [
-            f"Hola {tutor.first_name},",
-            f"La Dra. Estefi te ofrece un turno para <strong>{entry.patient.full_name}</strong>.",
-            f"Servicio: {entry.service.name}",
-        ]
-        if entry.location:
-            body_lines.append(f"Sede: {entry.location.name}")
-        if slot_info:
-            body_lines.append(f"Fecha y hora: {slot_info}")
-        body_lines.append(
-            f"<strong>Ten\u00e9s {expires_minutes} minutos para confirmar.</strong> "
-            "Si no confirm\u00e1s a tiempo, el turno se libera autom\u00e1ticamente."
-        )
-
-        # Payment CTA button + decline link
         frontend_url = getattr(settings, "FRONTEND_URL", "https://estefipediatra.com").rstrip("/")
+        logo_url = _EMAIL_LOGO_URL()
         cta_url = payment_link or f"{frontend_url}/portal/turnos"
         cta_label = "Confirmar y pagar" if payment_link else "Ver mi turno"
         decline_url = f"{frontend_url}/portal/turnos"
-        extra_html = (
-            '<div style="text-align:center;margin:24px 0 8px;">'
-            f'<a href="{cta_url}" style="display:inline-block;background:#4A8590;'
-            'color:#ffffff;padding:14px 32px;border-radius:12px;font-size:15px;'
-            'font-weight:700;text-decoration:none;letter-spacing:0.01em;">'
-            f'{cta_label}</a></div>'
-            '<div style="text-align:center;margin:8px 0 0;">'
-            f'<a href="{decline_url}" style="color:#999999;font-size:12px;'
-            'font-family:\'Plus Jakarta Sans\',Arial,sans-serif;text-decoration:underline;">'
-            'No me interesa este turno</a></div>'
-        )
 
-        html_body = _build_appointment_html(
-            title="Turno disponible",
-            body_lines=body_lines,
-            extra_html=extra_html,
-        )
+        subject = f"¡Turno disponible para {entry.patient.first_name}!"
+
+        # ── Calendar hero block ──────────────────────────────────────────
+        if slot_date:
+            day_number = slot_date.day
+            day_name = _DAYS_ES[slot_date.weekday()].capitalize()
+            month_name = _MONTHS_ES[slot_date.month].capitalize()
+            year_str = str(slot_date.year)
+            calendar_block = f"""
+                    <!-- Calendar hero -->
+                    <tr>
+                        <td style="padding:0 0 24px;" bgcolor="#FFFFFF">
+                            <table role="presentation" cellpadding="0" cellspacing="0"
+                                   style="margin:0 auto; border-radius:16px; overflow:hidden;
+                                          box-shadow:0 2px 12px rgba(74,133,144,0.15);"
+                                   width="200">
+                                <!-- Month banner -->
+                                <tr>
+                                    <td style="background-color:#4A8590; padding:10px 24px 8px;
+                                               text-align:center;" bgcolor="#4A8590">
+                                        <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif;
+                                                  font-size:13px; font-weight:700; letter-spacing:2px;
+                                                  text-transform:uppercase; color:#FFFFFF; margin:0;">
+                                            {month_name} {year_str}
+                                        </p>
+                                    </td>
+                                </tr>
+                                <!-- Day number -->
+                                <tr>
+                                    <td style="background-color:#FFFFFF; padding:16px 24px 8px;
+                                               text-align:center;" bgcolor="#FFFFFF">
+                                        <p style="font-family:'Fraunces',Georgia,'Times New Roman',serif;
+                                                  font-size:72px; font-weight:700; line-height:1;
+                                                  color:#1F2228; margin:0;">
+                                            {day_number}
+                                        </p>
+                                    </td>
+                                </tr>
+                                <!-- Day name -->
+                                <tr>
+                                    <td style="background-color:#FFFFFF; padding:0 24px 16px;
+                                               text-align:center;" bgcolor="#FFFFFF">
+                                        <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif;
+                                                  font-size:14px; font-weight:600; letter-spacing:1px;
+                                                  text-transform:uppercase; color:#6B7280; margin:0;">
+                                            {day_name}
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>"""
+        else:
+            calendar_block = ""
+
+        # ── Time display ─────────────────────────────────────────────────
+        if slot_time:
+            time_str = _fmt_time(slot_time)
+            time_block = f"""
+                    <!-- Time display -->
+                    <tr>
+                        <td style="padding:0 0 28px; text-align:center;" bgcolor="#FFFFFF">
+                            <table role="presentation" cellpadding="0" cellspacing="0"
+                                   style="margin:0 auto;">
+                                <tr>
+                                    <td style="vertical-align:middle; padding-right:8px;">
+                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+                                             stroke="#4A8590" stroke-width="2.5"
+                                             stroke-linecap="round" stroke-linejoin="round"
+                                             style="display:block;">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <polyline points="12 6 12 12 16 14"/>
+                                        </svg>
+                                    </td>
+                                    <td style="vertical-align:middle;">
+                                        <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif;
+                                                  font-size:28px; font-weight:700; color:#1F2228;
+                                                  margin:0; letter-spacing:-0.5px;">
+                                            {time_str}
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>"""
+        else:
+            time_block = ""
+
+        # ── Service + location card ───────────────────────────────────────
+        service_name = entry.service.name if entry.service else "Consulta"
+        location_name = entry.location.name if entry.location else ""
+        location_row = ""
+        if location_name:
+            location_row = f"""
+                            <tr>
+                                <td style="padding:10px 0 0; border-top:1px solid #F3F4F6;"
+                                    bgcolor="#FFFFFF">
+                                    <table role="presentation" cellpadding="0" cellspacing="0"
+                                           width="100%">
+                                        <tr>
+                                            <td style="vertical-align:middle; width:28px;">
+                                                <svg width="18" height="18" viewBox="0 0 24 24"
+                                                     fill="none" stroke="#4A8590" stroke-width="2"
+                                                     stroke-linecap="round" stroke-linejoin="round"
+                                                     style="display:block;">
+                                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                                                    <circle cx="12" cy="10" r="3"/>
+                                                </svg>
+                                            </td>
+                                            <td style="vertical-align:middle;">
+                                                <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif;
+                                                          font-size:14px; color:#6B7280; margin:0;">
+                                                    Sede
+                                                </p>
+                                            </td>
+                                            <td style="vertical-align:middle; text-align:right;">
+                                                <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif;
+                                                          font-size:15px; font-weight:600;
+                                                          color:#1F2228; margin:0;">
+                                                    {location_name}
+                                                </p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>"""
+
+        info_card = f"""
+                    <!-- Service + location info card -->
+                    <tr>
+                        <td style="padding:0 0 24px;" bgcolor="#FFFFFF">
+                            <table role="presentation" cellpadding="0" cellspacing="0" width="100%"
+                                   style="background-color:#F8FAFB; border:1px solid #E5E7EB;
+                                          border-radius:12px;">
+                                <tr>
+                                    <td style="padding:18px 20px;" bgcolor="#F8FAFB">
+                                        <table role="presentation" cellpadding="0" cellspacing="0"
+                                               width="100%">
+                                            <!-- Service row -->
+                                            <tr>
+                                                <td style="padding:0 0 10px;" bgcolor="#F8FAFB">
+                                                    <table role="presentation" cellpadding="0"
+                                                           cellspacing="0" width="100%">
+                                                        <tr>
+                                                            <td style="vertical-align:middle; width:28px;">
+                                                                <svg width="18" height="18"
+                                                                     viewBox="0 0 24 24" fill="none"
+                                                                     stroke="#4A8590" stroke-width="2"
+                                                                     stroke-linecap="round"
+                                                                     stroke-linejoin="round"
+                                                                     style="display:block;">
+                                                                    <path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>
+                                                                </svg>
+                                                            </td>
+                                                            <td style="vertical-align:middle; padding-left:8px;">
+                                                                <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif;
+                                                                          font-size:14px; color:#6B7280; margin:0;">
+                                                                    Servicio
+                                                                </p>
+                                                            </td>
+                                                            <td style="vertical-align:middle; text-align:right;">
+                                                                <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif;
+                                                                          font-size:15px; font-weight:600;
+                                                                          color:#1F2228; margin:0;">
+                                                                    {service_name}
+                                                                </p>
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                </td>
+                                            </tr>
+                                            {location_row}
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>"""
+
+        # ── Countdown warning ─────────────────────────────────────────────
+        warning_block = f"""
+                    <!-- Countdown warning -->
+                    <tr>
+                        <td style="padding:0 0 28px;" bgcolor="#FFFFFF">
+                            <table role="presentation" cellpadding="0" cellspacing="0" width="100%"
+                                   style="background-color:#FFFBEB; border:2px solid #F59E0B;
+                                          border-radius:12px;">
+                                <tr>
+                                    <td style="padding:18px 20px;" bgcolor="#FFFBEB">
+                                        <table role="presentation" cellpadding="0" cellspacing="0"
+                                               width="100%">
+                                            <tr>
+                                                <td style="vertical-align:top; width:32px;
+                                                           padding-right:12px;">
+                                                    <svg width="24" height="24" viewBox="0 0 24 24"
+                                                         fill="none" stroke="#F59E0B" stroke-width="2.5"
+                                                         stroke-linecap="round" stroke-linejoin="round"
+                                                         style="display:block;">
+                                                        <circle cx="12" cy="12" r="10"/>
+                                                        <line x1="12" y1="8" x2="12" y2="12"/>
+                                                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                                                    </svg>
+                                                </td>
+                                                <td style="vertical-align:top;">
+                                                    <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif;
+                                                              font-size:15px; font-weight:700;
+                                                              color:#92400E; margin:0 0 4px;">
+                                                        Ten&eacute;s {expires_minutes} minutos para confirmar
+                                                    </p>
+                                                    <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif;
+                                                              font-size:13px; color:#92400E;
+                                                              line-height:1.5; margin:0;">
+                                                        Si no confirm&aacute;s a tiempo, el turno se libera
+                                                        autom&aacute;ticamente y pasa al siguiente en la lista.
+                                                    </p>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>"""
+
+        # ── CTA buttons ───────────────────────────────────────────────────
+        buttons_block = f"""
+                    <!-- CTA buttons -->
+                    <tr>
+                        <td style="padding:0 0 16px; text-align:center;" bgcolor="#FFFFFF">
+                            <a href="{cta_url}"
+                               style="display:inline-block; background-color:#4A8590;
+                                      color:#FFFFFF; font-family:'Plus Jakarta Sans',Arial,sans-serif;
+                                      font-size:16px; font-weight:700; text-decoration:none;
+                                      padding:16px 40px; border-radius:12px;
+                                      letter-spacing:0.02em;">
+                                {cta_label}
+                            </a>
+                        </td>
+                    </tr>
+                    <!-- Decline button -->
+                    <tr>
+                        <td style="padding:0 0 32px; text-align:center;" bgcolor="#FFFFFF">
+                            <a href="{decline_url}"
+                               style="display:inline-block; background-color:#F3F4F6;
+                                      color:#6B7280; font-family:'Plus Jakarta Sans',Arial,sans-serif;
+                                      font-size:14px; font-weight:600; text-decoration:none;
+                                      padding:12px 32px; border-radius:10px;
+                                      border:1px solid #E5E7EB;">
+                                No me interesa este turno
+                            </a>
+                        </td>
+                    </tr>"""
+
+        patient_name = entry.patient.full_name
+        html_body = f"""<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light only">
+    <meta name="supported-color-schemes" content="light only">
+    <title>Turno disponible</title>
+    <!--[if !mso]><!-->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;700&amp;family=Plus+Jakarta+Sans:wght@400;600;700&amp;display=swap');
+    </style>
+    <!--<![endif]-->
+    <style>
+        @media (prefers-color-scheme: dark) {{
+            body, .email-body, .email-body table {{ background-color:#FAF9F6 !important; color:#1F2228 !important; }}
+            .email-card {{ background-color:#FFFFFF !important; color:#1F2228 !important; }}
+            .email-header {{ background-color:#4A8590 !important; }}
+            .email-footer {{ background-color:#1F2228 !important; }}
+        }}
+        [data-ogsc] body {{ background-color:#FAF9F6 !important; }}
+        [data-ogsc] .email-card {{ background-color:#FFFFFF !important; }}
+    </style>
+</head>
+<body style="margin:0; padding:0; background-color:#FAF9F6;" bgcolor="#FAF9F6" class="email-body">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+           style="background-color:#FAF9F6;" bgcolor="#FAF9F6">
+        <tr>
+            <td align="center" style="padding:32px 16px;" bgcolor="#FAF9F6">
+
+                <table role="presentation" width="600" cellpadding="0" cellspacing="0"
+                       style="max-width:600px; width:100%; background-color:#FFFFFF;
+                              border-radius:16px; overflow:hidden;" bgcolor="#FFFFFF"
+                       class="email-card">
+
+                    <!-- Header: brand bar -->
+                    <tr>
+                        <td style="background-color:#4A8590; padding:32px 40px; text-align:center;"
+                            bgcolor="#4A8590" class="email-header">
+                            <div style="width:80px; height:80px; border-radius:50%; overflow:hidden;
+                                        margin:0 auto; background-color:#ffffff;
+                                        border:3px solid rgba(255,255,255,0.25);">
+                                <img src="{logo_url}" alt="Dra. Estefi Pediatra" width="80"
+                                     style="display:block; width:80px; height:auto; margin:0 auto;">
+                            </div>
+                            <h1 style="font-family:'Fraunces',Georgia,'Times New Roman',serif;
+                                       color:#FFFFFF; margin:12px 0 0; font-size:20px;
+                                       font-weight:600;">
+                                Dra. Estefi
+                            </h1>
+                            <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif;
+                                      color:rgba(255,255,255,0.75); margin:4px 0 0; font-size:12px;
+                                      letter-spacing:0.5px;">
+                                Pediatra &middot; Sur de Chile
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Body -->
+                    <tr>
+                        <td style="padding:36px 40px 0;" bgcolor="#FFFFFF">
+                            <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+
+                                <!-- Greeting -->
+                                <tr>
+                                    <td style="padding:0 0 24px; text-align:center;" bgcolor="#FFFFFF">
+                                        <h2 style="font-family:'Fraunces',Georgia,'Times New Roman',serif;
+                                                   font-size:26px; font-weight:700; color:#1F2228;
+                                                   margin:0 0 8px;">
+                                            &iexcl;Turno disponible!
+                                        </h2>
+                                        <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif;
+                                                  font-size:15px; color:#6B7280; margin:0;
+                                                  line-height:1.6;">
+                                            Hola <strong style="color:#1F2228;">{tutor.first_name}</strong>,
+                                            la Dra.&nbsp;Estefi reserv&oacute; este turno
+                                            para <strong style="color:#4A8590;">{patient_name}</strong>.
+                                        </p>
+                                    </td>
+                                </tr>
+
+                                {calendar_block}
+                                {time_block}
+                                {info_card}
+                                {warning_block}
+                                {buttons_block}
+
+                                <!-- Disclaimer -->
+                                <tr>
+                                    <td style="text-align:center; padding:0 0 16px;" bgcolor="#FFFFFF">
+                                        <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif;
+                                                  font-size:11px; color:#9CA3AF; margin:0;">
+                                            Este es un correo autom&aacute;tico, por favor
+                                            no respondas a este mensaje.
+                                        </p>
+                                    </td>
+                                </tr>
+
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color:#1F2228; padding:28px 40px; text-align:center;"
+                            bgcolor="#1F2228" class="email-footer">
+                            <div style="width:56px; height:56px; border-radius:50%; overflow:hidden;
+                                        margin:0 auto 12px; background-color:#ffffff;
+                                        border:2px solid rgba(255,255,255,0.2);">
+                                <img src="{logo_url}" alt="" width="56"
+                                     style="display:block; width:56px; height:auto; margin:0 auto;">
+                            </div>
+                            <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif;
+                                      color:rgba(255,255,255,0.9); font-size:13px;
+                                      margin:0 0 4px; font-weight:600;">
+                                Dra. Estefi
+                            </p>
+                            <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif;
+                                      color:rgba(255,255,255,0.55); font-size:12px;
+                                      margin:0 0 18px;">
+                                Pediatr&iacute;a con tiempo, calidez y atenci&oacute;n personalizada
+                            </p>
+                            <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif;
+                                      font-size:12px; color:rgba(255,255,255,0.65);
+                                      line-height:1.8; margin:0 0 14px;">
+                                Puc&oacute;n &amp; Villarrica &middot; La Araucan&iacute;a, Chile<br>
+                                <a href="tel:+56958455537"
+                                   style="color:#7BB5BD; text-decoration:none;">+56 9 5845 5537</a>
+                                &nbsp;&middot;&nbsp;
+                                <a href="mailto:estefiortigosa.pediatra@gmail.com"
+                                   style="color:#7BB5BD; text-decoration:none;">
+                                    estefiortigosa.pediatra@gmail.com
+                                </a>
+                            </p>
+                            <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif;
+                                      font-size:12px; margin:0;">
+                                <a href="https://www.instagram.com/estefiortigosa.pediatra/"
+                                   style="color:#7BB5BD; text-decoration:none; margin:0 8px;">
+                                    Instagram
+                                </a>
+                                <a href="https://estefipediatra.com"
+                                   style="color:#7BB5BD; text-decoration:none; margin:0 8px;">
+                                    Web
+                                </a>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Bottom bar -->
+                    <tr>
+                        <td style="background-color:#161A20; padding:14px 40px; text-align:center;"
+                            bgcolor="#161A20">
+                            <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif;
+                                      color:rgba(255,255,255,0.4); font-size:11px; margin:0;">
+                                &copy; 2026 Dra. Estefi Pediatra &middot; estefipediatra.com
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>"""
 
         send_email(
             to=tutor.email,

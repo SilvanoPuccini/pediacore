@@ -224,6 +224,7 @@ interface AddFormState {
   horario: string;  // "Mañana" | "Tarde" — stored in notes
   priority: "HIGH" | "NORMAL" | "LOW";
   preferred_date_start: string;
+  preferred_date_end: string;
   notes: string;
 }
 
@@ -241,6 +242,7 @@ function AgregarEsperaForm({ onClose, onSuccess }: AddFormProps) {
     horario: "Mañana",
     priority: "NORMAL",
     preferred_date_start: "",
+    preferred_date_end: "",
     notes: "",
   });
 
@@ -299,6 +301,7 @@ function AgregarEsperaForm({ onClose, onSuccess }: AddFormProps) {
         location: form.location ? Number(form.location) : null,
         priority: form.priority,
         preferred_date_start: form.preferred_date_start,
+        ...(form.preferred_date_end ? { preferred_date_end: form.preferred_date_end } : {}),
         notes: notesWithPref,
       };
       const { data } = await api.post<WaitlistEntry>("/waitlist/", payload);
@@ -411,15 +414,27 @@ function AgregarEsperaForm({ onClose, onSuccess }: AddFormProps) {
             />
           </div>
 
-          {/* Preferred date */}
-          <div>
-            <label className="text-[11.5px] font-semibold text-ink2">Fecha preferida *</label>
-            <input
-              type="date"
-              value={form.preferred_date_start}
-              onChange={set("preferred_date_start")}
-              className={`mt-1.5 ${inputCls}`}
-            />
+          {/* Date range */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[11.5px] font-semibold text-ink2">A partir de *</label>
+              <input
+                type="date"
+                value={form.preferred_date_start}
+                onChange={set("preferred_date_start")}
+                className={`mt-1.5 ${inputCls}`}
+              />
+            </div>
+            <div>
+              <label className="text-[11.5px] font-semibold text-ink2">No más tarde de</label>
+              <input
+                type="date"
+                value={form.preferred_date_end}
+                onChange={set("preferred_date_end")}
+                min={form.preferred_date_start || undefined}
+                className={`mt-1.5 ${inputCls}`}
+              />
+            </div>
           </div>
 
           {/* Notes */}
@@ -478,7 +493,7 @@ interface SlotItem {
   label: string;
 }
 
-type OfferChannel = "EMAIL" | "WHATSAPP" | "PHONE";
+type OfferChannel = "EMAIL"; // WhatsApp & Phone coming in Phase 2
 
 interface OfrecerTurnoPanelProps {
   entry: EnrichedEntry;
@@ -559,10 +574,9 @@ function OfrecerTurnoPanel({ entry, onClose, onSuccess }: OfrecerTurnoPanelProps
     },
   });
 
+  // Only email channel available for now — WhatsApp/Phone coming later
   const channelOptions: SegOption[] = [
     { v: "EMAIL", label: "Email" },
-    { v: "WHATSAPP", label: "WhatsApp" },
-    { v: "PHONE", label: "Llamada" },
   ];
 
   const firstName = entry.name.split(" ")[0];
@@ -962,6 +976,9 @@ export default function WaitlistPage() {
 
   const enriched = (data?.results ?? []).map((e) => enrich(e));
 
+  // Build dynamic sede options from data
+  const sedeOptions = ["Todas", ...Array.from(new Set(enriched.map((e) => e.sede))).sort()];
+
   const shown = enriched.filter((e) => {
     if (sedeFilter !== "Todas" && e.sede !== sedeFilter) return false;
     if (prioFilter !== "todas" && e.prioridad !== prioFilter) return false;
@@ -1028,7 +1045,7 @@ export default function WaitlistPage() {
 
       {/* Filters */}
       <div className="flex items-center gap-2 flex-wrap">
-        {["Todas", "Pucón", "Villarrica", "Online"].map((s) => (
+        {sedeOptions.map((s) => (
           <button
             key={s}
             onClick={() => setSedeFilter(s)}

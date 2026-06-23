@@ -350,8 +350,8 @@ interface WaitlistFormFields {
   service: number | "";
   location: number | null;
   preferred_date_start: string;
+  preferred_date_end: string;
   timePref: "Mañana" | "Tarde" | "Indistinto";
-  notifyChannel: "WhatsApp" | "Email";
 }
 
 const inputCls =
@@ -408,8 +408,8 @@ function WaitlistFormModal({
     service: "",
     location: null,
     preferred_date_start: "",
+    preferred_date_end: "",
     timePref: "Indistinto",
-    notifyChannel: "Email",
   });
 
   const [error, setError] = useState<string | null>(null);
@@ -462,8 +462,8 @@ function WaitlistFormModal({
         service: "",
         location: null,
         preferred_date_start: "",
+        preferred_date_end: "",
         timePref: "Indistinto",
-        notifyChannel: "Email",
       });
       setError(null);
       onClose();
@@ -480,12 +480,13 @@ function WaitlistFormModal({
       setError("Completá los campos obligatorios.");
       return;
     }
-    const notes = `Prefiere: ${fields.timePref}. Canal: ${fields.notifyChannel}`;
+    const notes = `Prefiere: ${fields.timePref}`;
     createMutation.mutate({
       patient: fields.patient as number,
       service: fields.service as number,
       location: fields.location,
       preferred_date_start: fields.preferred_date_start,
+      ...(fields.preferred_date_end ? { preferred_date_end: fields.preferred_date_end } : {}),
       notes,
       priority: "NORMAL",
     });
@@ -591,37 +592,39 @@ function WaitlistFormModal({
           </div>
         </div>
 
-        {/* Preferred date start */}
-        <div>
-          <label className={labelCls}>A partir de qué fecha *</label>
-          <input
-            type="date"
-            value={fields.preferred_date_start}
-            onChange={(e) => set("preferred_date_start", e.target.value)}
-            min={new Date().toISOString().split("T")[0]}
-            className={inputCls}
-            required
-          />
-        </div>
-
-        {/* Preferences row */}
+        {/* Date range */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className={labelCls}>Horario que preferís</label>
-            <SegmentedControl
-              value={fields.timePref}
-              onChange={(v) => set("timePref", v)}
-              options={["Mañana", "Tarde", "Indistinto"] as const}
+            <label className={labelCls}>A partir de *</label>
+            <input
+              type="date"
+              value={fields.preferred_date_start}
+              onChange={(e) => set("preferred_date_start", e.target.value)}
+              min={new Date().toISOString().split("T")[0]}
+              className={inputCls}
+              required
             />
           </div>
           <div>
-            <label className={labelCls}>Avisarme por</label>
-            <SegmentedControl
-              value={fields.notifyChannel}
-              onChange={(v) => set("notifyChannel", v)}
-              options={["WhatsApp", "Email"] as const}
+            <label className={labelCls}>No más tarde de</label>
+            <input
+              type="date"
+              value={fields.preferred_date_end}
+              onChange={(e) => set("preferred_date_end", e.target.value)}
+              min={fields.preferred_date_start || new Date().toISOString().split("T")[0]}
+              className={inputCls}
             />
           </div>
+        </div>
+
+        {/* Time preference */}
+        <div>
+          <label className={labelCls}>Horario que preferís</label>
+          <SegmentedControl
+            value={fields.timePref}
+            onChange={(v) => set("timePref", v)}
+            options={["Mañana", "Tarde", "Indistinto"] as const}
+          />
         </div>
 
         {/* Error */}
@@ -790,13 +793,13 @@ function WaitlistCard({ entry }: { entry: WaitlistEntry }) {
               <h3 className="font-display text-[16px] text-ink">Estás en lista de espera</h3>
               {entry.position != null && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-teal/15 text-teal-dark">
-                  #{entry.position} en la cola
+                  Posición #{entry.position}
                 </span>
               )}
             </div>
             <p className="text-[12.5px] text-ink2 mt-1 leading-relaxed max-w-lg">
               Te avisamos por{" "}
-              <span className="font-semibold text-ink">{channel ?? "Email"}</span>{" "}
+              <span className="font-semibold text-ink">email</span>{" "}
               apenas se libere un cupo para{" "}
               <span className="font-semibold text-ink">{entry.patient_name}</span>{" "}
               ({entry.service_name})
