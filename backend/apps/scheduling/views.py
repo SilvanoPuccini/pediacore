@@ -613,7 +613,7 @@ class WaitlistViewSet(viewsets.ModelViewSet):
 
         # Expire the linked appointment + payment, then cascade to next candidate
         from apps.scheduling.services.waitlist_expiry import expire_and_cascade
-        expire_and_cascade(entry.pk)
+        expire_and_cascade(entry.pk, force=True)
 
         # Re-fetch after state change
         entry.refresh_from_db()

@@ -21,9 +21,13 @@ from django.utils import timezone
 logger = logging.getLogger(__name__)
 
 
-def expire_waitlist_offer(entry_id: int) -> bool:
+def expire_waitlist_offer(entry_id: int, force: bool = False) -> bool:
     """
-    Expire a single waitlist offer if it's still in OFFERED status and past its deadline.
+    Expire a single waitlist offer if it's still in OFFERED status.
+
+    Args:
+        entry_id: The WaitlistEntry PK.
+        force: If True, skip the expiry-time check (used for manual decline).
 
     Returns True if the offer was expired, False otherwise.
     """
@@ -41,10 +45,11 @@ def expire_waitlist_offer(entry_id: int) -> bool:
             logger.info("expire_waitlist_offer: entry #%s is %s, skipping", entry_id, entry.status)
             return False
 
-        now = timezone.now()
-        if entry.offer_expires_at and entry.offer_expires_at > now:
-            logger.info("expire_waitlist_offer: entry #%s not yet expired", entry_id)
-            return False
+        if not force:
+            now = timezone.now()
+            if entry.offer_expires_at and entry.offer_expires_at > now:
+                logger.info("expire_waitlist_offer: entry #%s not yet expired", entry_id)
+                return False
 
         # Expire the linked appointment
         expired_appointment = None
@@ -74,13 +79,17 @@ def expire_waitlist_offer(entry_id: int) -> bool:
     return True
 
 
-def expire_and_cascade(entry_id: int) -> None:
+def expire_and_cascade(entry_id: int, force: bool = False) -> None:
     """
     Expire a waitlist offer and cascade to the next candidate.
 
     This is the function scheduled by django-q2 for each auto-offer.
     After expiring the current offer, it calls auto_offer_freed_slot
     to offer the same slot to the next person in the queue.
+
+    Args:
+        entry_id: The WaitlistEntry PK.
+        force: If True, skip the expiry-time check (used for manual decline).
     """
     from apps.scheduling.models import Appointment, WaitlistEntry
 
@@ -98,7 +107,7 @@ def expire_and_cascade(entry_id: int) -> None:
     # Save appointment details for cascade before expiring
     offered_appt = entry.offered_appointment
     if not offered_appt:
-        expire_waitlist_offer(entry_id)
+        expire_waitlist_offer(entry_id, force=force)
         return
 
     # We need a "template" appointment to know the slot details (date, time, service, location)
@@ -110,7 +119,7 @@ def expire_and_cascade(entry_id: int) -> None:
     practice = offered_appt.practice
 
     # Expire the current offer
-    expired = expire_waitlist_offer(entry_id)
+    expired = expire_waitlist_offer(entry_id, force=force)
     if not expired:
         return
 
