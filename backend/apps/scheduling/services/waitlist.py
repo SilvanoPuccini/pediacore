@@ -215,21 +215,9 @@ def auto_offer_freed_slot(
         )
         return None
 
-    # Create MercadoPago preference
-    payment_link = ""
-    try:
-        from apps.billing.services.payment_strategy import create_mp_preference
-
-        preference = create_mp_preference(payment)
-        payment_link = preference.get("init_point", "")
-    except Exception as exc:
-        logger.warning(
-            "auto_offer_freed_slot: MP preference failed for Payment #%s: %s",
-            payment.pk,
-            exc,
-        )
-        frontend_url = getattr(settings, "FRONTEND_URL", "https://estefipediatra.com").rstrip("/")
-        payment_link = f"{frontend_url}/portal/pagos"
+    # Build internal payment link (Wallet Brick embedded in the portal)
+    frontend_url = getattr(settings, "FRONTEND_URL", "https://estefipediatra.com").rstrip("/")
+    payment_link = f"{frontend_url}/portal/pagos/{payment.pk}"
 
     # Update waitlist entry → OFFERED
     entry.status = WaitlistEntry.OFFERED

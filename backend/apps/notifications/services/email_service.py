@@ -1306,17 +1306,15 @@ def send_payment_link_email(appointment, payment_link_url: str) -> None:
     payment_button_html = ""
     if payment_link_url:
         payment_button_html = f"""
-<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 0;">
-    <tr>
-        <td style="background-color:#4A8590; border-radius:8px; text-align:center; padding:14px 32px;">
-            <a href="{payment_link_url}"
-               style="color:#FFFFFF; font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-                      font-size:15px; font-weight:600; text-decoration:none; display:inline-block; white-space:nowrap;">
-                Realizar pago
-            </a>
-        </td>
-    </tr>
-</table>"""
+<div style="text-align:center; padding:16px 0 8px;">
+    <a href="{payment_link_url}"
+       style="display:inline-block; background-color:#4A8590; color:#FFFFFF;
+              font-family:'Plus Jakarta Sans',Arial,sans-serif;
+              font-size:16px; font-weight:700; text-decoration:none;
+              padding:16px 40px; border-radius:12px; letter-spacing:0.02em;">
+        Confirmar y pagar
+    </a>
+</div>"""
 
     for link in tutors_qs:
         tutor = link.tutor
