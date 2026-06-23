@@ -220,3 +220,112 @@ class TestPatientFileViewSet:
         url = f"/api/v1/patients/{patient.pk}/files/{pf.pk}/"
         response = tutor_client.delete(url)
         assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+# ---------------------------------------------------------------------------
+# GrowthHistoryView
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+class TestGrowthHistoryView:
+    def test_doctor_can_view_growth_history(self, doctor_client, practice, doctor) -> None:
+        from tests.factories.medical_records import AnthropometryFactory
+        from apps.medical_records.models import Encounter
+
+        patient = PatientFactory(practice=practice)
+        encounter = Encounter.objects.create(
+            patient=patient, practice=practice, doctor=doctor,
+            scheduled_at="2026-01-15T10:00:00Z",
+        )
+        AnthropometryFactory(patient=patient, encounter=encounter, practice=practice)
+
+        url = f"/api/v1/patients/{patient.pk}/growth-history/"
+        response = doctor_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) >= 1
+
+    def test_tutor_sees_only_linked_patient_growth(
+        self, tutor_client, tutor, practice, doctor
+    ) -> None:
+        from tests.factories.medical_records import AnthropometryFactory
+        from apps.medical_records.models import Encounter
+
+        linked_patient = PatientFactory(practice=practice)
+        TutorPatientFactory(tutor=tutor, patient=linked_patient, practice=practice)
+        encounter = Encounter.objects.create(
+            patient=linked_patient, practice=practice, doctor=doctor,
+            scheduled_at="2026-02-10T10:00:00Z",
+        )
+        AnthropometryFactory(patient=linked_patient, encounter=encounter, practice=practice)
+
+        url = f"/api/v1/patients/{linked_patient.pk}/growth-history/"
+        response = tutor_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) >= 1
+
+    def test_tutor_cannot_view_unlinked_patient_growth(
+        self, tutor_client, tutor, practice
+    ) -> None:
+        other_patient = PatientFactory(practice=practice)
+        url = f"/api/v1/patients/{other_patient.pk}/growth-history/"
+        response = tutor_client.get(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_nonexistent_patient_returns_404(self, doctor_client) -> None:
+        url = "/api/v1/patients/99999/growth-history/"
+        response = doctor_client.get(url)
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+# ---------------------------------------------------------------------------
+# PatientClinicalSummaryView
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+class TestPatientClinicalSummaryView:
+    def test_doctor_can_view_clinical_summary(self, doctor_client, practice) -> None:
+        patient = PatientFactory(practice=practice)
+        url = f"/api/v1/patients/{patient.pk}/clinical-summary/"
+        response = doctor_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert "patient_id" in response.data
+        assert response.data["patient_id"] == patient.pk
+
+    def test_tutor_sees_linked_patient_summary(
+        self, tutor_client, tutor, practice
+    ) -> None:
+        patient = PatientFactory(practice=practice)
+        TutorPatientFactory(tutor=tutor, patient=patient, practice=practice)
+        url = f"/api/v1/patients/{patient.pk}/clinical-summary/"
+        response = tutor_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_tutor_blocked_from_unlinked_patient(
+        self, tutor_client, tutor, practice
+    ) -> None:
+        other = PatientFactory(practice=practice)
+        url = f"/api/v1/patients/{other.pk}/clinical-summary/"
+        response = tutor_client.get(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_nonexistent_patient_returns_404(self, doctor_client) -> None:
+        url = "/api/v1/patients/99999/clinical-summary/"
+        response = doctor_client.get(url)
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_summary_includes_suggested_next_control(
+        self, doctor_client, practice
+    ) -> None:
+        from datetime import date, timedelta
+
+        patient = PatientFactory(
+            practice=practice,
+            date_of_birth=date.today() - timedelta(days=365),
+        )
+        url = f"/api/v1/patients/{patient.pk}/clinical-summary/"
+        response = doctor_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        # Should have a suggested next control date or null
+        assert "suggested_next_control" in response.data

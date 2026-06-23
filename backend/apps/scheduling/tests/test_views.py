@@ -4,6 +4,8 @@ import datetime
 from decimal import Decimal
 
 import pytest
+from unittest.mock import patch
+
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
@@ -853,6 +855,123 @@ class TestAppointmentRescheduleAction:
         response = client.post(
             url,
             data={"scheduled_date": "2026-12-01"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+# ---------------------------------------------------------------------------
+# RescheduleViaTokenView
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+class TestRescheduleViaTokenView:
+    url = reverse("scheduling:reschedule-via-token")
+
+    def test_valid_reschedule_returns_200(self, api_client) -> None:
+        """Valid token and new date → 200 + appointment rescheduled."""
+        practice = PracticeFactory()
+        patient = PatientFactory(practice=practice)
+        service = ServiceFactory(practice=practice, duration_minutes=30)
+        location = LocationFactory(practice=practice)
+        appt = AppointmentFactory(
+            practice=practice,
+            patient=patient,
+            service=service,
+            location=location,
+            scheduled_date="2026-07-01",
+            start_time=datetime.time(9, 0),
+            status=Appointment.CONFIRMED,
+        )
+        def mock_save(*args, **kwargs):
+            pass
+
+        mock_token = type("Token", (), {
+            "action": "RESCHEDULE",
+            "appointment": appt,
+            "RESCHEDULE": "RESCHEDULE",
+            "used_at": None,
+            "save": mock_save,
+        })()
+
+        with (
+            patch("apps.scheduling.views.validate_token", return_value=mock_token),
+            patch("apps.scheduling.views.reschedule_appointment") as mock_reschedule,
+        ):
+            mock_reschedule.return_value = appt
+            response = api_client.post(
+                self.url,
+                data={
+                    "token": "valid-token-123",
+                    "scheduled_date": "2026-08-01",
+                    "start_time": "10:00",
+                },
+                format="json",
+            )
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["success"] is True
+
+    def test_expired_token_returns_410(self, api_client) -> None:
+        """Expired token → 410 Gone."""
+        from apps.scheduling.services.token_service import TokenExpiredError
+
+        with patch("apps.scheduling.views.validate_token", side_effect=TokenExpiredError):
+            response = api_client.post(
+                self.url,
+                data={
+                    "token": "expired-token",
+                    "scheduled_date": "2026-08-01",
+                    "start_time": "10:00",
+                },
+                format="json",
+            )
+        assert response.status_code == status.HTTP_410_GONE
+
+    def test_token_not_found_returns_404(self, api_client) -> None:
+        """Unknown token → 404."""
+        from apps.scheduling.services.token_service import TokenNotFoundError
+
+        with patch("apps.scheduling.views.validate_token", side_effect=TokenNotFoundError):
+            response = api_client.post(
+                self.url,
+                data={
+                    "token": "nonexistent",
+                    "scheduled_date": "2026-08-01",
+                    "start_time": "10:00",
+                },
+                format="json",
+            )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_wrong_action_token_returns_400(self, api_client) -> None:
+        """Token with wrong action type → 400."""
+        practice = PracticeFactory()
+        patient = PatientFactory(practice=practice)
+        appt = AppointmentFactory(practice=practice, patient=patient)
+        mock_token = type("Token", (), {
+            "action": "CONFIRM",
+            "RESCHEDULE": "RESCHEDULE",
+            "appointment": appt,
+        })()
+
+        with patch("apps.scheduling.views.validate_token", return_value=mock_token):
+            response = api_client.post(
+                self.url,
+                data={
+                    "token": "wrong-action",
+                    "scheduled_date": "2026-08-01",
+                    "start_time": "10:00",
+                },
+                format="json",
+            )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_missing_fields_returns_400(self, api_client) -> None:
+        """Missing date/time → 400."""
+        response = api_client.post(
+            self.url,
+            data={"token": "some-token"},
             format="json",
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST

@@ -113,3 +113,122 @@ class TestUserProfileView:
         authenticated_client.patch(self.url, payload, format="json")
         registered_user.refresh_from_db()
         assert registered_user.role == User.TUTOR
+
+
+@pytest.mark.django_db
+class TestChangePasswordView:
+    url = "/api/v1/change-password/"
+
+    def test_valid_change_returns_200(self, authenticated_client: APIClient) -> None:
+        payload = {"current_password": "strongpass123", "new_password": "newstrong456"}
+        response = authenticated_client.post(self.url, payload, format="json")
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_wrong_current_password_returns_400(
+        self, authenticated_client: APIClient
+    ) -> None:
+        payload = {"current_password": "wrongpass", "new_password": "newstrong456"}
+        response = authenticated_client.post(self.url, payload, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "incorrecta" in response.data.get("detail", "")
+
+    def test_missing_fields_returns_400(
+        self, authenticated_client: APIClient
+    ) -> None:
+        response = authenticated_client.post(self.url, {"current_password": ""}, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_unauthenticated_returns_401(self, api_client: APIClient) -> None:
+        payload = {"current_password": "strongpass123", "new_password": "newstrong456"}
+        response = api_client.post(self.url, payload, format="json")
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_weak_new_password_returns_400(
+        self, authenticated_client: APIClient
+    ) -> None:
+        payload = {"current_password": "strongpass123", "new_password": "123"}
+        response = authenticated_client.post(self.url, payload, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+@pytest.mark.django_db
+class TestAvatarUploadView:
+    url = "/api/v1/profile/avatar/"
+
+    def test_upload_valid_image_returns_200(
+        self, authenticated_client: APIClient
+    ) -> None:
+        import io
+
+        img = io.BytesIO(b"fake-png-content")
+        img.name = "avatar.png"
+        response = authenticated_client.post(
+            self.url, {"avatar": img}, format="multipart"
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_upload_no_file_returns_400(
+        self, authenticated_client: APIClient
+    ) -> None:
+        response = authenticated_client.post(self.url, format="multipart")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_upload_invalid_type_returns_400(
+        self, authenticated_client: APIClient
+    ) -> None:
+        import io
+
+        f = io.BytesIO(b"<svg></svg>")
+        f.name = "avatar.svg"
+        response = authenticated_client.post(
+            self.url, {"avatar": f}, format="multipart"
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_upload_unauthenticated_returns_401(self, api_client: APIClient) -> None:
+        import io
+
+        f = io.BytesIO(b"fake-png")
+        f.name = "avatar.png"
+        response = api_client.post(self.url, {"avatar": f}, format="multipart")
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_delete_avatar_returns_204(
+        self, authenticated_client: APIClient
+    ) -> None:
+        response = authenticated_client.delete(self.url)
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+
+    def test_delete_unauthenticated_returns_401(self, api_client: APIClient) -> None:
+        response = api_client.delete(self.url)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+@pytest.mark.django_db
+class TestPasswordResetRequestView:
+    url = "/api/v1/password-reset/"
+
+    def test_valid_email_returns_200(self, api_client: APIClient) -> None:
+        response = api_client.post(
+            self.url, {"email": "existing@example.com"}, format="json"
+        )
+        # Always returns 200 regardless of whether email exists (no info leak)
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_unknown_email_also_returns_200(self, api_client: APIClient) -> None:
+        response = api_client.post(
+            self.url, {"email": "unknown@example.com"}, format="json"
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_no_email_returns_200(self, api_client: APIClient) -> None:
+        # Always returns 200 to avoid leaking whether an email is registered
+        response = api_client.post(self.url, {}, format="json")
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_invalid_email_returns_200(self, api_client: APIClient) -> None:
+        # Always returns 200 to avoid leaking whether an email is registered
+        response = api_client.post(
+            self.url, {"email": "not-an-email"}, format="json"
+        )
+        assert response.status_code == status.HTTP_200_OK
