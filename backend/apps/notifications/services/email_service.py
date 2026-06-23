@@ -29,6 +29,10 @@ _MONTHS_ES = [
     "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
 ]
 
+_DAYS_ES = [
+    "lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"
+]
+
 
 def _fmt_date(d: _dt.date | str | None) -> str:
     """Format a date as '10 de junio de 2026'."""
@@ -63,6 +67,107 @@ def _fmt_time(t: _dt.time | str | None) -> str:
     if isinstance(t, str):
         return f"{t[:5]} hrs"
     return f"{t:%H:%M} hrs"
+
+
+def _calendar_card_html(slot_date: _dt.date | None, slot_time: _dt.time | None = None) -> str:
+    """
+    Return a small HTML calendar card suitable for inline injection into emails.
+
+    Renders a 160px-wide calendar tile with the month banner, day number, day
+    name, and an optional time row.  All styling is inline for email-client
+    compatibility.
+
+    Args:
+        slot_date: The date to display. Returns empty string when None.
+        slot_time: Optional time to display below the calendar card.
+
+    Returns:
+        An HTML string (table rows) ready to be placed inside a <tbody>.
+    """
+    if slot_date is None:
+        return ""
+
+    day_number = slot_date.day
+    day_name = _DAYS_ES[slot_date.weekday()].capitalize()
+    month_name = _MONTHS_ES[slot_date.month].capitalize()
+    year_str = str(slot_date.year)
+
+    calendar_block = f"""
+                    <!-- Mini calendar card -->
+                    <tr>
+                        <td style="padding:0 0 20px;" bgcolor="#FFFFFF">
+                            <table role="presentation" cellpadding="0" cellspacing="0"
+                                   style="margin:0 auto; border-radius:16px; overflow:hidden;
+                                          box-shadow:0 2px 12px rgba(74,133,144,0.15);"
+                                   width="160">
+                                <!-- Month banner -->
+                                <tr>
+                                    <td style="background-color:#4A8590; padding:8px 20px 6px;
+                                               text-align:center;" bgcolor="#4A8590">
+                                        <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif;
+                                                  font-size:11px; font-weight:700; letter-spacing:2px;
+                                                  text-transform:uppercase; color:#FFFFFF; margin:0;">
+                                            {month_name} {year_str}
+                                        </p>
+                                    </td>
+                                </tr>
+                                <!-- Day number -->
+                                <tr>
+                                    <td style="background-color:#FFFFFF; padding:12px 20px 6px;
+                                               text-align:center;" bgcolor="#FFFFFF">
+                                        <p style="font-family:'Fraunces',Georgia,'Times New Roman',serif;
+                                                  font-size:48px; font-weight:700; line-height:1;
+                                                  color:#1F2228; margin:0;">
+                                            {day_number}
+                                        </p>
+                                    </td>
+                                </tr>
+                                <!-- Day name -->
+                                <tr>
+                                    <td style="background-color:#FFFFFF; padding:0 20px 14px;
+                                               text-align:center;" bgcolor="#FFFFFF">
+                                        <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif;
+                                                  font-size:12px; font-weight:600; letter-spacing:1px;
+                                                  text-transform:uppercase; color:#6B7280; margin:0;">
+                                            {day_name}
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>"""
+
+    if slot_time is not None:
+        time_str = _fmt_time(slot_time)
+        calendar_block += f"""
+                    <!-- Time display -->
+                    <tr>
+                        <td style="padding:0 0 24px; text-align:center;" bgcolor="#FFFFFF">
+                            <table role="presentation" cellpadding="0" cellspacing="0"
+                                   style="margin:0 auto;">
+                                <tr>
+                                    <td style="vertical-align:middle; padding-right:7px;">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                             stroke="#4A8590" stroke-width="2.5"
+                                             stroke-linecap="round" stroke-linejoin="round"
+                                             style="display:block;">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <polyline points="12 6 12 12 16 14"/>
+                                        </svg>
+                                    </td>
+                                    <td style="vertical-align:middle;">
+                                        <p style="font-family:'Plus Jakarta Sans',Arial,sans-serif;
+                                                  font-size:22px; font-weight:700; color:#1F2228;
+                                                  margin:0; letter-spacing:-0.5px;">
+                                            {time_str}
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>"""
+
+    return calendar_block
 
 
 def send_email(
@@ -917,6 +1022,7 @@ def send_appointment_confirmation(
         html_body = _build_appointment_html(
             title="Consulta confirmada",
             body_lines=body_lines,
+            extra_html=_calendar_card_html(appointment.scheduled_date, appointment.start_time),
             token_urls=token_urls,
         )
 
@@ -1087,6 +1193,7 @@ def send_appointment_reschedule(
                 *_location_lines(appointment.location),
                 "Si necesitás hacer cambios adicionales, por favor contactanos.",
             ],
+            extra_html=_calendar_card_html(appointment.scheduled_date, appointment.start_time),
             token_urls=resolved_token_urls,
         )
 
@@ -1138,6 +1245,7 @@ def send_appointment_cancellation(appointment: Appointment) -> None:
                 f"del <strong>{_fmt_date(appointment.scheduled_date)}</strong> ha sido cancelada.",
                 "Por favor contactanos para reprogramar tu cita.",
             ],
+            extra_html=_calendar_card_html(appointment.scheduled_date, appointment.start_time),
         )
 
         Notification.objects.create(
@@ -1225,7 +1333,7 @@ def send_payment_link_email(appointment, payment_link_url: str) -> None:
                 f"Servicio: {appointment.service.name}",
                 *_location_lines(appointment.location),
             ],
-            extra_html=payment_button_html,
+            extra_html=_calendar_card_html(appointment.scheduled_date, appointment.start_time) + payment_button_html,
         )
 
         Notification.objects.create(
@@ -1327,6 +1435,7 @@ def send_24h_reminder(appointment) -> None:
         html_body = _build_appointment_html(
             title="Recordatorio: tu cita es mañana",
             body_lines=reminder_lines,
+            extra_html=_calendar_card_html(appointment.scheduled_date, appointment.start_time),
             token_urls=token_urls,
         )
 
@@ -1395,6 +1504,7 @@ def send_2h_reminder(appointment) -> None:
                     else "Enlace de reunión: pendiente."
                 ),
             ],
+            extra_html=_calendar_card_html(appointment.scheduled_date, appointment.start_time),
             token_urls=token_urls,
         )
 
@@ -1980,11 +2090,6 @@ def send_transfer_expired(payment) -> None:
             related_type="Payment",
             related_id=payment.pk,
         )
-
-
-_DAYS_ES = [
-    "lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"
-]
 
 
 def send_waitlist_offer_email(
