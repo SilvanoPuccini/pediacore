@@ -567,13 +567,24 @@ export interface CoResponsible {
 
 export interface WaitlistEntry {
   id: number;
+  practice: number;
+  patient: number;
   patient_name: string;
+  service: number;
   service_name: string;
+  location: number | null;
   location_name: string;
+  preferred_date_start: string;
+  preferred_date_end: string | null;
+  preferred_time_start: string | null;
+  preferred_time_end: string | null;
   priority: "HIGH" | "NORMAL" | "LOW";
   status: "WAITING" | "NOTIFIED" | "BOOKED" | "CANCELLED";
-  created_at: string;
+  status_display: string;
+  notified_at: string | null;
   notes: string;
+  created_at: string;
+  updated_at: string;
 }
 
 // ─── Working Hours ────────────────────────────────────────────────────────────
