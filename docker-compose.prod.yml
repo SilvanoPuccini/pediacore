@@ -1,4 +1,17 @@
 services:
+  redis:
+    image: redis:7-alpine
+    restart: always
+    expose:
+      - "6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   postgres:
     image: postgres:16-alpine
     restart: always
@@ -34,6 +47,8 @@ services:
       - log_files:/var/log/pediacore
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     expose:
       - "8000"
@@ -88,6 +103,7 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:
   static_files:
   media_files:
   log_files:

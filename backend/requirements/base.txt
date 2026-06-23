@@ -32,6 +32,9 @@ django-q2==1.10.0
 # Payment processing
 mercadopago==3.1.1
 
+# Cache (Redis)
+redis>=5.0.0
+
 # Monitoring
 sentry-sdk[django]==2.19.2
 

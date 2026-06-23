@@ -1,4 +1,5 @@
 import axios, { type InternalAxiosRequestConfig, type AxiosResponse, type AxiosError } from "axios";
+import { isValidAccessToken } from "./jwt";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
 
@@ -13,6 +14,13 @@ const api = axios.create({
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = localStorage.getItem("access_token");
   if (token) {
+    // Validate token structure before attaching — rejects malformed tokens
+    // that could have been injected via XSS
+    if (!isValidAccessToken(token)) {
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
+      return config; // Let the request proceed without auth (API will 401)
+    }
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;

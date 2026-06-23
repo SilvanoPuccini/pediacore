@@ -14,20 +14,24 @@ class ContentSecurityPolicyMiddleware:
     """
 
     # Standard CSP for the public site and API
-    # NOTE: 'unsafe-inline' intentionally omitted from script-src.
-    # The React SPA is served as bundled files and does not require inline scripts.
+    # Strict policy: no inline scripts (React SPA uses bundled files),
+    # no form-jacking, no base-URI manipulation.
     CSP_DIRECTIVES = [
         "default-src 'self'",
         "script-src 'self' *.mercadopago.com *.mercadolibre.com",
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data: https:",
         "frame-src 'self' *.mercadopago.com *.mercadolibre.com",
+        "frame-ancestors 'none'",
         "connect-src 'self' *.mercadopago.com *.mercadolibre.com",
         "font-src 'self' data:",
+        "form-action 'self'",
+        "base-uri 'self'",
+        "report-uri /csp-report/",
     ]
 
-    # Admin CSP: adds 'unsafe-eval' for Alpine.js (used by django-unfold)
-    # and fonts.googleapis.com / fonts.gstatic.com for Material Symbols
+    # Admin CSP: relaxed for django-unfold (Alpine.js needs 'unsafe-eval'),
+    # but still protects against common vectors.
     ADMIN_CSP_DIRECTIVES = [
         "default-src 'self'",
         "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
@@ -36,6 +40,10 @@ class ContentSecurityPolicyMiddleware:
         "font-src 'self' data: https://fonts.gstatic.com",
         "connect-src 'self'",
         "frame-src 'self'",
+        "frame-ancestors 'none'",
+        "form-action 'self'",
+        "base-uri 'self'",
+        "report-uri /csp-report/",
     ]
 
     def __init__(self, get_response):

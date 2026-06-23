@@ -14,7 +14,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+/lib/
 lib64/
 parts/
 sdist/
@@ -233,3 +233,4 @@ postgres_data/
 CLAUDE.md
 .claude/
 openspec/
+node_modules/

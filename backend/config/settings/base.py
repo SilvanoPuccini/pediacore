@@ -136,9 +136,12 @@ AUTHENTICATION_BACKENDS = [
 
 # ── django-axes: brute-force protection ──
 AXES_FAILURE_LIMIT = 5
-AXES_COOLOFF_TIME = timedelta(minutes=15)
 AXES_RESET_ON_SUCCESS = True
 AXES_LOCKOUT_PARAMETERS = ["ip_address", "username"]
+
+# Progressive ban: each subsequent lockout doubles the cooldown
+# 1st: 15 min, 2nd: 1h, 3rd: 4h, 4th+: 24h
+AXES_COOLOFF_TIME_CALLABLE = "apps.core.axes.get_axes_cooldown"
 
 # ── allauth MFA (TOTP) ──
 MFA_ADAPTER = "allauth.mfa.adapter.DefaultMFAAdapter"

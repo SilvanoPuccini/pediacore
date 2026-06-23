@@ -9,13 +9,17 @@ All endpoints require IsDoctor permission.
 from __future__ import annotations
 
 import datetime
+import logging
 from decimal import Decimal
 
 from django.db.models import Count, Q, Sum
 from django.utils import timezone
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+logger = logging.getLogger(__name__)
 
 from apps.billing.models import Payment
 from apps.core.permissions import IsDoctor
@@ -480,3 +484,23 @@ class RemindersView(APIView):
 
         serializer = ReminderSerializer(reminders, many=True)
         return Response(serializer.data)
+
+
+class CSPReportView(APIView):
+    """
+    POST /csp-report/
+
+    Accepts Content-Security-Policy violation reports from the browser.
+    Logs them for monitoring without blocking the user.
+
+    This is a no-op endpoint that simply logs and returns 204.
+    It exists so we can set report-uri in our CSP headers without
+    leaking violations to a third party.
+    """
+
+    permission_classes = []  # No auth required — called by the browser
+
+    def post(self, request: Request) -> Response:
+        report = request.data.get("csp-report", request.data)
+        logger.warning("CSP violation: %s", report)
+        return Response(status=status.HTTP_204_NO_CONTENT)
