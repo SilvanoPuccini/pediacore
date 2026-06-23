@@ -519,16 +519,9 @@ class WaitlistViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        # Create MercadoPago preference for the payment link
-        payment_link = ""
-        try:
-            from apps.billing.services.payment_strategy import create_mp_preference
-            preference = create_mp_preference(payment)
-            payment_link = preference.get("init_point", "")
-        except Exception as exc:
-            logger.warning("offer_slot: MP preference failed for Payment #%s: %s", payment.pk, exc)
-            frontend_url = getattr(settings, "FRONTEND_URL", "https://estefipediatra.com").rstrip("/")
-            payment_link = f"{frontend_url}/portal/pagos"
+        # Build internal payment link (Wallet Brick embedded in the portal)
+        frontend_url = getattr(settings, "FRONTEND_URL", "https://estefipediatra.com").rstrip("/")
+        payment_link = f"{frontend_url}/portal/pagos/{payment.pk}"
 
         # Update waitlist entry to OFFERED
         offer_minutes = 30
@@ -747,20 +740,11 @@ class BookingView(APIView):
         # Create a MercadoPago preference immediately so the doctor can share the
         # payment link with the patient's tutor without going through the Brick.
         if is_doctor_booking:
-            from apps.billing.services.payment_strategy import MercadoPagoStrategy
             from apps.notifications.services.email_service import send_payment_link_email
 
-            payment_link = ""
-            try:
-                strategy = MercadoPagoStrategy()
-                pref_result = strategy.create_preference(payment)
-                payment_link = pref_result.get("init_point", "")
-            except Exception as exc:
-                logger.warning(
-                    "BookingView (doctor): preference creation failed for Payment #%s: %s",
-                    payment.pk,
-                    exc,
-                )
+            # Internal payment link — Wallet Brick embedded in the portal
+            frontend_url = getattr(settings, "FRONTEND_URL", "https://estefipediatra.com").rstrip("/")
+            payment_link = f"{frontend_url}/portal/pagos/{payment.pk}"
 
             # Send the payment link email to the patient's primary tutor.
             # Failures are non-fatal: the appointment is already created.
