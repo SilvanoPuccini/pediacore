@@ -40,14 +40,18 @@ class Command(BaseCommand):
         doctor = self._seed_doctor()
         practice = self._seed_practice(doctor)
         location_pucon, location_villarrica = self._seed_locations(practice)
-        self._seed_services(practice, location_pucon, location_villarrica)
+        services = self._seed_services(practice, location_pucon, location_villarrica)
         self._seed_working_hours(practice, location_pucon, location_villarrica)
         self._cleanup_old_working_hours(practice, location_pucon, location_villarrica)
         self._seed_blog_posts(practice, doctor)
         self._seed_faqs(practice)
         self._seed_cancellation_policy(practice)
         self._seed_auto_responder(practice)
-        self._seed_tutor_and_patients(practice)
+        tutor1, patient1, patient2 = self._seed_tutor_and_patients(practice)
+        tutor2 = self._seed_second_tutor(practice)
+        self._seed_appointments(practice, doctor, tutor1, patient1, patient2, location_pucon, location_villarrica, services)
+        self._seed_encounters(practice, doctor, patient1, patient2, location_pucon)
+        self._seed_payments(practice, patient1, patient2, services)
 
         self.stdout.write(self.style.SUCCESS("\n✓ Seed completado exitosamente."))
 
@@ -57,7 +61,11 @@ class Command(BaseCommand):
 
     def _flush(self):
         """Delete all seeded data. Order matters due to FK constraints."""
+        from apps.billing.models import Payment
         from apps.content.models import BlogPost, FAQ
+        from apps.core.models import AuditLog
+        from apps.medical_records.models import Encounter, SOAPNote
+        from apps.scheduling.models import WaitlistEntry
         from apps.patients.models import Patient, TutorPatient
         from apps.practice.models import (
             Location,
@@ -66,6 +74,7 @@ class Command(BaseCommand):
             WorkingHours,
         )
         from apps.scheduling.models import (
+            Appointment,
             AutoResponderConfig,
             CancellationPolicy,
         )
@@ -74,6 +83,11 @@ class Command(BaseCommand):
         self.stdout.write("Eliminando datos existentes...")
 
         # Delete in dependency order
+        AuditLog.objects.all().delete()
+        Payment.objects.all().delete()
+        Appointment.objects.all().delete()
+        Encounter.objects.all().delete()
+        SOAPNote.objects.all().delete()
         TutorPatient.objects.all().delete()
         Patient.objects.all().delete()
         FAQ.objects.filter(practice__slug="dra-estefi").delete()
@@ -91,7 +105,7 @@ class Command(BaseCommand):
             pass
 
         User.objects.filter(
-            email__in=["doctor@estefipediatra.com", "tutor@demo.com"]
+            email__in=["doctor@estefipediatra.com", "tutor@demo.com", "javier@demo.com"]
         ).delete()
 
         self.stdout.write(self.style.WARNING("Datos previos eliminados."))
@@ -399,6 +413,9 @@ class Command(BaseCommand):
         if old_services.exists():
             count = old_services.update(is_active=False)
             self.stdout.write(self.style.WARNING(f"  [x] {count} servicio(s) obsoleto(s) desactivado(s)."))
+
+        # Return all active services for use in other seed methods
+        return list(Service.objects.filter(practice=practice, is_active=True))
 
     # ------------------------------------------------------------------
     # Working hours
@@ -996,3 +1013,345 @@ class Command(BaseCommand):
                 "is_primary": True,
             },
         )
+
+        return tutor, patient1, patient2
+
+    # ------------------------------------------------------------------
+    # Second demo tutor (Javier)
+    # ------------------------------------------------------------------
+
+    def _seed_second_tutor(self, practice):
+        """Create a second tutor to demonstrate multi-tutor flows."""
+        from apps.patients.models import Patient, TutorPatient
+        from apps.users.models import User
+
+        tutor, created = User.objects.get_or_create(
+            email="javier@demo.com",
+            defaults={
+                "first_name": "Javier",
+                "last_name": "Muñoz",
+                "phone": "+56 9 8765 4321",
+                "role": User.TUTOR,
+                "is_active": True,
+                "email_verified_at": timezone.now(),
+            },
+        )
+        if created:
+            tutor.set_password("PediaCore2024!")
+            tutor.save(update_fields=["password"])
+            self.stdout.write(self.style.SUCCESS("  [+] Tutor creado: javier@demo.com"))
+        else:
+            self.stdout.write("  [=] Tutor ya existe: javier@demo.com")
+
+        # Patient — 5-year-old boy
+        patient, created = Patient.objects.get_or_create(
+            practice=practice,
+            rut="11122333-4",
+            defaults={
+                "first_name": "Benjamín",
+                "last_name": "Muñoz",
+                "date_of_birth": datetime.date(2021, 1, 10),
+                "sex_at_birth": Patient.M,
+                "blood_type": Patient.O_NEG,
+                "allergies": "Penicilina — reacción cutánea",
+                "chronic_conditions": "Asma leve controlada",
+                "notes": "Paciente de demo. Alergia a penicilina documentada.",
+                "is_active": True,
+            },
+        )
+        label = "[+] Paciente creado" if created else "[=] Paciente ya existe"
+        self.stdout.write(self.style.SUCCESS(f"  {label}: {patient.full_name}"))
+
+        TutorPatient.objects.get_or_create(
+            tutor=tutor,
+            patient=patient,
+            defaults={
+                "practice": practice,
+                "relationship": TutorPatient.FATHER,
+                "is_primary": True,
+            },
+        )
+
+        return tutor
+
+    # ------------------------------------------------------------------
+    # Appointments (past + upcoming)
+    # ------------------------------------------------------------------
+
+    def _seed_appointments(self, practice, doctor, tutor1, patient1, patient2, location_pucon, location_villarrica, services):
+        """Create demo appointments showing past visits and upcoming schedule."""
+        from apps.scheduling.models import Appointment
+
+        now = timezone.now()
+        today = now.date()
+
+        # Resolve specific services we need
+        control_sano = next((s for s in services if s.slug == "control-nino-sano"), services[0])
+        enfermedad = next((s for s in services if s.slug == "consulta-enfermedad-particular"), services[1])
+
+        appointments_data = [
+            # ── Past completed appointments ──────────────────────────────
+            {
+                "patient": patient1,
+                "service": control_sano,
+                "location": location_pucon,
+                "doctor": doctor,
+                "booked_by": tutor1,
+                "scheduled_date": today - datetime.timedelta(days=90),
+                "start_time": datetime.time(10, 0),
+                "end_time": datetime.time(10, 45),
+                "status": Appointment.COMPLETED,
+                "is_online": False,
+                "notes": "Control sano 18 meses. Desarrollo normal. Vacunas al día.",
+            },
+            {
+                "patient": patient2,
+                "service": control_sano,
+                "location": location_pucon,
+                "doctor": doctor,
+                "booked_by": tutor1,
+                "scheduled_date": today - datetime.timedelta(days=60),
+                "start_time": datetime.time(11, 0),
+                "end_time": datetime.time(11, 45),
+                "status": Appointment.COMPLETED,
+                "is_online": False,
+                "notes": "Control 8 meses. Alimentación complementaria iniciada sin problemas.",
+            },
+            {
+                "patient": patient1,
+                "service": enfermedad,
+                "location": location_villarrica,
+                "doctor": doctor,
+                "booked_by": tutor1,
+                "scheduled_date": today - datetime.timedelta(days=30),
+                "start_time": datetime.time(15, 0),
+                "end_time": datetime.time(15, 45),
+                "status": Appointment.COMPLETED,
+                "is_online": False,
+                "notes": "Consulta por otitis media aguda. Tratamiento con antibiótico completado.",
+            },
+            # ── Past cancelled appointment ──────────────────────────────
+            {
+                "patient": patient2,
+                "service": control_sano,
+                "location": location_pucon,
+                "doctor": doctor,
+                "booked_by": tutor1,
+                "scheduled_date": today - datetime.timedelta(days=15),
+                "start_time": datetime.time(9, 0),
+                "end_time": datetime.time(9, 45),
+                "status": Appointment.CANCELLED,
+                "is_online": False,
+                "cancellation_reason": "Enfermedad del tutor",
+            },
+            # ── Upcoming confirmed appointments ─────────────────────────
+            {
+                "patient": patient1,
+                "service": control_sano,
+                "location": location_pucon,
+                "doctor": doctor,
+                "booked_by": tutor1,
+                "scheduled_date": today + datetime.timedelta(days=7),
+                "start_time": datetime.time(10, 0),
+                "end_time": datetime.time(10, 45),
+                "status": Appointment.CONFIRMED,
+                "is_online": False,
+                "notes": "Control 3 años. Evaluación pre-escolar.",
+            },
+            {
+                "patient": patient2,
+                "service": enfermedad,
+                "location": location_pucon,
+                "doctor": doctor,
+                "booked_by": tutor1,
+                "scheduled_date": today + datetime.timedelta(days=14),
+                "start_time": datetime.time(11, 0),
+                "end_time": datetime.time(11, 45),
+                "status": Appointment.CONFIRMED,
+                "is_online": False,
+                "notes": "Control seguimiento.",
+            },
+        ]
+
+        for data in appointments_data:
+            appt, created = Appointment.objects.get_or_create(
+                practice=practice,
+                patient=data["patient"],
+                service=data["service"],
+                scheduled_date=data["scheduled_date"],
+                start_time=data["start_time"],
+                defaults={
+                    "location": data["location"],
+                    "doctor": data["doctor"],
+                    "booked_by": data["booked_by"],
+                    "end_time": data["end_time"],
+                    "status": data["status"],
+                    "is_online": data["is_online"],
+                    "notes": data.get("notes", ""),
+                    "cancellation_reason": data.get("cancellation_reason", ""),
+                },
+            )
+            label = "[+] Turno creado" if created else "[=] Turno ya existe"
+            status_label = dict(Appointment.STATUS_CHOICES).get(appt.status, appt.status)
+            self.stdout.write(self.style.SUCCESS(f"  {label}: {appt.patient.full_name} - {status_label} ({appt.scheduled_date})"))
+
+    # ------------------------------------------------------------------
+    # Clinical encounters with SOAP notes
+    # ------------------------------------------------------------------
+
+    def _seed_encounters(self, practice, doctor, patient1, patient2, location_pucon):
+        """Create demo clinical encounters with SOAP notes for completed appointments."""
+        from apps.medical_records.models import Diagnosis, Encounter, SOAPNote
+
+        now = timezone.now()
+
+        encounters_data = [
+            {
+                "patient": patient1,
+                "encounter_type": Encounter.WELL_CHILD_VISIT,
+                "scheduled_at": now - datetime.timedelta(days=90),
+                "started_at": now - datetime.timedelta(days=90, hours=-1),
+                "completed_at": now - datetime.timedelta(days=90, hours=-2),
+                "status": Encounter.COMPLETED,
+                "reason": "Control sano 18 meses",
+                "diagnosis": "Niño sano — desarrollo normal para su edad",
+                "soap": {
+                    "subjective": "Madre refiere que Sofía ha estado activa y saludable. Sin fiebre, sin tos, sin síntomas gastrointestinales. Come bien, duerme bien. Preocupación por desarrollo del lenguaje.",
+                    "objective": "Peso: 11.5 kg (P50), Talla: 85 cm (P50), PC: 47 cm (P50). Examen físico normal. Desarrollo psicomotor acorde a edad. Lenguaje: dice 15-20 palabras, combina 2 palabras. Vacunas al día.",
+                    "assessment": "Niño sano. Desarrollo normal para 18 meses. Se解释了 pautas de estimulación del lenguaje. Se entrega calendario de vacunas. Se recuerda próxima consulta a los 24 meses.",
+                    "plan": "1. Continuar estimulación del lenguaje\n2. Próximo control a los 24 meses\n3. Vacunas: sin pendientes según PNI\n4. Alimentación: continuar con alimentación familiar",
+                },
+            },
+            {
+                "patient": patient2,
+                "encounter_type": Encounter.WELL_CHILD_VISIT,
+                "scheduled_at": now - datetime.timedelta(days=60),
+                "started_at": now - datetime.timedelta(days=60, hours=-1),
+                "completed_at": now - datetime.timedelta(days=60, hours=-2),
+                "status": Encounter.COMPLETED,
+                "reason": "Control 8 meses",
+                "diagnosis": "Niño sano — alimentación complementaria en curso",
+                "soap": {
+                    "subjective": "Madre consulta por introducción de alimentos sólidos. Mateo ha probado puré de zapallo, zanahoria y papa. Sin reacciones adversas. Buen apetito.",
+                    "objective": "Peso: 8.2 kg (P25), Talla: 70 cm (P50), PC: 44 cm (P50). Desarrollo motor normal: se sienta sin apoyo, gatea. Examen físico normal.",
+                    "assessment": "Niño sano. Alimentación complementaria bien tolerada. Desarrollo psicomotor normal para 8 meses.",
+                    "plan": "1. Continuar introduciendo nuevos alimentos (uno por vez)\n2. Incluir carnes y legumbres\n3. Próximo control a los 12 meses\n4. Próximas vacunas: según calendario PNI",
+                },
+            },
+            {
+                "patient": patient1,
+                "encounter_type": Encounter.CONSULTATION,
+                "scheduled_at": now - datetime.timedelta(days=30),
+                "started_at": now - datetime.timedelta(days=30, hours=-1),
+                "completed_at": now - datetime.timedelta(days=30, hours=-2),
+                "status": Encounter.COMPLETED,
+                "reason": "Consulta por dolor de oído",
+                "diagnosis": "Otitis media aguda (OMA) izquierda",
+                "soap": {
+                    "subjective": "Madre refiere que Sofía ha estado irritable desde hace 2 días, se toca el oído izquierdo. Fiebre de 38.5°C anoche. Sin rinorrea ni tos.",
+                    "objective": "Peso: 11.6 kg. Temperatura: 37.8°C. Oído izquierdo: membrana timpánica eritematosa, abombada, con disminución del cono luminoso. Oído derecho: normal. Orofaringe: normal.",
+                    "assessment": "Otitis media aguda izquierda. Sin complicaciones. Paciente sin alergias medicamentosas conocidas.",
+                    "plan": "1. Amoxicilina 80 mg/kg/día por 7 días\n2. Paracetamol 15 mg/kg cada 6-8 h para fiebre/dolor\n3. Control en 48-72 horas si no mejora\n4. Señales de alerta explicadas a la madre",
+                },
+            },
+        ]
+
+        for data in encounters_data:
+            soap_data = data.pop("soap")
+            diagnosis_text = data.pop("diagnosis")
+            encounter, created = Encounter.objects.get_or_create(
+                practice=practice,
+                patient=data["patient"],
+                scheduled_at=data["scheduled_at"],
+                defaults={
+                    "doctor": doctor,
+                    "location": location_pucon,
+                    "encounter_type": data["encounter_type"],
+                    "status": data["status"],
+                    "started_at": data["started_at"],
+                    "completed_at": data["completed_at"],
+                    "reason_for_visit": data["reason"],
+                },
+            )
+            if created:
+                SOAPNote.objects.create(
+                    practice=practice,
+                    encounter=encounter,
+                    subjective=soap_data["subjective"],
+                    objective=soap_data["objective"],
+                    assessment=soap_data["assessment"],
+                    plan=soap_data["plan"],
+                )
+                Diagnosis.objects.create(
+                    practice=practice,
+                    encounter=encounter,
+                    description=diagnosis_text,
+                    is_primary=True,
+                )
+                self.stdout.write(self.style.SUCCESS(f"  [+] Encuentro creado: {encounter.patient.full_name} ({encounter.get_encounter_type_display()})"))
+            else:
+                self.stdout.write(f"  [=] Encuentro ya existe: {encounter.patient.full_name}")
+
+    # ------------------------------------------------------------------
+    # Demo payments
+    # ------------------------------------------------------------------
+
+    def _seed_payments(self, practice, patient1, patient2, services):
+        """Create demo payments for completed appointments (test mode)."""
+        from apps.billing.models import Payment
+        from apps.scheduling.models import Appointment
+
+        control_sano = next((s for s in services if s.slug == "control-nino-sano"), services[0])
+        enfermedad = next((s for s in services if s.slug == "consulta-enfermedad-particular"), services[1])
+
+        # Find completed appointments to attach payments to
+        completed_appointments = Appointment.objects.filter(
+            practice=practice,
+            status=Appointment.COMPLETED,
+        )[:3]
+
+        payments_data = [
+            {
+                "appointment": completed_appointments[0] if len(completed_appointments) > 0 else None,
+                "patient": patient1,
+                "amount": control_sano.price_clp,
+                "payment_method": Payment.MERCADOPAGO,
+                "status": Payment.COMPLETED,
+                "external_id": "MP-TEST-123456789",
+                "external_status": "approved",
+            },
+            {
+                "appointment": completed_appointments[1] if len(completed_appointments) > 1 else None,
+                "patient": patient2,
+                "amount": control_sano.price_clp,
+                "payment_method": Payment.TRANSFER,
+                "status": Payment.COMPLETED,
+            },
+            {
+                "appointment": completed_appointments[2] if len(completed_appointments) > 2 else None,
+                "patient": patient1,
+                "amount": enfermedad.price_clp,
+                "payment_method": Payment.MERCADOPAGO,
+                "status": Payment.COMPLETED,
+                "external_id": "MP-TEST-987654321",
+                "external_status": "approved",
+            },
+        ]
+
+        for data in payments_data:
+            if data["appointment"] is None:
+                continue
+            payment, created = Payment.objects.get_or_create(
+                practice=practice,
+                appointment=data["appointment"],
+                defaults={
+                    "patient": data["patient"],
+                    "amount": data["amount"],
+                    "payment_method": data["payment_method"],
+                    "status": data["status"],
+                    "external_id": data.get("external_id", ""),
+                    "external_status": data.get("external_status", ""),
+                },
+            )
+            label = "[+] Pago creado" if created else "[=] Pago ya existe"
+            self.stdout.write(self.style.SUCCESS(f"  {label}: ${payment.amount} CLP - {payment.payment_method}"))
