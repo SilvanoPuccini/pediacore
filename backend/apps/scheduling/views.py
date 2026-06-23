@@ -15,6 +15,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from django.conf import settings
+
 from apps.core.models import AuditLog
 from apps.core.pagination import StandardPagination
 from apps.core.permissions import IsDoctor, IsTutor
@@ -405,7 +407,7 @@ class WaitlistViewSet(viewsets.ModelViewSet):
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
     def get_permissions(self):
-        if self.action in ("offer_slot", "destroy", "partial_update"):
+        if self.action in ("offer_slot", "partial_update"):
             return [IsDoctor()]
         return [IsAuthenticated()]
 
@@ -440,6 +442,12 @@ class WaitlistViewSet(viewsets.ModelViewSet):
 
     def perform_destroy(self, instance) -> None:
         """Soft-delete: set status to CANCELLED instead of hard delete."""
+        user = self.request.user
+        if user.role == "TUTOR":
+            from apps.patients.models import TutorPatient
+            if not TutorPatient.objects.filter(tutor=user, patient=instance.patient).exists():
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied("You can only remove your own patients from the waitlist.")
         instance.status = WaitlistEntry.CANCELLED
         instance.save(update_fields=["status", "updated_at"])
 
@@ -449,11 +457,12 @@ class WaitlistViewSet(viewsets.ModelViewSet):
         POST /api/v1/waitlist/{id}/offer-slot/
 
         Doctor offers an available slot to a waitlist entry.
-        Changes status to NOTIFIED and sends in-app notification + email to tutors.
+        Creates a real Appointment (HOLD) + Payment (PENDING) and sets
+        the entry status to OFFERED with a 30-minute confirmation window.
 
-        Body (optional):
-            scheduled_date: "YYYY-MM-DD"
-            start_time: "HH:MM"
+        Body:
+            scheduled_date: "YYYY-MM-DD"  (required)
+            start_time: "HH:MM"           (required)
             channel: "EMAIL" | "WHATSAPP" | "PHONE"  (default EMAIL)
         """
         entry = self.get_object()
@@ -464,27 +473,83 @@ class WaitlistViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Optional slot info from request body
         slot_date_str = request.data.get("scheduled_date")
         slot_time_str = request.data.get("start_time")
         channel = request.data.get("channel", "EMAIL")
 
-        slot_date = None
-        slot_time = None
-        if slot_date_str:
-            try:
-                slot_date = datetime.date.fromisoformat(slot_date_str)
-            except ValueError:
-                pass
-        if slot_time_str:
-            try:
-                slot_time = datetime.time.fromisoformat(slot_time_str)
-            except ValueError:
-                pass
+        if not slot_date_str or not slot_time_str:
+            return Response(
+                {"detail": "scheduled_date and start_time are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        entry.status = WaitlistEntry.NOTIFIED
+        try:
+            slot_date = datetime.date.fromisoformat(slot_date_str)
+            slot_time = datetime.time.fromisoformat(slot_time_str)
+        except ValueError:
+            return Response(
+                {"detail": "Invalid date or time format."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Create appointment + payment via hold_appointment
+        try:
+            appointment, payment = hold_appointment(
+                user=request.user,
+                practice=entry.practice,
+                service=entry.service,
+                location=entry.location,
+                patient=entry.patient,
+                scheduled_date=slot_date,
+                start_time=slot_time,
+                is_online=(entry.location is None),
+                notes=f"From waitlist #{entry.pk}",
+                payment_method="MERCADOPAGO",
+                booked_by_doctor=True,
+            )
+        except SlotUnavailableError:
+            return Response(
+                {"detail": "The selected slot is no longer available."},
+                status=status.HTTP_409_CONFLICT,
+            )
+        except Exception as exc:
+            logger.error("offer_slot: hold_appointment failed for WaitlistEntry #%s: %s", entry.pk, exc)
+            return Response(
+                {"detail": f"Could not create appointment: {exc}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        # Create MercadoPago preference for the payment link
+        payment_link = ""
+        try:
+            from apps.billing.services.payment_strategy import create_mp_preference
+            preference = create_mp_preference(payment)
+            payment_link = preference.get("init_point", "")
+        except Exception as exc:
+            logger.warning("offer_slot: MP preference failed for Payment #%s: %s", payment.pk, exc)
+            frontend_url = getattr(settings, "FRONTEND_URL", "https://estefipediatra.com").rstrip("/")
+            payment_link = f"{frontend_url}/portal/pagos"
+
+        # Update waitlist entry to OFFERED
+        offer_minutes = 30
+        entry.status = WaitlistEntry.OFFERED
         entry.notified_at = timezone.now()
-        entry.save(update_fields=["status", "notified_at", "updated_at"])
+        entry.offer_expires_at = timezone.now() + datetime.timedelta(minutes=offer_minutes)
+        entry.offered_appointment = appointment
+        entry.save(update_fields=["status", "notified_at", "offer_expires_at", "offered_appointment", "updated_at"])
+
+        # Schedule expiry task
+        try:
+            from django_q.tasks import schedule
+            from django_q.models import Schedule
+            schedule(
+                "apps.scheduling.services.waitlist_expiry.expire_and_cascade",
+                entry.pk,
+                schedule_type=Schedule.ONCE,
+                next_run=entry.offer_expires_at,
+            )
+        except Exception as exc:
+            logger.warning("offer_slot: could not schedule expiry task: %s", exc)
 
         # Notify every tutor linked to the patient
         from apps.notifications.models import Notification
@@ -499,25 +564,59 @@ class WaitlistViewSet(viewsets.ModelViewSet):
                 title="Turno disponible",
                 message=(
                     f"La doctora te ofrece un turno para {entry.patient.full_name} "
-                    f"— {entry.service.name}. Ingresá al sistema para reservarlo."
+                    f"— {entry.service.name}. Tenés 30 minutos para confirmar."
                 ),
-                related_type="WaitlistEntry",
-                related_id=entry.pk,
+                related_type="Appointment",
+                related_id=appointment.pk,
             )
 
-        # Send email notification if channel is EMAIL
+        # Send email
         if channel == "EMAIL":
             try:
                 from apps.notifications.services.email_service import send_waitlist_offer_email
-
-                send_waitlist_offer_email(entry, slot_date=slot_date, slot_time=slot_time)
-            except Exception as exc:
-                logger.warning(
-                    "offer_slot: email failed for WaitlistEntry #%s: %s",
-                    entry.pk,
-                    exc,
+                send_waitlist_offer_email(
+                    entry,
+                    slot_date=slot_date,
+                    slot_time=slot_time,
+                    payment_link=payment_link,
+                    expires_minutes=offer_minutes,
                 )
+            except Exception as exc:
+                logger.warning("offer_slot: email failed for WaitlistEntry #%s: %s", entry.pk, exc)
 
+        serializer = self.get_serializer(entry)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated], url_path="decline-offer")
+    def decline_offer(self, request: Request, pk=None) -> Response:
+        """
+        POST /api/v1/waitlist/{id}/decline-offer/
+
+        Tutor declines the offered slot. The linked appointment is expired,
+        and the waitlist entry returns to WAITING so the doctor can offer again.
+        """
+        entry = self.get_object()
+
+        if entry.status != WaitlistEntry.OFFERED:
+            return Response(
+                {"detail": "Only OFFERED entries can be declined."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Verify tutor owns this patient
+        user = request.user
+        if user.role == "TUTOR":
+            from apps.patients.models import TutorPatient
+            if not TutorPatient.objects.filter(tutor=user, patient=entry.patient).exists():
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied("You can only decline offers for your own patients.")
+
+        # Expire the linked appointment + payment, then cascade to next candidate
+        from apps.scheduling.services.waitlist_expiry import expire_and_cascade
+        expire_and_cascade(entry.pk)
+
+        # Re-fetch after state change
+        entry.refresh_from_db()
         serializer = self.get_serializer(entry)
         return Response(serializer.data, status=status.HTTP_200_OK)
 

@@ -142,7 +142,17 @@ export default function RescheduleAppointment() {
 
   // Can't reschedule cancelled/completed appointments
   const canReschedule = ["CONFIRMED", "HOLD", "PENDING"].includes(appointment.status);
-  if (!canReschedule) {
+
+  // Can't reschedule less than 12 hours before appointment
+  const tooLate = (() => {
+    if (!canReschedule) return false;
+    const [y, m, d] = appointment.scheduled_date.split("-").map(Number);
+    const [hh, mm] = appointment.start_time.split(":").map(Number);
+    const apptMs = new Date(y, m - 1, d, hh, mm).getTime();
+    return (apptMs - Date.now()) / 3_600_000 < 12;
+  })();
+
+  if (!canReschedule || tooLate) {
     return (
       <div className="max-w-md mx-auto">
         <Link
@@ -157,7 +167,9 @@ export default function RescheduleAppointment() {
             Este turno no se puede reagendar
           </p>
           <p className="text-[12px] text-ink3">
-            Solo se pueden reagendar turnos confirmados o pendientes.
+            {tooLate
+              ? "No se puede reagendar con menos de 12 horas de anticipación. Si necesitás cancelar, podés hacerlo pero se aplica la política de cancelación."
+              : "Solo se pueden reagendar turnos confirmados o pendientes."}
           </p>
         </div>
       </div>

@@ -15,7 +15,7 @@ export default function TermsPage() {
         </h1>
         <p className="text-[14px] text-ink2 mb-8">
           <strong className="text-ink">Sitio:</strong> estefipediatra.com &nbsp;·&nbsp;{" "}
-          <strong className="text-ink">Última actualización:</strong> 31 de mayo de 2025
+          <strong className="text-ink">Última actualización:</strong> 23 de junio de 2026
         </p>
 
         <p className="text-[15px] text-ink2 leading-relaxed mb-8">
@@ -165,24 +165,23 @@ export default function TermsPage() {
 
         {/* 6 */}
         <h2 className="font-display text-[20px] font-semibold text-ink mt-10 mb-3">
-          6. Política de cancelación, reprogramación y reembolsos
+          6. Política de cancelación y reembolsos
         </h2>
         <p className="text-[14px] text-ink2 leading-relaxed mb-3">
-          6.1. El Usuario puede cancelar o reprogramar su consulta según la siguiente política:
+          6.1. El Usuario puede <strong className="text-ink">cancelar</strong> su consulta en cualquier momento.
+          El reembolso depende de la anticipación con que se realice la cancelación:
         </p>
         <div className="mb-4 space-y-2">
           <div className="flex items-start gap-3 rounded-[12px] bg-green-50 border border-green-200 px-4 py-3">
             <span className="text-green-600 font-bold text-[13px] shrink-0 mt-0.5">+24 h</span>
             <p className="text-[14px] text-green-800 leading-relaxed">
-              <strong>Con más de 24 horas de anticipación:</strong> reembolso del 100% del valor
-              pagado, o reprogramación sin costo.
+              <strong>Con más de 24 horas de anticipación:</strong> reembolso del 100 % del valor pagado.
             </p>
           </div>
           <div className="flex items-start gap-3 rounded-[12px] bg-amber-50 border border-amber-200 px-4 py-3">
             <span className="text-amber-600 font-bold text-[13px] shrink-0 mt-0.5">12–24 h</span>
             <p className="text-[14px] text-amber-800 leading-relaxed">
-              <strong>Entre 12 y 24 horas de anticipación:</strong> reembolso del 50% del valor
-              pagado, o reprogramación sin costo.
+              <strong>Entre 12 y 24 horas de anticipación:</strong> reembolso del 50 % del valor pagado.
             </p>
           </div>
           <div className="flex items-start gap-3 rounded-[12px] bg-red-50 border border-red-200 px-4 py-3">
@@ -193,43 +192,102 @@ export default function TermsPage() {
           </div>
         </div>
         <p className="text-[14px] text-ink2 leading-relaxed mb-3">
-          6.2. En caso de reprogramación de una consulta ya pagada, el pago se traslada a la nueva
-          fecha, sin necesidad de un nuevo cobro.
+          6.2. Los reembolsos se procesarán a través del mismo medio de pago utilizado, en los plazos
+          que determine el proveedor de pagos.
         </p>
         <p className="text-[14px] text-ink2 leading-relaxed mb-3">
-          6.3. Los reembolsos que correspondan se procesarán a través del mismo medio de pago
-          utilizado, en los plazos que determine el proveedor de pagos.
-        </p>
-        <p className="text-[14px] text-ink2 leading-relaxed mb-3">
-          6.4. La inasistencia sin aviso previo ("no show") no genera derecho a reembolso.
+          6.3. La inasistencia sin aviso previo ("no show") no genera derecho a reembolso.
         </p>
 
-        {/* 7 */}
+        {/* 6b */}
         <h2 className="font-display text-[20px] font-semibold text-ink mt-10 mb-3">
-          7. Consultas en modalidad online (telemedicina)
+          7. Política de reprogramación
         </h2>
         <p className="text-[14px] text-ink2 leading-relaxed mb-3">
-          7.1. Las consultas online se realizan mediante videollamada a través del enlace que se
+          7.1. La reprogramación (cambio de fecha u hora) está permitida únicamente cuando
+          faltan <strong className="text-ink">12 horas o más</strong> para la consulta.
+        </p>
+        <div className="mb-4 space-y-2">
+          <div className="flex items-start gap-3 rounded-[12px] bg-green-50 border border-green-200 px-4 py-3">
+            <span className="text-green-600 font-bold text-[13px] shrink-0 mt-0.5">+12 h</span>
+            <p className="text-[14px] text-green-800 leading-relaxed">
+              <strong>Con más de 12 horas de anticipación:</strong> reprogramación sin costo.
+              El pago se traslada a la nueva fecha, sin necesidad de un nuevo cobro.
+            </p>
+          </div>
+          <div className="flex items-start gap-3 rounded-[12px] bg-red-50 border border-red-200 px-4 py-3">
+            <span className="text-red-600 font-bold text-[13px] shrink-0 mt-0.5">&lt;12 h</span>
+            <p className="text-[14px] text-red-800 leading-relaxed">
+              <strong>Con menos de 12 horas de anticipación:</strong> no es posible reprogramar.
+              Si necesitás cambiar tu turno, debés cancelarlo (se aplica la política de
+              cancelación del punto 6) y reservar uno nuevo.
+            </p>
+          </div>
+        </div>
+        <p className="text-[14px] text-ink2 leading-relaxed mb-3">
+          7.2. Dentro de las 12 horas previas al turno, el sistema deshabilita automáticamente la
+          opción de reprogramación. Solo queda disponible la opción de cancelar.
+        </p>
+
+        {/* 6c */}
+        <h2 className="font-display text-[20px] font-semibold text-ink mt-10 mb-3">
+          8. Lista de espera y asignación automática de turnos
+        </h2>
+        <p className="text-[14px] text-ink2 leading-relaxed mb-3">
+          8.1. El Usuario puede inscribirse en la <strong className="text-ink">lista de espera</strong> para
+          un servicio y sede determinados. Al hacerlo, se le asigna una posición en la cola según el
+          orden de inscripción y la prioridad asignada.
+        </p>
+        <p className="text-[14px] text-ink2 leading-relaxed mb-3">
+          8.2. Cuando se libera un turno (por cancelación o reprogramación de otro paciente), el
+          sistema ofrece automáticamente ese turno al primer inscripto elegible de la lista de
+          espera, enviándole una notificación por correo electrónico con un enlace de pago.
+        </p>
+        <p className="text-[14px] text-ink2 leading-relaxed mb-3">
+          8.3. El Usuario notificado dispone de una{" "}
+          <strong className="text-ink">ventana de confirmación limitada</strong> (que varía según
+          la cercanía del turno, entre 10 y 30 minutos) para confirmar y pagar. Si no confirma
+          dentro de esa ventana, la oferta expira automáticamente y el turno se ofrece al
+          siguiente inscripto en la cola.
+        </p>
+        <p className="text-[14px] text-ink2 leading-relaxed mb-3">
+          8.4. El Usuario puede <strong className="text-ink">rechazar</strong> una oferta de turno
+          sin perder su lugar en la lista de espera. Seguirá recibiendo ofertas de turnos futuros.
+        </p>
+        <p className="text-[14px] text-ink2 leading-relaxed mb-3">
+          8.5. El Usuario puede <strong className="text-ink">salir</strong> de la lista de espera
+          en cualquier momento desde su portal.
+        </p>
+        <p className="text-[14px] text-ink2 leading-relaxed mb-3">
+          8.6. La inscripción en la lista de espera no garantiza la obtención de un turno.
+        </p>
+
+        {/* 9 */}
+        <h2 className="font-display text-[20px] font-semibold text-ink mt-10 mb-3">
+          9. Consultas en modalidad online (telemedicina)
+        </h2>
+        <p className="text-[14px] text-ink2 leading-relaxed mb-3">
+          9.1. Las consultas online se realizan mediante videollamada a través del enlace que se
           proporcionará al Usuario con anticipación.
         </p>
         <p className="text-[14px] text-ink2 leading-relaxed mb-3">
-          7.2. El Usuario es responsable de contar con conexión a internet estable y un dispositivo
+          9.2. El Usuario es responsable de contar con conexión a internet estable y un dispositivo
           adecuado.
         </p>
         <p className="text-[14px] text-ink2 leading-relaxed mb-3">
-          7.3. La telemedicina tiene limitaciones inherentes. La Profesional podrá, según su
+          9.3. La telemedicina tiene limitaciones inherentes. La Profesional podrá, según su
           criterio clínico, indicar que la consulta requiere atención presencial, derivación o
           exámenes complementarios.
         </p>
         <p className="text-[14px] text-ink2 leading-relaxed mb-3">
-          7.4. La consulta online <strong className="text-ink">no reemplaza la atención de
+          9.4. La consulta online <strong className="text-ink">no reemplaza la atención de
           urgencia</strong>. Ante una emergencia, el Usuario debe contactar al servicio de urgencias
           (SAMU 131) o acudir al centro asistencial más cercano.
         </p>
 
-        {/* 8 */}
+        {/* 10 */}
         <h2 className="font-display text-[20px] font-semibold text-ink mt-10 mb-3">
-          8. Obligaciones del Usuario
+          10. Obligaciones del Usuario
         </h2>
         <p className="text-[14px] text-ink2 leading-relaxed mb-3">
           El Usuario se compromete a:
@@ -247,9 +305,9 @@ export default function TermsPage() {
           <li>Presentar la documentación que corresponda al tipo de consulta reservada.</li>
         </ol>
 
-        {/* 9 */}
+        {/* 11 */}
         <h2 className="font-display text-[20px] font-semibold text-ink mt-10 mb-3">
-          9. Propiedad intelectual
+          11. Propiedad intelectual
         </h2>
         <p className="text-[14px] text-ink2 leading-relaxed mb-3">
           Todo el contenido del Sitio (textos, diseño, logotipos, código, materiales del blog y
@@ -258,28 +316,28 @@ export default function TermsPage() {
           reproducción o uso sin autorización expresa.
         </p>
 
-        {/* 10 */}
+        {/* 12 */}
         <h2 className="font-display text-[20px] font-semibold text-ink mt-10 mb-3">
-          10. Limitación de responsabilidad
+          12. Limitación de responsabilidad
         </h2>
         <p className="text-[14px] text-ink2 leading-relaxed mb-3">
-          10.1. La Profesional realiza sus mejores esfuerzos para mantener el Sitio operativo,
+          12.1. La Profesional realiza sus mejores esfuerzos para mantener el Sitio operativo,
           seguro y disponible, pero no garantiza el funcionamiento ininterrumpido ni libre de
           errores.
         </p>
         <p className="text-[14px] text-ink2 leading-relaxed mb-3">
-          10.2. La Profesional no será responsable por fallas atribuibles a terceros proveedores
+          12.2. La Profesional no será responsable por fallas atribuibles a terceros proveedores
           (pasarela de pago, proveedor de telemedicina, servicios de mensajería o correo
           electrónico, proveedores de infraestructura).
         </p>
         <p className="text-[14px] text-ink2 leading-relaxed mb-3">
-          10.3. La responsabilidad por la atención médica se rige por las normas del ejercicio
+          12.3. La responsabilidad por la atención médica se rige por las normas del ejercicio
           profesional de la medicina y la Ley N° 20.584.
         </p>
 
-        {/* 11 */}
+        {/* 13 */}
         <h2 className="font-display text-[20px] font-semibold text-ink mt-10 mb-3">
-          11. Protección de datos
+          13. Protección de datos
         </h2>
         <p className="text-[14px] text-ink2 leading-relaxed mb-3">
           El tratamiento de los datos personales del Usuario y del paciente se rige por la{" "}
@@ -291,9 +349,9 @@ export default function TermsPage() {
           declara haber leído y aceptado dicha Política.
         </p>
 
-        {/* 12 */}
+        {/* 14 */}
         <h2 className="font-display text-[20px] font-semibold text-ink mt-10 mb-3">
-          12. Marco legal aplicable
+          14. Marco legal aplicable
         </h2>
         <p className="text-[14px] text-ink2 leading-relaxed mb-3">
           Estos Términos se rigen por las leyes de la República de Chile, en especial:
@@ -316,9 +374,9 @@ export default function TermsPage() {
           Cualquier controversia será sometida a los tribunales competentes de Chile.
         </p>
 
-        {/* 13 */}
+        {/* 15 */}
         <h2 className="font-display text-[20px] font-semibold text-ink mt-10 mb-3">
-          13. Modificaciones
+          15. Modificaciones
         </h2>
         <p className="text-[14px] text-ink2 leading-relaxed mb-3">
           La Profesional podrá modificar estos Términos en cualquier momento. Las modificaciones
@@ -326,9 +384,9 @@ export default function TermsPage() {
           una modificación implica la aceptación de los Términos vigentes.
         </p>
 
-        {/* 14 */}
+        {/* 16 */}
         <h2 className="font-display text-[20px] font-semibold text-ink mt-10 mb-3">
-          14. Contacto
+          16. Contacto
         </h2>
         <p className="text-[14px] text-ink2 leading-relaxed mb-3">
           Para consultas sobre estos Términos, puede escribir a:{" "}

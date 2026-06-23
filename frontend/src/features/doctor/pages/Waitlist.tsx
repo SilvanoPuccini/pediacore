@@ -95,9 +95,12 @@ interface EnrichedEntry {
   pref: string;
   notes: string;
   preferred_date_start: string;
+  status: WaitlistEntry["status"];
+  offer_expires_at: string | null;
+  offered_appointment: number | null;
 }
 
-function enrich(e: WaitlistEntry & { patient?: number; service?: number; location?: number | null; preferred_date_start?: string }): EnrichedEntry {
+function enrich(e: WaitlistEntry): EnrichedEntry {
   return {
     id: e.id,
     patient_id: e.patient ?? 0,
@@ -111,7 +114,34 @@ function enrich(e: WaitlistEntry & { patient?: number; service?: number; locatio
     pref: e.notes?.toLowerCase().includes("tarde") ? "Tarde" : "Mañana",
     notes: e.notes ?? "",
     preferred_date_start: e.preferred_date_start ?? new Date().toISOString().slice(0, 10),
+    status: e.status,
+    offer_expires_at: e.offer_expires_at ?? null,
+    offered_appointment: e.offered_appointment ?? null,
   };
+}
+
+// ─── countdown hook ──────────────────────────────────────────────────────────
+
+function useCountdown(expiresAt: string | null): string | null {
+  const [remaining, setRemaining] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!expiresAt) { setRemaining(null); return; }
+
+    const update = () => {
+      const diff = new Date(expiresAt).getTime() - Date.now();
+      if (diff <= 0) { setRemaining("Expirado"); return; }
+      const mins = Math.floor(diff / 60000);
+      const secs = Math.floor((diff % 60000) / 1000);
+      setRemaining(`${mins}:${String(secs).padStart(2, "0")}`);
+    };
+
+    update();
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
+  }, [expiresAt]);
+
+  return remaining;
 }
 
 // ─── metric card ──────────────────────────────────────────────────────────────
@@ -766,6 +796,110 @@ function ConfirmDialog({
   );
 }
 
+// ─── waitlist row ────────────────────────────────────────────────────────────
+
+function WaitlistRow({
+  entry: e,
+  onOffer,
+  onDelete,
+}: {
+  entry: EnrichedEntry;
+  onOffer: () => void;
+  onDelete: () => void;
+}) {
+  const av = esperaAvatar(e.name);
+  const pm = PRIO_META[e.prioridad];
+  const countdown = useCountdown(e.offer_expires_at);
+  const isOffered = e.status === "OFFERED";
+
+  return (
+    <li
+      className="px-5 py-4 hover:bg-bg transition"
+      style={isOffered ? { background: "rgba(245, 212, 160, 0.10)" } : undefined}
+    >
+      <div className="flex items-start gap-4 flex-wrap">
+        {/* Avatar */}
+        <div
+          className="w-10 h-10 rounded-full flex items-center justify-center text-[14px] font-bold shrink-0"
+          style={{ background: av.bg, color: av.fg }}
+        >
+          {e.name.charAt(0)}
+        </div>
+
+        {/* Info */}
+        <div className="flex-1 min-w-[180px]">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[14px] font-bold text-ink">{e.name}</span>
+            {isOffered ? (
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10.5px] font-semibold bg-[rgba(245,212,160,0.45)] text-[#9C7423]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#F5D4A0] animate-pulse" />
+                Turno ofrecido
+              </span>
+            ) : (
+              <span
+                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10.5px] font-semibold"
+                style={{ background: pm.bg, color: pm.text }}
+              >
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: pm.dot }} />
+                Prioridad {pm.label}
+              </span>
+            )}
+          </div>
+          <div className="mt-1 text-[12.5px] text-ink2">{e.motivo}</div>
+          <div className="mt-1.5 flex items-center gap-3 flex-wrap text-[11.5px] text-ink3">
+            <span className="inline-flex items-center gap-1">
+              <MapPin size={11} />
+              {e.sede}
+            </span>
+            {isOffered && countdown ? (
+              <span className="inline-flex items-center gap-1 font-semibold text-[#9C7423]">
+                <Clock size={11} />
+                Expira en {countdown}
+              </span>
+            ) : (
+              <>
+                <span className="inline-flex items-center gap-1">
+                  <Sun size={11} />
+                  Prefiere {e.pref.toLowerCase()}
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <Clock size={11} />
+                  En espera {e.dias} {e.dias === 1 ? "día" : "días"}
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {isOffered ? (
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] bg-[#F5D4A0]/30 text-[#9C7423] text-[12px] font-semibold border border-[#F5D4A0]/50">
+              <Clock size={14} />
+              Esperando confirmación
+            </span>
+          ) : (
+            <button
+              onClick={onOffer}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] bg-teal-dark text-white text-[12px] font-semibold hover:opacity-90 transition shadow-soft"
+            >
+              <CalendarPlus size={14} />
+              Ofrecer turno
+            </button>
+          )}
+          <button
+            onClick={onDelete}
+            className="w-9 h-9 rounded-[10px] flex items-center justify-center text-ink3 hover:text-[#A85050] hover:bg-err/10 transition"
+            title="Quitar de la lista"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      </div>
+    </li>
+  );
+}
+
 // ─── page ─────────────────────────────────────────────────────────────────────
 
 export default function WaitlistPage() {
@@ -804,7 +938,7 @@ export default function WaitlistPage() {
     queryKey: ["waitlist"],
     queryFn: async () => {
       const { data } = await api.get<PaginatedResponse<WaitlistEntry>>(
-        "/waitlist/?page_size=100&status=WAITING,NOTIFIED"
+        "/waitlist/?page_size=100&status=WAITING,OFFERED"
       );
       return data;
     },
@@ -826,9 +960,7 @@ export default function WaitlistPage() {
 
   // ── derived data ────────────────────────────────────────────────────────────
 
-  const enriched = (data?.results ?? []).map((e) =>
-    enrich(e as WaitlistEntry & { patient?: number; service?: number; location?: number | null; preferred_date_start?: string })
-  );
+  const enriched = (data?.results ?? []).map((e) => enrich(e));
 
   const shown = enriched.filter((e) => {
     if (sedeFilter !== "Todas" && e.sede !== sedeFilter) return false;
@@ -837,8 +969,8 @@ export default function WaitlistPage() {
   });
 
   const total = enriched.length;
+  const offered = enriched.filter((e) => e.status === "OFFERED").length;
   const altas = enriched.filter((e) => e.prioridad === "alta").length;
-  const online = enriched.filter((e) => e.sede === "Online").length;
   const promDias = total
     ? Math.round(enriched.reduce((s, e) => s + e.dias, 0) / total)
     : 0;
@@ -879,11 +1011,11 @@ export default function WaitlistPage() {
           label="Prioridad alta"
         />
         <EsperaMetric
-          icon={<Video size={16} />}
-          iconBg="rgba(244, 168, 154, 0.25)"
-          iconColor="#B5604F"
-          value={online}
-          label="Prefieren online"
+          icon={<MessageCircle size={16} />}
+          iconBg="rgba(245, 212, 160, 0.35)"
+          iconColor="#9C7423"
+          value={offered}
+          label="Turno ofrecido"
         />
         <EsperaMetric
           icon={<CalendarClock size={16} />}
@@ -959,73 +1091,14 @@ export default function WaitlistPage() {
           </div>
         ) : (
           <ul className="divide-y divide-line/70">
-            {shown.map((e) => {
-              const av = esperaAvatar(e.name);
-              const pm = PRIO_META[e.prioridad];
-              return (
-                <li key={e.id} className="px-5 py-4 hover:bg-bg transition">
-                  <div className="flex items-start gap-4 flex-wrap">
-                    {/* Avatar */}
-                    <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-[14px] font-bold shrink-0"
-                      style={{ background: av.bg, color: av.fg }}
-                    >
-                      {e.name.charAt(0)}
-                    </div>
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-[180px]">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[14px] font-bold text-ink">{e.name}</span>
-                        <span
-                          className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10.5px] font-semibold"
-                          style={{ background: pm.bg, color: pm.text }}
-                        >
-                          <span
-                            className="w-1.5 h-1.5 rounded-full"
-                            style={{ background: pm.dot }}
-                          />
-                          Prioridad {pm.label}
-                        </span>
-                      </div>
-                      <div className="mt-1 text-[12.5px] text-ink2">{e.motivo}</div>
-                      <div className="mt-1.5 flex items-center gap-3 flex-wrap text-[11.5px] text-ink3">
-                        <span className="inline-flex items-center gap-1">
-                          <MapPin size={11} />
-                          {e.sede}
-                        </span>
-                        <span className="inline-flex items-center gap-1">
-                          <Sun size={11} />
-                          Prefiere {e.pref.toLowerCase()}
-                        </span>
-                        <span className="inline-flex items-center gap-1">
-                          <Clock size={11} />
-                          En espera {e.dias} {e.dias === 1 ? "día" : "días"}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <button
-                        onClick={() => setOfferTarget(e)}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] bg-teal-dark text-white text-[12px] font-semibold hover:opacity-90 transition shadow-soft"
-                      >
-                        <CalendarPlus size={14} />
-                        Ofrecer turno
-                      </button>
-                      <button
-                        onClick={() => setDeleteTarget(e)}
-                        className="w-9 h-9 rounded-[10px] flex items-center justify-center text-ink3 hover:text-[#A85050] hover:bg-err/10 transition"
-                        title="Quitar de la lista"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
+            {shown.map((e) => (
+              <WaitlistRow
+                key={e.id}
+                entry={e}
+                onOffer={() => setOfferTarget(e)}
+                onDelete={() => setDeleteTarget(e)}
+              />
+            ))}
           </ul>
         )}
       </div>

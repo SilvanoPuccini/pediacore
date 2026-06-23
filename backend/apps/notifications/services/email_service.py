@@ -1986,15 +1986,19 @@ def send_waitlist_offer_email(
     entry,
     slot_date=None,
     slot_time=None,
+    payment_link: str = "",
+    expires_minutes: int = 30,
 ) -> None:
     """
-    Send email to all linked tutors notifying them that a slot is available
-    for their child who was on the waitlist.
+    Send email to all linked tutors notifying them that a slot is offered
+    and they have a limited window to confirm payment.
 
     Args:
-        entry: The WaitlistEntry instance (already marked NOTIFIED).
-        slot_date: Optional date of the offered slot.
-        slot_time: Optional time of the offered slot.
+        entry: The WaitlistEntry instance (already marked OFFERED).
+        slot_date: Date of the offered slot.
+        slot_time: Time of the offered slot.
+        payment_link: MercadoPago init_point URL (or fallback portal URL).
+        expires_minutes: Minutes the offer is valid for (shown in email body).
     """
     from apps.patients.models import TutorPatient
 
@@ -2016,24 +2020,33 @@ def send_waitlist_offer_email(
         subject = f"¡Turno disponible para {entry.patient.first_name}!"
         body_lines = [
             f"Hola {tutor.first_name},",
-            f"Se liberó un cupo para <strong>{entry.patient.full_name}</strong>.",
+            f"La Dra. Estefi te ofrece un turno para <strong>{entry.patient.full_name}</strong>.",
             f"Servicio: {entry.service.name}",
         ]
         if entry.location:
             body_lines.append(f"Sede: {entry.location.name}")
         if slot_info:
-            body_lines.append(f"Fecha disponible: {slot_info}")
+            body_lines.append(f"Fecha y hora: {slot_info}")
         body_lines.append(
-            "Ingresá a tu portal para reservar este turno antes de que se ocupe."
+            f"<strong>Ten\u00e9s {expires_minutes} minutos para confirmar.</strong> "
+            "Si no confirm\u00e1s a tiempo, el turno se libera autom\u00e1ticamente."
         )
 
-        booking_url = f"https://estefipediatra.com/booking"
+        # Payment CTA button + decline link
+        frontend_url = getattr(settings, "FRONTEND_URL", "https://estefipediatra.com").rstrip("/")
+        cta_url = payment_link or f"{frontend_url}/portal/turnos"
+        cta_label = "Confirmar y pagar" if payment_link else "Ver mi turno"
+        decline_url = f"{frontend_url}/portal/turnos"
         extra_html = (
             '<div style="text-align:center;margin:24px 0 8px;">'
-            f'<a href="{booking_url}" style="display:inline-block;background:#3E8E7C;'
-            'color:#ffffff;padding:14px 32px;border-radius:12px;font-size:14px;'
+            f'<a href="{cta_url}" style="display:inline-block;background:#4A8590;'
+            'color:#ffffff;padding:14px 32px;border-radius:12px;font-size:15px;'
             'font-weight:700;text-decoration:none;letter-spacing:0.01em;">'
-            'Reservar turno</a></div>'
+            f'{cta_label}</a></div>'
+            '<div style="text-align:center;margin:8px 0 0;">'
+            f'<a href="{decline_url}" style="color:#999999;font-size:12px;'
+            'font-family:\'Plus Jakarta Sans\',Arial,sans-serif;text-decoration:underline;">'
+            'No me interesa este turno</a></div>'
         )
 
         html_body = _build_appointment_html(

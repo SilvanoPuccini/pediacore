@@ -579,9 +579,12 @@ export interface WaitlistEntry {
   preferred_time_start: string | null;
   preferred_time_end: string | null;
   priority: "HIGH" | "NORMAL" | "LOW";
-  status: "WAITING" | "NOTIFIED" | "BOOKED" | "CANCELLED";
+  status: "WAITING" | "NOTIFIED" | "OFFERED" | "BOOKED" | "EXPIRED" | "CANCELLED";
   status_display: string;
   notified_at: string | null;
+  offer_expires_at: string | null;
+  offered_appointment: number | null;
+  position: number | null;
   notes: string;
   created_at: string;
   updated_at: string;

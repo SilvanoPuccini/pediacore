@@ -200,6 +200,7 @@ class Appointment(BaseModel):
 class WaitlistEntry(BaseModel):
     WAITING = "WAITING"
     NOTIFIED = "NOTIFIED"
+    OFFERED = "OFFERED"
     BOOKED = "BOOKED"
     EXPIRED = "EXPIRED"
     CANCELLED = "CANCELLED"
@@ -207,6 +208,7 @@ class WaitlistEntry(BaseModel):
     STATUS_CHOICES = [
         (WAITING, _("Waiting")),
         (NOTIFIED, _("Notified")),
+        (OFFERED, _("Offered — pending confirmation")),
         (BOOKED, _("Booked")),
         (EXPIRED, _("Expired")),
         (CANCELLED, _("Cancelled")),
@@ -266,6 +268,15 @@ class WaitlistEntry(BaseModel):
         default=NORMAL,
     )
     notified_at = models.DateTimeField(_("notified at"), null=True, blank=True)
+    offer_expires_at = models.DateTimeField(_("offer expires at"), null=True, blank=True)
+    offered_appointment = models.ForeignKey(
+        "scheduling.Appointment",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="waitlist_offer",
+        verbose_name=_("offered appointment"),
+    )
     notes = models.TextField(_("notes"), blank=True)
 
     class Meta:
