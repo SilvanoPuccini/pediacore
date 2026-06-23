@@ -65,10 +65,16 @@ EMAIL_HOST_USER = "resend"
 EMAIL_HOST_PASSWORD = config("RESEND_API_KEY", default="")
 
 # Cache — Redis for speed and axes rate limiting
+_redis_password = config("REDIS_PASSWORD", default="")
+_redis_location = (
+    f"redis://:{_redis_password}@redis:6379/0"
+    if _redis_password
+    else config("REDIS_URL", default="redis://redis:6379/0")
+)
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": config("REDIS_URL", default="redis://redis:6379/0"),
+        "LOCATION": _redis_location,
     }
 }
 
