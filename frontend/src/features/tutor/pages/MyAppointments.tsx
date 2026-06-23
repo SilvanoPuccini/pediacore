@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Stethoscope,
@@ -11,6 +11,7 @@ import {
   Clock,
   AlertCircle,
   Check,
+  CreditCard,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "@/lib/api";
@@ -154,6 +155,13 @@ function ApptRow({
   // Determine action buttons
   const isUnpaid = appointment.status === "HOLD" || appointment.status === "PENDING";
   const canCancel = ["CONFIRMED", "HOLD", "PENDING"].includes(appointment.status);
+  const canReschedule = (() => {
+    if (!["CONFIRMED", "HOLD", "PENDING"].includes(appointment.status)) return false;
+    const [y, m, d] = appointment.scheduled_date.split("-").map(Number);
+    const [hh, mm] = appointment.start_time.split(":").map(Number);
+    const apptMs = new Date(y, m - 1, d, hh, mm).getTime();
+    return (apptMs - Date.now()) / 3_600_000 >= 12;
+  })();
   const isOnlineConfirmed =
     appointment.is_online &&
     appointment.status === "CONFIRMED" &&
@@ -250,14 +258,16 @@ function ApptRow({
                 Pagar
               </Btn>
             )}
-            <Btn
-              variant="ghost"
-              size="sm"
-              icon="RefreshCw"
-              onClick={() => navigate(`/portal/turnos/${appointment.id}/reagendar`)}
-            >
-              Reagendar
-            </Btn>
+            {canReschedule && (
+              <Btn
+                variant="ghost"
+                size="sm"
+                icon="RefreshCw"
+                onClick={() => navigate(`/portal/turnos/${appointment.id}/reagendar`)}
+              >
+                Reagendar
+              </Btn>
+            )}
             {canCancel && (
               <button
                 onClick={() => onCancel(appointment.id)}
@@ -643,11 +653,45 @@ function WaitlistFormModal({
 
 // ─── Waitlist entry card ───────────────────────────────────────────────────────
 
+// ─── countdown hook ────────────────────────────────────────────────────────
+
+function useCountdown(expiresAt: string | null): string | null {
+  const [remaining, setRemaining] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!expiresAt) { setRemaining(null); return; }
+
+    const update = () => {
+      const diff = new Date(expiresAt).getTime() - Date.now();
+      if (diff <= 0) { setRemaining("Expirado"); return; }
+      const mins = Math.floor(diff / 60000);
+      const secs = Math.floor((diff % 60000) / 1000);
+      setRemaining(`${mins}:${String(secs).padStart(2, "0")}`);
+    };
+
+    update();
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
+  }, [expiresAt]);
+
+  return remaining;
+}
+
 function WaitlistCard({ entry }: { entry: WaitlistEntry }) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const countdown = useCountdown(entry.offer_expires_at);
+  const isOffered = entry.status === "OFFERED";
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/waitlist/${id}/`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["waitlist-tutor"] });
+    },
+  });
+
+  const declineMutation = useMutation({
+    mutationFn: (id: number) => api.post(`/waitlist/${id}/decline-offer/`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["waitlist-tutor"] });
     },
@@ -657,6 +701,71 @@ function WaitlistCard({ entry }: { entry: WaitlistEntry }) {
   const timePref = entry.notes?.match(/Prefiere:\s*([^.]+)/)?.[1]?.trim();
   const channel = entry.notes?.match(/Canal:\s*([^.]+)/)?.[1]?.trim();
 
+  // ── OFFERED state: turno ofrecido, countdown activo ──
+  if (isOffered) {
+    return (
+      <div
+        className="rounded-[16px] p-5 border"
+        style={{
+          background: "linear-gradient(135deg, rgba(245,212,160,0.18), rgba(245,180,100,0.10))",
+          borderColor: "rgba(245,180,100,0.5)",
+        }}
+      >
+        <div className="flex items-start gap-3 min-w-0">
+          {/* Icon — pulsing */}
+          <div
+            className="w-10 h-10 rounded-[12px] flex items-center justify-center shrink-0"
+            style={{ background: "rgba(245,212,160,0.50)", color: "#9C7423" }}
+          >
+            <Bell size={18} className="animate-pulse" />
+          </div>
+
+          {/* Info */}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-display text-[16px] text-ink">Turno disponible</h3>
+              {countdown && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-[rgba(245,180,100,0.25)] text-[#9C7423]">
+                  <Clock size={10} />
+                  {countdown === "Expirado" ? "Expirado" : `Expira en ${countdown}`}
+                </span>
+              )}
+            </div>
+            <p className="text-[12.5px] text-ink2 mt-1 leading-relaxed max-w-lg">
+              La Dra. Estefi te ofrece un turno para{" "}
+              <span className="font-semibold text-ink">{entry.patient_name}</span>{" "}
+              ({entry.service_name})
+              {entry.location_name ? ` en ${entry.location_name}` : ""}.
+              <span className="font-semibold"> Confirmá y pagá para reservarlo.</span>
+            </p>
+
+            {/* Actions */}
+            <div className="mt-3 flex items-center gap-2 flex-wrap">
+              {entry.offered_appointment && (
+                <button
+                  onClick={() => navigate(`/portal/pagos?appointment=${entry.offered_appointment}`)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-[10px] bg-[#4A8590] text-white text-[12.5px] font-semibold hover:opacity-90 transition shadow-soft"
+                >
+                  <CreditCard size={14} />
+                  Confirmar y pagar
+                </button>
+              )}
+              <button
+                onClick={() => declineMutation.mutate(entry.id)}
+                disabled={declineMutation.isPending}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[10px] text-[12px] font-semibold text-ink3 hover:text-[#A85050] border border-line/60 bg-surface/60 hover:border-[#A85050]/30 transition disabled:opacity-50"
+              >
+                <X size={13} />
+                Rechazar oferta
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── WAITING state: en cola ──
   return (
     <div
       className="rounded-[16px] p-5 border"
@@ -677,7 +786,14 @@ function WaitlistCard({ entry }: { entry: WaitlistEntry }) {
 
           {/* Info */}
           <div className="min-w-0">
-            <h3 className="font-display text-[16px] text-ink">Estás en lista de espera</h3>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-display text-[16px] text-ink">Estás en lista de espera</h3>
+              {entry.position != null && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-teal/15 text-teal-dark">
+                  #{entry.position} en la cola
+                </span>
+              )}
+            </div>
             <p className="text-[12.5px] text-ink2 mt-1 leading-relaxed max-w-lg">
               Te avisamos por{" "}
               <span className="font-semibold text-ink">{channel ?? "Email"}</span>{" "}
@@ -731,14 +847,16 @@ function WaitlistSection() {
     queryKey: ["waitlist-tutor"],
     queryFn: async () => {
       const res = await api.get<PaginatedResponse<WaitlistEntry>>("/waitlist/", {
-        params: { page_size: 20, status: "WAITING,NOTIFIED" },
+        params: { page_size: 20, status: "WAITING,OFFERED" },
       });
       return res.data.results;
     },
+    refetchInterval: 30_000,
   });
 
   const activeEntries = waitlistData ?? [];
   const hasEntries = activeEntries.length > 0;
+  const hasOffered = activeEntries.some((e) => e.status === "OFFERED");
 
   return (
     <div className="mt-5">

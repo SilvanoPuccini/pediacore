@@ -116,6 +116,13 @@ export default function HeroAppointmentCard({ appointment, loading }: Props) {
   const isOnline = appointment.is_online;
   const hasJoinLink = isOnline && !!appointment.meeting_link && appointment.status === "CONFIRMED";
   const isUnpaid = appointment.status === "PENDING" || appointment.status === "HOLD";
+  const canReschedule = (() => {
+    if (!["CONFIRMED", "HOLD", "PENDING"].includes(appointment.status)) return false;
+    const [y, m, d] = appointment.scheduled_date.split("-").map(Number);
+    const [hh, mm] = appointment.start_time.split(":").map(Number);
+    const apptMs = new Date(y, m - 1, d, hh, mm).getTime();
+    return (apptMs - Date.now()) / 3_600_000 >= 12;
+  })();
 
   return (
     <>
@@ -214,14 +221,16 @@ export default function HeroAppointmentCard({ appointment, loading }: Props) {
               Unirme online
             </a>
           )}
-          <Btn
-            variant="ghost"
-            size="sm"
-            icon="RefreshCw"
-            onClick={() => navigate(`/portal/turnos/${appointment.id}/reagendar`)}
-          >
-            Reagendar
-          </Btn>
+          {canReschedule && (
+            <Btn
+              variant="ghost"
+              size="sm"
+              icon="RefreshCw"
+              onClick={() => navigate(`/portal/turnos/${appointment.id}/reagendar`)}
+            >
+              Reagendar
+            </Btn>
+          )}
           {isUnpaid && appointment.payment_id && (
             <Btn
               variant="soft"

@@ -303,6 +303,7 @@ class WaitlistEntrySerializer(serializers.ModelSerializer):
     service_name = serializers.CharField(source="service.name", read_only=True)
     location_name = serializers.SerializerMethodField()
     status_display = serializers.CharField(source="get_status_display", read_only=True)
+    position = serializers.SerializerMethodField()
 
     class Meta:
         model = WaitlistEntry
@@ -323,17 +324,46 @@ class WaitlistEntrySerializer(serializers.ModelSerializer):
             "status",
             "status_display",
             "notified_at",
+            "offer_expires_at",
+            "offered_appointment",
+            "position",
             "notes",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "practice", "patient_name", "service_name", "location_name", "status", "status_display", "notified_at", "created_at", "updated_at"]
+        read_only_fields = [
+            "id",
+            "practice",
+            "patient_name",
+            "service_name",
+            "location_name",
+            "status",
+            "status_display",
+            "notified_at",
+            "offer_expires_at",
+            "offered_appointment",
+            "position",
+            "created_at",
+            "updated_at",
+        ]
 
     def get_patient_name(self, obj: WaitlistEntry) -> str:
         return obj.patient.full_name
 
     def get_location_name(self, obj: WaitlistEntry) -> str | None:
         return obj.location.name if obj.location else None
+
+    def get_position(self, obj: WaitlistEntry) -> int | None:
+        if obj.status != WaitlistEntry.WAITING:
+            return None
+        return (
+            WaitlistEntry.objects.filter(
+                service=obj.service,
+                status=WaitlistEntry.WAITING,
+                created_at__lt=obj.created_at,
+            ).count()
+            + 1
+        )
 
     def validate(self, attrs: dict) -> dict:
         request = self.context.get("request")

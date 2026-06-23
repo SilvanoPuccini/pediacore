@@ -74,6 +74,23 @@ def reschedule_appointment(
             "Only CONFIRMED appointments can be rescheduled."
         )
 
+    # ── 1b. Reschedule time window check ────────────────────────────────
+    # Tutors cannot reschedule if less than RESCHEDULE_MIN_HOURS before appointment.
+    # Doctors can always reschedule (they may need to adjust the schedule).
+    reschedule_min_hours = 12
+    is_doctor = rescheduled_by and getattr(rescheduled_by, "role", None) == "DOCTOR"
+    if not is_doctor:
+        appt_dt = timezone.make_aware(
+            datetime.datetime.combine(appointment.scheduled_date, appointment.start_time)
+        )
+        hours_until = (appt_dt - timezone.now()).total_seconds() / 3600.0
+        if hours_until < reschedule_min_hours:
+            raise AppointmentNotReschedulableError(
+                f"No podés reagendar con menos de {reschedule_min_hours} horas de anticipación. "
+                f"Faltan {hours_until:.0f} horas para tu turno. "
+                "Si necesitás cancelar, podés hacerlo pero se aplica la política de cancelación."
+            )
+
     with transaction.atomic():
         # ── 2a. Overlap check with row-level lock ─────────────────────────
         duration = datetime.timedelta(minutes=appointment.service.duration_minutes)

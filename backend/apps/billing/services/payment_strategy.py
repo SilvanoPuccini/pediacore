@@ -480,6 +480,22 @@ class TransferStrategy(PaymentStrategy):
         }
 
 
+def create_mp_preference(payment: "Payment") -> dict:
+    """
+    Convenience wrapper: creates a MercadoPago payment preference for the given Payment.
+
+    Returns the dict from MercadoPagoStrategy.create_preference(), which includes
+    at minimum 'init_point' and 'preference_id'.
+
+    Raises on SDK/configuration errors.
+    """
+    from django.conf import settings as django_settings
+
+    access_token = getattr(django_settings, "MERCADOPAGO_ACCESS_TOKEN", "")
+    strategy = MercadoPagoStrategy(access_token=access_token)
+    return strategy.create_preference(payment)
+
+
 def get_payment_strategy(provider_type: str, config: dict | None = None) -> PaymentStrategy:
     """
     Factory function that returns the correct PaymentStrategy for the given provider type.
