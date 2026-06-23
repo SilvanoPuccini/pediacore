@@ -40,6 +40,7 @@ export function useNotifications(page = 1) {
       );
       return data;
     },
+    refetchInterval: 30_000,
   });
 }
 

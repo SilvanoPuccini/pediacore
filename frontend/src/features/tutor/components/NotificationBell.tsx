@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { Bell, BellOff, Check, CheckCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -7,6 +8,7 @@ import {
   useUnreadCount,
   useMarkRead,
   useMarkAllRead,
+  notificationKeys,
 } from "../hooks/useNotifications";
 
 // ─── Relative time helper ─────────────────────────────────────────────────────
@@ -37,11 +39,19 @@ export default function NotificationBell({ notificationsPath = "/portal/notifica
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const { data: unreadCount = 0 } = useUnreadCount();
   const { data, isLoading } = useNotifications(1);
   const markRead = useMarkRead();
   const markAllRead = useMarkAllRead();
+
+  // Force-refetch notification list when dropdown opens
+  useEffect(() => {
+    if (open) {
+      queryClient.invalidateQueries({ queryKey: notificationKeys.list(1) });
+    }
+  }, [open, queryClient]);
 
   const notifications = data?.results ?? [];
   const hasUnread = unreadCount > 0;
