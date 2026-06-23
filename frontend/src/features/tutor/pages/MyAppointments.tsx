@@ -13,7 +13,7 @@ import {
   Check,
   CreditCard,
 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { Appointment, PaginatedResponse, WaitlistEntry, Patient, Service, Location } from "@/types/api";
@@ -744,9 +744,9 @@ function WaitlistCard({ entry }: { entry: WaitlistEntry }) {
 
             {/* Actions */}
             <div className="mt-3 flex items-center gap-2 flex-wrap">
-              {entry.offered_appointment && (
+              {entry.offered_payment_id && (
                 <button
-                  onClick={() => navigate(`/portal/pagos?appointment=${entry.offered_appointment}`)}
+                  onClick={() => navigate(`/portal/pagos/${entry.offered_payment_id}`)}
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-[10px] bg-[#4A8590] text-white text-[12.5px] font-semibold hover:opacity-90 transition shadow-soft"
                 >
                   <CreditCard size={14} />
@@ -914,7 +914,18 @@ export default function MyAppointments() {
   const [upcomingPage, setUpcomingPage] = useState(1);
   const [pastPage, setPastPage] = useState(1);
   const [cancelTarget, setCancelTarget] = useState<number | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
+
+  // Auto-decline waitlist offer from email link (?decline-waitlist=ID)
+  useEffect(() => {
+    const declineId = searchParams.get("decline-waitlist");
+    if (!declineId) return;
+    setSearchParams({}, { replace: true });
+    api.post(`/waitlist/${declineId}/decline-offer/`).then(() => {
+      queryClient.invalidateQueries({ queryKey: ["waitlist-tutor"] });
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const cancelMutation = useMutation({
     mutationFn: (appointmentId: number) =>

@@ -304,6 +304,7 @@ class WaitlistEntrySerializer(serializers.ModelSerializer):
     location_name = serializers.SerializerMethodField()
     status_display = serializers.CharField(source="get_status_display", read_only=True)
     position = serializers.SerializerMethodField()
+    offered_payment_id = serializers.SerializerMethodField()
 
     class Meta:
         model = WaitlistEntry
@@ -326,6 +327,7 @@ class WaitlistEntrySerializer(serializers.ModelSerializer):
             "notified_at",
             "offer_expires_at",
             "offered_appointment",
+            "offered_payment_id",
             "position",
             "notes",
             "created_at",
@@ -342,6 +344,7 @@ class WaitlistEntrySerializer(serializers.ModelSerializer):
             "notified_at",
             "offer_expires_at",
             "offered_appointment",
+            "offered_payment_id",
             "position",
             "created_at",
             "updated_at",
@@ -364,6 +367,15 @@ class WaitlistEntrySerializer(serializers.ModelSerializer):
             ).count()
             + 1
         )
+
+    def get_offered_payment_id(self, obj: WaitlistEntry) -> int | None:
+        if obj.status != WaitlistEntry.OFFERED or not obj.offered_appointment_id:
+            return None
+        from apps.billing.models import Payment
+        try:
+            return Payment.objects.get(appointment_id=obj.offered_appointment_id).pk
+        except Payment.DoesNotExist:
+            return None
 
     def validate(self, attrs: dict) -> dict:
         request = self.context.get("request")
