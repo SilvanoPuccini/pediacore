@@ -2020,7 +2020,7 @@ def send_waitlist_offer_email(
         logo_url = _EMAIL_LOGO_URL()
         cta_url = payment_link or f"{frontend_url}/portal/turnos"
         cta_label = "Confirmar y pagar" if payment_link else "Ver mi turno"
-        decline_url = f"{frontend_url}/portal/turnos"
+        decline_url = f"{frontend_url}/portal/turnos?decline-waitlist={entry.pk}"
 
         subject = f"¡Turno disponible para {entry.patient.first_name}!"
 

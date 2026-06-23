@@ -584,6 +584,7 @@ export interface WaitlistEntry {
   notified_at: string | null;
   offer_expires_at: string | null;
   offered_appointment: number | null;
+  offered_payment_id: number | null;
   position: number | null;
   notes: string;
   created_at: string;
