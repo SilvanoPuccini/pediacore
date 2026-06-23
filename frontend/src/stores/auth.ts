@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import api from "@/lib/api";
+import { isValidAccessToken, isValidRefreshToken } from "@/lib/jwt";
 import type { User, LoginRequest, RegisterRequest } from "@/types/api";
 
 interface AuthState {
@@ -75,6 +76,18 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
   initialize: async () => {
     const token = localStorage.getItem("access_token");
+    const refresh = localStorage.getItem("refresh_token");
+
+    // Structural validation: clear malformed tokens immediately
+    if (token && !isValidAccessToken(token)) {
+      localStorage.removeItem("access_token");
+      set({ isLoading: false });
+      return;
+    }
+    if (refresh && !isValidRefreshToken(refresh)) {
+      localStorage.removeItem("refresh_token");
+    }
+
     if (!token) {
       set({ isLoading: false });
       return;

@@ -6,8 +6,8 @@ from .base import *  # noqa: F401, F403
 
 DEBUG = True
 
-# Allow all hosts in development
-ALLOWED_HOSTS = ["*"]
+# Restrict to local hosts in development
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0"]
 
 # CORS — allow all in development
 CORS_ALLOW_ALL_ORIGINS = True

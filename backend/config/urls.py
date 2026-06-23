@@ -17,6 +17,7 @@ from rest_framework_simplejwt.views import (
 )
 
 from apps.core.admin_views import patient_growth_chart
+from apps.core.views import CSPReportView
 
 urlpatterns = [
     path("gestion-9f3a/patients/<int:patient_id>/growth-chart/", patient_growth_chart, name="admin-patient-growth-chart"),
@@ -36,6 +37,8 @@ urlpatterns = [
     path("api/v1/", include("apps.content.urls")),
     path("api/v1/", include("apps.notifications.urls")),
     path("api/v1/", include("apps.core.urls")),
+    # CSP violation reporting
+    path("csp-report/", CSPReportView.as_view(), name="csp-report"),
     # Health check
     path("health/", lambda request: __import__("django.http", fromlist=["JsonResponse"]).JsonResponse({"status": "ok"})),
 ]

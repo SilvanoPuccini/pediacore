@@ -15,6 +15,17 @@ PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.MD5PasswordHasher",
 ]
 
+# Use local memory cache instead of Redis (tests don't have Redis)
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "pediacore-test-cache",
+    }
+}
+
+# Disable axes in tests — we test it explicitly via test_axes
+AXES_ENABLED = False
+
 # In-memory storage so tests don't write to disk
 STORAGES = {
     "default": {

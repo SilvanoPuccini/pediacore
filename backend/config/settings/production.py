@@ -64,11 +64,11 @@ EMAIL_USE_SSL = True
 EMAIL_HOST_USER = "resend"
 EMAIL_HOST_PASSWORD = config("RESEND_API_KEY", default="")
 
-# Cache (using DB for simplicity — upgrade to Redis in Fase 2 if needed)
+# Cache — Redis for speed and axes rate limiting
 CACHES = {
     "default": {
-        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
-        "LOCATION": "django_cache_table",
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": config("REDIS_URL", default="redis://redis:6379/0"),
     }
 }
 
