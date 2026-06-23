@@ -239,8 +239,8 @@ function AgregarEsperaForm({ onClose, onSuccess }: AddFormProps) {
   const { data: servicesData } = useQuery<Service[]>({
     queryKey: ["services-select"],
     queryFn: async () => {
-      const { data } = await api.get<Service[]>("/services/");
-      return data;
+      const { data } = await api.get<PaginatedResponse<Service>>("/practices/dra-estefi/services/");
+      return data.results;
     },
     staleTime: 1000 * 60 * 5,
   });
@@ -248,8 +248,8 @@ function AgregarEsperaForm({ onClose, onSuccess }: AddFormProps) {
   const { data: locationsData } = useQuery<Location[]>({
     queryKey: ["locations-select"],
     queryFn: async () => {
-      const { data } = await api.get<Location[]>("/locations/");
-      return data;
+      const { data } = await api.get<PaginatedResponse<Location>>("/practices/dra-estefi/locations/");
+      return data.results;
     },
     staleTime: 1000 * 60 * 5,
   });

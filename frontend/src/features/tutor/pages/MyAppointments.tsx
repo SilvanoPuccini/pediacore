@@ -371,7 +371,7 @@ function SegmentedControl<T extends string>({
           type="button"
           onClick={() => onChange(o)}
           className={cn(
-            "flex-1 px-2.5 py-1.5 rounded-[7px] text-[12px] font-semibold transition",
+            "flex-1 px-1.5 py-1.5 rounded-[7px] text-[11px] font-semibold transition text-center whitespace-nowrap",
             value === o
               ? "bg-teal-dark text-white shadow-card"
               : "text-ink2 hover:bg-surface"
@@ -420,8 +420,8 @@ function WaitlistFormModal({
   const { data: servicesData } = useQuery({
     queryKey: ["services-for-waitlist"],
     queryFn: async () => {
-      const res = await api.get<Service[]>("/services/");
-      return res.data;
+      const res = await api.get<PaginatedResponse<Service>>("/practices/dra-estefi/services/");
+      return res.data.results;
     },
     enabled: open,
   });
@@ -430,8 +430,8 @@ function WaitlistFormModal({
   const { data: locationsData } = useQuery({
     queryKey: ["locations-for-waitlist"],
     queryFn: async () => {
-      const res = await api.get<Location[]>("/locations/");
-      return res.data;
+      const res = await api.get<PaginatedResponse<Location>>("/practices/dra-estefi/locations/");
+      return res.data.results;
     },
     enabled: open,
   });
