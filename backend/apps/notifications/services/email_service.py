@@ -2270,7 +2270,7 @@ def send_waitlist_offer_email(
                                       font-size:14px; font-weight:600; text-decoration:none;
                                       padding:12px 32px; border-radius:10px;
                                       border:1px solid #E5E7EB;">
-                                No me interesa este turno
+                                Rechazar turno
                             </a>
                         </td>
                     </tr>"""

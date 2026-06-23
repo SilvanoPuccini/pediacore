@@ -693,10 +693,19 @@ function WaitlistCard({ entry }: { entry: WaitlistEntry }) {
     },
   });
 
+  const [declineError, setDeclineError] = useState<string | null>(null);
   const declineMutation = useMutation({
     mutationFn: (id: number) => api.post(`/waitlist/${id}/decline-offer/`),
     onSuccess: () => {
+      setDeclineError(null);
       queryClient.invalidateQueries({ queryKey: ["waitlist-tutor"] });
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+    },
+    onError: (err: unknown) => {
+      const msg =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+        ?? "No se pudo rechazar. Intentá de nuevo.";
+      setDeclineError(msg);
     },
   });
 
@@ -759,9 +768,15 @@ function WaitlistCard({ entry }: { entry: WaitlistEntry }) {
                 className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[10px] text-[12px] font-semibold text-ink3 hover:text-[#A85050] border border-line/60 bg-surface/60 hover:border-[#A85050]/30 transition disabled:opacity-50"
               >
                 <X size={13} />
-                Rechazar oferta
+                Rechazar turno
               </button>
             </div>
+            {declineError && (
+              <p className="text-[11.5px] text-[#A85050] mt-2 flex items-center gap-1">
+                <AlertCircle size={12} className="shrink-0" />
+                {declineError}
+              </p>
+            )}
           </div>
         </div>
       </div>
