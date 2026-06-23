@@ -9,33 +9,40 @@ Each subsequent lockout increases the cooldown:
   2nd lockout: 1 hour
   3rd lockout: 4 hours
   4th+ lockout: 24 hours
+
+Uses a cache counter per IP to track lockout history across cooldown resets,
+since failures_since_start only counts failures in the current cycle.
 """
 
 from datetime import timedelta
 
+from django.core.cache import cache
+
+# Cache key TTL: 48 hours — resets if no failed attempts for 2 days
+_LOCKOUT_COUNTER_TTL = 48 * 3600
+
+COOLDOWN_TIERS = {
+    1: timedelta(minutes=15),
+    2: timedelta(hours=1),
+    3: timedelta(hours=4),
+}
+DEFAULT_COOLDOWN = timedelta(hours=24)
+
 
 def get_axes_cooldown(attempt_time, failures_since_start, obj):
     """
-    Calculate cooldown time based on lockout history.
+    Calculate cooldown time based on cumulative lockout history.
 
     Called by axes via AXES_COOLOFF_TIME_CALLABLE setting.
-    `failures_since_start` resets each time cooldown expires,
-    so each new cooldown cycle starts fresh with a short timeout.
-    We use the cooldown sequence to progressively penalize repeat offenders.
 
-    Axes automatically tracks cooldown across the entire history
-    of lockouts via its own internal counters.
+    Uses a cache counter keyed by IP to track how many times this IP
+    has been locked out. The counter persists across cooldown resets
+    (TTL = 48h) so escalation actually works.
     """
-    # Estimate lockout severity from failures_since_start
-    # Each lockout typically has AXES_FAILURE_LIMIT (5) failures
-    lockout_count = max(1, failures_since_start // 5)
+    ip = getattr(obj, "ip_address", None) or "unknown"
+    cache_key = f"axes_lockout_count:{ip}"
 
-    # Cap at 5 for reasonable upper bound
-    lockout_count = min(lockout_count, 5)
+    lockout_count = cache.get(cache_key, 0) + 1
+    cache.set(cache_key, lockout_count, timeout=_LOCKOUT_COUNTER_TTL)
 
-    cooldowns = {
-        1: timedelta(minutes=15),
-        2: timedelta(hours=1),
-        3: timedelta(hours=4),
-    }
-    return cooldowns.get(lockout_count, timedelta(hours=24))
+    return COOLDOWN_TIERS.get(lockout_count, DEFAULT_COOLDOWN)

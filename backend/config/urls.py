@@ -17,6 +17,7 @@ from rest_framework_simplejwt.views import (
 )
 
 from apps.core.admin_views import patient_growth_chart
+from apps.core.throttles import LoginRateThrottle
 from apps.core.views import CSPReportView
 
 urlpatterns = [
@@ -24,7 +25,7 @@ urlpatterns = [
     path("gestion-9f3a/ckeditor5/", include("django_ckeditor_5.urls")),
     path("gestion-9f3a/", admin.site.urls),
     # JWT auth
-    path("api/v1/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("api/v1/token/", TokenObtainPairView.as_view(throttle_classes=[LoginRateThrottle]), name="token_obtain_pair"),
     path("api/v1/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("api/v1/token/blacklist/", TokenBlacklistView.as_view(), name="token_blacklist"),
     # API v1 — apps will register their URLs here

@@ -62,12 +62,18 @@ function estimateReadTime(html: string): number {
   return Math.max(1, Math.round(words / 200));
 }
 
-/** Sanitize HTML from backend CMS — allows rich content tags, strips scripts. */
+/** Sanitize HTML from backend CMS — allows rich content tags, strips scripts and ALL event handlers. */
+DOMPurify.addHook("uponSanitizeAttribute", (_node, data) => {
+  if (/^on/i.test(data.attrName)) {
+    data.keepAttr = false;
+  }
+});
+
 function sanitize(html: string): string {
   return DOMPurify.sanitize(html, {
     USE_PROFILES: { html: true },
     FORBID_TAGS: ["script", "style", "iframe", "object", "embed"],
-    FORBID_ATTR: ["onerror", "onload", "onclick"],
+    ALLOW_DATA_ATTR: false,
   });
 }
 
