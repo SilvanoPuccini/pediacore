@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -103,6 +103,11 @@ function PendingPaymentView({ payment }: { payment: PaymentDetail }) {
   const { user } = useAuthStore();
   const [paymentApproved, setPaymentApproved] = useState(false);
   const [cardError, setCardError] = useState<string | null>(null);
+
+  // Scroll to top when payment is confirmed so the success banner is visible
+  useEffect(() => {
+    if (paymentApproved) window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [paymentApproved]);
 
   const amount = parseFloat(payment.amount);
 

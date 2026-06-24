@@ -100,6 +100,7 @@ LOGGING["root"]["handlers"] = ["console", "file"]  # noqa: F405
 REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {  # noqa: F405
     "anon": "500/hour",
     "user": "3000/hour",
+    "login": "5/minute",
 }
 
 # Disable DRF browsable API in production — JSON only

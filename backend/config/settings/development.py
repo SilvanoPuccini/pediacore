@@ -30,6 +30,8 @@ STORAGES = {
     },
 }
 
-# Disable throttling in development
+# Disable global throttling in development, but keep per-view throttles (e.g. login)
 REST_FRAMEWORK["DEFAULT_THROTTLE_CLASSES"] = []  # noqa: F405
-REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {}  # noqa: F405
+REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {
+    "login": "20/minute",  # lax in development
+}  # noqa: F405

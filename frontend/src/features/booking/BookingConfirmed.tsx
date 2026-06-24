@@ -72,8 +72,9 @@ export default function BookingConfirmed() {
   const displayPatient = selectedPatient ?? (appointmentData ? { full_name: appointmentData.patient_name, first_name: appointmentData.patient_name?.split(" ")[0] ?? "" } : null);
   const displayLocation = selectedLocation ?? (appointmentData ? { name: appointmentData.location_name } : null);
 
-  // Invalidate appointments cache on mount so Dashboard / Mis Turnos show fresh data
+  // Scroll to top + invalidate appointments cache on mount
   useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
     queryClient.invalidateQueries({ queryKey: ["appointments"] });
   }, [queryClient]);
 

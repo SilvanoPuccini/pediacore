@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CheckCircle, Copy, ExternalLink, Upload, X } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
@@ -68,6 +68,11 @@ export default function TransferInstructions({
   const [uploadDone, setUploadDone] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [allCopied, setAllCopied] = useState(false);
+
+  // Scroll to top when upload completes so the success banner is visible
+  useEffect(() => {
+    if (uploadDone) window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [uploadDone]);
 
   const rows: BankRow[] = [
     { label: "Banco", value: bankDetails.bank_name },
