@@ -28,6 +28,11 @@ export default function StepPayment() {
 
   const [cancelling, setCancelling] = useState(false);
   const [paymentApproved, setPaymentApproved] = useState(false);
+
+  // Scroll to top when payment is confirmed so the success banner is visible
+  useEffect(() => {
+    if (paymentApproved) window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [paymentApproved]);
   const [cardError, setCardError] = useState<string | null>(null);
   const receiptUploaded = useBookingStore((s) => s.receiptUploaded);
   const setReceiptUploaded = useBookingStore((s) => s.setReceiptUploaded);
