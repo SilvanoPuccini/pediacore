@@ -3,11 +3,21 @@ Production settings for PEDIACORE.
 Security hardening and performance optimizations.
 """
 
+import sentry_sdk
 from django.core.exceptions import ImproperlyConfigured
 
 from decouple import config
 
 from .base import *  # noqa: F401, F403
+
+# Sentry — error monitoring (leave SENTRY_DSN empty to disable)
+_sentry_dsn = config("SENTRY_DSN", default="")
+if _sentry_dsn:
+    sentry_sdk.init(
+        dsn=_sentry_dsn,
+        traces_sample_rate=0,
+        send_default_pii=False,
+    )
 
 DEBUG = False
 
