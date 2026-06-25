@@ -125,6 +125,7 @@ class Command(BaseCommand):
                 "phone": "+56 9 5845 5537",
                 "role": User.DOCTOR,
                 "is_staff": True,
+                "is_superuser": True,
                 "is_active": True,
                 "email_verified_at": timezone.now(),
             },
