@@ -135,7 +135,7 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 # ── django-axes: brute-force protection ──
-AXES_FAILURE_LIMIT = 5
+AXES_FAILURE_LIMIT = 10
 AXES_RESET_ON_SUCCESS = True
 AXES_LOCKOUT_PARAMETERS = ["ip_address", "username"]
 
