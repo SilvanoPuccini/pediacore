@@ -9,6 +9,7 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from apps.practice.views import (
+    AdminServiceViewSet,
     BankDetailsView,
     BlockedSlotAdminViewSet,
     LocationAdminViewSet,
@@ -28,6 +29,7 @@ router = DefaultRouter()
 router.register(r"admin/locations", LocationAdminViewSet, basename="admin-locations")
 router.register(r"admin/working-hours", WorkingHoursAdminViewSet, basename="admin-working-hours")
 router.register(r"admin/blocked-slots", BlockedSlotAdminViewSet, basename="admin-blocked-slots")
+router.register(r"admin/services", AdminServiceViewSet, basename="admin-service")
 
 urlpatterns = [
     # Public read-only endpoints

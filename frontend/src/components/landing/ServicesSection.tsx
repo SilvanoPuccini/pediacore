@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import api from "@/lib/api";
 import { SERVICE_REGISTRY } from "@/pages/services/serviceRegistry";
+import type { Service } from "@/types/api";
 
 const DESCRIPTIONS: Record<string, string> = {
   "control-nino-sano":
@@ -94,6 +97,21 @@ function ServiceCardItem({
 }
 
 export default function ServicesSection() {
+  const { data: apiServices } = useQuery<Service[]>({
+    queryKey: ["public-services"],
+    queryFn: async () => {
+      const res = await api.get<{ results: Service[] }>("/practices/dra-estefi/services/");
+      return res.data.results;
+    },
+    staleTime: 1000 * 60 * 10,
+  });
+
+  // Only show services whose slug appears in the active API list.
+  // Fallback to full registry if the API hasn't loaded or failed.
+  const activeServices = apiServices
+    ? SERVICE_REGISTRY.filter((s) => apiServices.some((a) => a.slug === s.slug))
+    : SERVICE_REGISTRY;
+
   return (
     <section id="servicios" className="py-24 lg:py-32 bg-[var(--bg)]">
       <div className="max-w-[1280px] mx-auto px-6">
@@ -119,7 +137,7 @@ export default function ServicesSection() {
 
         {/* Cards grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
-          {SERVICE_REGISTRY.map((service) => (
+          {activeServices.map((service) => (
             <ServiceCardItem key={service.slug} service={service} />
           ))}
         </div>

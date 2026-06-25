@@ -11,6 +11,8 @@ import {
   Download,
   AlertCircle,
   LogOut,
+  Pencil,
+  X,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import api from "@/lib/api";
@@ -201,12 +203,12 @@ export default function ConfigPage() {
   });
 
   const servicesQ = useQuery<Service[]>({
-    queryKey: ["services"],
+    queryKey: ["admin-services"],
     queryFn: async () => {
-      const { data } = await api.get<{ results: Service[] }>("/practices/dra-estefi/services/");
+      const { data } = await api.get<{ results: Service[] }>("/admin/services/");
       return data.results;
     },
-    staleTime: 1000 * 60 * 60,
+    staleTime: 1000 * 60 * 5,
   });
 
   const notifPrefsQ = useQuery<NotificationPreference>({
@@ -283,6 +285,28 @@ export default function ConfigPage() {
       flash("Sede actualizada");
     },
     onError: () => flash("Error al actualizar la sede", true),
+  });
+
+  // ── Service price/active mutation ──
+  const [editingPrice, setEditingPrice] = useState<Record<number, string>>({});
+
+  const updateService = useMutation({
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: number;
+      data: { price_clp?: number; is_active?: boolean };
+    }) => {
+      const res = await api.patch(`/admin/services/${id}/`, data);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-services"] });
+      queryClient.invalidateQueries({ queryKey: ["public-services"] });
+      flash("Servicio actualizado");
+    },
+    onError: () => flash("Error al actualizar el servicio", true),
   });
 
   // ── Password change mutation ──
@@ -533,7 +557,7 @@ export default function ConfigPage() {
               title="Aranceles"
               desc="Valores que verán las familias al reservar."
             >
-              {isLoading ? (
+              {servicesQ.isLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="h-5 w-5 rounded-full border-2 border-line border-t-teal animate-spin" />
                 </div>
@@ -546,19 +570,108 @@ export default function ConfigPage() {
                       .map((svc) => (
                         <li
                           key={svc.id}
-                          className="flex items-center justify-between gap-4 py-2.5"
+                          className={`flex items-center justify-between gap-4 py-2.5 transition-opacity ${
+                            svc.is_active ? "opacity-100" : "opacity-50"
+                          }`}
                         >
-                          <span className="text-[13px] text-ink">{svc.name}</span>
-                          <input
-                            className="w-28 px-3 py-1.5 rounded-[9px] bg-bg border border-line text-[12.5px] font-semibold text-ink3 text-right cursor-default"
-                            value={formatCLP(svc.price_clp)}
-                            readOnly
-                          />
+                          {/* Name + modality badge */}
+                          <div className="flex items-center gap-2 min-w-0">
+                            <ConfigToggle
+                              checked={svc.is_active}
+                              onChange={() =>
+                                updateService.mutate({
+                                  id: svc.id,
+                                  data: { is_active: !svc.is_active },
+                                })
+                              }
+                              disabled={updateService.isPending}
+                            />
+                            <span
+                              className={`text-[13px] text-ink truncate ${
+                                !svc.is_active ? "line-through text-ink3" : ""
+                              }`}
+                            >
+                              {svc.name}
+                            </span>
+                            <span className="shrink-0 px-1.5 py-0.5 rounded-[6px] bg-teal/10 text-teal-dark text-[10px] font-semibold uppercase tracking-wide">
+                              {svc.modality === "PRESENCIAL"
+                                ? "Presencial"
+                                : svc.modality === "ONLINE"
+                                ? "Online"
+                                : "Mixto"}
+                            </span>
+                          </div>
+                          {/* Price with edit → confirm flow */}
+                          {editingPrice[svc.id] !== undefined ? (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[12px] text-ink3">$</span>
+                              <input
+                                autoFocus
+                                type="text"
+                                inputMode="numeric"
+                                value={editingPrice[svc.id]}
+                                onChange={(e) => {
+                                  const val = e.target.value.replace(/\D/g, "");
+                                  setEditingPrice((prev) => ({ ...prev, [svc.id]: val }));
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    const raw = parseInt(editingPrice[svc.id] ?? "", 10);
+                                    if (!isNaN(raw) && raw > 0 && raw !== svc.price_clp) {
+                                      updateService.mutate({ id: svc.id, data: { price_clp: raw } });
+                                    }
+                                    setEditingPrice((prev) => { const n = { ...prev }; delete n[svc.id]; return n; });
+                                  }
+                                  if (e.key === "Escape") {
+                                    setEditingPrice((prev) => { const n = { ...prev }; delete n[svc.id]; return n; });
+                                  }
+                                }}
+                                className="w-24 px-2 py-1 rounded-[8px] bg-white border-2 border-teal text-[12.5px] font-semibold text-ink text-right focus:outline-none transition"
+                              />
+                              <button
+                                onClick={() => {
+                                  const raw = parseInt(editingPrice[svc.id] ?? "", 10);
+                                  if (!isNaN(raw) && raw > 0 && raw !== svc.price_clp) {
+                                    updateService.mutate({ id: svc.id, data: { price_clp: raw } });
+                                  }
+                                  setEditingPrice((prev) => { const n = { ...prev }; delete n[svc.id]; return n; });
+                                }}
+                                className="w-7 h-7 rounded-full bg-teal-dark text-white flex items-center justify-center hover:opacity-90 transition"
+                                title="Confirmar"
+                              >
+                                <Check size={13} />
+                              </button>
+                              <button
+                                onClick={() =>
+                                  setEditingPrice((prev) => { const n = { ...prev }; delete n[svc.id]; return n; })
+                                }
+                                className="w-7 h-7 rounded-full bg-line text-ink3 flex items-center justify-center hover:bg-line/80 transition"
+                                title="Cancelar"
+                              >
+                                <X size={13} />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[12.5px] font-semibold text-ink">
+                                {formatCLP(svc.price_clp)}
+                              </span>
+                              <button
+                                onClick={() =>
+                                  setEditingPrice((prev) => ({ ...prev, [svc.id]: String(svc.price_clp) }))
+                                }
+                                className="w-7 h-7 rounded-full bg-bg border border-line text-ink3 flex items-center justify-center hover:bg-line/50 transition"
+                                title="Modificar precio"
+                              >
+                                <Pencil size={11} />
+                              </button>
+                            </div>
+                          )}
                         </li>
                       ))}
                   </ul>
                   <p className="text-[11px] text-ink3 mt-3">
-                    Para modificar aranceles, usá el panel de administración.
+                    Los cambios se reflejan automáticamente en la reserva de turnos.
                   </p>
                 </>
               ) : (
