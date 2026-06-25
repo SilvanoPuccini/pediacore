@@ -12,7 +12,8 @@ import {
 import api from "@/lib/api";
 import { useAuthStore } from "@/stores/auth";
 import estefiAvatar from "@/assets/estefi-avatar.png";
-import type { BlogPost, PaginatedResponse } from "@/types/api";
+import type { BlogPost, VideoResource, PaginatedResponse } from "@/types/api";
+import { getYouTubeThumbnail, formatSeconds, getCategoryConfig } from "./VideosPage";
 import ContentSearchBar from "../components/ContentSearchBar";
 
 // ─── Tag config ───────────────────────────────────────────────────────────────
@@ -327,6 +328,20 @@ export default function BlogPage() {
     },
     staleTime: 1000 * 60 * 10,
   });
+
+  // Latest videos for the bottom section
+  const { data: videosData } = useQuery({
+    queryKey: ["blog-videos"],
+    queryFn: async () => {
+      const res = await api.get<PaginatedResponse<VideoResource>>("/content/videos/", {
+        params: { page_size: 3 },
+      });
+      return res.data;
+    },
+    staleTime: 1000 * 60 * 10,
+  });
+
+  const latestVideos = videosData?.results ?? [];
 
   // Search query — only runs when searchQuery is non-empty
   const { data: searchData, isLoading: isSearchLoading } = useQuery({
@@ -769,63 +784,72 @@ export default function BlogPage() {
               </aside>
             </div>
 
-            {/* Videos section */}
-            <section className="mt-16">
-              <div className="flex items-end justify-between flex-wrap gap-3">
-                <h2 className="font-display text-[24px] text-ink flex items-center gap-2.5">
-                  <span
-                    className="w-9 h-9 rounded-[10px] flex items-center justify-center"
-                    style={{ background: "rgba(243,168,161,0.25)", color: "#B5604F" }}
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="m22 8-6 4 6 4V8Z" />
-                      <rect width="14" height="12" x="2" y="6" rx="2" />
-                    </svg>
-                  </span>
-                  Videos y recursos
-                </h2>
-                <Link to="/videos" className="inline-flex items-center gap-1.5 text-[13px] font-bold text-teal-dark hover:underline">
-                  Ver toda la videoteca
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M5 12h14"/>
-                    <path d="m12 5 7 7-7 7"/>
-                  </svg>
-                </Link>
-              </div>
-              <div className="mt-6 grid sm:grid-cols-3 gap-6">
-                {[
-                  { gradient: "linear-gradient(150deg, rgba(123,181,189,0.5), rgba(243,168,161,0.30))", title: "Cómo tomar la fiebre correctamente", duration: "4:12" },
-                  { gradient: "linear-gradient(150deg, rgba(168,201,168,0.5), rgba(229,184,71,0.30))",  title: "Primeros alimentos: demostración práctica", duration: "6:48" },
-                  { gradient: "linear-gradient(150deg, rgba(196,181,253,0.5), rgba(123,181,189,0.30))", title: "Posiciones para amamantar sin dolor", duration: "3:30" },
-                ].map(({ gradient, title, duration }) => (
-                  <Link key={title} to="/videos" className="group cursor-pointer">
-                    <div
-                      className="relative aspect-video rounded-[20px] overflow-hidden border border-line"
-                      style={{
-                        backgroundImage:
-                          "repeating-linear-gradient(135deg, rgba(44,44,44,0.04) 0 1px, transparent 1px 14px), linear-gradient(160deg, #F4ECE5, #E8E2DB)",
-                      }}
+            {/* Videos section — real data from API */}
+            {latestVideos.length > 0 && (
+              <section className="mt-16">
+                <div className="flex items-end justify-between flex-wrap gap-3">
+                  <h2 className="font-display text-[24px] text-ink flex items-center gap-2.5">
+                    <span
+                      className="w-9 h-9 rounded-[10px] flex items-center justify-center"
+                      style={{ background: "rgba(243,168,161,0.25)", color: "#B5604F" }}
                     >
-                      <div className="absolute inset-0" style={{ background: gradient }} />
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span
-                          className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center transition-transform duration-240 group-hover:scale-[1.12]"
-                          style={{ boxShadow: "var(--shadow-pop)" }}
-                        >
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="#4A8590">
-                            <polygon points="6 3 20 12 6 21 6 3" />
-                          </svg>
-                        </span>
-                      </div>
-                      <span className="absolute bottom-3 right-3 px-2 py-0.5 rounded-md bg-ink/80 text-white text-[10.5px] font-semibold">
-                        {duration}
-                      </span>
-                    </div>
-                    <h3 className="mt-3 text-[14px] font-bold text-ink leading-tight group-hover:text-teal-dark transition-colors">{title}</h3>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="m22 8-6 4 6 4V8Z" />
+                        <rect width="14" height="12" x="2" y="6" rx="2" />
+                      </svg>
+                    </span>
+                    Videos y recursos
+                  </h2>
+                  <Link to="/videos" className="inline-flex items-center gap-1.5 text-[13px] font-bold text-teal-dark hover:underline">
+                    Ver toda la videoteca
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M5 12h14"/>
+                      <path d="m12 5 7 7-7 7"/>
+                    </svg>
                   </Link>
-                ))}
-              </div>
-            </section>
+                </div>
+                <div className="mt-6 grid sm:grid-cols-3 gap-6">
+                  {latestVideos.map((video) => {
+                    const thumbUrl = video.thumbnail || getYouTubeThumbnail(video.youtube_url);
+                    const cfg = getCategoryConfig(video.category);
+                    return (
+                      <Link key={video.id} to={`/videos/${video.slug}`} className="post-card group block">
+                        <div
+                          className="relative aspect-video rounded-[20px] overflow-hidden border border-line bg-line/20"
+                          style={{ boxShadow: "var(--shadow-card)" }}
+                        >
+                          {thumbUrl ? (
+                            <img
+                              src={thumbUrl}
+                              alt={video.title}
+                              className="cover-img absolute inset-0 w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="absolute inset-0" style={{ background: cfg.tint }} />
+                          )}
+                          <div className="absolute inset-0 flex items-center justify-center bg-ink/0 group-hover:bg-ink/20 transition-colors">
+                            <span
+                              className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center transition-transform duration-240 group-hover:scale-[1.12]"
+                              style={{ boxShadow: "var(--shadow-pop)" }}
+                            >
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="#4A8590">
+                                <polygon points="6 3 20 12 6 21 6 3" />
+                              </svg>
+                            </span>
+                          </div>
+                          <span className="absolute bottom-3 right-3 px-2 py-0.5 rounded-md bg-ink/80 text-white text-[10.5px] font-semibold">
+                            {video.duration_formatted || formatSeconds(video.duration_seconds)}
+                          </span>
+                        </div>
+                        <h3 className="mt-3 text-[14px] font-bold text-ink leading-tight group-hover:text-teal-dark transition-colors">
+                          {video.title}
+                        </h3>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
           </>
         )}
       </main>
