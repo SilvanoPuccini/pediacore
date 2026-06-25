@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { Search, Clock, Eye, ChevronUp, Play } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Search, ChevronUp } from "lucide-react";
 import api from "@/lib/api";
-import estefiAvatar from "@/assets/estefi-avatar.png";
 import type { VideoResource, PaginatedResponse } from "@/types/api";
 import ContentSearchBar from "../components/ContentSearchBar";
 
@@ -32,33 +31,27 @@ const CATEGORY_FILTERS = [
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function getCategoryConfig(category: string) {
+export function getCategoryConfig(category: string) {
   return CATEGORIES[category] ?? { label: category, bg: "rgba(123,181,189,0.25)", color: "#3F7079", tint: "linear-gradient(150deg, rgba(123,181,189,0.5), rgba(168,201,168,0.3))" };
 }
 
-function copyToClipboard(text: string): Promise<void> {
-  if (navigator.clipboard) return navigator.clipboard.writeText(text);
-  const ta = document.createElement("textarea");
-  ta.value = text;
-  ta.style.position = "fixed";
-  ta.style.opacity = "0";
-  document.body.appendChild(ta);
-  ta.select();
-  document.execCommand("copy");
-  document.body.removeChild(ta);
-  return Promise.resolve();
-}
-
-function formatSeconds(seconds: number): string {
+export function formatSeconds(seconds: number): string {
   if (!seconds) return "0:00";
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+export function getYouTubeThumbnail(url: string): string | null {
+  const match = url.match(
+    /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([a-zA-Z0-9_-]{11})/
+  );
+  return match ? `https://img.youtube.com/vi/${match[1]}/mqdefault.jpg` : null;
+}
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function CategoryBadge({ category, small = false }: { category: string; small?: boolean }) {
+export function CategoryBadge({ category, small = false }: { category: string; small?: boolean }) {
   const cfg = getCategoryConfig(category);
   return (
     <span
@@ -70,102 +63,27 @@ function CategoryBadge({ category, small = false }: { category: string; small?: 
   );
 }
 
-function VideoThumbnail({
-  video,
-  size = "default",
-}: {
-  video: VideoResource;
-  size?: "default" | "small";
-}) {
+function VideoCard({ video }: { video: VideoResource }) {
   const cfg = getCategoryConfig(video.category);
-  if (video.thumbnail) {
-    return (
-      <img
-        src={video.thumbnail}
-        alt={video.title}
-        className="absolute inset-0 w-full h-full object-cover"
-      />
-    );
-  }
+  const thumbUrl = video.thumbnail || getYouTubeThumbnail(video.youtube_url);
   return (
-    <div
-      className="absolute inset-0"
-      style={{ background: cfg.tint }}
-    >
-      <div
-        className="absolute inset-0 opacity-10"
-        style={{
-          backgroundImage:
-            "repeating-linear-gradient(135deg, rgba(44,44,44,0.08) 0 1px, transparent 1px 14px)",
-        }}
-      />
-      {size === "default" && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <Play size={28} className="text-white/60" />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function PlaylistItem({
-  video,
-  isActive,
-  onClick,
-}: {
-  video: VideoResource;
-  isActive: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`w-full flex items-start gap-3 p-3 rounded-[14px] text-left transition-colors ${
-        isActive
-          ? "bg-teal/10 border border-teal/30"
-          : "hover:bg-bg border border-transparent"
-      }`}
-    >
-      <div className="relative w-[88px] shrink-0 aspect-video rounded-[10px] overflow-hidden bg-line/20">
-        <VideoThumbnail video={video} size="small" />
-        <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-ink/75 text-white text-[9px] font-semibold">
-          {video.duration_formatted || formatSeconds(video.duration_seconds)}
-        </span>
-      </div>
-      <div className="flex-1 min-w-0 py-0.5">
-        <CategoryBadge category={video.category} small />
-        <p
-          className={`mt-1 text-[12.5px] font-semibold leading-snug line-clamp-2 ${
-            isActive ? "text-teal-dark" : "text-ink"
-          }`}
-        >
-          {video.title}
-        </p>
-        {video.video_number && (
-          <span className="text-[10px] text-ink3 font-bold">#{video.video_number}</span>
-        )}
-      </div>
-    </button>
-  );
-}
-
-function VideoCardGrid({ video, onClick }: { video: VideoResource; onClick: () => void }) {
-  const cfg = getCategoryConfig(video.category);
-  return (
-    <button
-      onClick={onClick}
-      className="video-card group w-full text-left bg-surface border border-line rounded-[20px] overflow-hidden"
+    <Link
+      to={`/videos/${video.slug}`}
+      className="video-card group block w-full text-left bg-surface border border-line rounded-[20px] overflow-hidden"
       style={{ boxShadow: "var(--shadow-card)" }}
     >
-      <div
-        className="relative aspect-video overflow-hidden"
-        style={{
-          backgroundImage:
-            "repeating-linear-gradient(135deg, rgba(44,44,44,0.04) 0 1px, transparent 1px 14px), linear-gradient(160deg, #F4ECE5, #E8E2DB)",
-        }}
-      >
-        <div className="absolute inset-0" style={{ background: cfg.tint }} />
-        <div className="absolute inset-0 flex items-center justify-center">
+      <div className="relative aspect-video overflow-hidden bg-line/20">
+        {thumbUrl ? (
+          <img
+            src={thumbUrl}
+            alt={video.title}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        ) : (
+          <div className="absolute inset-0" style={{ background: cfg.tint }} />
+        )}
+        {/* Play overlay */}
+        <div className="absolute inset-0 flex items-center justify-center bg-ink/0 group-hover:bg-ink/20 transition-colors">
           <span
             className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center transition-transform duration-240 group-hover:scale-[1.12]"
             style={{ boxShadow: "var(--shadow-pop)" }}
@@ -190,34 +108,20 @@ function VideoCardGrid({ video, onClick }: { video: VideoResource; onClick: () =
           {video.title}
         </h3>
       </div>
-    </button>
+    </Link>
   );
 }
 
-function PlayerSkeleton() {
+function GridSkeleton() {
   return (
-    <div className="animate-pulse space-y-4">
-      <div className="aspect-video rounded-[20px] bg-line/40" />
-      <div className="space-y-2">
-        <div className="h-4 w-24 bg-line/40 rounded-full" />
-        <div className="h-7 w-3/4 bg-line/60 rounded" />
-        <div className="h-4 w-full bg-line/30 rounded" />
-        <div className="h-4 w-2/3 bg-line/30 rounded" />
-      </div>
-    </div>
-  );
-}
-
-function PlaylistSkeleton() {
-  return (
-    <div className="animate-pulse space-y-3">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="flex gap-3 p-3">
-          <div className="w-[88px] aspect-video rounded-[10px] bg-line/40 shrink-0" />
-          <div className="flex-1 space-y-2 py-1">
+    <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+      {Array.from({ length: 8 }).map((_, i) => (
+        <div key={i} className="animate-pulse bg-surface border border-line rounded-[20px] overflow-hidden">
+          <div className="aspect-video bg-line/40" />
+          <div className="p-4 space-y-2">
             <div className="h-3 w-16 bg-line/40 rounded-full" />
             <div className="h-4 w-full bg-line/50 rounded" />
-            <div className="h-3 w-2/3 bg-line/30 rounded" />
+            <div className="h-4 w-3/4 bg-line/30 rounded" />
           </div>
         </div>
       ))}
@@ -230,9 +134,7 @@ function PlaylistSkeleton() {
 export default function VideosPage() {
   const [activeCategory, setActiveCategory] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeVideo, setActiveVideo] = useState<VideoResource | null>(null);
   const [showToTop, setShowToTop] = useState(false);
-  const [videoCopied, setVideoCopied] = useState(false);
 
   useEffect(() => {
     const handler = () => setShowToTop(window.scrollY > 300);
@@ -252,34 +154,7 @@ export default function VideosPage() {
     staleTime: 1000 * 60 * 5,
   });
 
-  const incrementView = useMutation({
-    mutationFn: (slug: string) =>
-      api.post(`/content/videos/${slug}/increment_view/`),
-  });
-
   const videos = data?.results ?? [];
-
-  // Select first video by default when list loads
-  useEffect(() => {
-    if (videos.length > 0 && !activeVideo) {
-      setActiveVideo(videos[0]);
-    }
-  }, [videos, activeVideo]);
-
-  // Reset active video when category or search changes
-  useEffect(() => {
-    setActiveVideo(null);
-  }, [activeCategory, searchQuery]);
-
-  function selectVideo(video: VideoResource) {
-    setActiveVideo(video);
-    incrementView.mutate(video.slug);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
-  const mainVideos = activeVideo
-    ? videos.filter((v) => v.id !== activeVideo.id)
-    : videos.slice(1);
 
   return (
     <>
@@ -289,12 +164,6 @@ export default function VideosPage() {
         .video-card:hover { transform: translateY(-4px); box-shadow:0 14px 40px rgba(15,23,42,0.08); }
         .filter-scroll { scrollbar-width:none; }
         .filter-scroll::-webkit-scrollbar { display:none; }
-        .playlist-scroll { scrollbar-width:thin; scrollbar-color: var(--line) transparent; }
-        .playlist-scroll::-webkit-scrollbar { width:4px; }
-        .playlist-scroll::-webkit-scrollbar-track { background:transparent; }
-        .playlist-scroll::-webkit-scrollbar-thumb { background:var(--line); border-radius:4px; }
-        @keyframes pulse-ring { 0%,100% { transform:scale(1); opacity:0.8; } 50% { transform:scale(1.15); opacity:0.4; } }
-        .pulse-ring { animation: pulse-ring 2s cubic-bezier(0.4,0,0.6,1) infinite; }
       `}</style>
 
       <a
@@ -374,18 +243,7 @@ export default function VideosPage() {
         </div>
 
         {/* Loading state */}
-        {isLoading && (
-          <div className="grid lg:grid-cols-[1fr_360px] gap-8">
-            <PlayerSkeleton />
-            <div
-              className="bg-surface border border-line rounded-[20px] p-5"
-              style={{ boxShadow: "var(--shadow-card)" }}
-            >
-              <div className="h-5 w-40 bg-line/50 rounded mb-4 animate-pulse" />
-              <PlaylistSkeleton />
-            </div>
-          </div>
-        )}
+        {isLoading && <GridSkeleton />}
 
         {/* Error state */}
         {isError && (
@@ -435,262 +293,13 @@ export default function VideosPage() {
           </div>
         )}
 
-        {/* Player + Playlist layout */}
+        {/* Video grid */}
         {!isLoading && !isError && videos.length > 0 && (
-          <>
-            <div className="grid lg:grid-cols-[1fr_360px] gap-8 items-start">
-              {/* Player area */}
-              <div>
-                {/* YouTube embed / placeholder */}
-                <div
-                  className="relative aspect-video rounded-[20px] overflow-hidden border border-line"
-                  style={{ boxShadow: "var(--shadow-card)" }}
-                >
-                  {activeVideo ? (
-                    <iframe
-                      key={activeVideo.id}
-                      src={activeVideo.youtube_embed_url}
-                      title={activeVideo.title}
-                      className="absolute inset-0 w-full h-full"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
-                  ) : (
-                    <div
-                      className="absolute inset-0 flex items-center justify-center"
-                      style={{
-                        background: getCategoryConfig(videos[0]?.category ?? "").tint,
-                      }}
-                    >
-                      <div className="relative flex items-center justify-center">
-                        <span
-                          className="pulse-ring absolute w-20 h-20 rounded-full"
-                          style={{ background: "rgba(255,255,255,0.25)" }}
-                        />
-                        <span
-                          className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center relative z-10"
-                          style={{ boxShadow: "var(--shadow-pop)" }}
-                        >
-                          <svg width="24" height="24" viewBox="0 0 24 24" fill="#4A8590">
-                            <polygon points="6 3 20 12 6 21 6 3" />
-                          </svg>
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Video info */}
-                {activeVideo && (
-                  <div className="mt-5 space-y-4">
-                    {/* Meta row */}
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <CategoryBadge category={activeVideo.category} />
-                      <span className="flex items-center gap-1 text-[12px] text-ink3">
-                        <Clock size={12} />
-                        {activeVideo.duration_formatted || formatSeconds(activeVideo.duration_seconds)}
-                      </span>
-                      <span className="flex items-center gap-1 text-[12px] text-ink3">
-                        <Eye size={12} />
-                        {activeVideo.view_count.toLocaleString("es-CL")} vistas
-                      </span>
-                      {activeVideo.video_number && (
-                        <span className="text-[11px] font-bold text-ink3/60 tracking-wide">
-                          #{activeVideo.video_number}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Title */}
-                    <h2 className="font-display text-[24px] leading-tight text-ink">
-                      {activeVideo.title}
-                    </h2>
-
-                    {/* Author + actions row */}
-                    <div className="flex items-center justify-between flex-wrap gap-3">
-                      <div className="flex items-center gap-2.5">
-                        <img
-                          src={estefiAvatar}
-                          alt={activeVideo.author_name}
-                          width={72}
-                          height={72}
-                          className="w-9 h-9 rounded-full bg-teal/20 shrink-0"
-                        />
-                        <div className="leading-tight">
-                          <div className="text-[13px] font-bold text-ink">{activeVideo.author_name}</div>
-                          <div className="text-[11px] text-ink3">
-                            {new Date(activeVideo.published_at).toLocaleDateString("es-CL", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                            })}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Share buttons */}
-                      <div className="flex items-center gap-2">
-                        <a
-                          href={`https://wa.me/?text=${encodeURIComponent(activeVideo.title + " " + window.location.origin + "/videos")}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[10px] bg-surface border border-line text-[12px] font-semibold text-ink2 hover:opacity-80 transition"
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="#25D366">
-                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347" />
-                          </svg>
-                          WhatsApp
-                        </a>
-                        <a
-                          href="https://www.instagram.com/estefiortigosa.pediatra/"
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[10px] bg-surface border border-line text-[12px] font-semibold text-ink2 hover:opacity-80 transition"
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E1306C" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="2" y="2" width="20" height="20" rx="5" /><circle cx="12" cy="12" r="5" /><circle cx="17.5" cy="6.5" r="1.5" fill="#E1306C" stroke="none" />
-                          </svg>
-                          Instagram
-                        </a>
-                        <button
-                          onClick={() => {
-                            const url = `${window.location.origin}/videos#${activeVideo.slug}`;
-                            copyToClipboard(url).then(() => {
-                              setVideoCopied(true);
-                              setTimeout(() => setVideoCopied(false), 1600);
-                            });
-                          }}
-                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[10px] bg-surface border border-line text-[12px] font-semibold text-ink2 hover:opacity-80 transition"
-                          title={videoCopied ? "¡Copiado!" : "Copiar link"}
-                        >
-                          {videoCopied ? (
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0D9488" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                          ) : (
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0D9488" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                            </svg>
-                          )}
-                          {videoCopied ? "¡Copiado!" : "Copiar"}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Description */}
-                    {activeVideo.description && (
-                      <p className="text-[13px] text-ink2 leading-relaxed border-t border-line/70 pt-4">
-                        {activeVideo.description}
-                      </p>
-                    )}
-
-                    {/* Chapters */}
-                    {activeVideo.chapters && activeVideo.chapters.length > 0 && (
-                      <div
-                        className="bg-surface border border-line rounded-[16px] p-4"
-                        style={{ boxShadow: "var(--shadow-card)" }}
-                      >
-                        <h3 className="font-display text-[15px] text-ink mb-3">Capítulos</h3>
-                        <ol className="space-y-2">
-                          {activeVideo.chapters.map((ch, i) => (
-                            <li key={i} className="flex items-center gap-3">
-                              <span className="text-[11px] font-mono font-bold text-teal-dark bg-teal/10 px-2 py-0.5 rounded shrink-0">
-                                {formatSeconds(ch.time_seconds)}
-                              </span>
-                              <span className="text-[13px] text-ink2">{ch.label}</span>
-                            </li>
-                          ))}
-                        </ol>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Playlist sidebar */}
-              <aside className="space-y-4">
-                <div
-                  className="bg-surface border border-line rounded-[20px] overflow-hidden"
-                  style={{ boxShadow: "var(--shadow-card)" }}
-                >
-                  {/* Header */}
-                  <div className="px-5 py-4 border-b border-line flex items-center justify-between">
-                    <h2 className="font-display text-[16px] text-ink">Lista de reproducción</h2>
-                    <span className="text-[12px] font-bold text-ink3">
-                      {videos.length} video{videos.length !== 1 ? "s" : ""}
-                    </span>
-                  </div>
-
-                  {/* Scrollable list */}
-                  <div className="playlist-scroll overflow-y-auto max-h-[640px] p-3 space-y-1">
-                    {videos.map((video) => (
-                      <PlaylistItem
-                        key={video.id}
-                        video={video}
-                        isActive={activeVideo?.id === video.id}
-                        onClick={() => selectVideo(video)}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                {/* CTA card */}
-                <div
-                  className="border border-line rounded-[20px] p-5 text-center"
-                  style={{
-                    background: "linear-gradient(to bottom right, var(--cream), var(--bg))",
-                    boxShadow: "var(--shadow-card)",
-                  }}
-                >
-                  <div
-                    className="w-10 h-10 rounded-[12px] flex items-center justify-center mx-auto mb-3"
-                    style={{ background: "rgba(123,181,189,0.25)", color: "#3F7079" }}
-                  >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>
-                    </svg>
-                  </div>
-                  <h3 className="font-display text-[15px] text-ink">
-                    ¿Tu duda no está en un video?
-                  </h3>
-                  <p className="mt-1.5 text-[12px] text-ink2 leading-relaxed">
-                    Agendá una consulta con la Dra. Estefanía y resolvé todas tus preguntas.
-                  </p>
-                  <Link
-                    to="/booking"
-                    className="mt-4 inline-flex items-center justify-center gap-1.5 w-full px-4 py-2.5 rounded-[10px] bg-teal-dark text-[13px] font-semibold hover:opacity-90 transition"
-                    style={{ boxShadow: "var(--shadow-cta)", color: "#ffffff" }}
-                  >
-                    Reservar consulta
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
-                    </svg>
-                  </Link>
-                </div>
-              </aside>
-            </div>
-
-            {/* More videos grid */}
-            {mainVideos.length > 0 && (
-              <section className="mt-14">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="font-display text-[22px] text-ink">Más videos</h2>
-                  <span className="text-[12.5px] text-ink3">
-                    {mainVideos.length} video{mainVideos.length !== 1 ? "s" : ""}
-                  </span>
-                </div>
-                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                  {mainVideos.slice(0, 8).map((video) => (
-                    <VideoCardGrid
-                      key={video.id}
-                      video={video}
-                      onClick={() => selectVideo(video)}
-                    />
-                  ))}
-                </div>
-              </section>
-            )}
-          </>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {videos.map((video) => (
+              <VideoCard key={video.id} video={video} />
+            ))}
+          </div>
         )}
       </main>
 
