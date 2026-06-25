@@ -301,12 +301,22 @@ export default function ConfigPage() {
       const res = await api.patch(`/admin/services/${id}/`, data);
       return res.data;
     },
-    onSuccess: () => {
+    onMutate: async ({ id, data }) => {
+      await queryClient.cancelQueries({ queryKey: ["admin-services"] });
+      const prev = queryClient.getQueryData<Service[]>(["admin-services"]);
+      queryClient.setQueryData<Service[]>(["admin-services"], (old) =>
+        old?.map((svc) => (svc.id === id ? { ...svc, ...data } : svc))
+      );
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(["admin-services"], ctx.prev);
+      flash("Error al actualizar el servicio", true);
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-services"] });
       queryClient.invalidateQueries({ queryKey: ["public-services"] });
-      flash("Servicio actualizado");
     },
-    onError: () => flash("Error al actualizar el servicio", true),
   });
 
   // ── Password change mutation ──
@@ -574,7 +584,6 @@ export default function ConfigPage() {
                             svc.is_active ? "opacity-100" : "opacity-50"
                           }`}
                         >
-                          {/* Name + modality badge */}
                           <div className="flex items-center gap-2 min-w-0">
                             <ConfigToggle
                               checked={svc.is_active}
@@ -584,7 +593,6 @@ export default function ConfigPage() {
                                   data: { is_active: !svc.is_active },
                                 })
                               }
-                              disabled={updateService.isPending}
                             />
                             <span
                               className={`text-[13px] text-ink truncate ${
@@ -601,7 +609,6 @@ export default function ConfigPage() {
                                 : "Mixto"}
                             </span>
                           </div>
-                          {/* Price with edit → confirm flow */}
                           {editingPrice[svc.id] !== undefined ? (
                             <div className="flex items-center gap-1.5">
                               <span className="text-[12px] text-ink3">$</span>
@@ -671,7 +678,7 @@ export default function ConfigPage() {
                       ))}
                   </ul>
                   <p className="text-[11px] text-ink3 mt-3">
-                    Los cambios se reflejan automáticamente en la reserva de turnos.
+                    Los cambios se reflejan automáticamente en el landing y la reserva de turnos.
                   </p>
                 </>
               ) : (
