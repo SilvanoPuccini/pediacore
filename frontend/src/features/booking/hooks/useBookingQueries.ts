@@ -6,9 +6,10 @@ const PRACTICE_SLUG = "dra-estefi";
 
 // ─── Practice ─────────────────────────────────────────────────────────────────
 
-interface PracticeInfo {
+export interface PracticeInfo {
   id: number;
   is_online_enabled: boolean;
+  owner_id: number;
 }
 
 export function usePractice() {

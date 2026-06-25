@@ -2,15 +2,12 @@ import { useMemo, useEffect } from "react";
 import React from "react";
 import { ArrowLeft, MapPin, Stethoscope, CalendarDays, Clock, Timer, Baby, UserCircle, Video, ScrollText } from "lucide-react";
 import { useBookingStore } from "../store/bookingStore";
-import { useLocations, useServices, useMyPatients } from "../hooks/useBookingQueries";
+import { useLocations, useServices, useMyPatients, usePractice } from "../hooks/useBookingQueries";
 import { useBookAppointment } from "../hooks/useBookingMutations";
 import { useAuthStore } from "@/stores/auth";
 import { formatDisplayDate, formatTime, formatPrice } from "../utils";
 import PaymentMethodSelector from "../components/PaymentMethodSelector";
 import type { BookingRequest } from "@/types/api";
-
-const PRACTICE_ID = 1;
-const DOCTOR_ID = 1;
 
 // ─── Detail row ──────────────────────────────────────────────────────────────
 
@@ -77,6 +74,7 @@ export default function StepSummary() {
 
   const { user } = useAuthStore();
 
+  const { data: practice, isLoading: practiceLoading } = usePractice();
   const { data: locationsResp } = useLocations();
   const { data: servicesResp } = useServices();
   const { data: patientsResp } = useMyPatients();
@@ -115,20 +113,20 @@ export default function StepSummary() {
     }
   }, [hasCriticalData, setStep]);
 
-  if (!hasCriticalData) return null;
+  if (!hasCriticalData || practiceLoading) return null;
 
   const isOnlineBooking = locationId === "online";
-  const canConfirm = acceptedPolicy && acceptedTerms && patientId && !bookingMutation.isPending && (!isOnlineBooking || callPlatform);
+  const canConfirm = acceptedPolicy && acceptedTerms && patientId && !bookingMutation.isPending && !practiceLoading && practice?.id && (!isOnlineBooking || callPlatform);
 
   function handleConfirmBooking() {
-    if (!patientId || !selectedSlot || !selectedDate || !serviceId) return;
+    if (!patientId || !selectedSlot || !selectedDate || !serviceId || !practice?.id) return;
 
     const payload: BookingRequest = {
-      practice: PRACTICE_ID,
+      practice: practice.id,
       patient: patientId,
       service: serviceId,
       location: isOnlineBooking ? null : (locationId as number),
-      doctor: DOCTOR_ID,
+      doctor: practice.owner_id,
       scheduled_date: selectedDate,
       start_time: selectedSlot.start_time,
       is_online: isOnlineBooking,
