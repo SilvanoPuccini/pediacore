@@ -45,7 +45,7 @@ export const SERVICE_REGISTRY: ServiceMeta[] = [
   },
   {
     slug: "control-enfermedad",
-    serviceSlugs: ["consulta-enfermedad-particular", "consulta-enfermedad-fonasa"],
+    serviceSlugs: ["consulta-enfermedad-particular"],
     title: "Control por enfermedad",
     icon: Stethoscope,
     color: "#EC4899",
