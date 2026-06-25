@@ -11,6 +11,8 @@ import {
 
 export interface ServiceMeta {
   slug: string;
+  /** DB service slugs this page category maps to (for API matching) */
+  serviceSlugs: string[];
   title: string;
   icon: React.ElementType;
   /** Accent text/icon color */
@@ -33,6 +35,7 @@ export interface ServiceMeta {
 export const SERVICE_REGISTRY: ServiceMeta[] = [
   {
     slug: "control-nino-sano",
+    serviceSlugs: ["control-nino-sano"],
     title: "Control de niño sano",
     icon: Baby,
     color: "#0D9488",
@@ -42,6 +45,7 @@ export const SERVICE_REGISTRY: ServiceMeta[] = [
   },
   {
     slug: "control-enfermedad",
+    serviceSlugs: ["consulta-enfermedad-particular", "consulta-enfermedad-fonasa"],
     title: "Control por enfermedad",
     icon: Stethoscope,
     color: "#EC4899",
@@ -51,6 +55,7 @@ export const SERVICE_REGISTRY: ServiceMeta[] = [
   },
   {
     slug: "telemedicina",
+    serviceSlugs: ["control-nino-sano-online", "consulta-enfermedad-particular-online"],
     title: "Telemedicina",
     icon: Video,
     color: "#7C3AED",
@@ -60,6 +65,7 @@ export const SERVICE_REGISTRY: ServiceMeta[] = [
   },
   {
     slug: "asesoria-lactancia",
+    serviceSlugs: ["asesoria-lactancia"],
     title: "Asesoría de lactancia",
     icon: HeartHandshake,
     color: "#CA8A04",
@@ -69,6 +75,7 @@ export const SERVICE_REGISTRY: ServiceMeta[] = [
   },
   {
     slug: "alimentacion-infantil",
+    serviceSlugs: ["alimentacion-infantil"],
     title: "Alimentación infantil",
     icon: Apple,
     color: "#10B981",
@@ -78,6 +85,7 @@ export const SERVICE_REGISTRY: ServiceMeta[] = [
   },
   {
     slug: "sueno-desarrollo",
+    serviceSlugs: ["sueno-desarrollo"],
     title: "Sueño y desarrollo",
     icon: Moon,
     color: "#2563EB",
@@ -87,6 +95,7 @@ export const SERVICE_REGISTRY: ServiceMeta[] = [
   },
   {
     slug: "medicina-integrativa",
+    serviceSlugs: ["medicina-integrativa"],
     title: "Medicina integrativa",
     icon: Leaf,
     color: "#EA580C",
@@ -96,6 +105,7 @@ export const SERVICE_REGISTRY: ServiceMeta[] = [
   },
   {
     slug: "rcp-infantil",
+    serviceSlugs: ["rcp-infantil"],
     title: "RCP infantil",
     icon: Activity,
     color: "#DC2626",

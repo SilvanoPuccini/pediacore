@@ -7,8 +7,15 @@ import {
   Info,
   ChevronRight,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import api from "@/lib/api";
+import type { Service } from "@/types/api";
 import SEOHead from "@/components/seo/SEOHead";
-import { getRelatedServices } from "./serviceRegistry";
+import { getRelatedServices, SERVICE_REGISTRY } from "./serviceRegistry";
+
+function formatCLP(amount: number): string {
+  return "$" + amount.toLocaleString("es-CL");
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -196,6 +203,28 @@ export default function ServiceDetailPage({
 }: ServiceDetailPageProps) {
   const pageRef = useReveal();
 
+  // Fetch real prices from public API
+  const { data: apiServices } = useQuery<Service[]>({
+    queryKey: ["public-services"],
+    queryFn: async () => {
+      const res = await api.get<{ results: Service[] }>("/practices/dra-estefi/services/");
+      return res.data.results;
+    },
+    staleTime: 1000 * 60 * 10,
+  });
+
+  // Look up registry entry to get DB slugs for this page
+  const registryEntry = SERVICE_REGISTRY.find((s) => s.slug === slug);
+  const dbSlugs = registryEntry?.serviceSlugs ?? [slug];
+
+  // Find matching API services and use the lowest price
+  const matchingServices = apiServices?.filter((s) => dbSlugs.includes(s.slug)) ?? [];
+  const apiPrice = matchingServices.length > 0
+    ? formatCLP(Math.min(...matchingServices.map((s) => s.price_clp)))
+    : null;
+
+  const displayPrice = apiPrice ?? price;
+
   const computedRelated = relatedServices ?? getRelatedServices(slug).map((s) => ({
     slug: s.slug,
     title: s.title,
@@ -367,7 +396,7 @@ export default function ServiceDetailPage({
                     className="font-display text-[28px] font-semibold leading-none mb-1"
                     style={{ color: "var(--teal-dark)" }}
                   >
-                    {price}
+                    {displayPrice}
                   </p>
                   <p className="text-[12px] text-[var(--ink3)]">{priceSub}</p>
                 </div>

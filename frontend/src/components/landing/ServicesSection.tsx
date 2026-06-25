@@ -106,10 +106,14 @@ export default function ServicesSection() {
     staleTime: 1000 * 60 * 10,
   });
 
-  // Only show services whose slug appears in the active API list.
+  // Show services where ANY of their DB slugs are active in the API.
   // Fallback to full registry if the API hasn't loaded or failed.
   const activeServices = apiServices
-    ? SERVICE_REGISTRY.filter((s) => apiServices.some((a) => a.slug === s.slug))
+    ? SERVICE_REGISTRY.filter((s) =>
+        s.serviceSlugs.some((dbSlug) =>
+          apiServices.some((a) => a.slug === dbSlug && a.is_active)
+        )
+      )
     : SERVICE_REGISTRY;
 
   return (
