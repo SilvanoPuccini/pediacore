@@ -73,15 +73,30 @@ class BlogPost(BaseModel):
     # Domain actions
     # ------------------------------------------------------------------
 
+    def save(self, *args, **kwargs):
+        if self.is_published:
+            if self.published_at is None:
+                self.published_at = timezone.now()
+                update_fields = kwargs.get("update_fields")
+                if update_fields is not None and "published_at" not in update_fields:
+                    kwargs["update_fields"] = list(update_fields) + ["published_at"]
+            if self.post_number is None:
+                last = (
+                    BlogPost.objects.filter(post_number__isnull=False)
+                    .order_by("-post_number")
+                    .values_list("post_number", flat=True)
+                    .first()
+                )
+                self.post_number = (last or 0) + 1
+                update_fields = kwargs.get("update_fields")
+                if update_fields is not None and "post_number" not in update_fields:
+                    kwargs["update_fields"] = list(update_fields) + ["post_number"]
+        super().save(*args, **kwargs)
+
     def publish(self) -> None:
-        """Mark this post as published. Sets published_at and post_number on first publish."""
+        """Mark this post as published. published_at and post_number are set by save()."""
         self.is_published = True
-        if self.published_at is None:
-            self.published_at = timezone.now()
-        if self.post_number is None:
-            last = BlogPost.objects.filter(post_number__isnull=False).order_by("-post_number").values_list("post_number", flat=True).first()
-            self.post_number = (last or 0) + 1
-        self.save(update_fields=["is_published", "published_at", "post_number", "updated_at"])
+        self.save(update_fields=["is_published", "updated_at"])
 
     def unpublish(self) -> None:
         """Retract this post from public visibility."""
@@ -302,20 +317,30 @@ class VideoResource(BaseModel):
     def __str__(self) -> str:
         return self.title
 
+    def save(self, *args, **kwargs):
+        if self.is_published:
+            if self.published_at is None:
+                self.published_at = timezone.now()
+                update_fields = kwargs.get("update_fields")
+                if update_fields is not None and "published_at" not in update_fields:
+                    kwargs["update_fields"] = list(update_fields) + ["published_at"]
+            if self.video_number is None:
+                last = (
+                    VideoResource.objects.filter(video_number__isnull=False)
+                    .order_by("-video_number")
+                    .values_list("video_number", flat=True)
+                    .first()
+                )
+                self.video_number = (last or 0) + 1
+                update_fields = kwargs.get("update_fields")
+                if update_fields is not None and "video_number" not in update_fields:
+                    kwargs["update_fields"] = list(update_fields) + ["video_number"]
+        super().save(*args, **kwargs)
+
     def publish(self) -> None:
-        """Mark this video as published. Sets published_at and video_number on first publish."""
+        """Mark this video as published. published_at and video_number are set by save()."""
         self.is_published = True
-        if self.published_at is None:
-            self.published_at = timezone.now()
-        if self.video_number is None:
-            last = (
-                VideoResource.objects.filter(video_number__isnull=False)
-                .order_by("-video_number")
-                .values_list("video_number", flat=True)
-                .first()
-            )
-            self.video_number = (last or 0) + 1
-        self.save(update_fields=["is_published", "published_at", "video_number", "updated_at"])
+        self.save(update_fields=["is_published", "updated_at"])
 
     def unpublish(self) -> None:
         """Retract this video from public visibility."""
