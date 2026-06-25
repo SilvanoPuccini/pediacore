@@ -1,10 +1,8 @@
 import { useState } from "react";
 import { useCreatePatient } from "../hooks/useBookingMutations";
+import { usePractice } from "../hooks/useBookingQueries";
 import { useBookingStore } from "../store/bookingStore";
 import type { PatientCreate, DocumentType } from "@/types/api";
-
-// Single practice for TFM
-const PRACTICE_ID = 1;
 
 const DOCUMENT_TYPE_OPTIONS: { value: DocumentType; label: string }[] = [
   { value: "RUT", label: "RUT (Chile)" },
@@ -29,6 +27,7 @@ interface InlinePatientFormProps {
 
 export default function InlinePatientForm({ onSuccess, onCancel }: InlinePatientFormProps = {}) {
   const { setPatient } = useBookingStore();
+  const { data: practice, isLoading: practiceLoading } = usePractice();
   const createPatientMutation = useCreatePatient();
 
   const [firstName, setFirstName] = useState("");
@@ -67,8 +66,10 @@ export default function InlinePatientForm({ onSuccess, onCancel }: InlinePatient
     }
     setErrors({});
 
+    if (!practice?.id) return;
+
     const payload: PatientCreate = {
-      practice: PRACTICE_ID,
+      practice: practice.id,
       first_name: firstName.trim(),
       last_name: lastName.trim(),
       date_of_birth: dateOfBirth,
@@ -281,7 +282,7 @@ export default function InlinePatientForm({ onSuccess, onCancel }: InlinePatient
 
         <button
           type="submit"
-          disabled={createPatientMutation.isPending}
+          disabled={createPatientMutation.isPending || practiceLoading}
           className="w-full bg-teal-dark text-white rounded-[10px] px-4 py-2.5 font-semibold text-[13px] transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-cta)] disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-y-0"
         >
           {createPatientMutation.isPending ? "Guardando…" : "Agregar paciente"}

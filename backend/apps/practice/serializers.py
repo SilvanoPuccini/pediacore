@@ -12,6 +12,8 @@ from apps.practice.models import BlockedSlot, Location, Practice, Service, Worki
 class PracticeSerializer(serializers.ModelSerializer):
     """Read-only serializer for public practice detail."""
 
+    owner_id = serializers.IntegerField(source="owner.id", read_only=True)
+
     class Meta:
         model = Practice
         fields = [
@@ -25,6 +27,7 @@ class PracticeSerializer(serializers.ModelSerializer):
             "website",
             "is_active",
             "is_online_enabled",
+            "owner_id",
             "created_at",
             "updated_at",
         ]

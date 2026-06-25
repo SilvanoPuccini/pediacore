@@ -137,7 +137,7 @@ export const useBookingStore = create<BookingStore>()(
       reset: () => set(initialState),
     }),
     {
-      name: "booking-store",
+      name: "booking-store-v2",
       partialize: (state) => ({
         locationId: state.locationId,
         serviceId: state.serviceId,
