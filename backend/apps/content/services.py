@@ -267,88 +267,113 @@ def send_blog_notification(blog_post_pk: int) -> None:
         if greeting:
             greeting_html = (
                 f'<p style="font-family:{_FONT_STACK};color:#2C2C2C;font-size:15px;'
-                f'line-height:1.6;margin:0 0 6px;">Hola <strong>{greeting}</strong>,</p>'
+                f'line-height:1.6;margin:0 0 4px;">Hola <strong>{greeting}</strong>,</p>'
+            )
+
+        # Edition header
+        edition_html = ""
+        if blog_post.post_number:
+            edition_html = (
+                f'<p style="font-family:{_FONT_STACK};font-size:11px;font-weight:700;'
+                f'letter-spacing:2px;text-transform:uppercase;color:#4A8590;margin:0 0 6px;'
+                f'text-align:center;">Newsletter</p>'
+                f'<p style="font-family:{_DISPLAY_FONT};font-size:28px;font-weight:600;'
+                f'color:#2C2C2C;margin:0 0 4px;text-align:center;">'
+                f'Edici&oacute;n #{blog_post.post_number}</p>'
             )
 
         body_html = f"""
             <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+
+                <!-- Edition header -->
+                {'<tr><td style="padding:0 0 20px;text-align:center;" bgcolor="#FFFFFF">' + edition_html + '</td></tr>' if edition_html else ''}
+
+                <!-- Gradient divider -->
+                <tr>
+                    <td style="padding:0 0 24px;" bgcolor="#FFFFFF">
+                        <div style="height:2px;background:linear-gradient(to right,#E8F5F3,#4A8590,#E8F5F3);"></div>
+                    </td>
+                </tr>
+
                 <!-- Greeting + intro -->
                 <tr>
                     <td style="padding:0 0 20px;" bgcolor="#FFFFFF">
                         {greeting_html}
                         <p style="font-family:{_FONT_STACK};color:#6B7280;font-size:14px;line-height:1.6;margin:0;">
-                            Hay un nuevo art&iacute;culo en el blog que puede interesarte:
+                            &iexcl;Tenemos un nuevo art&iacute;culo para vos!
                         </p>
                     </td>
                 </tr>
 
-                <!-- Divider -->
-                <tr>
-                    <td style="padding:0 0 24px;" bgcolor="#FFFFFF">
-                        <div style="height:1px;background:linear-gradient(to right,#E8F5F3,#4A8590,#E8F5F3);"></div>
-                    </td>
-                </tr>
-
-                <!-- Cover image -->
-                {cover_html}
-
-                <!-- Number badge + tags row -->
-                <tr>
-                    <td style="padding:0 0 14px;" bgcolor="#FFFFFF">
-                        {number_label}
-                        {f'&nbsp;&nbsp;' if number_label and tags_html else ''}
-                        {tags_html}
-                    </td>
-                </tr>
-
-                <!-- Title -->
-                <tr>
-                    <td style="padding:0 0 8px;" bgcolor="#FFFFFF">
-                        <a href="{post_url}" style="text-decoration:none;">
-                            <h2 style="margin:0;font-family:{_DISPLAY_FONT};font-size:24px;
-                                       color:#2C2C2C;line-height:1.3;font-weight:700;">
-                                {blog_post.title}
-                            </h2>
-                        </a>
-                    </td>
-                </tr>
-
-                <!-- Date -->
-                <tr>
-                    <td style="padding:0 0 20px;" bgcolor="#FFFFFF">
-                        {date_html}
-                    </td>
-                </tr>
-
-                <!-- Excerpt -->
-                <tr>
-                    <td style="padding:0;" bgcolor="#FFFFFF">
-                        {excerpt_html}
-                    </td>
-                </tr>
-
-                <!-- CTA -->
+                <!-- Article card -->
                 <tr>
                     <td style="padding:0 0 28px;" bgcolor="#FFFFFF">
-                        <table role="presentation" cellpadding="0" cellspacing="0">
+                        <table role="presentation" cellpadding="0" cellspacing="0" width="100%"
+                               style="border:1px solid #E5E7EB;border-radius:12px;overflow:hidden;background-color:#FAFAFA;"
+                               bgcolor="#FAFAFA">
+
+                            <!-- Cover image inside card -->
+                            {'<tr><td style="padding:0;" bgcolor="#FAFAFA"><a href="' + post_url + '" style="text-decoration:none;"><img src="' + _DOMAIN + blog_post.cover_image.url + '" alt="' + blog_post.title + '" width="520" style="display:block;width:100%;height:auto;border-radius:12px 12px 0 0;" /></a></td></tr>' if blog_post.cover_image else ''}
+
+                            <!-- Card body -->
                             <tr>
-                                <td style="border-radius:8px; background-color:#4A8590;">
-                                    <a href="{post_url}"
-                                       style="display:inline-block; padding:14px 32px; color:#FFFFFF;
-                                              font-family:{_FONT_STACK}; font-size:15px; font-weight:600;
-                                              text-decoration:none; border-radius:8px;">
-                                        Leer art&iacute;culo completo &rarr;
+                                <td style="padding:24px 28px 28px;" bgcolor="#FAFAFA">
+
+                                    <!-- Number badge — centered, prominent -->
+                                    {'<p style="text-align:center;margin:0 0 16px;"><span style="display:inline-block;background-color:#4A8590;color:#FFFFFF;font-family:' + _FONT_STACK + ';font-size:13px;font-weight:700;padding:6px 20px;border-radius:24px;letter-spacing:1.5px;text-transform:uppercase;">Art&iacute;culo #' + str(blog_post.post_number) + '</span></p>' if blog_post.post_number else ''}
+
+                                    <!-- Tags -->
+                                    {'<p style="margin:0 0 14px;">' + tags_html + '</p>' if tags_html else ''}
+
+                                    <!-- Title -->
+                                    <a href="{post_url}" style="text-decoration:none;">
+                                        <h2 style="margin:0 0 10px;font-family:{_DISPLAY_FONT};font-size:26px;
+                                                   color:#2C2C2C;line-height:1.3;font-weight:600;">
+                                            {blog_post.title}
+                                        </h2>
                                     </a>
+
+                                    <!-- Date + byline -->
+                                    <p style="margin:0 0 18px;">
+                                        {date_html}
+                                        {'&nbsp;&middot;&nbsp;<span style="font-family:' + _FONT_STACK + ';font-size:12px;color:#9CA3AF;">Por Dra. Estefan&iacute;a Ortigosa &mdash; Pediatra</span>' if date_html else '<span style="font-family:' + _FONT_STACK + ';font-size:12px;color:#9CA3AF;">Por Dra. Estefan&iacute;a Ortigosa &mdash; Pediatra</span>'}
+                                    </p>
+
+                                    <!-- Excerpt -->
+                                    {excerpt_html}
+
+                                    <!-- CTA button -->
+                                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                                        <tr>
+                                            <td style="text-align:center;padding:8px 0 0;">
+                                                <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;">
+                                                    <tr>
+                                                        <td style="border-radius:10px;background-color:#4A8590;
+                                                                   border-bottom:3px solid #3A6F7A;">
+                                                            <a href="{post_url}"
+                                                               style="display:inline-block;padding:16px 48px;color:#FFFFFF;
+                                                                      font-family:{_FONT_STACK};font-size:15px;font-weight:700;
+                                                                      text-decoration:none;border-radius:10px;
+                                                                      letter-spacing:0.3px;">
+                                                                Leer art&iacute;culo completo &rarr;
+                                                            </a>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                    </table>
+
                                 </td>
                             </tr>
                         </table>
                     </td>
                 </tr>
 
-                <!-- Divider -->
+                <!-- Gradient divider -->
                 <tr>
                     <td style="padding:0 0 20px;" bgcolor="#FFFFFF">
-                        <div style="height:1px;background-color:#E5E7EB;"></div>
+                        <div style="height:1px;background:linear-gradient(to right,#E8F5F3,#4A8590,#E8F5F3);"></div>
                     </td>
                 </tr>
 
@@ -439,7 +464,7 @@ def send_video_notification(video_pk: int) -> None:
 
     def _build_html(subscriber: Subscriber) -> str:
         unsubscribe_url = get_unsubscribe_url(subscriber.email)
-        video_url = f"{_DOMAIN}/videos"
+        video_url = f"{_DOMAIN}/videos/{video.slug}"
         greeting = f"{subscriber.name}" if subscriber.name else ""
 
         # Video number badge
@@ -477,7 +502,7 @@ def send_video_notification(video_pk: int) -> None:
             thumbnail_html = (
                 f'<tr><td style="padding:0;" bgcolor="#FFFFFF">'
                 f'<div style="position:relative;text-align:center;">'
-                f'<a href="{video.youtube_url}" style="text-decoration:none;">'
+                f'<a href="{video_url}" style="text-decoration:none;">'
                 f'<img src="{thumbnail_url}" alt="{video.title}" '
                 f'width="520" style="display:block;width:100%;max-width:520px;height:auto;'
                 f'border-radius:10px;margin:0 auto;" />'
@@ -549,7 +574,7 @@ def send_video_notification(video_pk: int) -> None:
                 <!-- Title -->
                 <tr>
                     <td style="padding:0 0 8px;" bgcolor="#FFFFFF">
-                        <a href="{video.youtube_url}" style="text-decoration:none;">
+                        <a href="{video_url}" style="text-decoration:none;">
                             <h2 style="margin:0;font-family:{_DISPLAY_FONT};font-size:24px;
                                        color:#2C2C2C;line-height:1.3;font-weight:700;">
                                 {video.title}
@@ -578,11 +603,11 @@ def send_video_notification(video_pk: int) -> None:
                         <table role="presentation" cellpadding="0" cellspacing="0">
                             <tr>
                                 <td style="border-radius:8px; background-color:#C026D3;">
-                                    <a href="{video.youtube_url}"
+                                    <a href="{video_url}"
                                        style="display:inline-block; padding:14px 32px; color:#FFFFFF;
                                               font-family:{_FONT_STACK}; font-size:15px; font-weight:600;
                                               text-decoration:none; border-radius:8px;">
-                                        &#9654;&nbsp; Ver video en YouTube
+                                        &#9654;&nbsp; Ver video
                                     </a>
                                 </td>
                             </tr>
@@ -593,7 +618,7 @@ def send_video_notification(video_pk: int) -> None:
                 <!-- Divider -->
                 <tr>
                     <td style="padding:0 0 20px;" bgcolor="#FFFFFF">
-                        <div style="height:1px;background-color:#E5E7EB;"></div>
+                        <div style="height:1px;background:linear-gradient(to right,#F3E8F5,#C026D3,#F3E8F5);"></div>
                     </td>
                 </tr>
 
@@ -603,7 +628,7 @@ def send_video_notification(video_pk: int) -> None:
                         <p style="font-family:{_FONT_STACK};font-size:13px;color:#6B7280;margin:0 0 4px;">
                             &iquest;Quer&eacute;s ver m&aacute;s?
                         </p>
-                        <a href="{video_url}"
+                        <a href="{_DOMAIN}/videos"
                            style="font-family:{_FONT_STACK};font-size:13px;color:#C026D3;
                                   font-weight:600;text-decoration:none;">
                             Visit&aacute; la videoteca &rarr;
