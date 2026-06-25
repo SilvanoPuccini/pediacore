@@ -98,6 +98,7 @@ def _calendar_card_html(slot_date: _dt.date | None, slot_time: _dt.time | None =
                         <td style="padding:0 0 20px;" bgcolor="#FFFFFF">
                             <table role="presentation" cellpadding="0" cellspacing="0"
                                    style="margin:0 auto; border-radius:16px; overflow:hidden;
+                                          border:2px solid #1F2228;
                                           box-shadow:0 2px 12px rgba(74,133,144,0.15);"
                                    width="160">
                                 <!-- Month banner -->
@@ -2139,6 +2140,7 @@ def send_waitlist_offer_email(
                         <td style="padding:0 0 24px;" bgcolor="#FFFFFF">
                             <table role="presentation" cellpadding="0" cellspacing="0"
                                    style="margin:0 auto; border-radius:16px; overflow:hidden;
+                                          border:2px solid #1F2228;
                                           box-shadow:0 2px 12px rgba(74,133,144,0.15);"
                                    width="200">
                                 <!-- Month banner -->

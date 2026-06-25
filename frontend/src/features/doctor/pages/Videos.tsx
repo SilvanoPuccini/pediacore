@@ -263,7 +263,7 @@ export default function VideosPage() {
       category: form.category,
       duration_seconds: form.duration_seconds,
       chapters,
-      thumbnail: form.thumbnail || null,
+      thumbnail: form.thumbnail.trim(),
     };
     saveMutation.mutate(payload);
   }

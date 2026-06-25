@@ -281,7 +281,7 @@ class VideoResource(BaseModel):
         blank=True,
         help_text=_("List of {time_seconds, label} objects"),
     )
-    thumbnail = models.ImageField(_("thumbnail"), upload_to="videos/thumbnails/", blank=True)
+    thumbnail = models.URLField(_("thumbnail"), blank=True, default="")
     video_number = models.PositiveIntegerField(
         _("video number"),
         null=True,

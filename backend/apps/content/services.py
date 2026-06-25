@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING
 from django.conf import settings
 
 if TYPE_CHECKING:
-    from apps.content.models import BlogPost, Subscriber
+    from apps.content.models import BlogPost, Subscriber, VideoResource
 
 logger = logging.getLogger(__name__)
 
@@ -198,60 +198,174 @@ def send_blog_notification(blog_post: BlogPost) -> None:
 
     def _build_html(subscriber: Subscriber) -> str:
         unsubscribe_url = get_unsubscribe_url(subscriber.email)
-        tag_html = ""
-        if blog_post.tags:
-            first_tag = blog_post.tags.split(",")[0].strip()
-            tag_html = (
-                f'<span style="display:inline-block;background-color:#E8F5F3;'
-                f'color:#1E7A6E;font-family:{_FONT_STACK};font-size:12px;font-weight:600;padding:4px 12px;'
-                f'border-radius:20px;text-transform:uppercase;letter-spacing:0.5px;">'
-                f"{first_tag}</span><br/><br/>"
+        post_url = f"{_DOMAIN}/blog/{blog_post.slug}"
+        greeting = f"{subscriber.name}" if subscriber.name else ""
+
+        # Article number badge
+        number_label = ""
+        if blog_post.post_number:
+            number_label = (
+                f'<span style="display:inline-block;background-color:#4A8590;color:#FFFFFF;'
+                f"font-family:{_FONT_STACK};font-size:11px;font-weight:700;padding:4px 14px;"
+                f'border-radius:20px;letter-spacing:1px;text-transform:uppercase;">'
+                f"Art&iacute;culo #{blog_post.post_number}</span>"
             )
 
+        # Tags
+        tags_html = ""
+        if blog_post.tags:
+            tag_spans = []
+            for tag in blog_post.tags.split(",")[:3]:
+                tag = tag.strip()
+                if tag:
+                    tag_spans.append(
+                        f'<span style="display:inline-block;background-color:#E8F5F3;'
+                        f"color:#1E7A6E;font-family:{_FONT_STACK};font-size:11px;font-weight:600;"
+                        f'padding:3px 10px;border-radius:14px;margin-right:6px;">'
+                        f"{tag}</span>"
+                    )
+            if tag_spans:
+                tags_html = "".join(tag_spans)
+
+        # Cover image
+        cover_html = ""
+        if blog_post.cover_image:
+            cover_html = (
+                f'<tr><td style="padding:0;" bgcolor="#FFFFFF">'
+                f'<a href="{post_url}" style="text-decoration:none;">'
+                f'<img src="{_DOMAIN}{blog_post.cover_image.url}" alt="{blog_post.title}" '
+                f'width="520" style="display:block;width:100%;max-width:520px;height:auto;'
+                f'border-radius:10px;margin:0 auto;" />'
+                f"</a></td></tr>"
+                f'<tr><td style="padding:16px 0 0;" bgcolor="#FFFFFF"></td></tr>'
+            )
+
+        # Excerpt
         excerpt_html = ""
         if blog_post.excerpt:
             excerpt_html = (
-                f'<p style="margin:0 0 24px;font-family:{_FONT_STACK};font-size:15px;color:#555555;line-height:1.7;">'
-                f"{blog_post.excerpt}</p>"
+                f'<p style="margin:0 0 28px;font-family:{_FONT_STACK};font-size:15px;'
+                f'color:#555555;line-height:1.7;">{blog_post.excerpt}</p>'
             )
 
-        post_url = f"{_DOMAIN}/blog/{blog_post.slug}"
+        # Published date
+        date_html = ""
+        if blog_post.published_at:
+            from django.utils.formats import date_format as django_date_format
+
+            formatted = django_date_format(blog_post.published_at, "j \\d\\e F, Y")
+            date_html = (
+                f'<span style="font-family:{_FONT_STACK};font-size:12px;color:#9CA3AF;">'
+                f"{formatted}</span>"
+            )
+
+        # Greeting
+        greeting_html = ""
+        if greeting:
+            greeting_html = (
+                f'<p style="font-family:{_FONT_STACK};color:#2C2C2C;font-size:15px;'
+                f'line-height:1.6;margin:0 0 6px;">Hola <strong>{greeting}</strong>,</p>'
+            )
 
         body_html = f"""
             <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                <!-- Greeting + intro -->
                 <tr>
-                    <td style="text-align:center; padding:0 0 24px;" bgcolor="#FFFFFF">
-                        <p style="font-family:{_FONT_STACK}; font-size:12px; text-transform:uppercase;
-                                  letter-spacing:2px; color:#6b7280; font-weight:700; margin:0;">
-                            Nuevo art&iacute;culo
+                    <td style="padding:0 0 20px;" bgcolor="#FFFFFF">
+                        {greeting_html}
+                        <p style="font-family:{_FONT_STACK};color:#6B7280;font-size:14px;line-height:1.6;margin:0;">
+                            Hay un nuevo art&iacute;culo en el blog que puede interesarte:
                         </p>
                     </td>
                 </tr>
-                <tr>
-                    <td style="padding:0 0 32px;" bgcolor="#FFFFFF">
-                        {tag_html}
-                        <h2 style="margin:0 0 16px;font-family:{_DISPLAY_FONT};font-size:22px;color:#2C2C2C;line-height:1.3;font-weight:700;">
-                            {blog_post.title}
-                        </h2>
-                        {excerpt_html}
 
-                        <!-- CTA -->
+                <!-- Divider -->
+                <tr>
+                    <td style="padding:0 0 24px;" bgcolor="#FFFFFF">
+                        <div style="height:1px;background:linear-gradient(to right,#E8F5F3,#4A8590,#E8F5F3);"></div>
+                    </td>
+                </tr>
+
+                <!-- Cover image -->
+                {cover_html}
+
+                <!-- Number badge + tags row -->
+                <tr>
+                    <td style="padding:0 0 14px;" bgcolor="#FFFFFF">
+                        {number_label}
+                        {f'&nbsp;&nbsp;' if number_label and tags_html else ''}
+                        {tags_html}
+                    </td>
+                </tr>
+
+                <!-- Title -->
+                <tr>
+                    <td style="padding:0 0 8px;" bgcolor="#FFFFFF">
+                        <a href="{post_url}" style="text-decoration:none;">
+                            <h2 style="margin:0;font-family:{_DISPLAY_FONT};font-size:24px;
+                                       color:#2C2C2C;line-height:1.3;font-weight:700;">
+                                {blog_post.title}
+                            </h2>
+                        </a>
+                    </td>
+                </tr>
+
+                <!-- Date -->
+                <tr>
+                    <td style="padding:0 0 20px;" bgcolor="#FFFFFF">
+                        {date_html}
+                    </td>
+                </tr>
+
+                <!-- Excerpt -->
+                <tr>
+                    <td style="padding:0;" bgcolor="#FFFFFF">
+                        {excerpt_html}
+                    </td>
+                </tr>
+
+                <!-- CTA -->
+                <tr>
+                    <td style="padding:0 0 28px;" bgcolor="#FFFFFF">
                         <table role="presentation" cellpadding="0" cellspacing="0">
                             <tr>
                                 <td style="border-radius:8px; background-color:#4A8590;">
                                     <a href="{post_url}"
-                                       style="display:inline-block; padding:14px 28px; color:#FFFFFF;
+                                       style="display:inline-block; padding:14px 32px; color:#FFFFFF;
                                               font-family:{_FONT_STACK}; font-size:15px; font-weight:600;
                                               text-decoration:none; border-radius:8px;">
-                                        Leer art&iacute;culo
+                                        Leer art&iacute;culo completo &rarr;
                                     </a>
                                 </td>
                             </tr>
                         </table>
                     </td>
                 </tr>
+
+                <!-- Divider -->
                 <tr>
-                    <td style="text-align:center; padding:0 0 12px;" bgcolor="#FFFFFF">
+                    <td style="padding:0 0 20px;" bgcolor="#FFFFFF">
+                        <div style="height:1px;background-color:#E5E7EB;"></div>
+                    </td>
+                </tr>
+
+                <!-- Blog link -->
+                <tr>
+                    <td style="text-align:center;padding:0 0 12px;" bgcolor="#FFFFFF">
+                        <p style="font-family:{_FONT_STACK};font-size:13px;color:#6B7280;margin:0 0 4px;">
+                            &iquest;Quer&eacute;s leer m&aacute;s?
+                        </p>
+                        <a href="{_DOMAIN}/blog"
+                           style="font-family:{_FONT_STACK};font-size:13px;color:#4A8590;
+                                  font-weight:600;text-decoration:none;">
+                            Visit&aacute; el blog &rarr;
+                        </a>
+                    </td>
+                </tr>
+
+                <!-- Auto-email notice -->
+                <tr>
+                    <td style="text-align:center; padding:8px 0 12px;" bgcolor="#FFFFFF">
                         <p style="font-family:{_FONT_STACK}; font-size:11px; color:#A0A0A0; margin:0;">
                             Este es un correo autom&aacute;tico, por favor no respondas a este mensaje.
                         </p>
@@ -285,3 +399,245 @@ def send_blog_notification(blog_post: BlogPost) -> None:
 
     NewsletterSent.objects.create(blog_post=blog_post, recipients_count=count)
     logger.info("Newsletter sent for post %s to %d subscribers", blog_post.pk, count)
+
+
+# ---------------------------------------------------------------------------
+# Video notification
+# ---------------------------------------------------------------------------
+
+_VIDEO_CATEGORIES: dict[str, str] = {
+    "URGENCIAS": "Urgencias",
+    "LACTANCIA": "Lactancia",
+    "ALIMENTACION": "Alimentaci\u00f3n",
+    "SUENO": "Sue\u00f1o",
+    "PRIMEROS_AUXILIOS": "Primeros auxilios",
+    "DESARROLLO": "Desarrollo",
+    "CONSEJOS": "Consejos",
+}
+
+
+def send_video_notification(video: VideoResource) -> None:
+    """
+    Send a video notification to all active subscribers.
+
+    Same dispatch logic as blog notifications: async for large lists.
+    """
+    from apps.content.models import Subscriber
+    from apps.notifications.services.email_service import send_email
+
+    subscribers = list(Subscriber.objects.filter(status="ACTIVE"))
+    count = len(subscribers)
+
+    if count == 0:
+        logger.info("No active subscribers — skipping notification for video %s", video.pk)
+        return
+
+    def _build_html(subscriber: Subscriber) -> str:
+        unsubscribe_url = get_unsubscribe_url(subscriber.email)
+        video_url = f"{_DOMAIN}/videos"
+        greeting = f"{subscriber.name}" if subscriber.name else ""
+
+        # Video number badge
+        number_label = ""
+        if video.video_number:
+            number_label = (
+                f'<span style="display:inline-block;background-color:#C026D3;color:#FFFFFF;'
+                f"font-family:{_FONT_STACK};font-size:11px;font-weight:700;padding:4px 14px;"
+                f'border-radius:20px;letter-spacing:1px;text-transform:uppercase;">'
+                f"Video #{video.video_number}</span>"
+            )
+
+        # Category badge
+        category_label = _VIDEO_CATEGORIES.get(video.category, video.category)
+        category_html = (
+            f'<span style="display:inline-block;background-color:#E8F5F3;'
+            f"color:#1E7A6E;font-family:{_FONT_STACK};font-size:11px;font-weight:600;"
+            f'padding:3px 10px;border-radius:14px;">'
+            f"{category_label}</span>"
+        )
+
+        # YouTube thumbnail
+        import re
+
+        yt_match = re.search(
+            r"(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/embed/)([a-zA-Z0-9_-]{11})",
+            video.youtube_url,
+        )
+        thumbnail_url = video.thumbnail or ""
+        if not thumbnail_url and yt_match:
+            thumbnail_url = f"https://img.youtube.com/vi/{yt_match.group(1)}/hqdefault.jpg"
+
+        thumbnail_html = ""
+        if thumbnail_url:
+            thumbnail_html = (
+                f'<tr><td style="padding:0;" bgcolor="#FFFFFF">'
+                f'<div style="position:relative;text-align:center;">'
+                f'<a href="{video.youtube_url}" style="text-decoration:none;">'
+                f'<img src="{thumbnail_url}" alt="{video.title}" '
+                f'width="520" style="display:block;width:100%;max-width:520px;height:auto;'
+                f'border-radius:10px;margin:0 auto;" />'
+                f"</a>"
+                f"</div>"
+                f"</td></tr>"
+                f'<tr><td style="padding:16px 0 0;" bgcolor="#FFFFFF"></td></tr>'
+            )
+
+        # Duration
+        duration_html = ""
+        if video.duration_seconds > 0:
+            m, s = divmod(video.duration_seconds, 60)
+            duration_html = (
+                f'<span style="font-family:{_FONT_STACK};font-size:12px;color:#9CA3AF;">'
+                f"&#9654; {m}:{s:02d} min</span>"
+            )
+
+        # Description
+        description_html = ""
+        if video.description:
+            desc = video.description[:200]
+            if len(video.description) > 200:
+                desc += "..."
+            description_html = (
+                f'<p style="margin:0 0 28px;font-family:{_FONT_STACK};font-size:15px;'
+                f'color:#555555;line-height:1.7;">{desc}</p>'
+            )
+
+        # Greeting
+        greeting_html = ""
+        if greeting:
+            greeting_html = (
+                f'<p style="font-family:{_FONT_STACK};color:#2C2C2C;font-size:15px;'
+                f'line-height:1.6;margin:0 0 6px;">Hola <strong>{greeting}</strong>,</p>'
+            )
+
+        body_html = f"""
+            <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                <!-- Greeting + intro -->
+                <tr>
+                    <td style="padding:0 0 20px;" bgcolor="#FFFFFF">
+                        {greeting_html}
+                        <p style="font-family:{_FONT_STACK};color:#6B7280;font-size:14px;line-height:1.6;margin:0;">
+                            Hay un nuevo video en la videoteca que puede interesarte:
+                        </p>
+                    </td>
+                </tr>
+
+                <!-- Divider -->
+                <tr>
+                    <td style="padding:0 0 24px;" bgcolor="#FFFFFF">
+                        <div style="height:1px;background:linear-gradient(to right,#F3E8F5,#C026D3,#F3E8F5);"></div>
+                    </td>
+                </tr>
+
+                <!-- Thumbnail -->
+                {thumbnail_html}
+
+                <!-- Number badge + category -->
+                <tr>
+                    <td style="padding:0 0 14px;" bgcolor="#FFFFFF">
+                        {number_label}
+                        {f'&nbsp;&nbsp;' if number_label else ''}
+                        {category_html}
+                    </td>
+                </tr>
+
+                <!-- Title -->
+                <tr>
+                    <td style="padding:0 0 8px;" bgcolor="#FFFFFF">
+                        <a href="{video.youtube_url}" style="text-decoration:none;">
+                            <h2 style="margin:0;font-family:{_DISPLAY_FONT};font-size:24px;
+                                       color:#2C2C2C;line-height:1.3;font-weight:700;">
+                                {video.title}
+                            </h2>
+                        </a>
+                    </td>
+                </tr>
+
+                <!-- Duration -->
+                <tr>
+                    <td style="padding:0 0 20px;" bgcolor="#FFFFFF">
+                        {duration_html}
+                    </td>
+                </tr>
+
+                <!-- Description -->
+                <tr>
+                    <td style="padding:0;" bgcolor="#FFFFFF">
+                        {description_html}
+                    </td>
+                </tr>
+
+                <!-- CTA -->
+                <tr>
+                    <td style="padding:0 0 28px;" bgcolor="#FFFFFF">
+                        <table role="presentation" cellpadding="0" cellspacing="0">
+                            <tr>
+                                <td style="border-radius:8px; background-color:#C026D3;">
+                                    <a href="{video.youtube_url}"
+                                       style="display:inline-block; padding:14px 32px; color:#FFFFFF;
+                                              font-family:{_FONT_STACK}; font-size:15px; font-weight:600;
+                                              text-decoration:none; border-radius:8px;">
+                                        &#9654;&nbsp; Ver video en YouTube
+                                    </a>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <!-- Divider -->
+                <tr>
+                    <td style="padding:0 0 20px;" bgcolor="#FFFFFF">
+                        <div style="height:1px;background-color:#E5E7EB;"></div>
+                    </td>
+                </tr>
+
+                <!-- Videoteca link -->
+                <tr>
+                    <td style="text-align:center;padding:0 0 12px;" bgcolor="#FFFFFF">
+                        <p style="font-family:{_FONT_STACK};font-size:13px;color:#6B7280;margin:0 0 4px;">
+                            &iquest;Quer&eacute;s ver m&aacute;s?
+                        </p>
+                        <a href="{video_url}"
+                           style="font-family:{_FONT_STACK};font-size:13px;color:#C026D3;
+                                  font-weight:600;text-decoration:none;">
+                            Visit&aacute; la videoteca &rarr;
+                        </a>
+                    </td>
+                </tr>
+
+                <!-- Auto-email notice -->
+                <tr>
+                    <td style="text-align:center; padding:8px 0 12px;" bgcolor="#FFFFFF">
+                        <p style="font-family:{_FONT_STACK}; font-size:11px; color:#A0A0A0; margin:0;">
+                            Este es un correo autom&aacute;tico, por favor no respondas a este mensaje.
+                        </p>
+                    </td>
+                </tr>
+            </table>
+"""
+
+        return _email_shell(f"Nuevo video — {video.title}", body_html, unsubscribe_url)
+
+    subject = f"Nuevo video: {video.title}"
+
+    if count > 10:
+        from django_q.tasks import async_task
+
+        for subscriber in subscribers:
+            html_body = _build_html(subscriber)
+            async_task(
+                "apps.notifications.services.email_service.send_email",
+                subscriber.email,
+                subject,
+                html_body,
+            )
+    else:
+        for subscriber in subscribers:
+            html_body = _build_html(subscriber)
+            try:
+                send_email(to=subscriber.email, subject=subject, html_body=html_body)
+            except Exception:
+                logger.exception("Failed to send video notification to %s", subscriber.email)
+
+    logger.info("Video notification sent for video %s to %d subscribers", video.pk, count)
