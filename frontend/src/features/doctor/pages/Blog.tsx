@@ -593,6 +593,9 @@ export default function BlogPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-line">
+                  <th className="px-5 py-3 text-left text-[11.5px] font-semibold text-ink3 uppercase tracking-wide w-[50px]">
+                    N°
+                  </th>
                   <th className="px-5 py-3 text-left text-[11.5px] font-semibold text-ink3 uppercase tracking-wide">
                     Título
                   </th>
@@ -610,6 +613,15 @@ export default function BlogPage() {
               <tbody className="divide-y divide-line/60">
                 {posts.map((post) => (
                   <tr key={post.id} className="hover:bg-bg transition-colors">
+                    <td className="px-5 py-3.5">
+                      {post.post_number != null ? (
+                        <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-teal-dark/10 text-teal-dark text-[11px] font-bold">
+                          {post.post_number}
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-ink3">—</span>
+                      )}
+                    </td>
                     <td className="px-5 py-3.5">
                       <div className="text-[13px] font-semibold text-ink leading-snug">
                         {post.title}

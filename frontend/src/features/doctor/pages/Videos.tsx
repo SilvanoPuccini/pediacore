@@ -588,6 +588,11 @@ export default function VideosPage() {
                   </div>
 
                   <div className="flex items-center gap-2 flex-wrap">
+                    {video.video_number != null && (
+                      <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-full bg-teal-dark/10 text-teal-dark text-[10px] font-bold">
+                        #{video.video_number}
+                      </span>
+                    )}
                     <CategoryBadge category={video.category} />
                     <span className="text-[11px] text-ink3">
                       {formatDate(video.created_at)}

@@ -178,16 +178,19 @@ def send_welcome_email(subscriber: Subscriber) -> None:
     )
 
 
-def send_blog_notification(blog_post: BlogPost) -> None:
+def send_blog_notification(blog_post_pk: int) -> None:
     """
     Send a blog post notification to all active subscribers.
 
+    Accepts pk (not instance) so django-q2 can serialize safely.
     For more than 10 subscribers, each email is dispatched as an
     individual django-q2 async task to avoid blocking the caller.
     Creates a NewsletterSent record with the final recipients count.
     """
-    from apps.content.models import NewsletterSent, Subscriber
+    from apps.content.models import BlogPost, NewsletterSent, Subscriber
     from apps.notifications.services.email_service import send_email
+
+    blog_post = BlogPost.objects.select_related("author").get(pk=blog_post_pk)
 
     subscribers = list(Subscriber.objects.filter(status="ACTIVE"))
     count = len(subscribers)
@@ -416,14 +419,16 @@ _VIDEO_CATEGORIES: dict[str, str] = {
 }
 
 
-def send_video_notification(video: VideoResource) -> None:
+def send_video_notification(video_pk: int) -> None:
     """
     Send a video notification to all active subscribers.
 
-    Same dispatch logic as blog notifications: async for large lists.
+    Accepts pk (not instance) so django-q2 can serialize safely.
     """
-    from apps.content.models import Subscriber
+    from apps.content.models import Subscriber, VideoResource
     from apps.notifications.services.email_service import send_email
+
+    video = VideoResource.objects.select_related("author").get(pk=video_pk)
 
     subscribers = list(Subscriber.objects.filter(status="ACTIVE"))
     count = len(subscribers)
