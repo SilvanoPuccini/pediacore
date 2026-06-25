@@ -24,6 +24,7 @@ from apps.practice.serializers import (
     LocationSerializer,
     PracticeSerializer,
     PracticeSettingsSerializer,
+    ServiceAdminSerializer,
     ServiceSerializer,
     WorkingHoursSerializer,
 )
@@ -263,6 +264,26 @@ class PracticeSettingsView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+
+class AdminServiceViewSet(viewsets.ModelViewSet):
+    """
+    Admin endpoint. GET all services, PATCH price_clp and is_active.
+
+    GET        /api/v1/admin/services/
+    GET/PATCH  /api/v1/admin/services/<pk>/
+    """
+
+    serializer_class = ServiceAdminSerializer
+    permission_classes = [IsDoctor]
+    http_method_names = ["get", "patch", "head", "options"]
+
+    def get_queryset(self):
+        return (
+            Service.objects.filter(practice=get_practice(self.request.user))
+            .prefetch_related("locations")
+            .order_by("display_order", "name")
+        )
 
 
 class BlockedSlotAdminViewSet(viewsets.ModelViewSet):

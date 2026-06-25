@@ -124,6 +124,56 @@ class ServiceSerializer(serializers.ModelSerializer):
         return obj.get_modality_display()
 
 
+class ServiceAdminSerializer(serializers.ModelSerializer):
+    """Admin serializer — allows updating price_clp and is_active via PATCH."""
+
+    modality_display = serializers.SerializerMethodField()
+    location_names = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Service
+        fields = [
+            "id",
+            "name",
+            "slug",
+            "description",
+            "duration_minutes",
+            "price_clp",
+            "modality",
+            "modality_display",
+            "display_order",
+            "requires_fonasa_validation",
+            "requires_manual_coordination",
+            "is_active",
+            "locations",
+            "location_names",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "name",
+            "slug",
+            "description",
+            "duration_minutes",
+            "modality",
+            "modality_display",
+            "display_order",
+            "requires_fonasa_validation",
+            "requires_manual_coordination",
+            "locations",
+            "location_names",
+            "created_at",
+            "updated_at",
+        ]
+
+    def get_location_names(self, obj: Service) -> list[str]:
+        return list(obj.locations.filter(is_active=True).values_list("name", flat=True))
+
+    def get_modality_display(self, obj: Service) -> str:
+        return obj.get_modality_display()
+
+
 class WorkingHoursSerializer(serializers.ModelSerializer):
     """Serializer for working hours. Includes human-readable day name and location name."""
 

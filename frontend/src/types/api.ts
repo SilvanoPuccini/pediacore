@@ -115,6 +115,7 @@ export interface Location {
 export interface Service {
   id: number;
   name: string;
+  slug: string;
   description: string;
   duration_minutes: number;
   price_clp: number;
@@ -125,6 +126,7 @@ export interface Service {
   display_order: number;
   is_active: boolean;
   locations: number[];
+  location_names?: string[];
 }
 
 export interface AvailableSlot {
