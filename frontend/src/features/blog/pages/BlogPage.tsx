@@ -172,9 +172,6 @@ function FeaturedCard({ post }: { post: BlogPost }) {
         <span className="absolute top-4 left-4 px-3 py-1 rounded-full bg-teal-dark text-white text-[11px] font-bold uppercase tracking-wider">
           Destacado
         </span>
-        <span className="absolute bottom-4 left-4 text-[10px] font-mono uppercase tracking-[0.16em] text-ink2/70">
-          {tag ? `imagen · ${tag.toLowerCase()}` : "imagen"}
-        </span>
       </div>
       <div className="p-6">
         {tag && <TagBadge tag={tag} />}
