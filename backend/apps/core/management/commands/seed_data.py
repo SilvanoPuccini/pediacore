@@ -764,7 +764,7 @@ class Command(BaseCommand):
         ]
 
         for data in posts_data:
-            post, created = BlogPost.objects.get_or_create(
+            post, created = BlogPost.objects.all_with_deleted().get_or_create(
                 slug=data["slug"],
                 defaults={
                     **data,
