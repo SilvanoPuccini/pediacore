@@ -7,7 +7,7 @@ Manages public-facing content: blog posts, static pages, and FAQs.
 from __future__ import annotations
 
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -81,16 +81,20 @@ class BlogPost(BaseModel):
                 if update_fields is not None and "published_at" not in update_fields:
                     kwargs["update_fields"] = list(update_fields) + ["published_at"]
             if self.post_number is None:
-                last = (
-                    BlogPost.objects.filter(post_number__isnull=False)
-                    .order_by("-post_number")
-                    .values_list("post_number", flat=True)
-                    .first()
-                )
-                self.post_number = (last or 0) + 1
                 update_fields = kwargs.get("update_fields")
                 if update_fields is not None and "post_number" not in update_fields:
                     kwargs["update_fields"] = list(update_fields) + ["post_number"]
+                with transaction.atomic():
+                    last = (
+                        BlogPost.objects.select_for_update()
+                        .filter(post_number__isnull=False)
+                        .order_by("-post_number")
+                        .values_list("post_number", flat=True)
+                        .first()
+                    )
+                    self.post_number = (last or 0) + 1
+                    super().save(*args, **kwargs)
+                return
         super().save(*args, **kwargs)
 
     def publish(self) -> None:

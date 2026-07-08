@@ -238,7 +238,9 @@ Q_CLUSTER = {
     "name": "pediacore",
     "workers": 2,
     "recycle": 500,
-    "timeout": 60,
+    "timeout": 90,
+    "retry": 120,
+    "max_attempts": 3,
     "compress": True,
     "save_limit": 250,
     "queue_limit": 500,
@@ -557,5 +559,12 @@ LOGGING = {
     "root": {
         "handlers": ["console"],
         "level": "INFO",
+    },
+    "loggers": {
+        "django.security.DisallowedHost": {
+            "handlers": ["console"],
+            "level": "CRITICAL",  # effectively silences WARNING/ERROR from DisallowedHost
+            "propagate": False,
+        },
     },
 }
