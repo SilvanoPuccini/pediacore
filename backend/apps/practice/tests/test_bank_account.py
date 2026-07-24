@@ -35,20 +35,20 @@ class TestPracticeBankAccountFields:
     def test_practice_bank_fields_can_be_set(self):
         """Practice bank fields accept and persist values."""
         practice = PracticeFactory(
-            bank_name="Banco prepago Tenpo",
+            bank_name="Banco Test",
             account_type="Cuenta Vista",
-            account_number="111128625096",
-            account_holder="ESTEFANIA ORTIGOSA",
-            account_rut="28625096-3",
-            account_email="doctora@example.com",
+            account_number="000000000000",
+            account_holder="TITULAR TEST",
+            account_rut="00000000-0",
+            account_email="test@example.com",
         )
         practice.refresh_from_db()
-        assert practice.bank_name == "Banco prepago Tenpo"
+        assert practice.bank_name == "Banco Test"
         assert practice.account_type == "Cuenta Vista"
-        assert practice.account_number == "111128625096"
-        assert practice.account_holder == "ESTEFANIA ORTIGOSA"
-        assert practice.account_rut == "28625096-3"
-        assert practice.account_email == "doctora@example.com"
+        assert practice.account_number == "000000000000"
+        assert practice.account_holder == "TITULAR TEST"
+        assert practice.account_rut == "00000000-0"
+        assert practice.account_email == "test@example.com"
 
     def test_existing_practice_unaffected_by_migration(self):
         """Existing Practice records have empty bank fields after migration."""
@@ -63,11 +63,11 @@ class TestBankDetailsView:
     def test_bank_details_returns_all_six_fields(self):
         """Unauthenticated GET /api/v1/practice/bank-details/ returns 200 with 6 keys."""
         PracticeFactory(
-            bank_name="Tenpo",
+            bank_name="Banco Test",
             account_type="Cuenta Vista",
-            account_number="111128625096",
-            account_holder="ESTEFANIA ORTIGOSA",
-            account_rut="28625096-3",
+            account_number="000000000000",
+            account_holder="TITULAR TEST",
+            account_rut="00000000-0",
             account_email="",
         )
         client = APIClient()
@@ -85,21 +85,21 @@ class TestBankDetailsView:
     def test_bank_details_reflects_practice_model(self):
         """Response values match what was set on the Practice record."""
         PracticeFactory(
-            bank_name="Banco prepago Tenpo",
+            bank_name="Banco Test",
             account_type="Cuenta Vista",
-            account_number="111128625096",
-            account_holder="ESTEFANIA ORTIGOSA",
-            account_rut="28625096-3",
+            account_number="000000000000",
+            account_holder="TITULAR TEST",
+            account_rut="00000000-0",
             account_email="",
         )
         client = APIClient()
         url = reverse("practice:bank-details")
         response = client.get(url)
         data = response.json()
-        assert data["bank_name"] == "Banco prepago Tenpo"
-        assert data["account_number"] == "111128625096"
-        assert data["account_holder"] == "ESTEFANIA ORTIGOSA"
-        assert data["account_rut"] == "28625096-3"
+        assert data["bank_name"] == "Banco Test"
+        assert data["account_number"] == "000000000000"
+        assert data["account_holder"] == "TITULAR TEST"
+        assert data["account_rut"] == "00000000-0"
 
     def test_bank_details_no_practice_returns_empty_strings(self):
         """When no Practice exists, returns 200 with empty strings."""

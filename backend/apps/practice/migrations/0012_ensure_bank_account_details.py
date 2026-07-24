@@ -11,12 +11,12 @@ resilient to PK changes across environments.
 from django.db import migrations
 
 BANK_DETAILS = {
-    "bank_name": "Banco prepago Tenpo",
-    "account_type": "Cuenta Vista",
-    "account_number": "111128625096",
-    "account_holder": "ESTEFANIA ORTIGOSA",
-    "account_rut": "28625096-3",
-    "account_email": "contacto@estefipediatra.com",
+    "bank_name": "Completar con banco",
+    "account_type": "Completar con tipo de cuenta",
+    "account_number": "Completar con número de cuenta",
+    "account_holder": "Completar con nombre titular",
+    "account_rut": "Completar con RUT",
+    "account_email": "Completar con email correspondiente",
 }
 
 

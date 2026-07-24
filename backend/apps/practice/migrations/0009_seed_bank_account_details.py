@@ -11,12 +11,12 @@ def seed_bank_account(apps, schema_editor):
     Practice = apps.get_model("practice", "Practice")
     try:
         practice = Practice.objects.get(pk=1)
-        practice.bank_name = "Banco prepago Tenpo"
-        practice.account_type = "Cuenta Vista"
-        practice.account_number = "111128625096"
-        practice.account_holder = "ESTEFANIA ORTIGOSA"
-        practice.account_rut = "28625096-3"
-        practice.account_email = "estefiortigosa.pediatra@gmail.com"
+        practice.bank_name = "Completar con banco"
+        practice.account_type = "Completar con tipo de cuenta"
+        practice.account_number = "Completar con número de cuenta"
+        practice.account_holder = "Completar con nombre titular"
+        practice.account_rut = "Completar con RUT"
+        practice.account_email = "Completar con email correspondiente"
         practice.save(update_fields=[
             "bank_name",
             "account_type",

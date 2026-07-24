@@ -250,11 +250,11 @@ class TestHoldAppointmentServiceInactive:
 class TestHoldAppointmentTransferPath:
     def _setup(self):
         practice = PracticeFactory(
-            bank_name="Banco prepago Tenpo",
+            bank_name="Banco Test",
             account_type="Cuenta Vista",
-            account_number="111128625096",
-            account_holder="ESTEFANIA ORTIGOSA",
-            account_rut="28625096-3",
+            account_number="000000000000",
+            account_holder="TITULAR TEST",
+            account_rut="00000000-0",
             account_email="",
         )
         location = LocationFactory(practice=practice)

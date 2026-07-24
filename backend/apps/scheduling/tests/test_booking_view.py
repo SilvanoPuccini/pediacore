@@ -328,11 +328,11 @@ class TestConfirmActionAcceptsHold:
 class TestBookingViewTransferPaymentMethod:
     def _setup(self):
         practice = PracticeFactory(
-            bank_name="Banco prepago Tenpo",
+            bank_name="Banco Test",
             account_type="Cuenta Vista",
-            account_number="111128625096",
-            account_holder="ESTEFANIA ORTIGOSA",
-            account_rut="28625096-3",
+            account_number="000000000000",
+            account_holder="TITULAR TEST",
+            account_rut="00000000-0",
             account_email="",
         )
         location = LocationFactory(practice=practice)
@@ -369,8 +369,8 @@ class TestBookingViewTransferPaymentMethod:
         bd = data["bank_details"]
         for key in ("bank_name", "account_type", "account_number", "account_holder", "account_rut", "account_email"):
             assert key in bd, f"Missing bank_details key: {key}"
-        assert bd["bank_name"] == "Banco prepago Tenpo"
-        assert bd["account_number"] == "111128625096"
+        assert bd["bank_name"] == "Banco Test"
+        assert bd["account_number"] == "000000000000"
 
     def test_booking_view_transfer_response_has_transfer_expires_at(self):
         """TRANSFER response includes transfer_expires_at."""

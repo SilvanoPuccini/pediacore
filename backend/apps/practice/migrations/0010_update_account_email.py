@@ -14,7 +14,7 @@ def update_account_email(apps, schema_editor):
     try:
         practice = Practice.objects.get(pk=1)
         if not practice.account_email:
-            practice.account_email = "estefiortigosa.pediatra@gmail.com"
+            practice.account_email = "Completar con email correspondiente"
             practice.save(update_fields=["account_email"])
     except Practice.DoesNotExist:
         pass
@@ -24,7 +24,7 @@ def reverse_update(apps, schema_editor):
     Practice = apps.get_model("practice", "Practice")
     try:
         practice = Practice.objects.get(pk=1)
-        if practice.account_email == "estefiortigosa.pediatra@gmail.com":
+        if practice.account_email == "Completar con email correspondiente":
             practice.account_email = ""
             practice.save(update_fields=["account_email"])
     except Practice.DoesNotExist:
