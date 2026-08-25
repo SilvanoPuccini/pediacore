@@ -164,6 +164,29 @@ start_services() {
 }
 
 # ----------------------------------------------------------------------------
+# Step 5b: SSL auto-renewal cron (idempotent)
+# ----------------------------------------------------------------------------
+# The certbot service in docker-compose.prod.yml is profile-gated and its
+# internal loop never reloads nginx after renewing, so cert files on disk
+# would go stale even if the loop ran. A host cron that renews AND reloads
+# nginx is the simplest fix that doesn't require exposing the Docker socket
+# to the certbot container.
+setup_cert_renewal_cron() {
+    local cron_marker="# pediacore-cert-renewal"
+    local cron_cmd="cd $APP_DIR && docker compose -f docker-compose.prod.yml run --rm certbot renew --quiet && docker compose -f docker-compose.prod.yml exec -T nginx nginx -s reload"
+    local cron_line="0 3 * * * root $cron_cmd $cron_marker"
+
+    if [[ -f /etc/cron.d/pediacore-cert-renewal ]] && grep -qF "$cron_marker" /etc/cron.d/pediacore-cert-renewal; then
+        info "SSL renewal cron already installed — skipping"
+        return 0
+    fi
+
+    info "Installing daily SSL renewal cron (03:00 UTC)..."
+    echo "$cron_line" > /etc/cron.d/pediacore-cert-renewal
+    chmod 644 /etc/cron.d/pediacore-cert-renewal
+}
+
+# ----------------------------------------------------------------------------
 # Step 6: Post-deploy tasks
 # ----------------------------------------------------------------------------
 post_deploy() {
@@ -214,6 +237,7 @@ main() {
     fi
 
     start_services
+    setup_cert_renewal_cron
     post_deploy
     maybe_create_superuser
 
