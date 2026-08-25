@@ -5,6 +5,8 @@ Idempotent — safe to run multiple times.
 Creates a default owner user only if no staff user exists.
 """
 
+import secrets
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
@@ -12,7 +14,6 @@ from django.core.management.base import BaseCommand
 from apps.practice.models import Location, Practice
 
 DEFAULT_OWNER_EMAIL = "estefiortigosa.pediatra@gmail.com"
-DEFAULT_OWNER_PASSWORD = "admin123"  # nosec — dev seed only
 
 PRACTICE_DEFAULTS = {
     "name": "Dra. Estefanía",
@@ -66,13 +67,18 @@ class Command(BaseCommand):
         if owner:
             self.stdout.write(f"  Using existing owner: {owner.email}")
         else:
+            password = getattr(settings, "DEFAULT_OWNER_PASSWORD", None) or secrets.token_urlsafe(16)
             owner = User.objects.create_user(
                 email=DEFAULT_OWNER_EMAIL,
-                password=DEFAULT_OWNER_PASSWORD,
+                password=password,
                 is_staff=True,
                 is_superuser=True,
             )
             self.stdout.write(f"  Created default owner: {owner.email}")
+            if not getattr(settings, "DEFAULT_OWNER_PASSWORD", None):
+                self.stdout.write(self.style.WARNING(
+                    f"  Generated password (save it now, shown only once): {password}"
+                ))
 
         # Practice
         practice, created = Practice.objects.get_or_create(
