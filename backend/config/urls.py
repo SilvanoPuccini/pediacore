@@ -21,9 +21,9 @@ from apps.core.throttles import LoginRateThrottle
 from apps.core.views import CSPReportView
 
 urlpatterns = [
-    path("gestion-9f3a/patients/<int:patient_id>/growth-chart/", patient_growth_chart, name="admin-patient-growth-chart"),
-    path("gestion-9f3a/ckeditor5/", include("django_ckeditor_5.urls")),
-    path("gestion-9f3a/", admin.site.urls),
+    path(f"{settings.ADMIN_URL_PATH}/patients/<int:patient_id>/growth-chart/", patient_growth_chart, name="admin-patient-growth-chart"),
+    path(f"{settings.ADMIN_URL_PATH}/ckeditor5/", include("django_ckeditor_5.urls")),
+    path(f"{settings.ADMIN_URL_PATH}/", admin.site.urls),
     # JWT auth
     path("api/v1/token/", TokenObtainPairView.as_view(throttle_classes=[LoginRateThrottle]), name="token_obtain_pair"),
     path("api/v1/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),

@@ -25,6 +25,6 @@ FROM nginx:alpine
 
 RUN rm -f /etc/nginx/conf.d/default.conf
 
-COPY infra/nginx/nginx.conf /etc/nginx/conf.d/default.conf
+COPY infra/nginx/nginx.conf.template /etc/nginx/templates/default.conf.template
 
 COPY --from=frontend-builder /app/dist /usr/share/nginx/html

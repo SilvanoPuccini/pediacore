@@ -82,6 +82,9 @@ services:
       args:
         VITE_API_URL: /api/v1
         VITE_MP_PUBLIC_KEY: ${VITE_MP_PUBLIC_KEY}
+    environment:
+      ADMIN_URL_PATH: ${ADMIN_URL_PATH}
+      NGINX_ENVSUBST_FILTER: "^ADMIN_URL_PATH$"
     restart: always
     ports:
       - "80:80"

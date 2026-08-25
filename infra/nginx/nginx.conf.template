@@ -136,8 +136,8 @@ server {
     }
 
     # Django Admin — strict rate limit (only 1 user: the doctor)
-    # NOTE: the admin is served at /gestion-9f3a/ (obfuscated path), NOT /admin/
-    location /gestion-9f3a/ {
+    # NOTE: the admin path is env-configured (ADMIN_URL_PATH), NOT /admin/
+    location /${ADMIN_URL_PATH}/ {
         limit_req zone=admin burst=5 nodelay;
         proxy_pass http://backend;
         proxy_set_header Host $host;

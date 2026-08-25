@@ -458,7 +458,7 @@ certbot:        # Renovación SSL automática
 - Ownership checks en datos de pacientes (tutor solo ve sus hijos)
 - Rate limiting: nginx (30 req/min API, 10 req/min login/admin) + DRF throttling
 - DRF browsable API **deshabilitado** en producción
-- Admin en URL obfuscada (`/gestion-9f3a/`)
+- Admin en URL obfuscada (no publicada)
 - Webhook MercadoPago con verificación **HMAC-SHA256** (obligatorio en prod)
 - Validación de uploads: tipo + extensión + tamaño (10MB máx)
 - OpenAPI docs restringidos a staff

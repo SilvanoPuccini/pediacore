@@ -428,7 +428,7 @@ La comprensión técnica profunda del stack (Django, DRF, React, TypeScript, Doc
 - Nginx bloquea archivos sensibles (.env, .git, .sql, .py, backups)
 - PostgreSQL no expuesto externamente (solo red Docker interna)
 - Gunicorn ejecuta como usuario no-root (django)
-- Admin en URL obfuscada (/gestion-9f3a/) con protección axes
+- Admin en URL obfuscada (configurable por variable de entorno) con protección axes
 - Browsable API de DRF deshabilitado en producción
 
 ### 6.7. Auditoría de seguridad realizada

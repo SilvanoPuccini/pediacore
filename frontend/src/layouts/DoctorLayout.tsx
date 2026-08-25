@@ -4,7 +4,6 @@ import {
   Menu,
   X,
   LogOut,
-  ExternalLink,
   Globe,
   LayoutDashboard,
   Calendar,
@@ -459,13 +458,6 @@ export default function DoctorLayout() {
 
         {/* External links + Logout */}
         <div className="px-3 pb-4 shrink-0 space-y-0.5">
-          <a
-            href="/gestion-9f3a/"
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-[13px] font-medium text-ink2 hover:text-ink hover:bg-bg transition-colors"
-          >
-            <ExternalLink size={15} className="shrink-0 text-ink3" />
-            Admin Django
-          </a>
           <a
             href="/"
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-[13px] font-medium text-ink2 hover:text-ink hover:bg-bg transition-colors"

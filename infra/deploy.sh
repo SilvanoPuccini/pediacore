@@ -244,7 +244,7 @@ main() {
     echo ""
     info "=== Deploy complete ==="
     info "Site: https://$DOMAIN"
-    info "Admin: https://$DOMAIN/admin/"
+    info "Admin: https://$DOMAIN/<ADMIN_URL_PATH> (value set in backend/.env — not printed here)"
     info "Logs: docker compose -f docker-compose.prod.yml logs -f"
 }
 
