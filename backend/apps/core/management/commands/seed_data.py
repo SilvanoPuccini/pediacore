@@ -14,6 +14,8 @@ from decimal import Decimal
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
+from apps.core.seed_credentials import apply_seed_password
+
 
 class Command(BaseCommand):
     help = "Populate the database with realistic demo data for PEDIACORE."
@@ -131,7 +133,7 @@ class Command(BaseCommand):
             },
         )
         if created:
-            doctor.set_password("PediaCore2024!")
+            apply_seed_password(doctor)
             doctor.save(update_fields=["password"])
             self.stdout.write(self.style.SUCCESS("  [+] Doctor creado: doctor@estefipediatra.com"))
         else:
@@ -951,7 +953,7 @@ class Command(BaseCommand):
             },
         )
         if created:
-            tutor.set_password("PediaCore2024!")
+            apply_seed_password(tutor)
             tutor.save(update_fields=["password"])
             self.stdout.write(self.style.SUCCESS("  [+] Tutor creado: tutor@demo.com"))
         else:
@@ -1038,7 +1040,7 @@ class Command(BaseCommand):
             },
         )
         if created:
-            tutor.set_password("PediaCore2024!")
+            apply_seed_password(tutor)
             tutor.save(update_fields=["password"])
             self.stdout.write(self.style.SUCCESS("  [+] Tutor creado: javier@demo.com"))
         else:
