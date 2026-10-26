@@ -1,7 +1,7 @@
 -r base.txt
 
 # Testing
-pytest==8.3.4
+pytest==9.1.1
 pytest-django==4.9.0
 factory-boy==3.3.1
 pytest-cov==6.0.0
@@ -9,7 +9,7 @@ freezegun==1.5.1
 
 # Linting & formatting
 ruff==0.8.6
-black==24.10.0
+black==26.10.1
 
 # Dev utilities
 ipython==8.30.0
